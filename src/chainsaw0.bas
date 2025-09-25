@@ -294,6 +294,7 @@ Private Type ConfigSettings
     removeManualLineBreaks As Boolean
     normalizeDosteVariants As Boolean
     normalizeVereadorVariants As Boolean
+    replaceDateLineBeforeVereador As Boolean
     
     ' Visual Elements
     backupAllImages As Boolean
@@ -403,6 +404,111 @@ End Type
 Private originalViewSettings As ViewSettings
 
 '================================================================================
+' UTILITY FUNCTIONS - FUNÇÕES UTILITÁRIAS - #NEW
+'================================================================================
+
+' =============================================================================
+' FUNÇÃO: LogError - Log padronizado de erros com contexto
+' =============================================================================
+' Centraliza o logging de erros para evitar repetição de código
+' Parâmetros: context (String) - contexto onde ocorreu o erro
+'            errorDesc (String) - descrição do erro (opcional, usa Err.Description se vazio)
+' =============================================================================
+Private Sub LogError(context As String, Optional errorDesc As String = "")
+    Dim message As String
+    If Len(errorDesc) = 0 Then
+        message = "Erro em " & context & ": " & Err.Description
+    Else
+        message = "Erro em " & context & ": " & errorDesc
+    End If
+    LogMessage message, LOG_LEVEL_ERROR
+End Sub
+
+' =============================================================================
+' FUNÇÃO: LogInfo - Log padronizado de informações
+' =============================================================================
+Private Sub LogInfo(message As String)
+    LogMessage message, LOG_LEVEL_INFO
+End Sub
+
+' =============================================================================
+' FUNÇÃO: LogDebug - Log padronizado de debug
+' =============================================================================
+Private Sub LogDebug(message As String)
+    LogMessage message, LOG_LEVEL_DEBUG
+End Sub
+
+' =============================================================================
+' FUNÇÃO: LogWarning - Log padronizado de avisos
+' =============================================================================
+Private Sub LogWarning(message As String)
+    LogMessage message, LOG_LEVEL_WARNING
+End Sub
+
+' =============================================================================
+' FUNÇÃO: HandleError - Tratamento padronizado de erros com retorno booleano
+' =============================================================================
+' Centraliza o tratamento de erros para funções que retornam Boolean
+' Parâmetros: context (String) - contexto da função/operação
+'            functionResult (Boolean) - referência para definir o resultado
+' Retorna: Sempre False (para usar em Exit Function)
+' =============================================================================
+Private Function HandleError(context As String, ByRef functionResult As Boolean) As Boolean
+    LogError context
+    functionResult = False
+    HandleError = False
+End Function
+
+' =============================================================================
+' FUNÇÃO: SafeExecute - Execução segura com tratamento de erro padronizado
+' =============================================================================
+' Template para execução segura de operações com tratamento de erro unificado
+' Exemplo de uso:
+' If Not SafeExecute("MinhaOperacao", MinhaFuncaoQueRetornaBool()) Then Exit Function
+' =============================================================================
+Private Function SafeExecute(context As String, operation As Boolean) As Boolean
+    On Error GoTo ErrorHandler
+    SafeExecute = operation
+    Exit Function
+    
+ErrorHandler:
+    LogError context
+    SafeExecute = False
+End Function
+
+' =============================================================================
+' FUNÇÃO: ValidateConfigBoolean - Validação padronizada de configurações boolean
+' =============================================================================
+Private Function ValidateConfigBoolean(configValue As String, defaultValue As Boolean) As Boolean
+    Select Case LCase(Trim(configValue))
+        Case "true", "1", "yes", "sim", "verdadeiro"
+            ValidateConfigBoolean = True
+        Case "false", "0", "no", "não", "nao", "falso"
+            ValidateConfigBoolean = False
+        Case Else
+            ValidateConfigBoolean = defaultValue
+    End Select
+End Function
+
+' =============================================================================
+' FUNÇÃO: ValidateConfigInteger - Validação padronizada de configurações numéricas
+' =============================================================================
+Private Function ValidateConfigInteger(configValue As String, defaultValue As Long, Optional minValue As Long = -2147483648#, Optional maxValue As Long = 2147483647) As Long
+    Dim result As Long
+    
+    If IsNumeric(configValue) Then
+        result = CLng(configValue)
+        If result >= minValue And result <= maxValue Then
+            ValidateConfigInteger = result
+        Else
+            ValidateConfigInteger = defaultValue
+        End If
+    Else
+        ValidateConfigInteger = defaultValue
+    End If
+End Function
+
+'================================================================================
 ' CONFIGURATION SYSTEM - SISTEMA DE CONFIGURAÇÃO - #NEW
 '================================================================================
 
@@ -419,17 +525,17 @@ Private Function LoadConfiguration() As Boolean
     configPath = GetConfigurationFilePath()
     
     If Len(configPath) = 0 Or Dir(configPath) = "" Then
-        LogMessage "Arquivo de configuração não encontrado, usando valores padrão: " & configPath, LOG_LEVEL_WARNING
+        LogWarning "Arquivo de configuração não encontrado, usando valores padrão: " & configPath
         LoadConfiguration = True ' Usa padrões
         Exit Function
     End If
     
     ' Carrega configurações do arquivo
     If ParseConfigurationFile(configPath) Then
-        LogMessage "Configuração carregada com sucesso de: " & configPath, LOG_LEVEL_INFO
+        LogInfo "Configuração carregada com sucesso de: " & configPath
         LoadConfiguration = True
     Else
-        LogMessage "Erro ao carregar configuração, usando valores padrão", LOG_LEVEL_WARNING
+        LogWarning "Erro ao carregar configuração, usando valores padrão"
         SetDefaultConfiguration
         LoadConfiguration = True ' Usa padrões como fallback
     End If
@@ -437,7 +543,7 @@ Private Function LoadConfiguration() As Boolean
     Exit Function
     
 ErrorHandler:
-    LogMessage "Erro ao carregar configuração: " & Err.Description, LOG_LEVEL_ERROR
+    LogError "LoadConfiguration"
     SetDefaultConfiguration
     LoadConfiguration = True ' Continua com padrões
 End Function
@@ -466,6 +572,7 @@ Private Function GetConfigurationFilePath() As String
     Exit Function
     
 ErrorHandler:
+    LogError "GetConfigurationFilePath"
     GetConfigurationFilePath = ""
 End Function
 
@@ -529,6 +636,7 @@ Private Sub SetDefaultConfiguration()
         .removeManualLineBreaks = True
         .normalizeDosteVariants = True
         .normalizeVereadorVariants = True
+        .replaceDateLineBeforeVereador = True
         
         ' Visual Elements
         .backupAllImages = True
@@ -682,68 +790,72 @@ End Sub
 Private Sub ProcessGeneralConfig(key As String, value As String)
     Select Case key
         Case "DEBUG_MODE"
-            Config.debugMode = (LCase(value) = "true")
+            Config.debugMode = ValidateConfigBoolean(value, False)
         Case "PERFORMANCE_MODE"
-            Config.performanceMode = (LCase(value) = "true")
+            Config.performanceMode = ValidateConfigBoolean(value, True)
         Case "COMPATIBILITY_MODE"
-            Config.compatibilityMode = (LCase(value) = "true")
+            Config.compatibilityMode = ValidateConfigBoolean(value, True)
     End Select
 End Sub
 
 Private Sub ProcessValidationConfig(key As String, value As String)
     Select Case key
         Case "CHECK_WORD_VERSION"
-            Config.checkWordVersion = (LCase(value) = "true")
+            Config.checkWordVersion = ValidateConfigBoolean(value, True)
         Case "VALIDATE_DOCUMENT_INTEGRITY"
-            Config.validateDocumentIntegrity = (LCase(value) = "true")
+            Config.validateDocumentIntegrity = ValidateConfigBoolean(value, True)
         Case "VALIDATE_PROPOSITION_TYPE"
-            Config.validatePropositionType = (LCase(value) = "true")
+            Config.validatePropositionType = ValidateConfigBoolean(value, True)
         Case "VALIDATE_CONTENT_CONSISTENCY"
-            Config.validateContentConsistency = (LCase(value) = "true")
+            Config.validateContentConsistency = ValidateConfigBoolean(value, True)
         Case "CHECK_DISK_SPACE"
-            Config.checkDiskSpace = (LCase(value) = "true")
+            Config.checkDiskSpace = ValidateConfigBoolean(value, True)
         Case "MIN_WORD_VERSION"
-            Config.minWordVersion = CDbl(value)
+            If IsNumeric(value) Then
+                Config.minWordVersion = CDbl(value)
+            Else
+                Config.minWordVersion = 14.0 ' Word 2010
+            End If
         Case "MAX_DOCUMENT_SIZE"
-            Config.maxDocumentSize = CLng(value)
+            Config.maxDocumentSize = ValidateConfigInteger(value, 500000, 10000, 10000000)
     End Select
 End Sub
 
 Private Sub ProcessBackupConfig(key As String, value As String)
     Select Case key
         Case "AUTO_BACKUP"
-            Config.autoBackup = (LCase(value) = "true")
+            Config.autoBackup = ValidateConfigBoolean(value, True)
         Case "BACKUP_BEFORE_PROCESSING"
-            Config.backupBeforeProcessing = (LCase(value) = "true")
+            Config.backupBeforeProcessing = ValidateConfigBoolean(value, True)
         Case "MAX_BACKUP_FILES"
-            Config.maxBackupFiles = CLng(value)
+            Config.maxBackupFiles = ValidateConfigInteger(value, 10, 1, 100)
         Case "BACKUP_CLEANUP"
-            Config.backupCleanup = (LCase(value) = "true")
+            Config.backupCleanup = ValidateConfigBoolean(value, True)
         Case "BACKUP_RETRY_ATTEMPTS"
-            Config.backupRetryAttempts = CLng(value)
+            Config.backupRetryAttempts = ValidateConfigInteger(value, 3, 1, 10)
     End Select
 End Sub
 
 Private Sub ProcessFormattingConfig(key As String, value As String)
     Select Case key
         Case "APPLY_PAGE_SETUP"
-            Config.applyPageSetup = (LCase(value) = "true")
+            Config.applyPageSetup = ValidateConfigBoolean(value, True)
         Case "APPLY_STANDARD_FONT"
-            Config.applyStandardFont = (LCase(value) = "true")
+            Config.applyStandardFont = ValidateConfigBoolean(value, True)
         Case "APPLY_STANDARD_PARAGRAPHS"
-            Config.applyStandardParagraphs = (LCase(value) = "true")
+            Config.applyStandardParagraphs = ValidateConfigBoolean(value, True)
         Case "FORMAT_FIRST_PARAGRAPH"
-            Config.formatFirstParagraph = (LCase(value) = "true")
+            Config.formatFirstParagraph = ValidateConfigBoolean(value, True)
         Case "FORMAT_SECOND_PARAGRAPH"
-            Config.formatSecondParagraph = (LCase(value) = "true")
+            Config.formatSecondParagraph = ValidateConfigBoolean(value, True)
         Case "FORMAT_NUMBERED_PARAGRAPHS"
-            Config.formatNumberedParagraphs = (LCase(value) = "true")
+            Config.formatNumberedParagraphs = ValidateConfigBoolean(value, True)
         Case "FORMAT_CONSIDERANDO_PARAGRAPHS"
-            Config.formatConsiderandoParagraphs = (LCase(value) = "true")
+            Config.formatConsiderandoParagraphs = ValidateConfigBoolean(value, True)
         Case "FORMAT_JUSTIFICATIVA_PARAGRAPHS"
-            Config.formatJustificativaParagraphs = (LCase(value) = "true")
+            Config.formatJustificativaParagraphs = ValidateConfigBoolean(value, True)
         Case "ENABLE_HYPHENATION"
-            Config.enableHyphenation = (LCase(value) = "true")
+            Config.enableHyphenation = ValidateConfigBoolean(value, False)
     End Select
 End Sub
 
@@ -799,6 +911,8 @@ Private Sub ProcessReplacementConfig(key As String, value As String)
             Config.normalizeDosteVariants = (LCase(value) = "true")
         Case "NORMALIZE_VEREADOR_VARIANTS"
             Config.normalizeVereadorVariants = (LCase(value) = "true")
+        Case "REPLACE_DATE_LINE_BEFORE_VEREADOR"
+            Config.replaceDateLineBeforeVereador = (LCase(value) = "true")
     End Select
 End Sub
 
@@ -936,31 +1050,31 @@ Private Function InitializePerformanceOptimization() As Boolean
     
     ' Aplica otimizações baseadas na configuração
     If Config.performanceMode Then
-        LogMessage "Iniciando otimizações de performance...", LOG_LEVEL_INFO
+        LogInfo "Iniciando otimizações de performance..."
         
         ' Desabilita atualizações de tela
         If Config.disableScreenUpdating Then
             Application.ScreenUpdating = False
-            LogMessage "Screen updating desabilitado", LOG_LEVEL_DEBUG
+            LogDebug "Screen updating desabilitado"
         End If
         
         ' Desabilita alertas
         If Config.disableDisplayAlerts Then
             Application.DisplayAlerts = False
-            LogMessage "Display alerts desabilitado", LOG_LEVEL_DEBUG
+            LogDebug "Display alerts desabilitado"
         End If
         
         ' Otimizações específicas do Word
         Call OptimizeWordSettings
         
-        LogMessage "Otimizações de performance aplicadas", LOG_LEVEL_INFO
+        LogInfo "Otimizações de performance aplicadas"
     End If
     
     InitializePerformanceOptimization = True
     Exit Function
     
 ErrorHandler:
-    LogMessage "Erro ao inicializar otimizações: " & Err.Description, LOG_LEVEL_ERROR
+    LogError "InitializePerformanceOptimization"
     InitializePerformanceOptimization = False
 End Function
 
@@ -996,20 +1110,20 @@ Private Function RestorePerformanceSettings() As Boolean
     RestorePerformanceSettings = False
     
     If Config.performanceMode Then
-        LogMessage "Restaurando configurações de performance...", LOG_LEVEL_INFO
+        LogInfo "Restaurando configurações de performance..."
         
         ' Restaura configurações originais
         Application.ScreenUpdating = True
         Application.DisplayAlerts = True
         
-        LogMessage "Configurações de performance restauradas", LOG_LEVEL_INFO
+        LogInfo "Configurações de performance restauradas"
     End If
     
     RestorePerformanceSettings = True
     Exit Function
     
 ErrorHandler:
-    LogMessage "Erro ao restaurar configurações: " & Err.Description, LOG_LEVEL_ERROR
+    LogError "RestorePerformanceSettings"
     RestorePerformanceSettings = False
 End Function
 
@@ -1030,7 +1144,7 @@ Private Function OptimizedFindReplace(findText As String, replaceText As String,
     Exit Function
     
 ErrorHandler:
-    LogMessage "Erro em busca/substituição otimizada: " & Err.Description, LOG_LEVEL_ERROR
+    LogError "OptimizedFindReplace"
     OptimizedFindReplace = 0
 End Function
 
@@ -1064,7 +1178,7 @@ Private Function BulkFindReplace(findText As String, replaceText As String, Opti
     Exit Function
     
 ErrorHandler:
-    LogMessage "Erro em busca/substituição em lote: " & Err.Description, LOG_LEVEL_ERROR
+    LogError "BulkFindReplace"
     BulkFindReplace = 0
 End Function
 
@@ -1091,7 +1205,7 @@ Private Function StandardFindReplace(findText As String, replaceText As String, 
     Exit Function
     
 ErrorHandler:
-    LogMessage "Erro em busca/substituição padrão: " & Err.Description, LOG_LEVEL_ERROR
+    LogError "StandardFindReplace"
     StandardFindReplace = 0
 End Function
 
@@ -1110,7 +1224,7 @@ Private Function OptimizedParagraphProcessing(processingFunction As String) As B
     Exit Function
     
 ErrorHandler:
-    LogMessage "Erro no processamento otimizado de parágrafos: " & Err.Description, LOG_LEVEL_ERROR
+    LogError "OptimizedParagraphProcessing"
     OptimizedParagraphProcessing = False
 End Function
 
@@ -1128,7 +1242,7 @@ Private Function BatchProcessParagraphs(processingFunction As String) As Boolean
     Dim batchSize As Long
     batchSize = IIf(paragraphCount > OPTIMIZATION_THRESHOLD, MAX_PARAGRAPH_BATCH_SIZE, paragraphCount)
     
-    LogMessage "Processando " & paragraphCount & " parágrafos em lotes de " & batchSize, LOG_LEVEL_DEBUG
+    LogDebug "Processando " & paragraphCount & " parágrafos em lotes de " & batchSize
     
     Dim i As Long
     For i = 1 To paragraphCount Step batchSize
@@ -1137,7 +1251,7 @@ Private Function BatchProcessParagraphs(processingFunction As String) As Boolean
         
         ' Processa lote de parágrafos
         If Not ProcessParagraphBatch(i, endIndex, processingFunction) Then
-            LogMessage "Erro no processamento do lote " & i & "-" & endIndex, LOG_LEVEL_ERROR
+            LogError "ProcessParagraphBatch lote " & i & "-" & endIndex
             Exit Function
         End If
         
@@ -1151,7 +1265,7 @@ Private Function BatchProcessParagraphs(processingFunction As String) As Boolean
     Exit Function
     
 ErrorHandler:
-    LogMessage "Erro no processamento em lote: " & Err.Description, LOG_LEVEL_ERROR
+    LogError "BatchProcessParagraphs"
     BatchProcessParagraphs = False
 End Function
 
@@ -1181,7 +1295,7 @@ Private Function StandardProcessParagraphs(processingFunction As String) As Bool
     Exit Function
     
 ErrorHandler:
-    LogMessage "Erro no processamento padrão: " & Err.Description, LOG_LEVEL_ERROR
+    LogError "StandardProcessParagraphs"
     StandardProcessParagraphs = False
 End Function
 
@@ -1215,7 +1329,7 @@ Private Function ProcessParagraphBatch(startIndex As Long, endIndex As Long, pro
     Exit Function
     
 ErrorHandler:
-    LogMessage "Erro no processamento do lote: " & Err.Description, LOG_LEVEL_ERROR
+    LogError "ProcessParagraphBatch"
     ProcessParagraphBatch = False
 End Function
 
@@ -1304,13 +1418,13 @@ Public Sub PadronizarDocumentoMain()
     ' Carrega configurações do sistema
     If Not isConfigLoaded Then
         If Not LoadConfiguration() Then
-            LogMessage "Erro crítico ao carregar configuração. Abortando execução.", LOG_LEVEL_ERROR
+            LogError "LoadConfiguration", "Erro crítico ao carregar configuração. Abortando execução."
             MsgBox "Erro crítico ao carregar configuração do sistema." & vbCrLf & _
                    "A execução foi abortada para evitar problemas.", vbCritical, "Erro de Configuração - " & SYSTEM_NAME
             Exit Sub
         End If
         isConfigLoaded = True
-        LogMessage "Sistema inicializado: " & SYSTEM_NAME & " " & VERSION, LOG_LEVEL_INFO
+        LogInfo "Sistema inicializado: " & SYSTEM_NAME & " " & VERSION
     End If
     
     ' ========================================
@@ -1321,7 +1435,7 @@ Public Sub PadronizarDocumentoMain()
     If Config.checkWordVersion Then
         If Not CheckWordVersion() Then
             Application.StatusBar = "Erro: Versão do Word não suportada (mínimo: Word " & Config.minWordVersion & ")"
-            LogMessage "Versão do Word " & Application.version & " não suportada. Mínimo: " & CStr(Config.minWordVersion), LOG_LEVEL_ERROR
+            LogError "CheckWordVersion", "Versão do Word " & Application.version & " não suportada. Mínimo: " & CStr(Config.minWordVersion)
             If Config.showProgressMessages Then
                 MsgBox "Esta ferramenta requer Microsoft Word " & Config.minWordVersion & " ou superior." & vbCrLf & _
                        "Versão atual: " & Application.version & vbCrLf & _
@@ -1335,7 +1449,7 @@ Public Sub PadronizarDocumentoMain()
     If Config.compilationCheck Then
         If Not CompileVBAProject() Then
             Application.StatusBar = "Erro: Falha na compilação do projeto VBA"
-            LogMessage "Falha na compilação do projeto VBA", LOG_LEVEL_ERROR
+            LogError "CompileVBAProject", "Falha na compilação do projeto VBA"
             If Config.showProgressMessages Then
                 MsgBox "Erro na compilação do projeto VBA." & vbCrLf & _
                        "Verifique se há erros de sintaxe no código." & vbCrLf & _
@@ -1354,7 +1468,7 @@ Public Sub PadronizarDocumentoMain()
     If doc Is Nothing Then
         On Error GoTo CriticalErrorHandler
         Application.StatusBar = "Erro: Nenhum documento está acessível"
-        LogMessage "Nenhum documento acessível para processamento", LOG_LEVEL_ERROR
+        LogError "ActiveDocument", "Nenhum documento acessível para processamento"
         If Config.showProgressMessages Then
             MsgBox "Nenhum documento está aberto ou acessível." & vbCrLf & _
                "Abra um documento antes de executar a padronização.", vbExclamation, "Documento Não Encontrado - Chainsaw Proposituras"
@@ -1365,7 +1479,7 @@ Public Sub PadronizarDocumentoMain()
     ' Validação de integridade do documento (se habilitada)
     If Config.validateDocumentIntegrity Then
         If Not ValidateDocumentIntegrity(doc) Then
-            LogMessage "Documento falhou na validação de integridade", LOG_LEVEL_ERROR
+            LogError "ValidateDocumentIntegrity", "Documento falhou na validação de integridade"
             GoTo CleanUp
         End If
     End If
@@ -1375,23 +1489,23 @@ Public Sub PadronizarDocumentoMain()
     ' ========================================
     
     If Not InitializePerformanceOptimization() Then
-        LogMessage "Aviso: Falha ao inicializar otimizações de performance", LOG_LEVEL_WARNING
+        LogWarning "Falha ao inicializar otimizações de performance"
         ' Continua execução mesmo com falha nas otimizações
     End If
     
     ' Inicialização do sistema de logs
     If Not InitializeLogging(doc) Then
-        LogMessage "Falha ao inicializar sistema de logs", LOG_LEVEL_WARNING
+        LogWarning "Falha ao inicializar sistema de logs"
     End If
     
-    LogMessage "Iniciando padronização do documento: " & doc.Name & " (Chainsaw Proposituras v2.0)", LOG_LEVEL_INFO
+    LogInfo "Iniciando padronização do documento: " & doc.Name & " (Chainsaw Proposituras v2.0)"
     
     ' Configuração do grupo de desfazer
     StartUndoGroup "Padronização de Documento - " & doc.Name
     
     ' Configuração do estado da aplicação
     If Not SetAppState(False, "Formatando documento...") Then
-        LogMessage "Falha ao configurar estado da aplicação", LOG_LEVEL_WARNING
+        LogWarning "Falha ao configurar estado da aplicação"
     End If
     
     ' Verificações preliminares
@@ -4283,6 +4397,17 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
         Loop
     End With
     
+    ' Funcionalidade 14: Detecta e substitui linha da data antes de "- Vereador -"
+    ' Busca na 3ª linha acima de "- Vereador -" por linha que:
+    ' - Inicie com "Palácio" ou "Plenário"
+    ' - Contenha nome de mês por extenso
+    ' - Tenha menos de 20 palavras
+    ' - Termine com número seguido ou não por ponto
+    ' Se encontrar, substitui pela string padrão com data atual por extenso
+    If Config.replaceDateLineBeforeVereador Then
+        Call ProcessDateLineReplacement(doc, replacementCount)
+    End If
+    
     LogMessage "Substituições de texto aplicadas: " & replacementCount & " substituições realizadas", LOG_LEVEL_INFO
     ApplyTextReplacements = True
     Exit Function
@@ -4933,6 +5058,265 @@ Private Function FormatNumberedParagraphs(doc As Document) As Boolean
 ErrorHandler:
     LogMessage "Erro na formatação de listas numeradas: " & Err.Description, LOG_LEVEL_ERROR
     FormatNumberedParagraphs = False
+End Function
+
+'================================================================================
+' FUNCIONALIDADE 14: PROCESSAMENTO DE LINHA DE DATA
+'================================================================================
+' Processa a substituição da linha de data que aparece antes de "- Vereador -"
+' Busca por padrão específico e substitui pela string padrão com data atual
+Private Sub ProcessDateLineReplacement(doc As Document, ByRef replacementCount As Long)
+    On Error GoTo ErrorHandler
+    
+    Dim para As Paragraph
+    Dim vereadorParagraph As Paragraph
+    Dim dateLineParagraph As Paragraph
+    Dim dateLineFound As Boolean
+    Dim processedCount As Long
+    
+    LogInfo "Iniciando processamento de linha de data antes de '- Vereador -'"
+    
+    ' Percorre todos os parágrafos procurando por "- Vereador -"
+    For Each para In doc.Paragraphs
+        If IsVereadorPattern(para.Range.Text) Then
+            Set vereadorParagraph = para
+            LogInfo "Encontrado parágrafo '- Vereador -' no índice: " & para.Range.Start
+            
+            ' Busca a 3ª linha acima do parágrafo "- Vereador -"
+            Dim currentPara As Paragraph
+            Set currentPara = para
+            
+            ' Move 3 parágrafos para cima
+            If Not currentPara.Previous Is Nothing Then
+                Set currentPara = currentPara.Previous
+                If Not currentPara.Previous Is Nothing Then
+                    Set currentPara = currentPara.Previous
+                    If Not currentPara.Previous Is Nothing Then
+                        Set dateLineParagraph = currentPara.Previous
+                        
+                        ' Verifica se a linha atende aos critérios
+                        If IsValidDateLine(dateLineParagraph.Range.Text) Then
+                            ' Substitui pela string padrão
+                            Dim newDateLine As String
+                            newDateLine = GenerateStandardDateLine()
+                            
+                            LogInfo "Substituindo linha de data: '" & Trim(dateLineParagraph.Range.Text) & "' por '" & newDateLine & "'"
+                            
+                            dateLineParagraph.Range.Text = newDateLine & vbCrLf
+                            replacementCount = replacementCount + 1
+                            processedCount = processedCount + 1
+                            dateLineFound = True
+                        Else
+                            LogInfo "Linha 3 acima de '- Vereador -' não atende aos critérios: '" & Trim(dateLineParagraph.Range.Text) & "'"
+                        End If
+                    Else
+                        LogInfo "Não foi possível encontrar a 3ª linha acima de '- Vereador -' (nível 3)"
+                    End If
+                Else
+                    LogInfo "Não foi possível encontrar a 3ª linha acima de '- Vereador -' (nível 2)"
+                End If
+            Else
+                LogInfo "Não foi possível encontrar a 3ª linha acima de '- Vereador -' (nível 1)"
+            End If
+        End If
+    Next para
+    
+    If Not dateLineFound Then
+        LogInfo "Nenhuma linha de data foi encontrada que atenda aos critérios especificados"
+        MsgBox "A linha da data não foi encontrada." & vbCrLf & vbCrLf & _
+               "Critérios de busca:" & vbCrLf & _
+               "• Deve estar na 3ª linha acima de '- Vereador -'" & vbCrLf & _
+               "• Deve iniciar com 'Palácio' ou 'Plenário'" & vbCrLf & _
+               "• Deve conter nome de mês por extenso" & vbCrLf & _
+               "• Deve ter menos de 20 palavras" & vbCrLf & _
+               "• Deve terminar com número seguido ou não por ponto", _
+               vbInformation, "Linha de Data - " & SYSTEM_NAME
+    Else
+        LogInfo "Processamento de linha de data concluído: " & processedCount & " substituições realizadas"
+    End If
+    
+    Exit Sub
+    
+ErrorHandler:
+    LogError "ProcessDateLineReplacement", "Erro no processamento de linha de data: " & Err.Description
+End Sub
+
+' Verifica se uma linha de texto atende aos critérios para ser uma linha de data válida
+Private Function IsValidDateLine(text As String) As Boolean
+    On Error GoTo ErrorHandler
+    
+    IsValidDateLine = False
+    
+    Dim cleanText As String
+    Dim words() As String
+    Dim wordCount As Long
+    Dim i As Long
+    Dim hasMonth As Boolean
+    Dim endsWithNumber As Boolean
+    
+    ' Remove espaços extras e quebras de linha
+    cleanText = Trim(Replace(Replace(text, vbCr, ""), vbLf, ""))
+    
+    ' Verifica se está vazio
+    If Len(cleanText) = 0 Then Exit Function
+    
+    ' Verifica se inicia com "Palácio" ou "Plenário"
+    If Not (LCase(Left(cleanText, 7)) = "palácio" Or LCase(Left(cleanText, 8)) = "plenário") Then
+        Exit Function
+    End If
+    
+    ' Conta palavras
+    words = Split(cleanText, " ")
+    wordCount = UBound(words) + 1
+    
+    ' Verifica se tem menos de 20 palavras
+    If wordCount >= 20 Then Exit Function
+    
+    ' Verifica se contém nome de mês por extenso
+    hasMonth = ContainsMonthName(cleanText)
+    If Not hasMonth Then Exit Function
+    
+    ' Verifica se termina com número seguido ou não por ponto
+    endsWithNumber = EndsWithNumberAndOptionalPeriod(cleanText)
+    If Not endsWithNumber Then Exit Function
+    
+    ' Se passou por todas as verificações, é uma linha válida
+    IsValidDateLine = True
+    Exit Function
+    
+ErrorHandler:
+    LogError "IsValidDateLine", "Erro na validação de linha de data: " & Err.Description
+    IsValidDateLine = False
+End Function
+
+' Verifica se o texto contém nome de mês por extenso em português
+Private Function ContainsMonthName(text As String) As Boolean
+    On Error GoTo ErrorHandler
+    
+    ContainsMonthName = False
+    
+    Dim months() As String
+    Dim i As Long
+    Dim lowerText As String
+    
+    ' Lista de meses em português
+    ReDim months(0 To 11)
+    months(0) = "janeiro"
+    months(1) = "fevereiro"
+    months(2) = "março"
+    months(3) = "abril"
+    months(4) = "maio"
+    months(5) = "junho"
+    months(6) = "julho"
+    months(7) = "agosto"
+    months(8) = "setembro"
+    months(9) = "outubro"
+    months(10) = "novembro"
+    months(11) = "dezembro"
+    
+    lowerText = LCase(text)
+    
+    ' Verifica se algum mês está presente
+    For i = 0 To UBound(months)
+        If InStr(lowerText, months(i)) > 0 Then
+            ContainsMonthName = True
+            Exit Function
+        End If
+    Next i
+    
+    Exit Function
+    
+ErrorHandler:
+    LogError "ContainsMonthName", "Erro na verificação de nome de mês: " & Err.Description
+    ContainsMonthName = False
+End Function
+
+' Verifica se o texto termina com número seguido ou não por ponto
+Private Function EndsWithNumberAndOptionalPeriod(text As String) As Boolean
+    On Error GoTo ErrorHandler
+    
+    EndsWithNumberAndOptionalPeriod = False
+    
+    Dim cleanText As String
+    Dim lastChar As String
+    Dim secondLastChar As String
+    
+    cleanText = Trim(text)
+    If Len(cleanText) = 0 Then Exit Function
+    
+    lastChar = Right(cleanText, 1)
+    
+    ' Se termina com ponto, verifica o caractere anterior
+    If lastChar = "." Then
+        If Len(cleanText) >= 2 Then
+            secondLastChar = Mid(cleanText, Len(cleanText) - 1, 1)
+            If IsNumeric(secondLastChar) Then
+                EndsWithNumberAndOptionalPeriod = True
+            End If
+        End If
+    ' Se não termina com ponto, verifica se termina com número
+    ElseIf IsNumeric(lastChar) Then
+        EndsWithNumberAndOptionalPeriod = True
+    End If
+    
+    Exit Function
+    
+ErrorHandler:
+    LogError "EndsWithNumberAndOptionalPeriod", "Erro na verificação de final numérico: " & Err.Description
+    EndsWithNumberAndOptionalPeriod = False
+End Function
+
+' Gera a string padrão de data para substituição
+Private Function GenerateStandardDateLine() As String
+    On Error GoTo ErrorHandler
+    
+    GenerateStandardDateLine = "Plenário ""Dr. Tancredo Neves"", " & GetCurrentDateExtended() & "."
+    Exit Function
+    
+ErrorHandler:
+    LogError "GenerateStandardDateLine", "Erro na geração da linha padrão de data: " & Err.Description
+    GenerateStandardDateLine = "Plenário ""Dr. Tancredo Neves"", [DATA NÃO DISPONÍVEL]."
+End Function
+
+' Retorna a data atual por extenso no formato brasileiro
+Private Function GetCurrentDateExtended() As String
+    On Error GoTo ErrorHandler
+    
+    Dim currentDate As Date
+    Dim dayNum As Long
+    Dim monthNum As Long
+    Dim yearNum As Long
+    Dim monthName As String
+    Dim months() As String
+    
+    currentDate = Now
+    dayNum = Day(currentDate)
+    monthNum = Month(currentDate)
+    yearNum = Year(currentDate)
+    
+    ' Lista de meses em português
+    ReDim months(1 To 12)
+    months(1) = "janeiro"
+    months(2) = "fevereiro"
+    months(3) = "março"
+    months(4) = "abril"
+    months(5) = "maio"
+    months(6) = "junho"
+    months(7) = "julho"
+    months(8) = "agosto"
+    months(9) = "setembro"
+    months(10) = "outubro"
+    months(11) = "novembro"
+    months(12) = "dezembro"
+    
+    monthName = months(monthNum)
+    
+    GetCurrentDateExtended = dayNum & " de " & monthName & " de " & yearNum
+    Exit Function
+    
+ErrorHandler:
+    LogError "GetCurrentDateExtended", "Erro na geração da data por extenso: " & Err.Description
+    GetCurrentDateExtended = "[ERRO NA DATA]"
 End Function
 
 '================================================================================
@@ -6793,4 +7177,277 @@ Private Sub CleanupViewSettings()
     End With
     
     LogMessage "Variáveis de configurações de visualização limpas"
+End Sub
+
+' =============================================================================
+' SUBROTINA PÚBLICA: AbrirArquivoConfiguracoes
+' =============================================================================
+' Abre o arquivo de configuração do Chainsaw Proposituras para edição
+' Permite ao usuário ativar/desativar funcionalidades e ajustar parâmetros
+' Cria o arquivo com configurações padrão se não existir
+' Abre com o programa padrão do sistema (geralmente Notepad)
+' =============================================================================
+Public Sub AbrirArquivoConfiguracoes()
+    On Error GoTo ErrorHandler
+    
+    Dim configPath As String
+    Dim fileNum As Integer
+    Dim userChoice As VbMsgBoxResult
+    
+    ' Inicializa logging se necessário
+    If Not isConfigLoaded Then
+        Call LoadConfiguration
+    End If
+    
+    LogInfo "Solicitada abertura do arquivo de configurações"
+    
+    ' Obtém caminho do arquivo de configuração
+    configPath = GetConfigurationFilePath()
+    
+    If Len(configPath) = 0 Then
+        LogError "AbrirArquivoConfiguracoes", "Não foi possível determinar o caminho do arquivo de configuração"
+        MsgBox "Erro: Não foi possível determinar o local do arquivo de configuração." & vbCrLf & _
+               "Verifique as permissões de acesso às pastas do sistema.", _
+               vbCritical, "Erro - " & SYSTEM_NAME
+        Exit Sub
+    End If
+    
+    ' Verifica se o arquivo existe
+    If Dir(configPath) = "" Then
+        ' Arquivo não existe - pergunta se deve criar
+        userChoice = MsgBox("O arquivo de configuração não foi encontrado:" & vbCrLf & vbCrLf & _
+                           configPath & vbCrLf & vbCrLf & _
+                           "Deseja criar um arquivo de configuração com valores padrão?", _
+                           vbYesNo + vbQuestion, "Arquivo de Configuração - " & SYSTEM_NAME)
+        
+        If userChoice = vbYes Then
+            If CreateDefaultConfigFile(configPath) Then
+                LogInfo "Arquivo de configuração padrão criado em: " & configPath
+                MsgBox "Arquivo de configuração criado com sucesso!" & vbCrLf & vbCrLf & _
+                       "Local: " & configPath & vbCrLf & vbCrLf & _
+                       "O arquivo será aberto para edição.", _
+                       vbInformation, "Configuração Criada - " & SYSTEM_NAME
+            Else
+                LogError "AbrirArquivoConfiguracoes", "Falha ao criar arquivo de configuração padrão"
+                MsgBox "Erro ao criar o arquivo de configuração." & vbCrLf & _
+                       "Verifique as permissões de escrita na pasta de destino.", _
+                       vbCritical, "Erro de Criação - " & SYSTEM_NAME
+                Exit Sub
+            End If
+        Else
+            LogInfo "Usuário cancelou criação do arquivo de configuração"
+            Exit Sub
+        End If
+    End If
+    
+    ' Abre o arquivo com o programa padrão do sistema
+    LogInfo "Abrindo arquivo de configuração: " & configPath
+    
+    ' Usa Shell para abrir com o programa padrão
+    Dim shellResult As Double
+    shellResult = Shell("notepad.exe """ & configPath & """", vbNormalFocus)
+    
+    If shellResult > 0 Then
+        LogInfo "Arquivo de configuração aberto com sucesso (PID: " & shellResult & ")"
+        
+        ' Mostra mensagem informativa ao usuário
+        MsgBox "Arquivo de configuração aberto para edição!" & vbCrLf & vbCrLf & _
+               "📁 Local: " & configPath & vbCrLf & vbCrLf & _
+               "💡 Dicas importantes:" & vbCrLf & _
+               "• Use 'true' ou 'false' para habilitar/desabilitar funcionalidades" & vbCrLf & _
+               "• Valores numéricos devem ser números válidos" & vbCrLf & _
+               "• Salve o arquivo após fazer as alterações" & vbCrLf & _
+               "• Reinicie o Chainsaw para aplicar as mudanças" & vbCrLf & vbCrLf & _
+               "⚠️ Faça backup antes de alterações importantes!", _
+               vbInformation, "Editor Aberto - " & SYSTEM_NAME
+               
+        ' Recarrega configurações após um tempo
+        Application.OnTime Now + TimeValue("00:00:02"), "MostrarInstrucoes"
+    Else
+        LogError "AbrirArquivoConfiguracoes", "Falha ao abrir arquivo com Notepad"
+        
+        ' Tenta abrir com programa padrão do Windows
+        Dim objShell As Object
+        Set objShell = CreateObject("Shell.Application")
+        objShell.Open configPath
+        
+        LogInfo "Tentativa de abertura com programa padrão do Windows"
+        
+        MsgBox "Arquivo de configuração:" & vbCrLf & vbCrLf & _
+               configPath & vbCrLf & vbCrLf & _
+               "Foi aberto com o programa padrão do sistema." & vbCrLf & _
+               "Se não abriu automaticamente, navegue até o local acima.", _
+               vbInformation, "Configuração - " & SYSTEM_NAME
+    End If
+    
+    Exit Sub
+    
+ErrorHandler:
+    LogError "AbrirArquivoConfiguracoes"
+    
+    MsgBox "Erro ao abrir arquivo de configuração:" & vbCrLf & vbCrLf & _
+           "Erro: " & Err.Description & vbCrLf & vbCrLf & _
+           "Caminho: " & configPath & vbCrLf & vbCrLf & _
+           "Tente abrir manualmente o arquivo no local indicado.", _
+           vbCritical, "Erro de Abertura - " & SYSTEM_NAME
+End Sub
+
+' =============================================================================
+' FUNÇÃO AUXILIAR: CreateDefaultConfigFile
+' =============================================================================
+' Cria um arquivo de configuração com valores padrão e comentários explicativos
+' Parâmetros: filePath (String) - caminho completo do arquivo a criar
+' Retorna: Boolean - True se criado com sucesso, False caso contrário
+' =============================================================================
+Private Function CreateDefaultConfigFile(filePath As String) As Boolean
+    On Error GoTo ErrorHandler
+    
+    CreateDefaultConfigFile = False
+    
+    Dim fileNum As Integer
+    fileNum = FreeFile
+    
+    ' Cria o arquivo com configurações padrão documentadas
+    Open filePath For Output As #fileNum
+    
+    ' Cabeçalho do arquivo
+    Print #fileNum, "# ============================================================================="
+    Print #fileNum, "# CHAINSAW PROPOSITURAS - Arquivo de Configuração Principal"
+    Print #fileNum, "# ============================================================================="
+    Print #fileNum, "# Versão: " & VERSION
+    Print #fileNum, "# Data de criação: " & Format(Now, "dd/mm/yyyy hh:mm:ss")
+    Print #fileNum, "#"
+    Print #fileNum, "# Este arquivo controla todas as funcionalidades do Chainsaw Proposituras."
+    Print #fileNum, "# Edite os valores abaixo para personalizar o comportamento do sistema."
+    Print #fileNum, "#"
+    Print #fileNum, "# FORMATO:"
+    Print #fileNum, "# - true/false para habilitar/desabilitar funcionalidades"
+    Print #fileNum, "# - Números para valores numéricos"
+    Print #fileNum, "# - Linhas iniciadas com # são comentários (ignoradas)"
+    Print #fileNum, "#"
+    Print #fileNum, "# IMPORTANTE: Salve o arquivo e reinicie o Chainsaw após fazer alterações"
+    Print #fileNum, "# ============================================================================="
+    Print #fileNum, ""
+    
+    ' Seção GERAL
+    Print #fileNum, "[GERAL]"
+    Print #fileNum, "# Configurações básicas do sistema"
+    Print #fileNum, "debug_mode=false              # Habilita logs detalhados de debug"
+    Print #fileNum, "performance_mode=true         # Ativa otimizações de performance"
+    Print #fileNum, "compatibility_mode=true      # Modo de compatibilidade com versões antigas do Word"
+    Print #fileNum, ""
+    
+    ' Seção VALIDAÇÕES
+    Print #fileNum, "[VALIDACOES]"
+    Print #fileNum, "# Controle das validações de documento e sistema"
+    Print #fileNum, "check_word_version=true           # Verifica versão mínima do Word"
+    Print #fileNum, "validate_document_integrity=true  # Valida integridade do documento"
+    Print #fileNum, "validate_proposition_type=true    # Valida tipo de proposição"
+    Print #fileNum, "validate_content_consistency=true # Verifica consistência do conteúdo"
+    Print #fileNum, "check_disk_space=true            # Verifica espaço em disco disponível"
+    Print #fileNum, "min_word_version=14.0            # Versão mínima do Word (14.0 = Word 2010)"
+    Print #fileNum, "max_document_size=500000         # Tamanho máximo do documento (bytes)"
+    Print #fileNum, ""
+    
+    ' Seção BACKUP
+    Print #fileNum, "[BACKUP]"
+    Print #fileNum, "# Sistema de backup automático"
+    Print #fileNum, "auto_backup=true                 # Cria backup antes de modificações"
+    Print #fileNum, "backup_before_processing=true    # Backup obrigatório antes do processamento"
+    Print #fileNum, "max_backup_files=10             # Número máximo de backups por documento"
+    Print #fileNum, "backup_cleanup=true             # Remove backups antigos automaticamente"
+    Print #fileNum, "backup_retry_attempts=3         # Tentativas de criar backup em caso de falha"
+    Print #fileNum, ""
+    
+    ' Seção FORMATAÇÃO
+    Print #fileNum, "[FORMATACAO]"
+    Print #fileNum, "# Controle das formatações aplicadas"
+    Print #fileNum, "apply_page_setup=true              # Aplica configuração de página padrão"
+    Print #fileNum, "apply_standard_font=true           # Aplica fonte padrão (Arial 12pt)"
+    Print #fileNum, "apply_standard_paragraphs=true     # Formata parágrafos padrão"
+    Print #fileNum, "format_first_paragraph=true        # Formata primeiro parágrafo (título)"
+    Print #fileNum, "format_second_paragraph=true       # Formata segundo parágrafo (autor)"
+    Print #fileNum, "format_numbered_paragraphs=true    # Formata parágrafos numerados"
+    Print #fileNum, "format_considerando_paragraphs=true # Formata parágrafos 'Considerando'"
+    Print #fileNum, "format_justificativa_paragraphs=true # Formata seção de justificativa"
+    Print #fileNum, "enable_hyphenation=false          # Ativa hifenização automática"
+    Print #fileNum, ""
+    
+    ' Seção LIMPEZA
+    Print #fileNum, "[LIMPEZA]"
+    Print #fileNum, "# Sistema de limpeza e padronização"
+    Print #fileNum, "remove_extra_spaces=true         # Remove espaços múltiplos"
+    Print #fileNum, "remove_manual_breaks=true        # Remove quebras de linha manuais"
+    Print #fileNum, "clean_visual_elements=true       # Remove elementos visuais desnecessários"
+    Print #fileNum, "standardize_quotes=true          # Padroniza aspas e citações"
+    Print #fileNum, "fix_punctuation=true            # Corrige pontuação automática"
+    Print #fileNum, "replace_date_line_before_vereador=true # Substitui linha de data antes de '- Vereador -'"
+    Print #fileNum, ""
+    
+    ' Seção PERFORMANCE
+    Print #fileNum, "[PERFORMANCE]"
+    Print #fileNum, "# Otimizações de performance"
+    Print #fileNum, "disable_screen_updating=true     # Desabilita atualização de tela durante processamento"
+    Print #fileNum, "disable_display_alerts=true      # Desabilita alertas do Word temporariamente"
+    Print #fileNum, "use_bulk_operations=true         # Usa operações em lote quando possível"
+    Print #fileNum, "batch_paragraph_operations=true  # Processa parágrafos em lotes"
+    Print #fileNum, "optimize_find_replace=true       # Otimiza operações de busca/substituição"
+    Print #fileNum, "use_efficient_loops=true         # Usa loops otimizados"
+    Print #fileNum, "minimize_object_creation=true    # Minimiza criação de objetos temporários"
+    Print #fileNum, "force_gc_collection=false       # Força coleta de lixo periodicamente"
+    Print #fileNum, ""
+    
+    ' Seção INTERFACE
+    Print #fileNum, "[INTERFACE]"
+    Print #fileNum, "# Configurações de interface e mensagens"
+    Print #fileNum, "show_progress_messages=true      # Mostra mensagens de progresso"
+    Print #fileNum, "show_completion_dialog=true      # Mostra diálogo de conclusão"
+    Print #fileNum, "show_error_details=true         # Mostra detalhes dos erros"
+    Print #fileNum, "enable_status_bar=true          # Usa barra de status para informações"
+    Print #fileNum, "verbose_logging=false           # Logging detalhado na interface"
+    Print #fileNum, ""
+    
+    ' Seção SEGURANÇA
+    Print #fileNum, "[SEGURANCA]"
+    Print #fileNum, "# Validações de segurança"
+    Print #fileNum, "compilation_check=true          # Verifica compilação do projeto VBA"
+    Print #fileNum, "validate_file_permissions=true  # Valida permissões de arquivo"
+    Print #fileNum, "secure_backup_location=true     # Usa local seguro para backups"
+    Print #fileNum, "sanitize_input=true            # Sanitiza entrada de dados"
+    Print #fileNum, ""
+    
+    ' Rodapé
+    Print #fileNum, "# ============================================================================="
+    Print #fileNum, "# FIM DO ARQUIVO DE CONFIGURAÇÃO"
+    Print #fileNum, "#"
+    Print #fileNum, "# Para mais informações, consulte a documentação em:"
+    Print #fileNum, "# https://github.com/chrmsantos/chainsaw-proposituras"
+    Print #fileNum, "#"
+    Print #fileNum, "# IMPORTANTE:"
+    Print #fileNum, "# - Sempre faça backup deste arquivo antes de alterações importantes"
+    Print #fileNum, "# - Valores inválidos serão substituídos por padrões do sistema"
+    Print #fileNum, "# - Reinicie o Chainsaw Proposituras após salvar as alterações"
+    Print #fileNum, "# ============================================================================="
+    
+    Close #fileNum
+    
+    LogInfo "Arquivo de configuração padrão criado com sucesso: " & filePath
+    CreateDefaultConfigFile = True
+    Exit Function
+    
+ErrorHandler:
+    If fileNum > 0 Then Close #fileNum
+    LogError "CreateDefaultConfigFile"
+    CreateDefaultConfigFile = False
+End Function
+
+' =============================================================================
+' SUBROTINA AUXILIAR: MostrarInstrucoes
+' =============================================================================
+' Mostra instruções sobre recarregamento de configurações (chamada via OnTime)
+' =============================================================================
+Public Sub MostrarInstrucoes()
+    ' Esta subrotina é chamada com delay para dar tempo do usuário ver o arquivo
+    ' Não faz nada atualmente, mas pode ser expandida para recarregar configurações
+    ' automaticamente ou mostrar notificações adicionais
 End Sub
