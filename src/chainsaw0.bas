@@ -280,8 +280,8 @@ Private Type ConfigSettings
     deleteVisualElementsFirstFourParagraphs As Boolean
     
     ' Header/Footer
-    insertHeaderStamp As Boolean
-    insertFooterStamp As Boolean
+    insertHeaderstamp As Boolean
+    insertFooterstamp As Boolean
     removeWatermark As Boolean
     headerImagePath As String
     headerImageMaxWidth As Double
@@ -515,8 +515,8 @@ Private Sub SetDefaultConfiguration()
         .deleteVisualElementsFirstFourParagraphs = True
         
         ' Header/Footer
-        .insertHeaderStamp = True
-        .insertFooterStamp = True
+        .insertHeaderstamp = True
+        .insertFooterstamp = True
         .removeWatermark = True
         .headerImagePath = "private\header\stamp.png"
         .headerImageMaxWidth = 21#
@@ -770,10 +770,10 @@ End Sub
 
 Private Sub ProcessHeaderFooterConfig(key As String, value As String)
     Select Case key
-        Case "INSERT_HEADER_STAMP"
-            Config.insertHeaderStamp = (LCase(value) = "true")
-        Case "INSERT_FOOTER_STAMP"
-            Config.insertFooterStamp = (LCase(value) = "true")
+        Case "INSERT_HEADER_stamp"
+            Config.insertHeaderstamp = (LCase(value) = "true")
+        Case "INSERT_FOOTER_stamp"
+            Config.insertFooterstamp = (LCase(value) = "true")
         Case "REMOVE_WATERMARK"
             Config.removeWatermark = (LCase(value) = "true")
         Case "HEADER_IMAGE_PATH"
@@ -2363,7 +2363,7 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     
     EnableHyphenation doc
     RemoveWatermark doc
-    InsertHeaderStamp doc
+    InsertHeaderstamp doc
     
     ' Limpeza final de espaços múltiplos em todo o documento
     CleanMultipleSpaces doc
@@ -2383,7 +2383,7 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     ' Configuração final da visualização
     ConfigureDocumentView doc
     
-    If Not InsertFooterStamp(doc) Then
+    If Not InsertFooterstamp(doc) Then
         LogMessage "Falha na inserção do rodapé", LOG_LEVEL_ERROR
         PreviousFormatting = False
         Exit Function
@@ -3219,7 +3219,7 @@ End Function
 '================================================================================
 ' INSERT HEADER IMAGE - #STABLE
 '================================================================================
-Private Function InsertHeaderStamp(doc As Document) As Boolean
+Private Function InsertHeaderstamp(doc As Document) As Boolean
     On Error GoTo ErrorHandler
 
     Dim sec As Section
@@ -3246,7 +3246,7 @@ Private Function InsertHeaderStamp(doc As Document) As Boolean
                 ' Registra erro e tenta continuar sem a imagem
                 Application.StatusBar = "Aviso: Imagem de cabeçalho não encontrada"
                 LogMessage "Imagem de cabeçalho não encontrada em nenhum local: " & HEADER_IMAGE_RELATIVE_PATH, LOG_LEVEL_WARNING
-                InsertHeaderStamp = False
+                InsertHeaderstamp = False
                 Exit Function
             End If
         End If
@@ -3289,23 +3289,23 @@ Private Function InsertHeaderStamp(doc As Document) As Boolean
 
     If imgFound Then
         ' Log detalhado removido para performance
-        InsertHeaderStamp = True
+        InsertHeaderstamp = True
     Else
         LogMessage "Nenhum cabeçalho foi inserido", LOG_LEVEL_WARNING
-        InsertHeaderStamp = False
+        InsertHeaderstamp = False
     End If
 
     Exit Function
 
 ErrorHandler:
     LogMessage "Erro ao inserir cabeçalho: " & Err.Description, LOG_LEVEL_ERROR
-    InsertHeaderStamp = False
+    InsertHeaderstamp = False
 End Function
 
 '================================================================================
 ' INSERT FOOTER PAGE NUMBERS - #STABLE
 '================================================================================
-Private Function InsertFooterStamp(doc As Document) As Boolean
+Private Function InsertFooterstamp(doc As Document) As Boolean
     On Error GoTo ErrorHandler
 
     Dim sec As Section
@@ -3346,12 +3346,12 @@ Private Function InsertFooterStamp(doc As Document) As Boolean
     Next sec
 
     ' Log detalhado removido para performance
-    InsertFooterStamp = True
+    InsertFooterstamp = True
     Exit Function
 
 ErrorHandler:
     LogMessage "Erro ao inserir rodapé: " & Err.Description, LOG_LEVEL_ERROR
-    InsertFooterStamp = False
+    InsertFooterstamp = False
 End Function
 
 '================================================================================
@@ -5313,7 +5313,7 @@ Private Function CreateDocumentBackup(doc As Document) As Boolean
     Dim fso As Object
     Dim docName As String
     Dim docExtension As String
-    Dim timeStamp As String
+    Dim timestamp As String
     Dim backupFileName As String
     Dim retryCount As Long
     
@@ -5377,10 +5377,10 @@ Private Function CreateDocumentBackup(doc As Document) As Boolean
     On Error GoTo ErrorHandler
     
     ' Cria timestamp para o backup
-    timeStamp = Format(Now, "yyyy-mm-dd_HHmmss")
+    timestamp = Format(Now, "yyyy-mm-dd_HHmmss")
     
     ' Nome do arquivo de backup
-    backupFileName = docName & "_backup_" & timeStamp & "." & docExtension
+    backupFileName = docName & "_backup_" & timestamp & "." & docExtension
     backupFilePath = backupFolder & "\" & backupFileName
     
     ' Salva uma cópia do documento como backup com retry

@@ -1,6 +1,27 @@
 # CHAINSAW PROPOSITURAS
 
-**v1.9.1-Alpha-8** - A solução open source em VBA para padronização e automação avançada de documentos legislativos no Microsoft Word, desenvolvida especificamente para Câmaras Municipais e ambientes institucionais.
+## v1.9.1-Alpha-8
+
+*A solução open source em VBA para padronização e automação avançada de documentos legislativos no Microsoft Word, desenvolvida especificamente para Câmaras Municipais e ambientes institucionais.*
+
+[![License](https://img.shields.io/badge/License-Apache%202.0%20Modified-blue.svg)](LICENSE)
+![Word Version](https://img.shields.io/badge/Word-2010+-green.svg)
+![Language](https://img.shields.io/badge/Language-VBA-orange.svg)
+![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)
+
+## 📋 Índice
+
+- [Novidades da Versão](#-novidades-da-versão-191-alpha-8)
+- [Principais Funcionalidades](#-principais-funcionalidades)
+- [Estrutura do Projeto](#-estrutura-do-projeto)
+- [Instalação](#-instalação)
+- [Configuração](#️-configuração)
+- [Uso](#-uso)
+- [Segurança](#-segurança)
+- [Requisitos](#-requisitos)
+- [Documentação](#-documentação)
+- [Contribuição](#-contribuição)
+- [Licença](#-licença)
 
 ## 🆕 Novidades da Versão 1.9.1-Alpha-8
 
@@ -24,7 +45,7 @@
 - **Performance tracking:** Medição precisa de tempo de execução
 - **Configuração flexível:** Enable/disable logging por categoria
 
-## Principais Funcionalidades
+## 🚀 Principais Funcionalidades
 
 - **Padronização automática de proposituras legislativas:**  
   Formatação específica para INDICAÇÕES, REQUERIMENTOS e MOÇÕES com controle de layout institucional.
@@ -45,25 +66,55 @@
 - **Segurança avançada:**  
   Validação de integridade, verificação de versão e proteção contra falhas.
 
-## Instalação
+## 📁 Estrutura do Projeto
 
-1. Baixe o repositório:  
-   [github.com/chrmsantos/chainsaw-proposituras](https://github.com/chrmsantos/chainsaw-proposituras)
-2. Execute o script PowerShell de instalação automatizada (recomendado):
+```text
+chainsaw/
+├── 📁 assets/              # Recursos (imagens, ícones)
+│   └── stamp.png          # Logo institucional
+├── 📁 config/             # Arquivos de configuração
+│   ├── chainsaw-config.ini # Configuração principal
+│   └── word/              # Configurações específicas do Word
+├── 📁 docs/               # Documentação
+│   ├── CONTRIBUTORS.md    # Lista de contribuidores
+│   └── SECURITY.md        # Políticas de segurança
+├── 📁 examples/           # Documentos de exemplo
+│   └── prop-de-testes-01.docx
+├── 📁 scripts/            # Scripts de instalação
+│   ├── install-chainsaw.ps1  # Instalador automatizado
+│   ├── install-config.ini    # Configuração do instalador
+│   └── INSTALL.md           # Guia de instalação
+├── 📁 src/                # Código fonte
+│   └── chainsaw0.bas      # Módulo VBA principal
+├── LICENSE                # Licença do projeto
+└── README.md             # Este arquivo
+```
 
-   ```powershell
-   .\install-chainsaw-proposituras.ps1
+## 🔧 Instalação
+
+### Instalação Rápida (Recomendada)
+
+1. **Download do projeto:**
+   ```bash
+   git clone https://github.com/chrmsantos/chainsaw-proposituras.git
    ```
 
-3. **OU** faça a instalação manual:
-   - Importe o módulo `Módulo1.bas` no editor VBA do Word (Alt+F11)
-   - Configure as permissões de segurança de macro (veja seção **Configurações de Segurança**)
+2. **Execute o instalador automatizado:**
 
-## ⚙️ Sistema de Configuração
+   ```powershell
+   cd chainsaw-proposituras
+   .\scripts\install-chainsaw.ps1
+   ```
 
-### Arquivo de Configuração (`chainsaw-config.ini`)
+### Instalação Manual
 
-O sistema utiliza um arquivo de configuração externo que permite controle granular sobre todas as funcionalidades:
+Consulte o guia detalhado em [`docs/INSTALL.md`](scripts/INSTALL.md) para instruções completas de instalação manual.
+
+## ⚙️ Configuração
+
+O sistema utiliza um arquivo de configuração externo (`config/chainsaw-config.ini`) que permite controle granular sobre todas as funcionalidades.
+
+### Configuração Rápida
 
 ```ini
 [GERAL]
@@ -76,13 +127,9 @@ validate_document_integrity = true
 validate_proposition_type = true
 check_word_version = true
 min_word_version = 14.0
-
-[PERFORMANCE]
-disable_screen_updating = true
-use_bulk_operations = true
-batch_paragraph_operations = true
-optimize_find_replace = true
 ```
+
+Para configuração completa, consulte [`config/chainsaw-config.ini`](config/chainsaw-config.ini).
 
 ### Localização do Arquivo
 
@@ -91,76 +138,88 @@ O sistema procura o arquivo `chainsaw-config.ini` em:
 1. **Pasta do documento atual** (se houver documento aberto)
 2. **Pasta Documentos do usuário** (fallback)
 
-### Configuração Automática
+## 📖 Uso
 
-- Se o arquivo não for encontrado, o sistema **usa valores padrão**
-- Todas as funcionalidades principais permanecem **habilitadas por padrão**
-- Permite **personalização completa** sem quebrar funcionalidade básica
+### Uso Básico
 
-### Principais Categorias de Configuração
+1. Abra um documento no Microsoft Word
+2. Execute a macro `PadronizarDocumentoMain`
+3. O sistema processará automaticamente o documento seguindo as configurações
 
-| Categoria | Descrição | Configurações |
-|-----------|-----------|---------------|
-| **GERAL** | Configurações básicas do sistema | Debug, Performance, Compatibilidade |
-| **VALIDACOES** | Controle de validações | Integridade, Versão, Tipo de documento |
-| **BACKUP** | Sistema de backup | Auto-backup, Retenção, Tentativas |
-| **FORMATACAO** | Controle de formatação | Fonte, Parágrafos, Hifenização |
-| **LIMPEZA** | Limpeza de documento | Espaços, Elementos visuais, Formatação |
-| **PERFORMANCE** | Otimizações | Processamento em lote, Cache, Loops |
-| **INTERFACE** | Mensagens e progresso | Alertas, Status, Confirmações |
-| **SEGURANCA** | Validações de segurança | Permissões, Proteção, Sanitização |
+### Funcionalidades Principais
 
-## Uso Básico
+- **Alt + F8**: Abrir lista de macros
+- **Ctrl + Shift + P**: Atalho personalizado (configurável)
 
-1. Execute a macro `PadronizarDocumentoMain` em seu documento.
-
-## Configurações de Segurança
+## 🔒 Segurança
 
 ### Configuração de Macros no Microsoft Word
 
-Para usar o chainsaw-fprops com segurança, configure o Word da seguinte forma:
+Para usar o CHAINSAW PROPOSITURAS com segurança:
 
-1. **Acesse as configurações de segurança:**
-   - Arquivo → Opções → Central de Confiabilidade → Configurações da Central de Confiabilidade
-   - Clique em "Configurações de Macro"
+1. **Configurações de Segurança:**
+   - Arquivo → Opções → Central de Confiabilidade
+   - Configurações de Macro → "Desabilitar todas as macros com notificação"
 
-2. **Configuração recomendada:**
-   - Selecione "Desabilitar todas as macros com notificação"
-   - Esta opção permite que você escolha quando executar macros
+2. **Verificações de Segurança:**
+   - ✅ Código fonte aberto e auditável
+   - ✅ Não requer conexão com internet
+   - ✅ Backup automático antes de modificações
+   - ✅ Tratamento robusto de erros
 
-3. **Locais confiáveis (opcional):**
-   - Adicione a pasta do chainsaw-fprops aos "Locais Confiáveis"
-   - Isso permitirá execução automática apenas desta pasta específica
+Para políticas corporativas, consulte [`docs/SECURITY.md`](docs/SECURITY.md).
 
-### Verificação de Segurança
+## 📋 Requisitos
 
-Antes de executar a macro:
+### Mínimos
 
-- ✅ Verifique se o arquivo foi baixado de fonte confiável
-- ✅ Execute em documentos com backup disponível
-- ✅ Teste primeiro em documentos não-críticos
-- ✅ Mantenha o antivírus atualizado
+- **Sistema Operacional:** Windows 7 ou superior
+- **Microsoft Word:** 2010 ou superior
+- **Permissões:** Execução de macros VBA habilitada
+- **Espaço em Disco:** 50MB livres
 
-**Importante:** O CHAINSAW PROPOSITURAS é open source e não se conecta à internet. Todo o código pode ser inspecionado no arquivo VBA.
+### Recomendados
 
-Para ambientes corporativos, consulte também a [Política de Segurança para Macros](MACRO_SECURITY_POLICY.md).
+- **Microsoft Word:** 2016 ou superior
+- **RAM:** 4GB ou superior
+- **Processador:** Intel/AMD 64-bit
 
-## Requisitos
+## 📚 Documentação
 
-- Microsoft Word 2010 ou superior (Windows)
-- Permissão para executar macros VBA
+### Documentos Disponíveis
 
-## Licença
+- [`docs/SECURITY.md`](docs/SECURITY.md) - Políticas de segurança
+- [`docs/CONTRIBUTORS.md`](docs/CONTRIBUTORS.md) - Lista de contribuidores
+- [`scripts/INSTALL.md`](scripts/INSTALL.md) - Guia de instalação detalhado
 
-Código sob licença [Apache 2.0 modificada com cláusula 10 (restrição comercial), conforme LICENSE](LICENSE).  
-O Microsoft Word é software proprietário e requer licença própria.
+### Exemplos
 
-## Autor
+Consulte a pasta [`examples/`](examples/) para documentos de exemplo e casos de uso.
 
-Christian Martin dos Santos
+## 🤝 Contribuição
 
-## Contribuição
+Colaborações são bem-vindas! Para contribuir:
 
-Colaborações são bem-vindas! Consulte o arquivo [CONTRIBUTORS.md](CONTRIBUTORS.md) para detalhes.
+1. Fork o repositório
+2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
+3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
+4. Push para a branch (`git push origin feature/AmazingFeature`)
+5. Abra um Pull Request
+
+Consulte [`docs/CONTRIBUTORS.md`](docs/CONTRIBUTORS.md) para detalhes sobre o processo de contribuição.
+
+## 📄 Licença
+
+Este projeto está licenciado sob a **Apache 2.0 License modificada com cláusula 10 (restrição comercial)** - consulte o arquivo [LICENSE](LICENSE) para detalhes.
+
+**Nota:** O Microsoft Word é software proprietário e requer licença própria.
+
+## 👨‍💻 Autor
+
+**Christian Martin dos Santos** - [chrmsantos](https://github.com/chrmsantos)
 
 ---
+
+---
+
+Desenvolvido com ❤️ para a comunidade legislativa brasileira
