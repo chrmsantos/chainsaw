@@ -36,12 +36,6 @@ Private Const ERR_DOCUMENT_PROTECTED As Long = 5002
 Private Const ERR_BACKUP_FAILED As Long = 5003
 Private Const ERR_INVALID_DOCUMENT As Long = 5004
 
-' Log level constants
-Private Const LOG_LEVEL_ERROR As String = "ERROR"
-Private Const LOG_LEVEL_WARNING As String = "WARNING"
-Private Const LOG_LEVEL_INFO As String = "INFO"
-Private Const LOG_LEVEL_DEBUG As String = "DEBUG"
-
 ' Performance constants  
 Private Const MAX_PARAGRAPH_BATCH_SIZE As Long = 50
 Private Const MAX_FIND_REPLACE_BATCH As Long = 100
@@ -141,9 +135,6 @@ Private processingStartTime As Double
 '
 ' =============================================================================
 
-'VBA
-Option Explicit
-
 '================================================================================
 ' CONSTANTS
 '================================================================================
@@ -206,6 +197,7 @@ Private Const HEADER_IMAGE_HEIGHT_RATIO As Double = 0.19
 Private Const MIN_SUPPORTED_VERSION As Long = 14 ' Word 2010
 
 ' Logging constants
+Private Const LOG_LEVEL_DEBUG As Long = 0
 Private Const LOG_LEVEL_INFO As Long = 1
 Private Const LOG_LEVEL_WARNING As Long = 2
 Private Const LOG_LEVEL_ERROR As Long = 3
@@ -354,8 +346,6 @@ Private Type ConfigSettings
     autoCleanup As Boolean
     forceGcCollection As Boolean
 End Type
-
-Private Config As ConfigSettings
 
 ' Image protection variables
 Private Type ImageInfo
@@ -1361,46 +1351,6 @@ Private Sub ForceGarbageCollection()
         LogMessage "Coleta de lixo forçada executada", LOG_LEVEL_DEBUG
     End If
 End Sub
-
-Private originalViewSettings As ViewSettings
-    End Select
-End Sub
-
-Private Sub ProcessSecurityConfig(key As String, value As String)
-    Select Case key
-        Case "REQUIRE_DOCUMENT_SAVED"
-            Config.requireDocumentSaved = (LCase(value) = "true")
-        Case "VALIDATE_FILE_PERMISSIONS"
-            Config.validateFilePermissions = (LCase(value) = "true")
-        Case "CHECK_DOCUMENT_PROTECTION"
-            Config.checkDocumentProtection = (LCase(value) = "true")
-        Case "ENABLE_EMERGENCY_BACKUP"
-            Config.enableEmergencyBackup = (LCase(value) = "true")
-        Case "SANITIZE_INPUTS"
-            Config.sanitizeInputs = (LCase(value) = "true")
-        Case "VALIDATE_RANGES"
-            Config.validateRanges = (LCase(value) = "true")
-    End Select
-End Sub
-
-Private Sub ProcessAdvancedConfig(key As String, value As String)
-    Select Case key
-        Case "MAX_RETRY_ATTEMPTS"
-            Config.maxRetryAttempts = CLng(value)
-        Case "RETRY_DELAY_MS"
-            Config.retryDelayMs = CLng(value)
-        Case "COMPILATION_CHECK"
-            Config.compilationCheck = (LCase(value) = "true")
-        Case "VBA_ACCESS_REQUIRED"
-            Config.vbaAccessRequired = (LCase(value) = "true")
-        Case "AUTO_CLEANUP"
-            Config.autoCleanup = (LCase(value) = "true")
-        Case "FORCE_GC_COLLECTION"
-            Config.forceGcCollection = (LCase(value) = "true")
-    End Select
-End Sub
-
-Private originalViewSettings As ViewSettings
 
 '================================================================================
 ' MAIN ENTRY POINT - #STABLE
