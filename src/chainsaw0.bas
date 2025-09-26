@@ -7399,3 +7399,30 @@ Public Sub MostrarInstrucoes()
     ' Não faz nada atualmente, mas pode ser expandida para recarregar configurações
     ' automaticamente ou mostrar notificações adicionais
 End Sub
+
+' =============================================================================
+' FUNÇÃO DE TESTE: TesteLoadConfiguration
+' =============================================================================
+' Função pública para teste da configuração (chama a função privada internamente)
+' =============================================================================
+Public Function TesteLoadConfiguration() As Boolean
+    On Error GoTo ErrorHandler
+    
+    ' Chama a função privada LoadConfiguration
+    TesteLoadConfiguration = LoadConfiguration()
+    
+    ' Fornece feedback sobre o resultado
+    If TesteLoadConfiguration Then
+        MsgBox "✅ Configuração carregada com sucesso!" & vbCrLf & _
+               "Sistema está pronto para uso.", vbInformation, "Teste de Configuração"
+    Else
+        MsgBox "❌ Falha no carregamento da configuração!" & vbCrLf & _
+               "Verifique os logs para mais detalhes.", vbExclamation, "Teste de Configuração"
+    End If
+    
+    Exit Function
+    
+ErrorHandler:
+    TesteLoadConfiguration = False
+    MsgBox "❌ ERRO no teste de configuração: " & Err.Number & " - " & Err.Description, vbCritical, "Teste de Configuração - Erro"
+End Function
