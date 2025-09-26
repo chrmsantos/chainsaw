@@ -560,29 +560,124 @@ End Function
 Private Function GetConfigurationFilePath() As String
     On Error GoTo ErrorHandler
     
-    Dim doc As Document
-    Dim basePath As String
+    Dim configPaths() As String
+    Dim i As Long
+    Dim testPath As String
     
-    ' Tenta obter pasta do documento atual
+    ' Define múltiplos caminhos possíveis em ordem de preferência
+    ReDim configPaths(0 To 4)
+    
+    ' 1. Pasta do documento atual (se disponível e com permissão)
+    Dim doc As Document
     Set doc = Nothing
     On Error Resume Next
     Set doc = ActiveDocument
     If Not doc Is Nothing And doc.Path <> "" Then
-        basePath = doc.Path
-    Else
-        ' Fallback para pasta do usuário
-        basePath = Environ("USERPROFILE") & "\Documents"
+        configPaths(0) = doc.Path & CONFIG_FILE_PATH & CONFIG_FILE_NAME
     End If
     On Error GoTo ErrorHandler
     
-    ' Constrói caminho do arquivo de configuração
-    GetConfigurationFilePath = basePath & CONFIG_FILE_PATH & CONFIG_FILE_NAME
+    ' 2. Pasta Documents do usuário + subpasta do projeto
+    configPaths(1) = Environ("USERPROFILE") & "\Documents" & CONFIG_FILE_PATH & CONFIG_FILE_NAME
     
+    ' 3. Pasta Documents do usuário (raiz)
+    configPaths(2) = Environ("USERPROFILE") & "\Documents\" & CONFIG_FILE_NAME
+    
+    ' 4. Pasta AppData do usuário (mais segura para configurações)
+    configPaths(3) = Environ("APPDATA") & "\ChainSawProposituras\" & CONFIG_FILE_NAME
+    
+    ' 5. Pasta temporária do usuário (último recurso)
+    configPaths(4) = Environ("TEMP") & "\" & CONFIG_FILE_NAME
+    
+    ' Testa cada caminho para encontrar um local acessível
+    For i = 0 To UBound(configPaths)
+        If Len(configPaths(i)) > 0 Then
+            testPath = configPaths(i)
+            
+            ' Verifica se é possível criar/acessar o arquivo neste local
+            If CanCreateFileInPath(testPath) Then
+                GetConfigurationFilePath = testPath
+                LogInfo "Caminho de configuração selecionado: " & testPath
+                Exit Function
+            End If
+        End If
+    Next i
+    
+    ' Se nenhum caminho funcionar, retorna erro
+    LogError "GetConfigurationFilePath", "Nenhum local adequado encontrado para arquivo de configuração"
+    GetConfigurationFilePath = ""
     Exit Function
     
 ErrorHandler:
     LogError "GetConfigurationFilePath"
     GetConfigurationFilePath = ""
+End Function
+
+' =============================================================================
+' FUNÇÃO: CanCreateFileInPath - Verifica se é possível criar arquivo em um caminho
+' =============================================================================
+' Testa se um caminho é válido para criação de arquivos, criando as pastas necessárias
+' Parâmetros: filePath (String) - caminho completo do arquivo a testar
+' Retorna: Boolean - True se pode criar arquivo, False caso contrário
+' =============================================================================
+Private Function CanCreateFileInPath(filePath As String) As Boolean
+    On Error GoTo ErrorHandler
+    
+    CanCreateFileInPath = False
+    
+    Dim fso As Object
+    Dim folderPath As String
+    Dim testFile As String
+    Dim fileNum As Integer
+    
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    
+    ' Extrai o caminho da pasta
+    folderPath = fso.GetParentFolderName(filePath)
+    
+    ' Se não há pasta (arquivo na raiz), usa o caminho atual
+    If Len(folderPath) = 0 Then
+        folderPath = "."
+    End If
+    
+    ' Tenta criar a pasta se não existir
+    If Not fso.FolderExists(folderPath) Then
+        fso.CreateFolder folderPath
+        LogInfo "Pasta criada: " & folderPath
+    End If
+    
+    ' Testa criação de um arquivo temporário
+    testFile = folderPath & "\temp_test_" & Timer & ".tmp"
+    fileNum = FreeFile
+    
+    ' Tenta criar e escrever no arquivo de teste
+    Open testFile For Output As #fileNum
+    Print #fileNum, "teste"
+    Close #fileNum
+    
+    ' Se chegou até aqui, o local é válido
+    ' Remove o arquivo de teste
+    fso.DeleteFile testFile
+    
+    CanCreateFileInPath = True
+    Exit Function
+    
+ErrorHandler:
+    ' Fecha arquivo se estiver aberto
+    If fileNum > 0 Then
+        On Error Resume Next
+        Close #fileNum
+        On Error GoTo 0
+    End If
+    
+    ' Remove arquivo de teste se foi criado
+    On Error Resume Next
+    If Len(testFile) > 0 And fso.FileExists(testFile) Then
+        fso.DeleteFile testFile
+    End If
+    On Error GoTo 0
+    
+    CanCreateFileInPath = False
 End Function
 
 Private Sub SetDefaultConfiguration()
@@ -7124,9 +7219,22 @@ Private Function CreateDefaultConfigFile(filePath As String) As Boolean
     CreateDefaultConfigFile = False
     
     Dim fileNum As Integer
+    Dim fso As Object
+    Dim folderPath As String
+    
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    
+    ' Verifica e cria pasta se necessário
+    folderPath = fso.GetParentFolderName(filePath)
+    If Len(folderPath) > 0 And Not fso.FolderExists(folderPath) Then
+        fso.CreateFolder folderPath
+        LogInfo "Pasta de configuração criada: " & folderPath
+    End If
+    
     fileNum = FreeFile
     
-    ' Cria o arquivo com configurações padrão documentadas
+    ' Tenta criar o arquivo com configurações padrão documentadas
+    LogInfo "Criando arquivo de configuração padrão: " & filePath
     Open filePath For Output As #fileNum
     
     ' Cabeçalho do arquivo
@@ -7255,8 +7363,29 @@ Private Function CreateDefaultConfigFile(filePath As String) As Boolean
     Exit Function
     
 ErrorHandler:
-    If fileNum > 0 Then Close #fileNum
-    LogError "CreateDefaultConfigFile"
+    If fileNum > 0 Then 
+        On Error Resume Next
+        Close #fileNum
+        On Error GoTo 0
+    End If
+    
+    ' Fornece informação específica sobre o erro
+    Dim errorMsg As String
+    Select Case Err.Number
+        Case 75, 70
+            errorMsg = "Erro de permissão: sem acesso de escrita em " & folderPath
+            LogError "CreateDefaultConfigFile", errorMsg
+        Case 76
+            errorMsg = "Caminho não encontrado: " & folderPath
+            LogError "CreateDefaultConfigFile", errorMsg
+        Case 71
+            errorMsg = "Arquivo em uso ou bloqueado: " & filePath
+            LogError "CreateDefaultConfigFile", errorMsg
+        Case Else
+            errorMsg = "Erro #" & Err.Number & ": " & Err.Description
+            LogError "CreateDefaultConfigFile", errorMsg
+    End Select
+    
     CreateDefaultConfigFile = False
 End Function
 
