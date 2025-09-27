@@ -6408,7 +6408,11 @@ Private Function DeleteVisualElementsInFirstFourParagraphs(doc As Document) As B
     
     ' Define o range dos primeiros 4 parágrafos (ou menos se o documento for menor)
     Dim maxParagraphs As Long
-    maxParagraphs = Application.WorksheetFunction.Min(4, doc.Paragraphs.Count)
+    If doc.Paragraphs.Count < 4 Then
+        maxParagraphs = doc.Paragraphs.Count
+    Else
+        maxParagraphs = 4
+    End If
     
     Dim startRange As Long
     Dim endRange As Long
