@@ -202,11 +202,6 @@ Private Const HEADER_IMAGE_HEIGHT_RATIO As Double = 0.19
 ' Minimum supported version
 Private Const MIN_SUPPORTED_VERSION As Long = 14 ' Word 2010
 
-' Logging constants
-Private Const LOG_LEVEL_INFO As Long = 1
-Private Const LOG_LEVEL_WARNING As Long = 2
-Private Const LOG_LEVEL_ERROR As Long = 3
-
 ' Required string constant
 Private Const REQUIRED_STRING As String = "$NUMERO$/$ANO$"
 
