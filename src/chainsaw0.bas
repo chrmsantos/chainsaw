@@ -1,13 +1,13 @@
 ' =============================================================================
-' PROJETO: CHAINSAW PROPOSITURAS
+' PROJECT: CHAINSAW PROPOSITURAS
 ' =============================================================================
 '
-' Sistema automatizado de padronização de documentos legislativos no Microsoft Word
+' Automated system for standardizing legislative documents in Microsoft Word
 '
-' Licença: Apache 2.0 modificada (ver LICENSE)
-' Versão: 1.9.1-Alpha-8 | Data: 2025-09-23
-' Repositório: github.com/chrmsantos/chainsaw-proposituras
-' Autor: Christian Martin dos Santos <chrmsantos@gmail.com>
+' License: Modified Apache 2.0 (see LICENSE)
+' Version: 1.9.1-Alpha-8 | Date: 2025-09-23
+' Repository: github.com/chrmsantos/chainsaw-proposituras
+' Author: Christian Martin dos Santos <chrmsantos@gmail.com>
 
 ' Windows API declarations
 Private Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
@@ -15,7 +15,7 @@ Private Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 Option Explicit
 
 '================================================================================
-' CONSTANTS AND CONFIGURATION - CONSTANTES E CONFIGURAÇÃO - #NEW
+' CONSTANTS AND CONFIGURATION - #NEW
 '================================================================================
 
 ' System constants
@@ -23,10 +23,10 @@ Private Const VERSION As String = "v1.9.1-Alpha-8"
 Private Const SYSTEM_NAME As String = "CHAINSAW PROPOSITURAS"
 
 ' Message constants
-Private Const MSG_BACKUP_SUCCESS As String = "Backup criado com sucesso: "
-Private Const MSG_BACKUP_FAILED As String = "Falha ao criar backup: "
-Private Const MSG_RESTORE_SUCCESS As String = "Restore executado com sucesso: "
-Private Const MSG_RESTORE_FAILED As String = "Falha ao restaurar backup: "
+Private Const MSG_BACKUP_SUCCESS As String = "Backup created successfully: "
+Private Const MSG_BACKUP_FAILED As String = "Failed to create backup: "
+Private Const MSG_RESTORE_SUCCESS As String = "Restore executed successfully: "
+Private Const MSG_RESTORE_FAILED As String = "Failed to restore backup: "
 
 ' Error constants
 Private Const ERR_WORD_NOT_FOUND As Long = 5000
@@ -47,7 +47,7 @@ Private Const MAX_FIND_REPLACE_BATCH As Long = 100
 Private Const OPTIMIZATION_THRESHOLD As Long = 1000
 
 '================================================================================
-' VARIABLES - VARIÁVEIS - #NEW
+' VARIABLES - #NEW
 '================================================================================
 
 ' Configuration instance
@@ -59,64 +59,64 @@ Private processingStartTime As Double
 
 '
 ' =============================================================================
-' FUNCIONALIDADES PRINCIPAIS:
+' MAIN FEATURES:
 ' =============================================================================
 '
-' • VERIFICAÇÕES DE SEGURANÇA E COMPATIBILIDADE:
-'   - Validação de versão do Word (mínimo: 2010)
-'   - Verificação de tipo e proteção do documento
-'   - Controle de espaço em disco e estrutura mínima
-'   - Proteção contra falhas e recuperação automática
+' • SECURITY AND COMPATIBILITY CHECKS:
+'   - Word version validation (minimum: 2010)
+'   - Document type and protection verification
+'   - Disk space control and minimum structure
+'   - Failure protection and automatic recovery
 '
-' • SISTEMA DE BACKUP AUTOMÁTICO:
-'   - Backup automático antes de qualquer modificação
-'   - Pasta de backups organizada por documento
-'   - Limpeza automática de backups antigos (limite: 10 arquivos)
-'   - Subrotina pública para acesso à pasta de backups
+' • AUTOMATIC BACKUP SYSTEM:
+'   - Automatic backup before any modification
+'   - Backup folder organized by document
+'   - Automatic cleanup of old backups (limit: 10 files)
+'   - Public subroutine for backup folder access
 '
-' • SISTEMA DE LIMPEZA DE ELEMENTOS VISUAIS:
-'   - Remove automaticamente elementos visuais ocultos em todo o documento
-'   - Remove elementos visuais (visíveis ou não) entre os parágrafos 1-4
-'   - Preserva elementos visuais essenciais fora da área de limpeza
-'   - Proteção inteligente contra remoção acidental de conteúdo relevante
+' • VISUAL ELEMENTS CLEANUP SYSTEM:
+'   - Automatically removes hidden visual elements throughout the document
+'   - Removes visual elements (visible or not) between paragraphs 1-4
+'   - Preserves essential visual elements outside cleanup area
+'   - Smart protection against accidental removal of relevant content
 '
-' • SUBROTINA PÚBLICA PARA SALVAR E SAIR:
-'   - Verificação automática de todos os documentos abertos
-'   - Detecção de documentos com alterações não salvas
-'   - Interface profissional com opções claras ao usuário
-'   - Salvamento assistido com diálogos para novos arquivos
-'   - Confirmação dupla para fechamento sem salvar
-'   - Tratamento robusto de erros e recuperação
+' • PUBLIC SUBROUTINE FOR SAVE AND EXIT:
+'   - Automatic verification of all open documents
+'   - Detection of documents with unsaved changes
+'   - Professional interface with clear options for user
+'   - Assisted saving with dialogs for new files
+'   - Double confirmation for closing without saving
+'   - Robust error handling and recovery
 '
-' • FORMATAÇÃO AUTOMATIZADA INSTITUCIONAL:
-'   - Limpeza completa de formatação ao iniciar
-'   - Remoção robusta de espaços múltiplos e tabs
-'   - Controle de linhas vazias (máximo 2 sequenciais)
-'   - LIMPEZA AVANÇADA: Remove elementos visuais ocultos em todo o documento
-'   - LIMPEZA AVANÇADA: Remove elementos visuais entre os parágrafos 1-4 (visíveis ou não)
-'   - PROTEÇÃO MÁXIMA: Sistema avançado de backup/restauração de imagens
-'   - PROTEÇÃO MÁXIMA: Preserva imagens inline, flutuantes e objetos (exceto conforme regras)
-'   - PROTEÇÃO MÁXIMA: Detecta e protege shapes ancoradas e campos visuais (exceto conforme regras)
-'   - Primeira linha: SEMPRE caixa alta, negrito, sublinhado, centralizada
-'   - Parágrafos 2°, 3° e 4°: recuo esquerdo 9cm, sem recuo primeira linha
-'   - "Considerando": caixa alta e negrito no início de parágrafos
-'   - "Justificativa": centralizada, sem recuos, negrito, capitalizada
-'   - "Anexo/Anexos": alinhado à esquerda, sem recuos, negrito, capitalizado
-'   - Configuração de margens e orientação (A4)
-'   - Fonte Arial 12pt com espaçamento 1.4
-'   - Recuos e alinhamento justificado
-'   - Cabeçalho com logotipo institucional
-'   - Rodapé com numeração centralizada
-'   - Visualização: zoom 110% (mantido), demais configurações preservadas
-'   - PROTEÇÃO TOTAL: Preserva réguas, modos de exibição e configurações originais
-'   - Remoção de marcas d'água e formatações manuais
+' • INSTITUTIONAL AUTOMATED FORMATTING:
+'   - Complete formatting cleanup at startup
+'   - Robust removal of multiple spaces and tabs
+'   - Empty lines control (maximum 2 sequential)
+'   - ADVANCED CLEANUP: Removes hidden visual elements throughout document
+'   - ADVANCED CLEANUP: Removes visual elements between paragraphs 1-4 (visible or not)
+'   - MAXIMUM PROTECTION: Advanced backup/restoration system for images
+'   - MAXIMUM PROTECTION: Preserves inline, floating images and objects (except per rules)
+'   - MAXIMUM PROTECTION: Detects and protects anchored shapes and visual fields (except per rules)
+'   - First line: ALWAYS uppercase, bold, underlined, centered
+'   - 2nd, 3rd and 4th paragraphs: 9cm left indent, no first line indent
+'   - "Considerando": uppercase and bold at paragraph beginning
+'   - "Justificativa": centered, no indents, bold, capitalized
+'   - "Anexo/Anexos": left aligned, no indents, bold, capitalized
+'   - Margin and orientation configuration (A4)
+'   - Arial 12pt font with 1.4 spacing
+'   - Indents and justified alignment
+'   - Header with institutional logo
+'   - Footer with centered numbering
+'   - View: 110% zoom (maintained), other settings preserved
+'   - TOTAL PROTECTION: Preserves rulers, display modes and original settings
+'   - Watermark removal and manual formatting cleanup
 '
-' • SISTEMA DE PADRONIZAÇÃO DE TEXTO:
-'   - Normalização automática de "d'Oeste" e suas variantes
-'   - Padronização de "- Vereador -" em todas as formas
-'   - Substituição inteligente de hífens/traços isolados por travessão (—)
-'   - Remoção completa de quebras de linha manuais (preserva quebras de parágrafo)
-'   - Preservação do contexto e formatação durante substituições
+' • TEXT STANDARDIZATION SYSTEM:
+'   - Automatic normalization of "d'Oeste" and its variants
+'   - Standardization of "- Vereador -" in all forms
+'   - Smart replacement of isolated hyphens/dashes with em dash (—)
+'   - Complete removal of manual line breaks (preserves paragraph breaks)
+'   - Context and formatting preservation during replacements
 '
 ' • SISTEMA DE LOGS E MONITORAMENTO:
 '   - Registro detalhado de operações
@@ -408,17 +408,17 @@ Private Function LoadConfiguration() As Boolean
     configPath = GetConfigurationFilePath()
     
     If Len(configPath) = 0 Or Dir(configPath) = "" Then
-        LogMessage "Arquivo de configuração não encontrado, usando valores padrão: " & configPath, LOG_LEVEL_WARNING
+        LogMessage "Configuration file not found, using default values: " & configPath, LOG_LEVEL_WARNING
         LoadConfiguration = True ' Usa padrões
         Exit Function
     End If
     
     ' Carrega configurações do arquivo
     If ParseConfigurationFile(configPath) Then
-        LogMessage "Configuração carregada com sucesso de: " & configPath, LOG_LEVEL_INFO
+        LogMessage "Configuration loaded successfully from: " & configPath, LOG_LEVEL_INFO
         LoadConfiguration = True
     Else
-        LogMessage "Erro ao carregar configuração, usando valores padrão", LOG_LEVEL_WARNING
+        LogMessage "Error loading configuration, using default values", LOG_LEVEL_WARNING
         SetDefaultConfiguration
         LoadConfiguration = True ' Usa padrões como fallback
     End If
