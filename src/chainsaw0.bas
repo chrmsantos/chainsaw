@@ -1228,7 +1228,6 @@ Private Sub ForceGarbageCollection()
     
     If Config.forceGcCollection Then
         ' Força coleta de lixo - apenas em casos específicos
-        Set Application = Application ' Força recontagem de referências
         DoEvents ' Permite ao sistema processar mensagens pendentes
         LogMessage "Coleta de lixo forçada executada", LOG_LEVEL_DEBUG
     End If
