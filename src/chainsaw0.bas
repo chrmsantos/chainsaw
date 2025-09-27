@@ -4630,7 +4630,6 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
                     .LeftIndent = 0                         ' Recuo à esquerda = 0
                     .FirstLineIndent = 0                     ' Recuo da 1ª linha = 0
                     .Alignment = wdAlignParagraphCenter       ' Alinhamento centralizado
-                    .Font.Bold = True                         ' Negrito
                 End With
 
                 With para.Range.Font
