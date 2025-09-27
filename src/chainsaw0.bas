@@ -342,8 +342,6 @@ Private Type ConfigSettings
     forceGcCollection As Boolean
 End Type
 
-Private Config As ConfigSettings
-
 ' Image protection variables
 Private Type ImageInfo
     ParaIndex As Long
