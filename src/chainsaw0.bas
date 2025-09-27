@@ -4666,11 +4666,11 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
                                 .LeftIndent = 0                      ' Recuo à esquerda = 0
                                 .FirstLineIndent = 0                 ' Recuo da 1ª linha = 0  
                                 .Alignment = wdAlignParagraphCenter  ' Alinhamento centralizado
-                                .AllCaps = True                       ' Caixa alta
                             End With
 
                             With paraPrev.Range.Font
                                 .Bold = True                  ' Negrito
+                                .AllCaps = True               ' Caixa alta
                             End With
                             
                             LogMessage "Parágrafo anterior a '- Vereador -' formatado (centralizado, caixa alta, negrito, sem recuos): " & Left(UCase(prevText), 30) & "...", LOG_LEVEL_INFO
