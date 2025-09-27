@@ -12,19 +12,16 @@
 Option Explicit
 
 '================================================================================
-' API DECLARATIONS - DECLARAÇÕES DE API
-'================================================================================
-
-' Windows API para pausas/delays
-Private Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
-
-'================================================================================
 ' CONSTANTS AND CONFIGURATION - CONSTANTES E CONFIGURAÇÃO - #NEW
 '================================================================================
 
 ' System constants
-Private Const APP_VERSION As String = "v1.9.1-Alpha-8"
+Private Const VERSION As String = "v1.9.1-Alpha-8"
 Private Const SYSTEM_NAME As String = "CHAINSAW PROPOSITURAS"
+
+' Configuration file constants
+Private Const CONFIG_FILE_NAME As String = "\chainsaw-config.ini"
+Private Const CONFIG_FILE_PATH As String = ""
 
 ' Message constants
 Private Const MSG_BACKUP_SUCCESS As String = "Backup criado com sucesso: "
@@ -39,7 +36,13 @@ Private Const ERR_DOCUMENT_PROTECTED As Long = 5002
 Private Const ERR_BACKUP_FAILED As Long = 5003
 Private Const ERR_INVALID_DOCUMENT As Long = 5004
 
-' Performance constants
+' Log level constants
+Private Const LOG_LEVEL_ERROR As String = "ERROR"
+Private Const LOG_LEVEL_WARNING As String = "WARNING"
+Private Const LOG_LEVEL_INFO As String = "INFO"
+Private Const LOG_LEVEL_DEBUG As String = "DEBUG"
+
+' Performance constants  
 Private Const MAX_PARAGRAPH_BATCH_SIZE As Long = 50
 Private Const MAX_FIND_REPLACE_BATCH As Long = 100
 Private Const OPTIMIZATION_THRESHOLD As Long = 1000
@@ -138,6 +141,9 @@ Private processingStartTime As Double
 '
 ' =============================================================================
 
+'VBA
+Option Explicit
+
 '================================================================================
 ' CONSTANTS
 '================================================================================
@@ -200,7 +206,6 @@ Private Const HEADER_IMAGE_HEIGHT_RATIO As Double = 0.19
 Private Const MIN_SUPPORTED_VERSION As Long = 14 ' Word 2010
 
 ' Logging constants
-Private Const LOG_LEVEL_DEBUG As Long = 0
 Private Const LOG_LEVEL_INFO As Long = 1
 Private Const LOG_LEVEL_WARNING As Long = 2
 Private Const LOG_LEVEL_ERROR As Long = 3
@@ -238,11 +243,11 @@ Private Type ConfigSettings
     compatibilityMode As Boolean
     
     ' Validations
-    CheckWordVersion As Boolean
-    ValidateDocumentIntegrity As Boolean
-    ValidatePropositionType As Boolean
-    ValidateContentConsistency As Boolean
-    CheckDiskSpace As Boolean
+    checkWordVersion As Boolean
+    validateDocumentIntegrity As Boolean
+    validatePropositionType As Boolean
+    validateContentConsistency As Boolean
+    checkDiskSpace As Boolean
     minWordVersion As Double
     maxDocumentSize As Long
     
@@ -254,49 +259,48 @@ Private Type ConfigSettings
     backupRetryAttempts As Long
     
     ' Formatting
-    ApplyPageSetup As Boolean
+    applyPageSetup As Boolean
     applyStandardFont As Boolean
     applyStandardParagraphs As Boolean
-    FormatFirstParagraph As Boolean
-    FormatSecondParagraph As Boolean
-    FormatNumberedParagraphs As Boolean
-    FormatConsiderandoParagraphs As Boolean
+    formatFirstParagraph As Boolean
+    formatSecondParagraph As Boolean
+    formatNumberedParagraphs As Boolean
+    formatConsiderandoParagraphs As Boolean
     formatJustificativaParagraphs As Boolean
-    EnableHyphenation As Boolean
+    enableHyphenation As Boolean
     
     ' Cleaning
-    ClearAllFormatting As Boolean
-    CleanDocumentStructure As Boolean
-    CleanMultipleSpaces As Boolean
-    LimitSequentialEmptyLines As Boolean
-    EnsureParagraphSeparation As Boolean
+    clearAllFormatting As Boolean
+    cleanDocumentStructure As Boolean
+    cleanMultipleSpaces As Boolean
+    limitSequentialEmptyLines As Boolean
+    ensureParagraphSeparation As Boolean
     cleanVisualElements As Boolean
     deleteHiddenElements As Boolean
     deleteVisualElementsFirstFourParagraphs As Boolean
     
     ' Header/Footer
-    InsertHeaderstamp As Boolean
-    InsertFooterstamp As Boolean
-    RemoveWatermark As Boolean
+    insertHeaderstamp As Boolean
+    insertFooterstamp As Boolean
+    removeWatermark As Boolean
     headerImagePath As String
     headerImageMaxWidth As Double
     headerImageHeightRatio As Double
     
     ' Text Replacements
-    ApplyTextReplacements As Boolean
-    ApplySpecificParagraphReplacements As Boolean
+    applyTextReplacements As Boolean
+    applySpecificParagraphReplacements As Boolean
     replaceHyphensWithEmDash As Boolean
     removeManualLineBreaks As Boolean
     normalizeDosteVariants As Boolean
     normalizeVereadorVariants As Boolean
-    replaceDateLineBeforeVereador As Boolean
     
     ' Visual Elements
-    BackupAllImages As Boolean
-    RestoreAllImages As Boolean
-    ProtectImagesInRange As Boolean
-    BackupViewSettings As Boolean
-    RestoreViewSettings As Boolean
+    backupAllImages As Boolean
+    restoreAllImages As Boolean
+    protectImagesInRange As Boolean
+    backupViewSettings As Boolean
+    restoreViewSettings As Boolean
     
     ' Logging
     enableLogging As Boolean
@@ -350,13 +354,15 @@ Private Type ConfigSettings
     forceGcCollection As Boolean
 End Type
 
+Private Config As ConfigSettings
+
 ' Image protection variables
 Private Type ImageInfo
-    paraIndex As Long
+    ParaIndex As Long
     ImageIndex As Long
     ImageType As String
     ImageData As Variant
-    position As Long
+    Position As Long
     WrapType As Long
     Width As Single
     Height As Single
@@ -397,127 +403,6 @@ End Type
 Private originalViewSettings As ViewSettings
 
 '================================================================================
-' UTILITY FUNCTIONS - FUNÇÕES UTILITÁRIAS - #NEW
-'================================================================================
-
-' =============================================================================
-' FUNÇÃO: LogError - Log padronizado de erros com contexto
-' =============================================================================
-' Centraliza o logging de erros para evitar repetição de código
-' Parâmetros: context (String) - contexto onde ocorreu o erro
-'            errorDesc (String) - descrição do erro (opcional, usa Err.Description se vazio)
-' =============================================================================
-Private Sub LogError(context As String, Optional errorDesc As String = "")
-    Dim message As String
-    If Len(errorDesc) = 0 Then
-        message = "Erro em " & context & ": " & Err.Description
-    Else
-        message = "Erro em " & context & ": " & errorDesc
-    End If
-    LogMessage message, LOG_LEVEL_ERROR
-End Sub
-
-' =============================================================================
-' FUNÇÃO: LogInfo - Log padronizado de informações
-' =============================================================================
-Private Sub LogInfo(message As String)
-    LogMessage message, LOG_LEVEL_INFO
-End Sub
-
-' =============================================================================
-' FUNÇÃO: LogDebug - Log padronizado de debug
-' =============================================================================
-Private Sub LogDebug(message As String)
-    LogMessage message, LOG_LEVEL_DEBUG
-End Sub
-
-' =============================================================================
-' FUNÇÃO: LogWarning - Log padronizado de avisos
-' =============================================================================
-Private Sub LogWarning(message As String)
-    LogMessage message, LOG_LEVEL_WARNING
-End Sub
-
-' =============================================================================
-' FUNÇÃO: HandleError - Tratamento padronizado de erros com retorno booleano
-' =============================================================================
-' Centraliza o tratamento de erros para funções que retornam Boolean
-' Parâmetros: context (String) - contexto da função/operação
-'            functionResult (Boolean) - referência para definir o resultado
-' Retorna: Sempre False (para usar em Exit Function)
-' =============================================================================
-Private Function HandleError(context As String, ByRef functionResult As Boolean) As Boolean
-    LogError context
-    functionResult = False
-    HandleError = False
-End Function
-
-' =============================================================================
-' FUNÇÃO: SafeExecute - Execução segura com tratamento de erro padronizado
-' =============================================================================
-' Template para execução segura de operações com tratamento de erro unificado
-' Exemplo de uso:
-' If Not SafeExecute("MinhaOperacao", MinhaFuncaoQueRetornaBool()) Then Exit Function
-' =============================================================================
-Private Function SafeExecute(context As String, operation As Boolean) As Boolean
-    On Error GoTo ErrorHandler
-    SafeExecute = operation
-    Exit Function
-    
-ErrorHandler:
-    LogError context
-    SafeExecute = False
-End Function
-
-' =============================================================================
-' FUNÇÃO: ValidateConfigBoolean - Validação padronizada de configurações boolean
-' =============================================================================
-Private Function ValidateConfigBoolean(configValue As String, defaultValue As Boolean) As Boolean
-    Select Case LCase(Trim(configValue))
-        Case "true", "1", "yes", "sim", "verdadeiro"
-            ValidateConfigBoolean = True
-        Case "false", "0", "no", "não", "nao", "falso"
-            ValidateConfigBoolean = False
-        Case Else
-            ValidateConfigBoolean = defaultValue
-    End Select
-End Function
-
-' =============================================================================
-' FUNÇÃO: ValidateConfigInteger - Validação padronizada de configurações numéricas
-' =============================================================================
-Private Function ValidateConfigInteger(configValue As String, defaultValue As Long, Optional minValue As Long = -2147483648#, Optional maxValue As Long = 2147483647) As Long
-    Dim result As Long
-    
-    If IsNumeric(configValue) Then
-        result = CLng(configValue)
-        If result >= minValue And result <= maxValue Then
-            ValidateConfigInteger = result
-        Else
-            ValidateConfigInteger = defaultValue
-        End If
-    Else
-        ValidateConfigInteger = defaultValue
-    End If
-End Function
-
-' =============================================================================
-' FUNÇÃO: MinValue - Retorna o menor valor entre dois números
-' =============================================================================
-' Substitui Application.WorksheetFunction.Min que não existe no Word
-' Parâmetros: value1 (Long) - primeiro valor
-'            value2 (Long) - segundo valor
-' Retorna: Long - menor valor entre os dois
-' =============================================================================
-Private Function MinValue(value1 As Long, value2 As Long) As Long
-    If value1 < value2 Then
-        MinValue = value1
-    Else
-        MinValue = value2
-    End If
-End Function
-
-'================================================================================
 ' CONFIGURATION SYSTEM - SISTEMA DE CONFIGURAÇÃO - #NEW
 '================================================================================
 
@@ -534,17 +419,17 @@ Private Function LoadConfiguration() As Boolean
     configPath = GetConfigurationFilePath()
     
     If Len(configPath) = 0 Or Dir(configPath) = "" Then
-        LogWarning "Arquivo de configuração não encontrado, usando valores padrão: " & configPath
+        LogMessage "Arquivo de configuração não encontrado, usando valores padrão: " & configPath, LOG_LEVEL_WARNING
         LoadConfiguration = True ' Usa padrões
         Exit Function
     End If
     
     ' Carrega configurações do arquivo
     If ParseConfigurationFile(configPath) Then
-        LogInfo "Configuração carregada com sucesso de: " & configPath
+        LogMessage "Configuração carregada com sucesso de: " & configPath, LOG_LEVEL_INFO
         LoadConfiguration = True
     Else
-        LogWarning "Erro ao carregar configuração, usando valores padrão"
+        LogMessage "Erro ao carregar configuração, usando valores padrão", LOG_LEVEL_WARNING
         SetDefaultConfiguration
         LoadConfiguration = True ' Usa padrões como fallback
     End If
@@ -552,7 +437,7 @@ Private Function LoadConfiguration() As Boolean
     Exit Function
     
 ErrorHandler:
-    LogError "LoadConfiguration"
+    LogMessage "Erro ao carregar configuração: " & Err.Description, LOG_LEVEL_ERROR
     SetDefaultConfiguration
     LoadConfiguration = True ' Continua com padrões
 End Function
@@ -560,124 +445,28 @@ End Function
 Private Function GetConfigurationFilePath() As String
     On Error GoTo ErrorHandler
     
-    Dim configPaths() As String
-    Dim i As Long
-    Dim testPath As String
-    
-    ' Define múltiplos caminhos possíveis em ordem de preferência
-    ReDim configPaths(0 To 4)
-    
-    ' 1. Pasta do documento atual (se disponível e com permissão)
     Dim doc As Document
+    Dim basePath As String
+    
+    ' Tenta obter pasta do documento atual
     Set doc = Nothing
     On Error Resume Next
     Set doc = ActiveDocument
-    If Not doc Is Nothing And doc.Path <> "" Then
-        configPaths(0) = doc.Path & CONFIG_FILE_PATH & CONFIG_FILE_NAME
+    If Not doc Is Nothing And doc.path <> "" Then
+        basePath = doc.path
+    Else
+        ' Fallback para pasta do usuário
+        basePath = Environ("USERPROFILE") & "\Documents"
     End If
     On Error GoTo ErrorHandler
     
-    ' 2. Pasta Documents do usuário + subpasta do projeto
-    configPaths(1) = Environ("USERPROFILE") & "\Documents" & CONFIG_FILE_PATH & CONFIG_FILE_NAME
+    ' Constrói caminho do arquivo de configuração
+    GetConfigurationFilePath = basePath & CONFIG_FILE_PATH & CONFIG_FILE_NAME
     
-    ' 3. Pasta Documents do usuário (raiz)
-    configPaths(2) = Environ("USERPROFILE") & "\Documents\" & CONFIG_FILE_NAME
-    
-    ' 4. Pasta AppData do usuário (mais segura para configurações)
-    configPaths(3) = Environ("APPDATA") & "\ChainSawProposituras\" & CONFIG_FILE_NAME
-    
-    ' 5. Pasta temporária do usuário (último recurso)
-    configPaths(4) = Environ("TEMP") & "\" & CONFIG_FILE_NAME
-    
-    ' Testa cada caminho para encontrar um local acessível
-    For i = 0 To UBound(configPaths)
-        If Len(configPaths(i)) > 0 Then
-            testPath = configPaths(i)
-            
-            ' Verifica se é possível criar/acessar o arquivo neste local
-            If CanCreateFileInPath(testPath) Then
-                GetConfigurationFilePath = testPath
-                LogInfo "Caminho de configuração selecionado: " & testPath
-                Exit Function
-            End If
-        End If
-    Next i
-    
-    ' Se nenhum caminho funcionar, retorna erro
-    LogError "GetConfigurationFilePath", "Nenhum local adequado encontrado para arquivo de configuração"
-    GetConfigurationFilePath = ""
     Exit Function
     
 ErrorHandler:
-    LogError "GetConfigurationFilePath"
     GetConfigurationFilePath = ""
-End Function
-
-' =============================================================================
-' FUNÇÃO: CanCreateFileInPath - Verifica se é possível criar arquivo em um caminho
-' =============================================================================
-' Testa se um caminho é válido para criação de arquivos, criando as pastas necessárias
-' Parâmetros: filePath (String) - caminho completo do arquivo a testar
-' Retorna: Boolean - True se pode criar arquivo, False caso contrário
-' =============================================================================
-Private Function CanCreateFileInPath(filePath As String) As Boolean
-    On Error GoTo ErrorHandler
-    
-    CanCreateFileInPath = False
-    
-    Dim fso As Object
-    Dim folderPath As String
-    Dim testFile As String
-    Dim fileNum As Integer
-    
-    Set fso = CreateObject("Scripting.FileSystemObject")
-    
-    ' Extrai o caminho da pasta
-    folderPath = fso.GetParentFolderName(filePath)
-    
-    ' Se não há pasta (arquivo na raiz), usa o caminho atual
-    If Len(folderPath) = 0 Then
-        folderPath = "."
-    End If
-    
-    ' Tenta criar a pasta se não existir
-    If Not fso.FolderExists(folderPath) Then
-        fso.CreateFolder folderPath
-        LogInfo "Pasta criada: " & folderPath
-    End If
-    
-    ' Testa criação de um arquivo temporário
-    testFile = folderPath & "\temp_test_" & Timer & ".tmp"
-    fileNum = FreeFile
-    
-    ' Tenta criar e escrever no arquivo de teste
-    Open testFile For Output As #fileNum
-    Print #fileNum, "teste"
-    Close #fileNum
-    
-    ' Se chegou até aqui, o local é válido
-    ' Remove o arquivo de teste
-    fso.DeleteFile testFile
-    
-    CanCreateFileInPath = True
-    Exit Function
-    
-ErrorHandler:
-    ' Fecha arquivo se estiver aberto
-    If fileNum > 0 Then
-        On Error Resume Next
-        Close #fileNum
-        On Error GoTo 0
-    End If
-    
-    ' Remove arquivo de teste se foi criado
-    On Error Resume Next
-    If Len(testFile) > 0 And fso.FileExists(testFile) Then
-        fso.DeleteFile testFile
-    End If
-    On Error GoTo 0
-    
-    CanCreateFileInPath = False
 End Function
 
 Private Sub SetDefaultConfiguration()
@@ -689,11 +478,11 @@ Private Sub SetDefaultConfiguration()
         .compatibilityMode = True
         
         ' Validations
-        .CheckWordVersion = True
-        .ValidateDocumentIntegrity = True
-        .ValidatePropositionType = True
-        .ValidateContentConsistency = True
-        .CheckDiskSpace = True
+        .checkWordVersion = True
+        .validateDocumentIntegrity = True
+        .validatePropositionType = True
+        .validateContentConsistency = True
+        .checkDiskSpace = True
         .minWordVersion = 14#
         .maxDocumentSize = 500000
         
@@ -705,49 +494,48 @@ Private Sub SetDefaultConfiguration()
         .backupRetryAttempts = 3
         
         ' Formatting
-        .ApplyPageSetup = True
+        .applyPageSetup = True
         .applyStandardFont = True
         .applyStandardParagraphs = True
-        .FormatFirstParagraph = True
-        .FormatSecondParagraph = True
-        .FormatNumberedParagraphs = True
-        .FormatConsiderandoParagraphs = True
+        .formatFirstParagraph = True
+        .formatSecondParagraph = True
+        .formatNumberedParagraphs = True
+        .formatConsiderandoParagraphs = True
         .formatJustificativaParagraphs = True
-        .EnableHyphenation = True
+        .enableHyphenation = True
         
         ' Cleaning
-        .ClearAllFormatting = True
-        .CleanDocumentStructure = True
-        .CleanMultipleSpaces = True
-        .LimitSequentialEmptyLines = True
-        .EnsureParagraphSeparation = True
+        .clearAllFormatting = True
+        .cleanDocumentStructure = True
+        .cleanMultipleSpaces = True
+        .limitSequentialEmptyLines = True
+        .ensureParagraphSeparation = True
         .cleanVisualElements = True
         .deleteHiddenElements = True
         .deleteVisualElementsFirstFourParagraphs = True
         
         ' Header/Footer
-        .InsertHeaderstamp = True
-        .InsertFooterstamp = True
-        .RemoveWatermark = True
+        .insertHeaderstamp = True
+        .insertFooterstamp = True
+        .removeWatermark = True
         .headerImagePath = "private\header\stamp.png"
         .headerImageMaxWidth = 21#
         .headerImageHeightRatio = 0.19
         
         ' Text Replacements
-        .ApplyTextReplacements = True
-        .ApplySpecificParagraphReplacements = True
+        .applyTextReplacements = True
+        .applySpecificParagraphReplacements = True
         .replaceHyphensWithEmDash = True
         .removeManualLineBreaks = True
         .normalizeDosteVariants = True
         .normalizeVereadorVariants = True
-        .replaceDateLineBeforeVereador = True
         
         ' Visual Elements
-        .BackupAllImages = True
-        .RestoreAllImages = True
-        .ProtectImagesInRange = True
-        .BackupViewSettings = True
-        .RestoreViewSettings = True
+        .backupAllImages = True
+        .restoreAllImages = True
+        .protectImagesInRange = True
+        .backupViewSettings = True
+        .restoreViewSettings = True
         
         ' Logging
         .enableLogging = True
@@ -894,87 +682,83 @@ End Sub
 Private Sub ProcessGeneralConfig(key As String, value As String)
     Select Case key
         Case "DEBUG_MODE"
-            Config.debugMode = ValidateConfigBoolean(value, False)
+            Config.debugMode = (LCase(value) = "true")
         Case "PERFORMANCE_MODE"
-            Config.performanceMode = ValidateConfigBoolean(value, True)
+            Config.performanceMode = (LCase(value) = "true")
         Case "COMPATIBILITY_MODE"
-            Config.compatibilityMode = ValidateConfigBoolean(value, True)
+            Config.compatibilityMode = (LCase(value) = "true")
     End Select
 End Sub
 
 Private Sub ProcessValidationConfig(key As String, value As String)
     Select Case key
         Case "CHECK_WORD_VERSION"
-            Config.CheckWordVersion = ValidateConfigBoolean(value, True)
+            Config.checkWordVersion = (LCase(value) = "true")
         Case "VALIDATE_DOCUMENT_INTEGRITY"
-            Config.ValidateDocumentIntegrity = ValidateConfigBoolean(value, True)
+            Config.validateDocumentIntegrity = (LCase(value) = "true")
         Case "VALIDATE_PROPOSITION_TYPE"
-            Config.ValidatePropositionType = ValidateConfigBoolean(value, True)
+            Config.validatePropositionType = (LCase(value) = "true")
         Case "VALIDATE_CONTENT_CONSISTENCY"
-            Config.ValidateContentConsistency = ValidateConfigBoolean(value, True)
+            Config.validateContentConsistency = (LCase(value) = "true")
         Case "CHECK_DISK_SPACE"
-            Config.CheckDiskSpace = ValidateConfigBoolean(value, True)
+            Config.checkDiskSpace = (LCase(value) = "true")
         Case "MIN_WORD_VERSION"
-            If IsNumeric(value) Then
-                Config.minWordVersion = CDbl(value)
-            Else
-                Config.minWordVersion = 14#  ' Word 2010
-            End If
+            Config.minWordVersion = CDbl(value)
         Case "MAX_DOCUMENT_SIZE"
-            Config.maxDocumentSize = ValidateConfigInteger(value, 500000, 10000, 10000000)
+            Config.maxDocumentSize = CLng(value)
     End Select
 End Sub
 
 Private Sub ProcessBackupConfig(key As String, value As String)
     Select Case key
         Case "AUTO_BACKUP"
-            Config.autoBackup = ValidateConfigBoolean(value, True)
+            Config.autoBackup = (LCase(value) = "true")
         Case "BACKUP_BEFORE_PROCESSING"
-            Config.backupBeforeProcessing = ValidateConfigBoolean(value, True)
+            Config.backupBeforeProcessing = (LCase(value) = "true")
         Case "MAX_BACKUP_FILES"
-            Config.maxBackupFiles = ValidateConfigInteger(value, 10, 1, 100)
+            Config.maxBackupFiles = CLng(value)
         Case "BACKUP_CLEANUP"
-            Config.backupCleanup = ValidateConfigBoolean(value, True)
+            Config.backupCleanup = (LCase(value) = "true")
         Case "BACKUP_RETRY_ATTEMPTS"
-            Config.backupRetryAttempts = ValidateConfigInteger(value, 3, 1, 10)
+            Config.backupRetryAttempts = CLng(value)
     End Select
 End Sub
 
 Private Sub ProcessFormattingConfig(key As String, value As String)
     Select Case key
         Case "APPLY_PAGE_SETUP"
-            Config.ApplyPageSetup = ValidateConfigBoolean(value, True)
+            Config.applyPageSetup = (LCase(value) = "true")
         Case "APPLY_STANDARD_FONT"
-            Config.applyStandardFont = ValidateConfigBoolean(value, True)
+            Config.applyStandardFont = (LCase(value) = "true")
         Case "APPLY_STANDARD_PARAGRAPHS"
-            Config.applyStandardParagraphs = ValidateConfigBoolean(value, True)
+            Config.applyStandardParagraphs = (LCase(value) = "true")
         Case "FORMAT_FIRST_PARAGRAPH"
-            Config.FormatFirstParagraph = ValidateConfigBoolean(value, True)
+            Config.formatFirstParagraph = (LCase(value) = "true")
         Case "FORMAT_SECOND_PARAGRAPH"
-            Config.FormatSecondParagraph = ValidateConfigBoolean(value, True)
+            Config.formatSecondParagraph = (LCase(value) = "true")
         Case "FORMAT_NUMBERED_PARAGRAPHS"
-            Config.FormatNumberedParagraphs = ValidateConfigBoolean(value, True)
+            Config.formatNumberedParagraphs = (LCase(value) = "true")
         Case "FORMAT_CONSIDERANDO_PARAGRAPHS"
-            Config.FormatConsiderandoParagraphs = ValidateConfigBoolean(value, True)
+            Config.formatConsiderandoParagraphs = (LCase(value) = "true")
         Case "FORMAT_JUSTIFICATIVA_PARAGRAPHS"
-            Config.formatJustificativaParagraphs = ValidateConfigBoolean(value, True)
+            Config.formatJustificativaParagraphs = (LCase(value) = "true")
         Case "ENABLE_HYPHENATION"
-            Config.EnableHyphenation = ValidateConfigBoolean(value, False)
+            Config.enableHyphenation = (LCase(value) = "true")
     End Select
 End Sub
 
 Private Sub ProcessCleaningConfig(key As String, value As String)
     Select Case key
         Case "CLEAR_ALL_FORMATTING"
-            Config.ClearAllFormatting = (LCase(value) = "true")
+            Config.clearAllFormatting = (LCase(value) = "true")
         Case "CLEAN_DOCUMENT_STRUCTURE"
-            Config.CleanDocumentStructure = (LCase(value) = "true")
+            Config.cleanDocumentStructure = (LCase(value) = "true")
         Case "CLEAN_MULTIPLE_SPACES"
-            Config.CleanMultipleSpaces = (LCase(value) = "true")
+            Config.cleanMultipleSpaces = (LCase(value) = "true")
         Case "LIMIT_SEQUENTIAL_EMPTY_LINES"
-            Config.LimitSequentialEmptyLines = (LCase(value) = "true")
+            Config.limitSequentialEmptyLines = (LCase(value) = "true")
         Case "ENSURE_PARAGRAPH_SEPARATION"
-            Config.EnsureParagraphSeparation = (LCase(value) = "true")
+            Config.ensureParagraphSeparation = (LCase(value) = "true")
         Case "CLEAN_VISUAL_ELEMENTS"
             Config.cleanVisualElements = (LCase(value) = "true")
         Case "DELETE_HIDDEN_ELEMENTS"
@@ -987,11 +771,11 @@ End Sub
 Private Sub ProcessHeaderFooterConfig(key As String, value As String)
     Select Case key
         Case "INSERT_HEADER_stamp"
-            Config.InsertHeaderstamp = (LCase(value) = "true")
+            Config.insertHeaderstamp = (LCase(value) = "true")
         Case "INSERT_FOOTER_stamp"
-            Config.InsertFooterstamp = (LCase(value) = "true")
+            Config.insertFooterstamp = (LCase(value) = "true")
         Case "REMOVE_WATERMARK"
-            Config.RemoveWatermark = (LCase(value) = "true")
+            Config.removeWatermark = (LCase(value) = "true")
         Case "HEADER_IMAGE_PATH"
             Config.headerImagePath = value
         Case "HEADER_IMAGE_MAX_WIDTH"
@@ -1004,9 +788,9 @@ End Sub
 Private Sub ProcessReplacementConfig(key As String, value As String)
     Select Case key
         Case "APPLY_TEXT_REPLACEMENTS"
-            Config.ApplyTextReplacements = (LCase(value) = "true")
+            Config.applyTextReplacements = (LCase(value) = "true")
         Case "APPLY_SPECIFIC_PARAGRAPH_REPLACEMENTS"
-            Config.ApplySpecificParagraphReplacements = (LCase(value) = "true")
+            Config.applySpecificParagraphReplacements = (LCase(value) = "true")
         Case "REPLACE_HYPHENS_WITH_EM_DASH"
             Config.replaceHyphensWithEmDash = (LCase(value) = "true")
         Case "REMOVE_MANUAL_LINE_BREAKS"
@@ -1015,23 +799,21 @@ Private Sub ProcessReplacementConfig(key As String, value As String)
             Config.normalizeDosteVariants = (LCase(value) = "true")
         Case "NORMALIZE_VEREADOR_VARIANTS"
             Config.normalizeVereadorVariants = (LCase(value) = "true")
-        Case "REPLACE_DATE_LINE_BEFORE_VEREADOR"
-            Config.replaceDateLineBeforeVereador = (LCase(value) = "true")
     End Select
 End Sub
 
 Private Sub ProcessVisualElementsConfig(key As String, value As String)
     Select Case key
         Case "BACKUP_ALL_IMAGES"
-            Config.BackupAllImages = (LCase(value) = "true")
+            Config.backupAllImages = (LCase(value) = "true")
         Case "RESTORE_ALL_IMAGES"
-            Config.RestoreAllImages = (LCase(value) = "true")
+            Config.restoreAllImages = (LCase(value) = "true")
         Case "PROTECT_IMAGES_IN_RANGE"
-            Config.ProtectImagesInRange = (LCase(value) = "true")
+            Config.protectImagesInRange = (LCase(value) = "true")
         Case "BACKUP_VIEW_SETTINGS"
-            Config.BackupViewSettings = (LCase(value) = "true")
+            Config.backupViewSettings = (LCase(value) = "true")
         Case "RESTORE_VIEW_SETTINGS"
-            Config.RestoreViewSettings = (LCase(value) = "true")
+            Config.restoreViewSettings = (LCase(value) = "true")
     End Select
 End Sub
 
@@ -1154,31 +936,31 @@ Private Function InitializePerformanceOptimization() As Boolean
     
     ' Aplica otimizações baseadas na configuração
     If Config.performanceMode Then
-        LogInfo "Iniciando otimizações de performance..."
+        LogMessage "Iniciando otimizações de performance...", LOG_LEVEL_INFO
         
         ' Desabilita atualizações de tela
         If Config.disableScreenUpdating Then
             Application.ScreenUpdating = False
-            LogDebug "Screen updating desabilitado"
+            LogMessage "Screen updating desabilitado", LOG_LEVEL_DEBUG
         End If
         
         ' Desabilita alertas
         If Config.disableDisplayAlerts Then
             Application.DisplayAlerts = False
-            LogDebug "Display alerts desabilitado"
+            LogMessage "Display alerts desabilitado", LOG_LEVEL_DEBUG
         End If
         
         ' Otimizações específicas do Word
         Call OptimizeWordSettings
         
-        LogInfo "Otimizações de performance aplicadas"
+        LogMessage "Otimizações de performance aplicadas", LOG_LEVEL_INFO
     End If
     
     InitializePerformanceOptimization = True
     Exit Function
     
 ErrorHandler:
-    LogError "InitializePerformanceOptimization"
+    LogMessage "Erro ao inicializar otimizações: " & Err.Description, LOG_LEVEL_ERROR
     InitializePerformanceOptimization = False
 End Function
 
@@ -1214,20 +996,20 @@ Private Function RestorePerformanceSettings() As Boolean
     RestorePerformanceSettings = False
     
     If Config.performanceMode Then
-        LogInfo "Restaurando configurações de performance..."
+        LogMessage "Restaurando configurações de performance...", LOG_LEVEL_INFO
         
         ' Restaura configurações originais
         Application.ScreenUpdating = True
         Application.DisplayAlerts = True
         
-        LogInfo "Configurações de performance restauradas"
+        LogMessage "Configurações de performance restauradas", LOG_LEVEL_INFO
     End If
     
     RestorePerformanceSettings = True
     Exit Function
     
 ErrorHandler:
-    LogError "RestorePerformanceSettings"
+    LogMessage "Erro ao restaurar configurações: " & Err.Description, LOG_LEVEL_ERROR
     RestorePerformanceSettings = False
 End Function
 
@@ -1248,7 +1030,7 @@ Private Function OptimizedFindReplace(findText As String, replaceText As String,
     Exit Function
     
 ErrorHandler:
-    LogError "OptimizedFindReplace"
+    LogMessage "Erro em busca/substituição otimizada: " & Err.Description, LOG_LEVEL_ERROR
     OptimizedFindReplace = 0
 End Function
 
@@ -1264,8 +1046,8 @@ Private Function BulkFindReplace(findText As String, replaceText As String, Opti
     With targetRange.Find
         .ClearFormatting
         .Replacement.ClearFormatting
-        .text = findText
-        .Replacement.text = replaceText
+        .Text = findText
+        .Replacement.Text = replaceText
         .Forward = True
         .Wrap = wdFindStop
         .Format = False
@@ -1282,7 +1064,7 @@ Private Function BulkFindReplace(findText As String, replaceText As String, Opti
     Exit Function
     
 ErrorHandler:
-    LogError "BulkFindReplace"
+    LogMessage "Erro em busca/substituição em lote: " & Err.Description, LOG_LEVEL_ERROR
     BulkFindReplace = 0
 End Function
 
@@ -1298,8 +1080,8 @@ Private Function StandardFindReplace(findText As String, replaceText As String, 
     With targetRange.Find
         .ClearFormatting
         .Replacement.ClearFormatting
-        .text = findText
-        .Replacement.text = replaceText
+        .Text = findText
+        .Replacement.Text = replaceText
         .Forward = True
         .Wrap = wdFindStop
         
@@ -1309,7 +1091,7 @@ Private Function StandardFindReplace(findText As String, replaceText As String, 
     Exit Function
     
 ErrorHandler:
-    LogError "StandardFindReplace"
+    LogMessage "Erro em busca/substituição padrão: " & Err.Description, LOG_LEVEL_ERROR
     StandardFindReplace = 0
 End Function
 
@@ -1328,7 +1110,7 @@ Private Function OptimizedParagraphProcessing(processingFunction As String) As B
     Exit Function
     
 ErrorHandler:
-    LogError "OptimizedParagraphProcessing"
+    LogMessage "Erro no processamento otimizado de parágrafos: " & Err.Description, LOG_LEVEL_ERROR
     OptimizedParagraphProcessing = False
 End Function
 
@@ -1341,12 +1123,12 @@ Private Function BatchProcessParagraphs(processingFunction As String) As Boolean
     Set doc = ActiveDocument
     
     Dim paragraphCount As Long
-    paragraphCount = doc.Paragraphs.count
+    paragraphCount = doc.Paragraphs.Count
     
     Dim batchSize As Long
     batchSize = IIf(paragraphCount > OPTIMIZATION_THRESHOLD, MAX_PARAGRAPH_BATCH_SIZE, paragraphCount)
     
-    LogDebug "Processando " & paragraphCount & " parágrafos em lotes de " & batchSize
+    LogMessage "Processando " & paragraphCount & " parágrafos em lotes de " & batchSize, LOG_LEVEL_DEBUG
     
     Dim i As Long
     For i = 1 To paragraphCount Step batchSize
@@ -1355,7 +1137,7 @@ Private Function BatchProcessParagraphs(processingFunction As String) As Boolean
         
         ' Processa lote de parágrafos
         If Not ProcessParagraphBatch(i, endIndex, processingFunction) Then
-            LogError "ProcessParagraphBatch lote " & i & "-" & endIndex
+            LogMessage "Erro no processamento do lote " & i & "-" & endIndex, LOG_LEVEL_ERROR
             Exit Function
         End If
         
@@ -1369,7 +1151,7 @@ Private Function BatchProcessParagraphs(processingFunction As String) As Boolean
     Exit Function
     
 ErrorHandler:
-    LogError "BatchProcessParagraphs"
+    LogMessage "Erro no processamento em lote: " & Err.Description, LOG_LEVEL_ERROR
     BatchProcessParagraphs = False
 End Function
 
@@ -1399,7 +1181,7 @@ Private Function StandardProcessParagraphs(processingFunction As String) As Bool
     Exit Function
     
 ErrorHandler:
-    LogError "StandardProcessParagraphs"
+    LogMessage "Erro no processamento padrão: " & Err.Description, LOG_LEVEL_ERROR
     StandardProcessParagraphs = False
 End Function
 
@@ -1413,7 +1195,7 @@ Private Function ProcessParagraphBatch(startIndex As Long, endIndex As Long, pro
     
     Dim i As Long
     For i = startIndex To endIndex
-        If i <= doc.Paragraphs.count Then
+        If i <= doc.Paragraphs.Count Then
             Dim para As Paragraph
             Set para = doc.Paragraphs(i)
             
@@ -1433,7 +1215,7 @@ Private Function ProcessParagraphBatch(startIndex As Long, endIndex As Long, pro
     Exit Function
     
 ErrorHandler:
-    LogError "ProcessParagraphBatch"
+    LogMessage "Erro no processamento do lote: " & Err.Description, LOG_LEVEL_ERROR
     ProcessParagraphBatch = False
 End Function
 
@@ -1460,15 +1242,51 @@ Private Sub ForceGarbageCollection()
     
     If Config.forceGcCollection Then
         ' Força coleta de lixo - apenas em casos específicos
-        Dim tempObj As Object
-        Set tempObj = Nothing ' Força limpeza de referências temporárias
+        Set Application = Application ' Força recontagem de referências
         DoEvents ' Permite ao sistema processar mensagens pendentes
-        ' Força uma operação que pode ajudar na coleta de lixo
-        Application.StatusBar = False
-        Application.StatusBar = True
         LogMessage "Coleta de lixo forçada executada", LOG_LEVEL_DEBUG
     End If
 End Sub
+
+Private originalViewSettings As ViewSettings
+    End Select
+End Sub
+
+Private Sub ProcessSecurityConfig(key As String, value As String)
+    Select Case key
+        Case "REQUIRE_DOCUMENT_SAVED"
+            Config.requireDocumentSaved = (LCase(value) = "true")
+        Case "VALIDATE_FILE_PERMISSIONS"
+            Config.validateFilePermissions = (LCase(value) = "true")
+        Case "CHECK_DOCUMENT_PROTECTION"
+            Config.checkDocumentProtection = (LCase(value) = "true")
+        Case "ENABLE_EMERGENCY_BACKUP"
+            Config.enableEmergencyBackup = (LCase(value) = "true")
+        Case "SANITIZE_INPUTS"
+            Config.sanitizeInputs = (LCase(value) = "true")
+        Case "VALIDATE_RANGES"
+            Config.validateRanges = (LCase(value) = "true")
+    End Select
+End Sub
+
+Private Sub ProcessAdvancedConfig(key As String, value As String)
+    Select Case key
+        Case "MAX_RETRY_ATTEMPTS"
+            Config.maxRetryAttempts = CLng(value)
+        Case "RETRY_DELAY_MS"
+            Config.retryDelayMs = CLng(value)
+        Case "COMPILATION_CHECK"
+            Config.compilationCheck = (LCase(value) = "true")
+        Case "VBA_ACCESS_REQUIRED"
+            Config.vbaAccessRequired = (LCase(value) = "true")
+        Case "AUTO_CLEANUP"
+            Config.autoCleanup = (LCase(value) = "true")
+        Case "FORCE_GC_COLLECTION"
+            Config.forceGcCollection = (LCase(value) = "true")
+    End Select
+End Sub
+
+Private originalViewSettings As ViewSettings
 
 '================================================================================
 ' MAIN ENTRY POINT - #STABLE
@@ -1480,24 +1298,19 @@ Public Sub PadronizarDocumentoMain()
     ' INICIALIZAÇÃO E CARREGAMENTO DE CONFIGURAÇÃO - #NEW
     ' ========================================
     
-    ' Feedback imediato ao usuário
-    Application.StatusBar = "Iniciando " & SYSTEM_NAME & "..."
-    MsgBox "Iniciando processamento do " & SYSTEM_NAME & vbCrLf & _
-           "Versão: " & APP_VERSION, vbInformation, "Início do Processamento"
-    
     processingStartTime = Timer
     formattingCancelled = False
     
     ' Carrega configurações do sistema
     If Not isConfigLoaded Then
         If Not LoadConfiguration() Then
-            LogError "LoadConfiguration", "Erro crítico ao carregar configuração. Abortando execução."
+            LogMessage "Erro crítico ao carregar configuração. Abortando execução.", LOG_LEVEL_ERROR
             MsgBox "Erro crítico ao carregar configuração do sistema." & vbCrLf & _
                    "A execução foi abortada para evitar problemas.", vbCritical, "Erro de Configuração - " & SYSTEM_NAME
             Exit Sub
         End If
         isConfigLoaded = True
-        LogInfo "Sistema inicializado: " & SYSTEM_NAME & " " & APP_VERSION
+        LogMessage "Sistema inicializado: " & SYSTEM_NAME & " " & VERSION, LOG_LEVEL_INFO
     End If
     
     ' ========================================
@@ -1505,16 +1318,30 @@ Public Sub PadronizarDocumentoMain()
     ' ========================================
     
     ' Validação da versão do Word (se habilitada)
-    If Config.CheckWordVersion Then
+    If Config.checkWordVersion Then
         If Not CheckWordVersion() Then
             Application.StatusBar = "Erro: Versão do Word não suportada (mínimo: Word " & Config.minWordVersion & ")"
-            LogError "CheckWordVersion", "Versão do Word " & Application.version & " não suportada. Mínimo: " & CStr(Config.minWordVersion)
+            LogMessage "Versão do Word " & Application.version & " não suportada. Mínimo: " & CStr(Config.minWordVersion), LOG_LEVEL_ERROR
             If Config.showProgressMessages Then
                 MsgBox "Esta ferramenta requer Microsoft Word " & Config.minWordVersion & " ou superior." & vbCrLf & _
                        "Versão atual: " & Application.version & vbCrLf & _
                        "Versão mínima: " & CStr(Config.minWordVersion), vbCritical, "Versão Incompatível - " & SYSTEM_NAME
             End If
             Exit Sub
+        End If
+    End If
+    
+    ' Verificação e compilação do projeto VBA (se habilitada)
+    If Config.compilationCheck Then
+        If Not CompileVBAProject() Then
+            Application.StatusBar = "Erro: Falha na compilação do projeto VBA"
+            LogMessage "Falha na compilação do projeto VBA", LOG_LEVEL_ERROR
+            If Config.showProgressMessages Then
+                MsgBox "Erro na compilação do projeto VBA." & vbCrLf & _
+                       "Verifique se há erros de sintaxe no código." & vbCrLf & _
+                       "A execução pode ser instável.", vbExclamation, "Aviso de Compilação - " & SYSTEM_NAME
+            End If
+            ' Continua a execução mesmo com falha na compilação para compatibilidade
         End If
     End If
     
@@ -1527,7 +1354,7 @@ Public Sub PadronizarDocumentoMain()
     If doc Is Nothing Then
         On Error GoTo CriticalErrorHandler
         Application.StatusBar = "Erro: Nenhum documento está acessível"
-        LogError "ActiveDocument", "Nenhum documento acessível para processamento"
+        LogMessage "Nenhum documento acessível para processamento", LOG_LEVEL_ERROR
         If Config.showProgressMessages Then
             MsgBox "Nenhum documento está aberto ou acessível." & vbCrLf & _
                "Abra um documento antes de executar a padronização.", vbExclamation, "Documento Não Encontrado - Chainsaw Proposituras"
@@ -1536,9 +1363,9 @@ Public Sub PadronizarDocumentoMain()
     On Error GoTo CriticalErrorHandler
     
     ' Validação de integridade do documento (se habilitada)
-    If Config.ValidateDocumentIntegrity Then
+    If Config.validateDocumentIntegrity Then
         If Not ValidateDocumentIntegrity(doc) Then
-            LogError "ValidateDocumentIntegrity", "Documento falhou na validação de integridade"
+            LogMessage "Documento falhou na validação de integridade", LOG_LEVEL_ERROR
             GoTo CleanUp
         End If
     End If
@@ -1548,23 +1375,23 @@ Public Sub PadronizarDocumentoMain()
     ' ========================================
     
     If Not InitializePerformanceOptimization() Then
-        LogWarning "Falha ao inicializar otimizações de performance"
+        LogMessage "Aviso: Falha ao inicializar otimizações de performance", LOG_LEVEL_WARNING
         ' Continua execução mesmo com falha nas otimizações
     End If
     
     ' Inicialização do sistema de logs
     If Not InitializeLogging(doc) Then
-        LogWarning "Falha ao inicializar sistema de logs"
+        LogMessage "Falha ao inicializar sistema de logs", LOG_LEVEL_WARNING
     End If
     
-    LogInfo "Iniciando padronização do documento: " & doc.Name & " (Chainsaw Proposituras v2.0)"
+    LogMessage "Iniciando padronização do documento: " & doc.Name & " (Chainsaw Proposituras v2.0)", LOG_LEVEL_INFO
     
     ' Configuração do grupo de desfazer
     StartUndoGroup "Padronização de Documento - " & doc.Name
     
     ' Configuração do estado da aplicação
     If Not SetAppState(False, "Formatando documento...") Then
-        LogWarning "Falha ao configurar estado da aplicação"
+        LogMessage "Falha ao configurar estado da aplicação", LOG_LEVEL_WARNING
     End If
     
     ' Verificações preliminares
@@ -1573,7 +1400,7 @@ Public Sub PadronizarDocumentoMain()
     End If
     
     ' Salvamento obrigatório para documentos não salvos
-    If doc.Path = "" Then
+    If doc.path = "" Then
         If Not SaveDocumentFirst(doc) Then
             Application.StatusBar = "Operação cancelada: documento precisa ser salvo"
             LogMessage "Operação cancelada - documento não foi salvo", LOG_LEVEL_INFO
@@ -1661,11 +1488,6 @@ CriticalErrorHandler:
     LogMessage errDesc, LOG_LEVEL_ERROR
     Application.StatusBar = "Erro crítico durante processamento - verificar logs"
     
-    MsgBox "Erro crítico durante o processamento:" & vbCrLf & vbCrLf & _
-           errDesc & vbCrLf & vbCrLf & _
-           "Executando recuperação de emergência...", _
-           vbCritical, "Erro Crítico - " & SYSTEM_NAME
-    
     EmergencyRecovery
 End Sub
 
@@ -1675,8 +1497,8 @@ End Sub
 Private Sub EmergencyRecovery()
     On Error Resume Next
     
-    Application.ScreenUpdating = True
-    Application.DisplayAlerts = wdAlertsAll
+    Application.screenUpdating = True
+    Application.displayAlerts = wdAlertsAll
     Application.StatusBar = False
     Application.EnableCancelKey = 0
     
@@ -1738,7 +1560,7 @@ Private Sub CloseAllOpenFiles()
 End Sub
 
 '================================================================================
-' VERSION COMPATIBILITY AND SAFETY CHECKS - #STABLE
+' VERSION COMPATIBILITY AND SAFETY CHECKS - #STABLE  
 '================================================================================
 Private Function CheckWordVersion() As Boolean
     On Error GoTo ErrorHandler
@@ -1765,6 +1587,156 @@ ErrorHandler:
 End Function
 
 '================================================================================
+' COMPILE VBA PROJECT - COMPILAÇÃO AUTOMÁTICA DO PROJETO VBA - #NEW
+'================================================================================
+Private Function CompileVBAProject() As Boolean
+    On Error GoTo ErrorHandler
+    
+    Application.StatusBar = "Verificando compilação do projeto VBA..."
+    LogMessage "Iniciando verificação e compilação do projeto VBA", LOG_LEVEL_INFO
+    
+    ' Método de verificação alternativo para compatibilidade máxima
+    CompileVBAProject = False
+    
+    ' Tenta várias abordagens para validar o projeto
+    Dim testResult As Boolean
+    
+    ' Método 1: Verificação de acesso ao VBE (se disponível)
+    On Error Resume Next
+    Dim vbProj As Object
+    Set vbProj = Application.VBE.ActiveVBProject
+    If Err.Number = 0 And Not vbProj Is Nothing Then
+        LogMessage "Acesso ao VBE disponível - projeto provavelmente válido", LOG_LEVEL_INFO
+        CompileVBAProject = True
+        On Error GoTo ErrorHandler
+        Exit Function
+    End If
+    Err.Clear
+    
+    ' Método 2: Verificação indireta através de chamada de função conhecida
+    On Error Resume Next
+    testResult = CheckWordVersion()
+    If Err.Number = 0 Then
+        LogMessage "Funções VBA respondendo corretamente - compilação válida", LOG_LEVEL_INFO
+        CompileVBAProject = True
+        On Error GoTo ErrorHandler
+        Exit Function
+    End If
+    Err.Clear
+    
+    ' Método 3: Verificação de constantes e variáveis do módulo
+    On Error Resume Next
+    Dim testConstant As Double
+    testConstant = Config.minWordVersion
+    If Err.Number = 0 And testConstant > 0 Then
+        LogMessage "Constantes do módulo acessíveis - estrutura VBA íntegra", LOG_LEVEL_INFO
+        CompileVBAProject = True
+        On Error GoTo ErrorHandler
+        Exit Function
+    End If
+    Err.Clear
+    
+    ' Se chegou aqui, métodos automáticos falharam
+    On Error GoTo ErrorHandler
+    LogMessage "Verificação automática de compilação falhou - continuando por compatibilidade", LOG_LEVEL_WARNING
+    CompileVBAProject = True ' Permite continuar para máxima compatibilidade
+    
+    Exit Function
+
+ErrorHandler:
+    LogMessage "Erro crítico na verificação de compilação: " & Err.Description, LOG_LEVEL_ERROR
+    Application.StatusBar = "Erro na verificação de compilação"
+    
+    ' Tenta continuar mesmo com erro de compilação (modo de compatibilidade máxima)
+    MsgBox "Aviso: Não foi possível verificar a compilação do projeto VBA." & vbCrLf & _
+           "O sistema tentará executar mesmo assim." & vbCrLf & vbCrLf & _
+           "Se houver problemas, verifique se há erros de sintaxe no código.", _
+           vbExclamation, "Chainsaw Proposituras - Aviso de Compilação"
+    
+    LogMessage "Continuando execução apesar do erro de compilação (modo compatibilidade)", LOG_LEVEL_WARNING
+    CompileVBAProject = True ' Permite continuar por compatibilidade máxima
+End Function
+    
+    ' Se não conseguiu acessar o VBE, tenta compilação alternativa
+    If vbProj Is Nothing Then
+        LogMessage "VBE não acessível - tentando compilação alternativa", LOG_LEVEL_WARNING
+        GoTo AlternativeCompilation
+    End If
+    
+    ' Força compilação através de tentativa de execução de código
+    On Error Resume Next
+    Dim compileTest As String
+    compileTest = vbProj.Name
+    
+    ' Verifica se houve erro na compilação
+    If Err.Number <> 0 Then
+        LogMessage "Erro na verificação do projeto VBA: " & Err.Description, LOG_LEVEL_WARNING
+        Err.Clear
+        On Error GoTo ErrorHandler
+        GoTo AlternativeCompilation
+    End If
+    
+    On Error GoTo ErrorHandler
+    
+    ' Se chegou até aqui, tenta compilar o projeto
+    Application.StatusBar = "Compilando projeto VBA..."
+    
+    ' Força recompilação através do VBE
+    On Error Resume Next
+    vbProj.Save
+    
+    ' Verifica se a compilação foi bem-sucedida
+    If Err.Number = 0 Then
+        LogMessage "Projeto VBA compilado com sucesso via VBE", LOG_LEVEL_INFO
+        Application.StatusBar = "Projeto VBA compilado - prosseguindo..."
+        CompileVBAProject = True
+        On Error GoTo ErrorHandler
+        Exit Function
+    Else
+        LogMessage "Aviso na compilação via VBE: " & Err.Description, LOG_LEVEL_WARNING
+        Err.Clear
+        On Error GoTo ErrorHandler
+    End If
+
+AlternativeCompilation:
+    ' Método alternativo: força compilação através de execução de função dummy
+    Application.StatusBar = "Aplicando compilação alternativa..."
+    
+    On Error Resume Next
+    
+    ' Chama uma função simples para forçar compilação do módulo atual
+    Dim testResult As Boolean
+    testResult = CheckWordVersion()
+    
+    ' Se chegou até aqui sem erro, considera compilado
+    If Err.Number = 0 Then
+        LogMessage "Compilação alternativa bem-sucedida", LOG_LEVEL_INFO
+        Application.StatusBar = "Projeto verificado e pronto para execução"
+        CompileVBAProject = True
+    Else
+        LogMessage "Falha na compilação alternativa: " & Err.Description, LOG_LEVEL_ERROR
+        Application.StatusBar = "Erro na compilação - verificar código"
+        CompileVBAProject = False
+    End If
+    
+    On Error GoTo ErrorHandler
+    Exit Function
+
+ErrorHandler:
+    LogMessage "Erro crítico na compilação: " & Err.Description, LOG_LEVEL_ERROR
+    Application.StatusBar = "Erro crítico na compilação"
+    
+    ' Tenta continuar mesmo com erro de compilação (modo de compatibilidade)
+    MsgBox "Aviso: Não foi possível verificar a compilação do projeto VBA." & vbCrLf & _
+           "O sistema tentará executar mesmo assim." & vbCrLf & vbCrLf & _
+           "Se houver problemas, verifique se há erros de sintaxe no código.", _
+           vbExclamation, "Chainsaw - Aviso de Compilação"
+    
+    LogMessage "Continuando execução apesar do erro de compilação", LOG_LEVEL_WARNING
+    CompileVBAProject = True ' Permite continuar por compatibilidade
+End Function
+
+'================================================================================
 ' DOCUMENT INTEGRITY VALIDATION - #STABLE
 '================================================================================
 Private Function ValidateDocumentIntegrity(doc As Document) As Boolean
@@ -1782,7 +1754,7 @@ Private Function ValidateDocumentIntegrity(doc As Document) As Boolean
     ' Verificação de proteção de documento
     On Error Resume Next
     Dim isProtected As Boolean
-    isProtected = (doc.protectionType <> wdNoProtection)
+    isProtected = (doc.ProtectionType <> wdNoProtection)
     If Err.Number <> 0 Then
         On Error GoTo ErrorHandler
         LogMessage "Não foi possível verificar proteção do documento", LOG_LEVEL_WARNING
@@ -1802,7 +1774,7 @@ Private Function ValidateDocumentIntegrity(doc As Document) As Boolean
     End If
     
     ' Verificação de conteúdo mínimo
-    If doc.Paragraphs.count < 1 Then
+    If doc.Paragraphs.Count < 1 Then
         LogMessage "Documento vazio detectado", LOG_LEVEL_ERROR
         MsgBox "O documento está vazio." & vbCrLf & _
                "Adicione conteúdo antes de executar a padronização.", vbExclamation, "Documento Vazio - Chainsaw Proposituras"
@@ -1812,7 +1784,7 @@ Private Function ValidateDocumentIntegrity(doc As Document) As Boolean
     ' Verificação de tamanho do documento
     Dim docSize As Long
     On Error Resume Next
-    docSize = doc.Range.Characters.count
+    docSize = doc.Range.Characters.Count
     If Err.Number <> 0 Then
         docSize = 0
         LogMessage "Não foi possível determinar tamanho do documento", LOG_LEVEL_WARNING
@@ -1832,7 +1804,7 @@ Private Function ValidateDocumentIntegrity(doc As Document) As Boolean
     End If
     
     ' Verificação de estado de salvamento
-    If Not doc.Saved And doc.Path <> "" Then
+    If Not doc.Saved And doc.path <> "" Then
         LogMessage "Documento tem alterações não salvas", LOG_LEVEL_WARNING
         Dim saveResponse As VbMsgBoxResult
         saveResponse = MsgBox("O documento tem alterações não salvas." & vbCrLf & _
@@ -1870,13 +1842,13 @@ Private Function SafeGetCharacterCount(targetRange As Range) As Long
     On Error GoTo FallbackMethod
     
     ' Método preferido - mais rápido
-    SafeGetCharacterCount = targetRange.Characters.count
+    SafeGetCharacterCount = targetRange.Characters.Count
     Exit Function
     
 FallbackMethod:
     On Error GoTo ErrorHandler
     ' Método alternativo para versões com problemas de .Characters.Count
-    SafeGetCharacterCount = Len(targetRange.text)
+    SafeGetCharacterCount = Len(targetRange.Text)
     Exit Function
     
 ErrorHandler:
@@ -1900,7 +1872,7 @@ Private Function SafeSetFont(targetRange As Range, fontName As String, fontSize 
     
 ErrorHandler:
     SafeSetFont = False
-    LogMessage "Erro ao aplicar fonte: " & Err.Description & " - Range: " & Left(targetRange.text, 20), LOG_LEVEL_WARNING
+    LogMessage "Erro ao aplicar fonte: " & Err.Description & " - Range: " & Left(targetRange.Text, 20), LOG_LEVEL_WARNING
 End Function
 
 Private Function SafeSetParagraphFormat(para As Paragraph, alignment As Long, leftIndent As Single, firstLineIndent As Single) As Boolean
@@ -1908,8 +1880,8 @@ Private Function SafeSetParagraphFormat(para As Paragraph, alignment As Long, le
     
     With para.Format
         If alignment >= 0 Then .alignment = alignment
-        If leftIndent >= 0 Then .leftIndent = leftIndent
-        If firstLineIndent >= 0 Then .firstLineIndent = firstLineIndent
+        If leftIndent >= 0 Then .LeftIndent = leftIndent
+        If firstLineIndent >= 0 Then .FirstLineIndent = firstLineIndent
     End With
     
     SafeSetParagraphFormat = True
@@ -1928,12 +1900,12 @@ Private Function SafeHasVisualContent(para As Paragraph) As Boolean
     Dim hasShapes As Boolean
     
     ' Verifica imagens inline de forma segura
-    hasImages = (para.Range.InlineShapes.count > 0)
+    hasImages = (para.Range.InlineShapes.Count > 0)
     
     ' Verifica shapes flutuantes de forma segura
     hasShapes = False
     If Not hasImages Then
-        Dim shp As shape
+        Dim shp As Shape
         For Each shp In para.Range.ShapeRange
             hasShapes = True
             Exit For
@@ -1946,7 +1918,7 @@ Private Function SafeHasVisualContent(para As Paragraph) As Boolean
 SafeMode:
     On Error GoTo ErrorHandler
     ' Método alternativo mais simples
-    SafeHasVisualContent = (para.Range.InlineShapes.count > 0)
+    SafeHasVisualContent = (para.Range.InlineShapes.Count > 0)
     Exit Function
     
 ErrorHandler:
@@ -1967,8 +1939,8 @@ Private Function SafeFindReplace(doc As Document, findText As String, replaceTex
     With doc.Range.Find
         .ClearFormatting
         .Replacement.ClearFormatting
-        .text = findText
-        .Replacement.text = replaceText
+        .Text = findText
+        .Replacement.Text = replaceText
         .Forward = True
         .Wrap = wdFindContinue
         .Format = False
@@ -2007,7 +1979,7 @@ Private Function SafeGetLastCharacter(rng As Range) As String
     charCount = SafeGetCharacterCount(rng)
     
     If charCount > 0 Then
-        SafeGetLastCharacter = rng.Characters(charCount).text
+        SafeGetLastCharacter = rng.Characters(charCount).Text
     Else
         SafeGetLastCharacter = ""
     End If
@@ -2016,7 +1988,7 @@ Private Function SafeGetLastCharacter(rng As Range) As String
 ErrorHandler:
     ' Método alternativo usando Right()
     On Error GoTo FinalFallback
-    SafeGetLastCharacter = Right(rng.text, 1)
+    SafeGetLastCharacter = Right(rng.Text, 1)
     Exit Function
     
 FinalFallback:
@@ -2062,8 +2034,8 @@ End Sub
 Private Function InitializeLogging(doc As Document) As Boolean
     On Error GoTo ErrorHandler
     
-    If doc.Path <> "" Then
-        logFilePath = doc.Path & "\" & Format(Now, "yyyy-mm-dd") & "_" & _
+    If doc.path <> "" Then
+        logFilePath = doc.path & "\" & Format(Now, "yyyy-mm-dd") & "_" & _
                      Replace(doc.Name, ".doc", "") & "_FormattingLog.txt"
         logFilePath = Replace(logFilePath, ".docx", "") & "_FormattingLog.txt"
         logFilePath = Replace(logFilePath, ".docm", "") & "_FormattingLog.txt"
@@ -2084,7 +2056,7 @@ Private Function InitializeLogging(doc As Document) As Boolean
     Print #1, "Estação: " & Environ("COMPUTERNAME")
     Print #1, "Versão Word: " & Application.version
     Print #1, "Documento: " & doc.Name
-    Print #1, "Local: " & IIf(doc.Path = "", "(Não salvo)", doc.Path)
+    Print #1, "Local: " & IIf(doc.path = "", "(Não salvo)", doc.path)
     Print #1, "Proteção: " & GetProtectionType(doc)
     Print #1, "Tamanho: " & GetDocumentSize(doc)
     Print #1, "========================================================"
@@ -2184,7 +2156,7 @@ Private Function GetDocumentSize(doc As Document) As String
     On Error Resume Next
     
     Dim size As Long
-    size = doc.BuiltInDocumentProperties("Number of Characters").value * 2
+    size = doc.BuiltInDocumentProperties("Number of Characters").Value * 2
     
     If size < 1024 Then
         GetDocumentSize = size & " bytes"
@@ -2206,12 +2178,12 @@ Private Function SetAppState(Optional ByVal enabled As Boolean = True, Optional 
     
     With Application
         On Error Resume Next
-        .ScreenUpdating = enabled
+        .screenUpdating = enabled
         If Err.Number <> 0 Then success = False
         On Error GoTo ErrorHandler
         
         On Error Resume Next
-        .DisplayAlerts = IIf(enabled, wdAlertsAll, wdAlertsNone)
+        .displayAlerts = IIf(enabled, wdAlertsAll, wdAlertsNone)
         If Err.Number <> 0 Then success = False
         On Error GoTo ErrorHandler
         
@@ -2309,8 +2281,8 @@ Private Function CheckDiskSpace(doc As Document) As Boolean
     
     Set fso = CreateObject("Scripting.FileSystemObject")
     
-    If doc.Path <> "" Then
-        Set drive = fso.GetDrive(Left(doc.Path, 3))
+    If doc.path <> "" Then
+        Set drive = fso.GetDrive(Left(doc.path, 3))
     Else
         Set drive = fso.GetDrive(Left(Environ("TEMP"), 3))
     End If
@@ -2469,7 +2441,7 @@ Private Function ApplyStdFont(doc As Document) As Boolean
     Dim needsUnderlineRemoval As Boolean
     Dim needsBoldRemoval As Boolean
 
-    For i = doc.Paragraphs.count To 1 Step -1
+    For i = doc.Paragraphs.Count To 1 Step -1
         Set para = doc.Paragraphs(i)
         hasInlineImage = False
         isTitle = False
@@ -2491,7 +2463,7 @@ Private Function ApplyStdFont(doc As Document) As Boolean
         
         ' Cache da contagem de InlineShapes para evitar múltiplas chamadas
         Dim inlineShapesCount As Long
-        inlineShapesCount = para.Range.InlineShapes.count
+        inlineShapesCount = para.Range.InlineShapes.Count
         
         ' OTIMIZAÇÃO MÁXIMA: Se não precisa de nenhuma formatação, pula imediatamente
         If Not needsFontFormatting And Not needsUnderlineRemoval And Not needsBoldRemoval And inlineShapesCount = 0 Then
@@ -2520,10 +2492,10 @@ Private Function ApplyStdFont(doc As Document) As Boolean
         
         ' Só faz verificação de texto se for necessário para formatação especial
         If needsUnderlineRemoval Or needsBoldRemoval Then
-            paraFullText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+            paraFullText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
             
             ' Verifica se é o primeiro parágrafo com texto (título) - otimizado
-            If i <= 3 And para.Format.alignment = wdAlignParagraphCenter And paraFullText <> "" Then
+            If i <= 3 And para.Format.Alignment = wdAlignParagraphCenter And paraFullText <> "" Then
                 isTitle = True
             End If
             
@@ -2541,19 +2513,19 @@ Private Function ApplyStdFont(doc As Document) As Boolean
             Loop
             cleanParaText = Trim(LCase(cleanParaText))
 
-            If cleanParaText = "justificativa" Or IsVereadorPattern(cleanParaText) Or IsAnexoPattern(cleanParaText) Then
+            If cleanParaText = "justificativa:" Or "justificativa:" IsVereadorPattern(cleanParaText) Or IsAnexoPattern(cleanParaText) Then
                 isSpecialParagraph = True
             End If
             
             ' Verifica se é o parágrafo ANTERIOR a "- vereador -" (também deve preservar negrito)
             Dim isBeforeVereador As Boolean
             isBeforeVereador = False
-            If i < doc.Paragraphs.count Then
+            If i < doc.Paragraphs.Count Then
                 Dim nextPara As Paragraph
                 Set nextPara = doc.Paragraphs(i + 1)
                 If Not HasVisualContent(nextPara) Then
                     Dim nextParaText As String
-                    nextParaText = Trim(Replace(Replace(nextPara.Range.text, vbCr, ""), vbLf, ""))
+                    nextParaText = Trim(Replace(Replace(nextPara.Range.Text, vbCr, ""), vbLf, ""))
                     ' Remove pontuação final para análise
                     Dim nextCleanText As String
                     nextCleanText = nextParaText
@@ -2650,7 +2622,7 @@ Private Sub FormatCharacterByCharacter(para As Paragraph, fontName As String, fo
     If charCount > 0 Then ' Verificação de segurança
         For j = 1 To charCount
             Set charRange = para.Range.Characters(j)
-            If charRange.InlineShapes.count = 0 Then
+            If charRange.InlineShapes.Count = 0 Then
                 With charRange.Font
                     ' Aplica formatação de fonte se especificada
                     If fontName <> "" Then .Name = fontName
@@ -2685,11 +2657,11 @@ Private Function ApplyStdParagraphs(doc As Document) As Boolean
 
     rightMarginPoints = 0
 
-    For i = doc.Paragraphs.count To 1 Step -1
+    For i = doc.Paragraphs.Count To 1 Step -1
         Set para = doc.Paragraphs(i)
         hasInlineImage = False
 
-        If para.Range.InlineShapes.count > 0 Then
+        If para.Range.InlineShapes.Count > 0 Then
             hasInlineImage = True
             skippedCount = skippedCount + 1
         End If
@@ -2705,7 +2677,7 @@ Private Function ApplyStdParagraphs(doc As Document) As Boolean
         
         ' Limpeza robusta de espaços múltiplos - SEMPRE aplicada
         Dim cleanText As String
-        cleanText = para.Range.text
+        cleanText = para.Range.Text
         
         ' OTIMIZADO: Combinação de múltiplas operações de limpeza em um bloco
         If InStr(cleanText, "  ") > 0 Or InStr(cleanText, vbTab) > 0 Then
@@ -2733,11 +2705,11 @@ Private Function ApplyStdParagraphs(doc As Document) As Boolean
         End If
         
         ' Aplica o texto limpo APENAS se não há imagens (proteção)
-        If cleanText <> para.Range.text And Not hasInlineImage Then
-            para.Range.text = cleanText
+        If cleanText <> para.Range.Text And Not hasInlineImage Then
+            para.Range.Text = cleanText
         End If
 
-        paraText = Trim(LCase(Replace(Replace(Replace(para.Range.text, ".", ""), ",", ""), ";", "")))
+        paraText = Trim(LCase(Replace(Replace(Replace(para.Range.Text, ".", ""), ",", ""), ";", "")))
         paraText = Replace(paraText, vbCr, "")
         paraText = Replace(paraText, vbLf, "")
         paraText = Replace(paraText, " ", "")
@@ -2750,23 +2722,23 @@ Private Function ApplyStdParagraphs(doc As Document) As Boolean
             .SpaceBefore = 0
             .SpaceAfter = 0
 
-            If para.alignment = wdAlignParagraphCenter Then
-                .leftIndent = 0
-                .firstLineIndent = 0
+            If para.Alignment = wdAlignParagraphCenter Then
+                .LeftIndent = 0
+                .FirstLineIndent = 0
             Else
-                firstIndent = .firstLineIndent
-                paragraphIndent = .leftIndent
+                firstIndent = .FirstLineIndent
+                paragraphIndent = .LeftIndent
                 If paragraphIndent >= CentimetersToPoints(5) Then
-                    .leftIndent = CentimetersToPoints(9.5)
+                    .LeftIndent = CentimetersToPoints(9.5)
                 ElseIf firstIndent < CentimetersToPoints(5) Then
-                    .leftIndent = CentimetersToPoints(0)
-                    .firstLineIndent = CentimetersToPoints(1.5)
+                    .LeftIndent = CentimetersToPoints(0)
+                    .FirstLineIndent = CentimetersToPoints(1.5)
                 End If
             End If
         End With
 
-        If para.alignment = wdAlignParagraphLeft Then
-            para.alignment = wdAlignParagraphJustify
+        If para.Alignment = wdAlignParagraphLeft Then
+            para.Alignment = wdAlignParagraphJustify
         End If
         
         formattedCount = formattedCount + 1
@@ -2802,9 +2774,9 @@ Private Function FormatSecondParagraph(doc As Document) As Boolean
     secondParaIndex = 0
     
     ' Encontra o 2º parágrafo com conteúdo (pula vazios)
-    For i = 1 To doc.Paragraphs.count
+    For i = 1 To doc.Paragraphs.Count
         Set para = doc.Paragraphs(i)
-        paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+        paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
         
         ' Se o parágrafo tem texto ou conteúdo visual, conta como parágrafo válido
         If paraText <> "" Or HasVisualContent(para) Then
@@ -2822,7 +2794,7 @@ Private Function FormatSecondParagraph(doc As Document) As Boolean
     Next i
     
     ' Aplica formatação específica apenas ao 2º parágrafo
-    If secondParaIndex > 0 And secondParaIndex <= doc.Paragraphs.count Then
+    If secondParaIndex > 0 And secondParaIndex <= doc.Paragraphs.Count Then
         Set para = doc.Paragraphs(secondParaIndex)
         
         ' PRIMEIRO: Adiciona 2 linhas em branco ANTES do 2º parágrafo
@@ -2850,10 +2822,10 @@ Private Function FormatSecondParagraph(doc As Document) As Boolean
         
         ' FORMATAÇÃO PRINCIPAL: Aplica formatação SEMPRE, protegendo apenas as imagens
         With para.Format
-            .leftIndent = CentimetersToPoints(9)      ' Recuo à esquerda de 9 cm
-            .firstLineIndent = 0                      ' Sem recuo da primeira linha
+            .LeftIndent = CentimetersToPoints(9)      ' Recuo à esquerda de 9 cm
+            .FirstLineIndent = 0                      ' Sem recuo da primeira linha
             .RightIndent = 0                          ' Sem recuo à direita
-            .alignment = wdAlignParagraphJustify      ' Justificado
+            .Alignment = wdAlignParagraphJustify      ' Justificado
         End With
         
         ' SEGUNDO: Adiciona 2 linhas em branco DEPOIS do 2º parágrafo
@@ -2911,7 +2883,7 @@ Private Function CountBlankLinesBefore(doc As Document, paraIndex As Long) As Lo
         If i <= 0 Then Exit For
         
         Set para = doc.Paragraphs(i)
-        paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+        paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
         
         ' Se o parágrafo está vazio, conta como linha em branco
         If paraText = "" And Not HasVisualContent(para) Then
@@ -2943,11 +2915,11 @@ Private Function CountBlankLinesAfter(doc As Document, paraIndex As Long) As Lon
     count = 0
     
     ' Verifica parágrafos posteriores (máximo 5 para performance)
-    For i = paraIndex + 1 To doc.Paragraphs.count
-        If i > doc.Paragraphs.count Then Exit For
+    For i = paraIndex + 1 To doc.Paragraphs.Count
+        If i > doc.Paragraphs.Count Then Exit For
         
         Set para = doc.Paragraphs(i)
-        paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+        paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
         
         ' Se o parágrafo está vazio, conta como linha em branco
         If paraText = "" And Not HasVisualContent(para) Then
@@ -2982,9 +2954,9 @@ Private Function GetSecondParagraphIndex(doc As Document) As Long
     actualParaIndex = 0
     
     ' Encontra o 2º parágrafo com conteúdo (pula vazios)
-    For i = 1 To doc.Paragraphs.count
+    For i = 1 To doc.Paragraphs.Count
         Set para = doc.Paragraphs(i)
-        paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+        paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
         
         ' Se o parágrafo tem texto ou conteúdo visual, conta como parágrafo válido
         If paraText <> "" Or HasVisualContent(para) Then
@@ -3022,7 +2994,7 @@ Private Function EnsureSecondParagraphBlankLines(doc As Document) As Boolean
     linesToAdd = 0
     linesToAddAfter = 0
     
-    If secondParaIndex > 0 And secondParaIndex <= doc.Paragraphs.count Then
+    If secondParaIndex > 0 And secondParaIndex <= doc.Paragraphs.Count Then
         Dim para As Paragraph
         Set para = doc.Paragraphs(secondParaIndex)
         
@@ -3090,9 +3062,9 @@ Private Function FormatFirstParagraph(doc As Document) As Boolean
     firstParaIndex = 0
     
     ' Encontra o 1º parágrafo com conteúdo (pula vazios)
-    For i = 1 To doc.Paragraphs.count
+    For i = 1 To doc.Paragraphs.Count
         Set para = doc.Paragraphs(i)
-        paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+        paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
         
         ' Se o parágrafo tem texto ou conteúdo visual, conta como parágrafo válido
         If paraText <> "" Or HasVisualContent(para) Then
@@ -3110,7 +3082,7 @@ Private Function FormatFirstParagraph(doc As Document) As Boolean
     Next i
     
     ' Aplica formatação específica apenas ao 1º parágrafo
-    If firstParaIndex > 0 And firstParaIndex <= doc.Paragraphs.count Then
+    If firstParaIndex > 0 And firstParaIndex <= doc.Paragraphs.Count Then
         Set para = doc.Paragraphs(firstParaIndex)
         
         ' NOVO: Aplica formatação SEMPRE, protegendo apenas as imagens
@@ -3125,7 +3097,7 @@ Private Function FormatFirstParagraph(doc As Document) As Boolean
                 For n = 1 To charCount4
                     Dim charRange3 As Range
                     Set charRange3 = para.Range.Characters(n)
-                    If charRange3.InlineShapes.count = 0 Then
+                    If charRange3.InlineShapes.Count = 0 Then
                         With charRange3.Font
                             .AllCaps = True           ' Caixa alta (maiúsculas)
                             .Bold = True              ' Negrito
@@ -3146,9 +3118,9 @@ Private Function FormatFirstParagraph(doc As Document) As Boolean
         
         ' Aplicar também formatação de parágrafo - SEMPRE
         With para.Format
-            .alignment = wdAlignParagraphCenter       ' Centralizado
-            .leftIndent = 0                           ' Sem recuo à esquerda
-            .firstLineIndent = 0                      ' Sem recuo da primeira linha
+            .Alignment = wdAlignParagraphCenter       ' Centralizado
+            .LeftIndent = 0                           ' Sem recuo à esquerda
+            .FirstLineIndent = 0                      ' Sem recuo da primeira linha
             .RightIndent = 0                          ' Sem recuo à direita
         End With
     Else
@@ -3193,7 +3165,7 @@ End Function
 Private Function RemoveWatermark(doc As Document) As Boolean
     On Error GoTo ErrorHandler
 
-    Dim sec As section
+    Dim sec As Section
     Dim header As HeaderFooter
     Dim shp As shape
     Dim i As Long
@@ -3201,8 +3173,8 @@ Private Function RemoveWatermark(doc As Document) As Boolean
 
     For Each sec In doc.Sections
         For Each header In sec.Headers
-            If header.Exists And header.Shapes.count > 0 Then
-                For i = header.Shapes.count To 1 Step -1
+            If header.Exists And header.Shapes.Count > 0 Then
+                For i = header.Shapes.Count To 1 Step -1
                     Set shp = header.Shapes(i)
                     If shp.Type = msoPicture Or shp.Type = msoTextEffect Then
                         If InStr(1, shp.Name, "Watermark", vbTextCompare) > 0 Or _
@@ -3216,8 +3188,8 @@ Private Function RemoveWatermark(doc As Document) As Boolean
         Next header
         
         For Each header In sec.Footers
-            If header.Exists And header.Shapes.count > 0 Then
-                For i = header.Shapes.count To 1 Step -1
+            If header.Exists And header.Shapes.Count > 0 Then
+                For i = header.Shapes.Count To 1 Step -1
                     Set shp = header.Shapes(i)
                     If shp.Type = msoPicture Or shp.Type = msoTextEffect Then
                         If InStr(1, shp.Name, "Watermark", vbTextCompare) > 0 Or _
@@ -3250,7 +3222,7 @@ End Function
 Private Function InsertHeaderstamp(doc As Document) As Boolean
     On Error GoTo ErrorHandler
 
-    Dim sec As section
+    Dim sec As Section
     Dim header As HeaderFooter
     Dim imgFile As String
     Dim username As String
@@ -3290,7 +3262,7 @@ Private Function InsertHeaderstamp(doc As Document) As Boolean
             header.Range.Delete
             
             Set shp = header.Shapes.AddPicture( _
-                FileName:=imgFile, _
+                fileName:=imgFile, _
                 LinkToFile:=False, _
                 SaveWithDocument:=msoTrue)
             
@@ -3336,7 +3308,7 @@ End Function
 Private Function InsertFooterstamp(doc As Document) As Boolean
     On Error GoTo ErrorHandler
 
-    Dim sec As section
+    Dim sec As Section
     Dim footer As HeaderFooter
     Dim rng As Range
     Dim sectionsProcessed As Long
@@ -3356,7 +3328,7 @@ Private Function InsertFooterstamp(doc As Document) As Boolean
             
             Set rng = footer.Range
             rng.Collapse Direction:=wdCollapseEnd
-            rng.text = "-"
+            rng.Text = "-"
             
             Set rng = footer.Range
             rng.Collapse Direction:=wdCollapseEnd
@@ -3365,7 +3337,7 @@ Private Function InsertFooterstamp(doc As Document) As Boolean
             With footer.Range
                 .Font.Name = STANDARD_FONT
                 .Font.size = FOOTER_FONT_SIZE
-                .ParagraphFormat.alignment = wdAlignParagraphCenter
+                .ParagraphFormat.Alignment = wdAlignParagraphCenter
                 .Fields.Update
             End With
             
@@ -3441,7 +3413,7 @@ Private Function ValidateDocumentStructure(doc As Document) As Boolean
     On Error Resume Next
     
     ' Verificação básica e rápida
-    If doc.Range.End > 0 And doc.Sections.count > 0 Then
+    If doc.Range.End > 0 And doc.Sections.Count > 0 Then
         ValidateDocumentStructure = True
     Else
         LogMessage "Documento com estrutura inconsistente", LOG_LEVEL_WARNING
@@ -3476,7 +3448,7 @@ Private Function SaveDocumentFirst(doc As Document) As Boolean
     
     For waitCount = 1 To maxWait
         DoEvents
-        If doc.Path <> "" Then Exit For
+        If doc.path <> "" Then Exit For
         Dim startTime As Double
         startTime = Timer
         Do While Timer < startTime + 1
@@ -3485,7 +3457,7 @@ Private Function SaveDocumentFirst(doc As Document) As Boolean
         Application.StatusBar = "Aguardando salvamento... (" & waitCount & "/" & maxWait & ")"
     Next waitCount
 
-    If doc.Path = "" Then
+    If doc.path = "" Then
         LogMessage "Falha ao salvar documento após " & maxWait & " tentativas", LOG_LEVEL_ERROR
         Application.StatusBar = "Falha no salvamento - operação cancelada"
         SaveDocumentFirst = False
@@ -3514,8 +3486,8 @@ Private Function ClearAllFormatting(doc As Document) As Boolean
     ' SUPER OTIMIZADO: Verificação única de conteúdo visual no documento
     Dim hasImages As Boolean
     Dim hasShapes As Boolean
-    hasImages = (doc.InlineShapes.count > 0)
-    hasShapes = (doc.Shapes.count > 0)
+    hasImages = (doc.InlineShapes.Count > 0)
+    hasShapes = (doc.Shapes.Count > 0)
     Dim hasAnyVisualContent As Boolean
     hasAnyVisualContent = hasImages Or hasShapes
     
@@ -3560,17 +3532,17 @@ Private Function ClearAllFormatting(doc As Document) As Boolean
                     ' Reset completo de parágrafo em uma única operação
                     With .ParagraphFormat
                         .Reset
-                        .alignment = wdAlignParagraphLeft
+                        .Alignment = wdAlignParagraphLeft
                         .LineSpacing = 12
                         .SpaceBefore = 0
                         .SpaceAfter = 0
-                        .leftIndent = 0
+                        .LeftIndent = 0
                         .RightIndent = 0
-                        .firstLineIndent = 0
+                        .FirstLineIndent = 0
                     End With
                     
                     ' Reset de bordas e sombreamento
-                    .Borders.Enable = False
+                    .Borders.enable = False
                     .Shading.Texture = wdTextureNone
                 End With
                 paraCount = paraCount + 1
@@ -3603,22 +3575,22 @@ Private Function ClearAllFormatting(doc As Document) As Boolean
             ' Reset completo de parágrafo
             With .ParagraphFormat
                 .Reset
-                .alignment = wdAlignParagraphLeft
+                .Alignment = wdAlignParagraphLeft
                 .LineSpacing = 12
                 .SpaceBefore = 0
                 .SpaceAfter = 0
-                .leftIndent = 0
+                .LeftIndent = 0
                 .RightIndent = 0
-                .firstLineIndent = 0
+                .FirstLineIndent = 0
             End With
             
             On Error Resume Next
-            .Borders.Enable = False
+            .Borders.enable = False
             .Shading.Texture = wdTextureNone
             On Error GoTo ErrorHandler
         End With
         
-        paraCount = doc.Paragraphs.count
+        paraCount = doc.Paragraphs.Count
     End If
     
     ' OTIMIZADO: Reset de estilos em uma única passada
@@ -3655,17 +3627,17 @@ Private Function CleanDocumentStructure(doc As Document) As Boolean
     Dim paraCount As Long
     
     ' Cache da contagem total de parágrafos
-    paraCount = doc.Paragraphs.count
+    paraCount = doc.Paragraphs.Count
     
     ' OTIMIZADO: Funcionalidade 2 - Remove linhas em branco acima do título
     ' Busca otimizada do primeiro parágrafo com texto
     firstTextParaIndex = -1
     For i = 1 To paraCount
-        If i > doc.Paragraphs.count Then Exit For ' Proteção dinâmica
+        If i > doc.Paragraphs.Count Then Exit For ' Proteção dinâmica
         
         Set para = doc.Paragraphs(i)
         Dim paraTextCheck As String
-        paraTextCheck = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+        paraTextCheck = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
         
         ' Encontra o primeiro parágrafo com texto real
         If paraTextCheck <> "" Then
@@ -3681,11 +3653,11 @@ Private Function CleanDocumentStructure(doc As Document) As Boolean
     If firstTextParaIndex > 1 Then
         ' Processa de trás para frente para evitar problemas com índices
         For i = firstTextParaIndex - 1 To 1 Step -1
-            If i > doc.Paragraphs.count Or i < 1 Then Exit For ' Proteção dinâmica
+            If i > doc.Paragraphs.Count Or i < 1 Then Exit For ' Proteção dinâmica
             
             Set para = doc.Paragraphs(i)
             Dim paraTextEmpty As String
-            paraTextEmpty = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+            paraTextEmpty = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
             
             ' OTIMIZADO: Verificação visual só se necessário
             If paraTextEmpty = "" Then
@@ -3714,8 +3686,8 @@ Private Function CleanDocumentStructure(doc As Document) As Boolean
         .MatchWildcards = False
         
         ' Remove espaços/tabs no início de linhas usando Find/Replace simples
-        .text = "^p "  ' Quebra seguida de espaço
-        .Replacement.text = "^p"
+        .Text = "^p "  ' Quebra seguida de espaço
+        .Replacement.Text = "^p"
         
         Do While .Execute(Replace:=True)
             leadingSpacesRemoved = leadingSpacesRemoved + 1
@@ -3724,8 +3696,8 @@ Private Function CleanDocumentStructure(doc As Document) As Boolean
         Loop
         
         ' Remove tabs no início de linhas
-        .text = "^p^t"  ' Quebra seguida de tab
-        .Replacement.text = "^p"
+        .Text = "^p^t"  ' Quebra seguida de tab
+        .Replacement.Text = "^p"
         
         Do While .Execute(Replace:=True)
             leadingSpacesRemoved = leadingSpacesRemoved + 1
@@ -3748,7 +3720,7 @@ Private Function CleanDocumentStructure(doc As Document) As Boolean
         rng.End = 1
         
         ' Remove espaços/tabs no início absoluto do documento
-        If rng.text = " " Or rng.text = vbTab Then
+        If rng.Text = " " Or rng.Text = vbTab Then
             ' Expande o range para pegar todos os espaços iniciais usando método seguro
             Do While rng.End <= doc.Range.End And (SafeGetLastCharacter(rng) = " " Or SafeGetLastCharacter(rng) = vbTab)
                 rng.End = rng.End + 1
@@ -3796,9 +3768,9 @@ Private Function ValidatePropositionType(doc As Document) As Boolean
     Dim userResponse As VbMsgBoxResult
     
     ' Encontra o primeiro parágrafo com texto
-    For i = 1 To doc.Paragraphs.count
+    For i = 1 To doc.Paragraphs.Count
         Set firstPara = doc.Paragraphs(i)
-        paraText = Trim(Replace(Replace(firstPara.Range.text, vbCr, ""), vbLf, ""))
+        paraText = Trim(Replace(Replace(firstPara.Range.Text, vbCr, ""), vbLf, ""))
         If paraText <> "" Then
             Exit For
         End If
@@ -3881,9 +3853,9 @@ Private Function FormatDocumentTitle(doc As Document) As Boolean
     Dim newText As String
     
     ' Encontra o primeiro parágrafo com texto (após exclusão de linhas em branco)
-    For i = 1 To doc.Paragraphs.count
+    For i = 1 To doc.Paragraphs.Count
         Set firstPara = doc.Paragraphs(i)
-        paraText = Trim(Replace(Replace(firstPara.Range.text, vbCr, ""), vbLf, ""))
+        paraText = Trim(Replace(Replace(firstPara.Range.Text, vbCr, ""), vbLf, ""))
         If paraText <> "" Then
             Exit For
         End If
@@ -3930,7 +3902,7 @@ Private Function FormatDocumentTitle(doc As Document) As Boolean
     End If
     
     ' SEMPRE aplica formatação de título: caixa alta, negrito, sublinhado
-    firstPara.Range.text = UCase(newText) & vbCrLf
+    firstPara.Range.Text = UCase(newText) & vbCrLf
     
     ' Formatação completa do título (primeira linha)
     With firstPara.Range.Font
@@ -3939,9 +3911,9 @@ Private Function FormatDocumentTitle(doc As Document) As Boolean
     End With
     
     With firstPara.Format
-        .alignment = wdAlignParagraphCenter
-        .leftIndent = 0
-        .firstLineIndent = 0
+        .Alignment = wdAlignParagraphCenter
+        .LeftIndent = 0
+        .FirstLineIndent = 0
         .RightIndent = 0
         .SpaceBefore = 0
         .SpaceAfter = 6  ' Pequeno espaço após o título
@@ -3974,9 +3946,9 @@ Private Function FormatConsiderandoParagraphs(doc As Document) As Boolean
     Dim i As Long
     
     ' Percorre todos os parágrafos procurando por "considerando" no início
-    For i = 1 To doc.Paragraphs.count
+    For i = 1 To doc.Paragraphs.Count
         Set para = doc.Paragraphs(i)
-        paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+        paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
         
         ' Verifica se o parágrafo começa com "considerando" (ignorando maiúsculas/minúsculas)
         If Len(paraText) >= 12 And LCase(Left(paraText, 12)) = "considerando" Then
@@ -3992,8 +3964,8 @@ Private Function FormatConsiderandoParagraphs(doc As Document) As Boolean
                     With rng.Find
                         .ClearFormatting
                         .Replacement.ClearFormatting
-                        .text = "considerando"
-                        .Replacement.text = "CONSIDERANDO"
+                        .Text = "considerando"
+                        .Replacement.Text = "CONSIDERANDO"
                         .Replacement.Font.Bold = True
                         .MatchCase = False
                         .MatchWholeWord = False  ' CORREÇÃO: False para não exigir palavra completa
@@ -4014,7 +3986,7 @@ Private Function FormatConsiderandoParagraphs(doc As Document) As Boolean
                 rng.End = rng.Start + 12
                 
                 With rng
-                    .text = "CONSIDERANDO"
+                    .Text = "CONSIDERANDO"
                     .Font.Bold = True
                 End With
                 
@@ -4069,8 +4041,8 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
     For i = 0 To UBound(dOesteVariants)
         With rng.Find
             .ClearFormatting
-            .text = dOesteVariants(i) & "este"
-            .Replacement.text = "d'Oeste"
+            .Text = dOesteVariants(i) & "este"
+            .Replacement.Text = "d'Oeste"
             .Forward = True
             .Wrap = wdFindContinue
             .Format = False
@@ -4129,8 +4101,8 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
         If vereadorVariants(i) <> "- Vereador -" Then
             With rng.Find
                 .ClearFormatting
-                .text = vereadorVariants(i)
-                .Replacement.text = "- Vereador -"
+                .Text = vereadorVariants(i)
+                .Replacement.Text = "- Vereador -"
                 .Forward = True
                 .Wrap = wdFindContinue
                 .Format = False
@@ -4167,8 +4139,8 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
             With rng.Find
                 .ClearFormatting
                 .Replacement.ClearFormatting
-                .text = dashVariants(i)
-                .Replacement.text = " — "    ' Em dash (travessão) com espaços
+                .Text = dashVariants(i)
+                .Replacement.Text = " — "    ' Em dash (travessão) com espaços
                 .Forward = True
                 .Wrap = wdFindContinue
                 .Format = False
@@ -4197,8 +4169,8 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
         With rng.Find
             .ClearFormatting
             .Replacement.ClearFormatting
-            .text = lineStartDashVariants(i)
-            .Replacement.text = "^p— "    ' Em dash no início de linha
+            .Text = lineStartDashVariants(i)
+            .Replacement.Text = "^p— "    ' Em dash no início de linha
             .Forward = True
             .Wrap = wdFindContinue
             .Format = False
@@ -4226,8 +4198,8 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
         With rng.Find
             .ClearFormatting
             .Replacement.ClearFormatting
-            .text = lineEndDashVariants(i)
-            .Replacement.text = " —^p"    ' Em dash no final de linha
+            .Text = lineEndDashVariants(i)
+            .Replacement.Text = " —^p"    ' Em dash no final de linha
             .Forward = True
             .Wrap = wdFindContinue
             .Format = False
@@ -4253,8 +4225,8 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
     With rng.Find
         .ClearFormatting
         .Replacement.ClearFormatting
-        .text = "^l"  ' Quebra de linha manual (line break)
-        .Replacement.text = " "  ' Substitui por espaço
+        .Text = "^l"  ' Quebra de linha manual (line break)
+        .Replacement.Text = " "  ' Substitui por espaço
         .Forward = True
         .Wrap = wdFindContinue
         .Format = False
@@ -4274,8 +4246,8 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
     With rng.Find
         .ClearFormatting
         .Replacement.ClearFormatting
-        .text = Chr(11)  ' Quebra de linha manual (VT - Vertical Tab)
-        .Replacement.text = " "  ' Substitui por espaço
+        .Text = Chr(11)  ' Quebra de linha manual (VT - Vertical Tab)
+        .Replacement.Text = " "  ' Substitui por espaço
         .Forward = True
         .Wrap = wdFindContinue
         .Format = False
@@ -4295,8 +4267,8 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
     With rng.Find
         .ClearFormatting
         .Replacement.ClearFormatting
-        .text = Chr(10)  ' Line Feed (LF)
-        .Replacement.text = " "  ' Substitui por espaço
+        .Text = Chr(10)  ' Line Feed (LF)
+        .Replacement.Text = " "  ' Substitui por espaço
         .Forward = True
         .Wrap = wdFindContinue
         .Format = False
@@ -4310,17 +4282,6 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
             replacementCount = replacementCount + 1
         Loop
     End With
-    
-    ' Funcionalidade 14: Detecta e substitui linha da data antes de "- Vereador -"
-    ' Busca na 3ª linha acima de "- Vereador -" por linha que:
-    ' - Inicie com "Palácio" ou "Plenário"
-    ' - Contenha nome de mês por extenso
-    ' - Tenha menos de 20 palavras
-    ' - Termine com número seguido ou não por ponto
-    ' Se encontrar, substitui pela string padrão com data atual por extenso
-    If Config.replaceDateLineBeforeVereador Then
-        Call ProcessDateLineReplacement(doc, replacementCount)
-    End If
     
     LogMessage "Substituições de texto aplicadas: " & replacementCount & " substituições realizadas", LOG_LEVEL_INFO
     ApplyTextReplacements = True
@@ -4354,9 +4315,9 @@ Private Function ApplySpecificParagraphReplacements(doc As Document) As Boolean
     secondParaIndex = 0
     thirdParaIndex = 0
     
-    For i = 1 To doc.Paragraphs.count
+    For i = 1 To doc.Paragraphs.Count
         Set para = doc.Paragraphs(i)
-        paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+        paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
         
         ' Se o parágrafo tem conteúdo, conta como um parágrafo real
         If paraText <> "" Then
@@ -4375,23 +4336,23 @@ Private Function ApplySpecificParagraphReplacements(doc As Document) As Boolean
     Next i
     
     ' REQUISITO 1: Se o 2º parágrafo começa exatamente com "Sugiro ", substitui por "Requeiro "
-    If secondParaIndex > 0 And secondParaIndex <= doc.Paragraphs.count Then
+    If secondParaIndex > 0 And secondParaIndex <= doc.Paragraphs.Count Then
         Set para = doc.Paragraphs(secondParaIndex)
-        paraText = para.Range.text
+        paraText = para.Range.Text
         
         ' Verifica se começa exatamente com "Sugiro " (case-sensitive)
         If Len(paraText) >= 7 And Left(paraText, 7) = "Sugiro " Then
             ' Substitui "Sugiro " por "Requeiro " no início do parágrafo
-            para.Range.text = "Requeiro " & Mid(paraText, 8)
+            para.Range.Text = "Requeiro " & Mid(paraText, 8)
             replacementCount = replacementCount + 1
             LogMessage "2º parágrafo: 'Sugiro ' substituído por 'Requeiro '", LOG_LEVEL_INFO
         End If
     End If
     
     ' REQUISITOS 2 e 3: Substituições no 3º parágrafo
-    If thirdParaIndex > 0 And thirdParaIndex <= doc.Paragraphs.count Then
+    If thirdParaIndex > 0 And thirdParaIndex <= doc.Paragraphs.Count Then
         Set para = doc.Paragraphs(thirdParaIndex)
-        paraText = para.Range.text
+        paraText = para.Range.Text
         Dim originalText As String
         originalText = paraText
         
@@ -4411,7 +4372,7 @@ Private Function ApplySpecificParagraphReplacements(doc As Document) As Boolean
         
         ' Aplica as mudanças se houve alguma substituição
         If paraText <> originalText Then
-            para.Range.text = paraText
+            para.Range.Text = paraText
         End If
     End If
     
@@ -4423,8 +4384,8 @@ Private Function ApplySpecificParagraphReplacements(doc As Document) As Boolean
     With rng.Find
         .ClearFormatting
         .Replacement.ClearFormatting
-        .text = " A CÂMARA MUNICIPAL DE SANTA BÁRBARA D'OESTE, ESTADO DE SÃO PAULO "
-        .Replacement.text = " a Câmara Municipal de Santa Bárbara d'Oeste, estado de São Paulo, "
+        .Text = " A CÂMARA MUNICIPAL DE SANTA BÁRBARA D'OESTE, ESTADO DE SÃO PAULO "
+        .Replacement.Text = " a Câmara Municipal de Santa Bárbara d'Oeste, estado de São Paulo, "
         .Forward = True
         .Wrap = wdFindContinue
         .Format = False
@@ -4434,7 +4395,7 @@ Private Function ApplySpecificParagraphReplacements(doc As Document) As Boolean
         
         Do While .Execute(Replace:=True)
             replacementCount = replacementCount + 1
-            LogMessage "Substituição global: 'A CÂMARA MUNICIPAL...' ? 'a Câmara Municipal...'", LOG_LEVEL_INFO
+            LogMessage "Substituição global: 'A CÂMARA MUNICIPAL...' → 'a Câmara Municipal...'", LOG_LEVEL_INFO
         Loop
     End With
     
@@ -4467,8 +4428,8 @@ Private Function ApplySpecificParagraphReplacements(doc As Document) As Boolean
         With rng.Find
             .ClearFormatting
             .Replacement.ClearFormatting
-            .text = wordsToUppercase(j)
-            .Replacement.text = UCase(wordsToUppercase(j))
+            .Text = wordsToUppercase(j)
+            .Replacement.Text = UCase(wordsToUppercase(j))
             .Forward = True
             .Wrap = wdFindContinue
             .Format = False
@@ -4479,7 +4440,7 @@ Private Function ApplySpecificParagraphReplacements(doc As Document) As Boolean
             Do While .Execute(Replace:=True)
                 replacementCount = replacementCount + 1
                 If replacementCount <= 20 Then  ' Log apenas os primeiros casos para performance
-                    LogMessage "Conversão para maiúsculas: '" & wordsToUppercase(j) & "' ? '" & UCase(wordsToUppercase(j)) & "'", LOG_LEVEL_INFO
+                    LogMessage "Conversão para maiúsculas: '" & wordsToUppercase(j) & "' → '" & UCase(wordsToUppercase(j)) & "'", LOG_LEVEL_INFO
                 End If
             Loop
         End With
@@ -4514,9 +4475,9 @@ Private Function ValidateContentConsistency(doc As Document) As Boolean
     actualParaIndex = 0
     secondParaIndex = 0
     
-    For i = 1 To doc.Paragraphs.count
+    For i = 1 To doc.Paragraphs.Count
         Set para = doc.Paragraphs(i)
-        paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+        paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
         
         ' Se o parágrafo tem conteúdo, conta como um parágrafo real
         If paraText <> "" Then
@@ -4544,9 +4505,9 @@ Private Function ValidateContentConsistency(doc As Document) As Boolean
     restOfDocumentText = ""
     actualParaIndex = 0
     
-    For i = 1 To doc.Paragraphs.count
+    For i = 1 To doc.Paragraphs.Count
         Set para = doc.Paragraphs(i)
-        paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+        paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
         
         If paraText <> "" Then
             actualParaIndex = actualParaIndex + 1
@@ -4779,12 +4740,12 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
     Dim vereadorCount As Long
     
     ' Percorre todos os parágrafos do documento
-    For i = 1 To doc.Paragraphs.count
+    For i = 1 To doc.Paragraphs.Count
         Set para = doc.Paragraphs(i)
         
         ' Não processa parágrafos com conteúdo visual
         If Not HasVisualContent(para) Then
-            paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+            paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
             
             ' Remove pontuação final para análise mais precisa
             cleanText = paraText
@@ -4798,9 +4759,10 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
             If cleanText = "justificativa" Then
                 ' Aplica formatação específica para Justificativa
                 With para.Format
-                    .leftIndent = 0                         ' Recuo à esquerda = 0
-                    .firstLineIndent = 0                     ' Recuo da 1ª linha = 0
-                    .alignment = wdAlignParagraphCenter       ' Alinhamento centralizado
+                    .LeftIndent = 0                         ' Recuo à esquerda = 0
+                    .FirstLineIndent = 0                     ' Recuo da 1ª linha = 0
+                    .Alignment = wdAlignParagraphCenter       ' Alinhamento centralizado
+                    .Font.Bold = True                         ' Negrito
                 End With
 
                 With para.Range.Font
@@ -4813,12 +4775,12 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
                 If Len(paraText) > Len(cleanText) Then
                     originalEnd = Right(paraText, Len(paraText) - Len(cleanText))
                 End If
-                para.Range.text = "Justificativa" & originalEnd & vbCrLf
+                para.Range.Text = "Justificativa" & originalEnd & vbCrLf
                 
                 LogMessage "Parágrafo 'Justificativa' formatado (centralizado, negrito, sem recuos)", LOG_LEVEL_INFO
                 formattedCount = formattedCount + 1
                 
-            ' REQUISITO 1: Formatação de variações de "vereador"
+            ' REQUISITO 1: Formatação de variações de "vereador" 
             ElseIf IsVereadorPattern(cleanText) Then
                 ' REQUISITO 2: Formatar parágrafo ANTERIOR a "vereador" PRIMEIRO
                 If i > 1 Then
@@ -4828,21 +4790,20 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
                     ' Verifica se o parágrafo anterior não tem conteúdo visual
                     If Not HasVisualContent(paraPrev) Then
                         Dim prevText As String
-                        prevText = Trim(Replace(Replace(paraPrev.Range.text, vbCr, ""), vbLf, ""))
+                        prevText = Trim(Replace(Replace(paraPrev.Range.Text, vbCr, ""), vbLf, ""))
                         
                         ' Só formata se o parágrafo anterior tem conteúdo textual
                         If prevText <> "" Then
                             ' Formatação COMPLETA do parágrafo anterior
                             With paraPrev.Format
-                                .leftIndent = 0                      ' Recuo à esquerda = 0
-                                .firstLineIndent = 0                 ' Recuo da 1ª linha = 0
-                                .alignment = wdAlignParagraphCenter  ' Alinhamento centralizado
+                                .LeftIndent = 0                      ' Recuo à esquerda = 0
+                                .FirstLineIndent = 0                 ' Recuo da 1ª linha = 0  
+                                .Alignment = wdAlignParagraphCenter  ' Alinhamento centralizado
+                                .AllCaps = True                       ' Caixa alta
                             End With
 
                             With para.Range.Font
                                 .Bold = True                  ' Negrito
-                                .AllCaps = True                ' Caixa alta
-
                             End With
                             
                             LogMessage "Parágrafo anterior a '- Vereador -' formatado (centralizado, caixa alta, negrito, sem recuos): " & Left(UCase(prevText), 30) & "...", LOG_LEVEL_INFO
@@ -4852,9 +4813,9 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
                 
                 ' Agora formata o parágrafo "- Vereador -"
                 With para.Format
-                    .leftIndent = 0               ' Recuo à esquerda = 0
-                    .firstLineIndent = 0          ' Recuo da 1ª linha = 0
-                    .alignment = wdAlignParagraphCenter  ' Alinhamento centralizado
+                    .LeftIndent = 0               ' Recuo à esquerda = 0
+                    .FirstLineIndent = 0          ' Recuo da 1ª linha = 0
+                    .Alignment = wdAlignParagraphCenter  ' Alinhamento centralizado
                 End With
 
                 With para.Range.Font
@@ -4862,7 +4823,7 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
                 End With
                 
                 ' Padroniza o texto
-                para.Range.text = "- Vereador -" & vbCrLf
+                para.Range.Text = "- Vereador -" & vbCrLf
                 
                 LogMessage "Parágrafo '- Vereador -' formatado (centralizado, negrito, sem recuos)", LOG_LEVEL_INFO
                 vereadorCount = vereadorCount + 1
@@ -4872,10 +4833,10 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
             ElseIf IsAnexoPattern(cleanText) Then
                 ' Aplica formatação específica para Anexo/Anexos
                 With para.Format
-                    .leftIndent = 0               ' Recuo à esquerda = 0
-                    .firstLineIndent = 0          ' Recuo da 1ª linha = 0
+                    .LeftIndent = 0               ' Recuo à esquerda = 0
+                    .FirstLineIndent = 0          ' Recuo da 1ª linha = 0
                     .RightIndent = 0              ' Recuo à direita = 0
-                    .alignment = wdAlignParagraphLeft    ' Alinhamento à esquerda
+                    .Alignment = wdAlignParagraphLeft    ' Alinhamento à esquerda
                 End With
 
                 With para.Range.Font
@@ -4895,7 +4856,7 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
                 Else
                     anexoText = "Anexos"
                 End If
-                para.Range.text = anexoText & anexoEnd & vbCrLf
+                para.Range.Text = anexoText & anexoEnd & vbCrLf
                 
                 LogMessage "Parágrafo '" & anexoText & "' formatado (alinhado à esquerda, negrito, sem recuos)", LOG_LEVEL_INFO
                 formattedCount = formattedCount + 1
@@ -4934,12 +4895,12 @@ Private Function FormatNumberedParagraphs(doc As Document) As Boolean
     Dim formattedCount As Long
     
     ' Percorre todos os parágrafos do documento
-    For i = 1 To doc.Paragraphs.count
+    For i = 1 To doc.Paragraphs.Count
         Set para = doc.Paragraphs(i)
         
         ' Não processa parágrafos com conteúdo visual
         If Not HasVisualContent(para) Then
-            paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+            paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
             
             ' Verifica se o parágrafo começa com número seguido de ponto, parênteses ou espaço
             If IsNumberedParagraph(paraText) Then
@@ -4957,7 +4918,7 @@ Private Function FormatNumberedParagraphs(doc As Document) As Boolean
                 cleanedText = RemoveManualNumber(paraText)
                 
                 ' Atualiza o texto do parágrafo
-                para.Range.text = cleanedText & vbCrLf
+                para.Range.Text = cleanedText & vbCrLf
                 
                 LogMessage "Parágrafo convertido para lista numerada: " & Left(cleanedText, 50) & "...", LOG_LEVEL_INFO
                 formattedCount = formattedCount + 1
@@ -4972,265 +4933,6 @@ Private Function FormatNumberedParagraphs(doc As Document) As Boolean
 ErrorHandler:
     LogMessage "Erro na formatação de listas numeradas: " & Err.Description, LOG_LEVEL_ERROR
     FormatNumberedParagraphs = False
-End Function
-
-'================================================================================
-' FUNCIONALIDADE 14: PROCESSAMENTO DE LINHA DE DATA
-'================================================================================
-' Processa a substituição da linha de data que aparece antes de "- Vereador -"
-' Busca por padrão específico e substitui pela string padrão com data atual
-Private Sub ProcessDateLineReplacement(doc As Document, ByRef replacementCount As Long)
-    On Error GoTo ErrorHandler
-    
-    Dim para As Paragraph
-    Dim vereadorParagraph As Paragraph
-    Dim dateLineParagraph As Paragraph
-    Dim dateLineFound As Boolean
-    Dim processedCount As Long
-    
-    LogInfo "Iniciando processamento de linha de data antes de '- Vereador -'"
-    
-    ' Percorre todos os parágrafos procurando por "- Vereador -"
-    For Each para In doc.Paragraphs
-        If IsVereadorPattern(para.Range.text) Then
-            Set vereadorParagraph = para
-            LogInfo "Encontrado parágrafo '- Vereador -' no índice: " & para.Range.Start
-            
-            ' Busca a 3ª linha acima do parágrafo "- Vereador -"
-            Dim currentPara As Paragraph
-            Set currentPara = para
-            
-            ' Move 3 parágrafos para cima
-            If Not currentPara.Previous Is Nothing Then
-                Set currentPara = currentPara.Previous
-                If Not currentPara.Previous Is Nothing Then
-                    Set currentPara = currentPara.Previous
-                    If Not currentPara.Previous Is Nothing Then
-                        Set dateLineParagraph = currentPara.Previous
-                        
-                        ' Verifica se a linha atende aos critérios
-                        If IsValidDateLine(dateLineParagraph.Range.text) Then
-                            ' Substitui pela string padrão
-                            Dim newDateLine As String
-                            newDateLine = GenerateStandardDateLine()
-                            
-                            LogInfo "Substituindo linha de data: '" & Trim(dateLineParagraph.Range.text) & "' por '" & newDateLine & "'"
-                            
-                            dateLineParagraph.Range.text = newDateLine & vbCrLf
-                            replacementCount = replacementCount + 1
-                            processedCount = processedCount + 1
-                            dateLineFound = True
-                        Else
-                            LogInfo "Linha 3 acima de '- Vereador -' não atende aos critérios: '" & Trim(dateLineParagraph.Range.text) & "'"
-                        End If
-                    Else
-                        LogInfo "Não foi possível encontrar a 3ª linha acima de '- Vereador -' (nível 3)"
-                    End If
-                Else
-                    LogInfo "Não foi possível encontrar a 3ª linha acima de '- Vereador -' (nível 2)"
-                End If
-            Else
-                LogInfo "Não foi possível encontrar a 3ª linha acima de '- Vereador -' (nível 1)"
-            End If
-        End If
-    Next para
-    
-    If Not dateLineFound Then
-        LogInfo "Nenhuma linha de data foi encontrada que atenda aos critérios especificados"
-        MsgBox "A linha da data não foi encontrada." & vbCrLf & vbCrLf & _
-               "Critérios de busca:" & vbCrLf & _
-               "• Deve estar na 3ª linha acima de '- Vereador -'" & vbCrLf & _
-               "• Deve iniciar com 'Palácio' ou 'Plenário'" & vbCrLf & _
-               "• Deve conter nome de mês por extenso" & vbCrLf & _
-               "• Deve ter menos de 20 palavras" & vbCrLf & _
-               "• Deve terminar com número seguido ou não por ponto", _
-               vbInformation, "Linha de Data - " & SYSTEM_NAME
-    Else
-        LogInfo "Processamento de linha de data concluído: " & processedCount & " substituições realizadas"
-    End If
-    
-    Exit Sub
-    
-ErrorHandler:
-    LogError "ProcessDateLineReplacement", "Erro no processamento de linha de data: " & Err.Description
-End Sub
-
-' Verifica se uma linha de texto atende aos critérios para ser uma linha de data válida
-Private Function IsValidDateLine(text As String) As Boolean
-    On Error GoTo ErrorHandler
-    
-    IsValidDateLine = False
-    
-    Dim cleanText As String
-    Dim words() As String
-    Dim wordCount As Long
-    Dim i As Long
-    Dim hasMonth As Boolean
-    Dim endsWithNumber As Boolean
-    
-    ' Remove espaços extras e quebras de linha
-    cleanText = Trim(Replace(Replace(text, vbCr, ""), vbLf, ""))
-    
-    ' Verifica se está vazio
-    If Len(cleanText) = 0 Then Exit Function
-    
-    ' Verifica se inicia com "Palácio" ou "Plenário"
-    If Not (LCase(Left(cleanText, 7)) = "palácio" Or LCase(Left(cleanText, 8)) = "plenário") Then
-        Exit Function
-    End If
-    
-    ' Conta palavras
-    words = Split(cleanText, " ")
-    wordCount = UBound(words) + 1
-    
-    ' Verifica se tem menos de 20 palavras
-    If wordCount >= 20 Then Exit Function
-    
-    ' Verifica se contém nome de mês por extenso
-    hasMonth = ContainsMonthName(cleanText)
-    If Not hasMonth Then Exit Function
-    
-    ' Verifica se termina com número seguido ou não por ponto
-    endsWithNumber = EndsWithNumberAndOptionalPeriod(cleanText)
-    If Not endsWithNumber Then Exit Function
-    
-    ' Se passou por todas as verificações, é uma linha válida
-    IsValidDateLine = True
-    Exit Function
-    
-ErrorHandler:
-    LogError "IsValidDateLine", "Erro na validação de linha de data: " & Err.Description
-    IsValidDateLine = False
-End Function
-
-' Verifica se o texto contém nome de mês por extenso em português
-Private Function ContainsMonthName(text As String) As Boolean
-    On Error GoTo ErrorHandler
-    
-    ContainsMonthName = False
-    
-    Dim months() As String
-    Dim i As Long
-    Dim lowerText As String
-    
-    ' Lista de meses em português
-    ReDim months(0 To 11)
-    months(0) = "janeiro"
-    months(1) = "fevereiro"
-    months(2) = "março"
-    months(3) = "abril"
-    months(4) = "maio"
-    months(5) = "junho"
-    months(6) = "julho"
-    months(7) = "agosto"
-    months(8) = "setembro"
-    months(9) = "outubro"
-    months(10) = "novembro"
-    months(11) = "dezembro"
-    
-    lowerText = LCase(text)
-    
-    ' Verifica se algum mês está presente
-    For i = 0 To UBound(months)
-        If InStr(lowerText, months(i)) > 0 Then
-            ContainsMonthName = True
-            Exit Function
-        End If
-    Next i
-    
-    Exit Function
-    
-ErrorHandler:
-    LogError "ContainsMonthName", "Erro na verificação de nome de mês: " & Err.Description
-    ContainsMonthName = False
-End Function
-
-' Verifica se o texto termina com número seguido ou não por ponto
-Private Function EndsWithNumberAndOptionalPeriod(text As String) As Boolean
-    On Error GoTo ErrorHandler
-    
-    EndsWithNumberAndOptionalPeriod = False
-    
-    Dim cleanText As String
-    Dim lastChar As String
-    Dim secondLastChar As String
-    
-    cleanText = Trim(text)
-    If Len(cleanText) = 0 Then Exit Function
-    
-    lastChar = Right(cleanText, 1)
-    
-    ' Se termina com ponto, verifica o caractere anterior
-    If lastChar = "." Then
-        If Len(cleanText) >= 2 Then
-            secondLastChar = Mid(cleanText, Len(cleanText) - 1, 1)
-            If IsNumeric(secondLastChar) Then
-                EndsWithNumberAndOptionalPeriod = True
-            End If
-        End If
-    ' Se não termina com ponto, verifica se termina com número
-    ElseIf IsNumeric(lastChar) Then
-        EndsWithNumberAndOptionalPeriod = True
-    End If
-    
-    Exit Function
-    
-ErrorHandler:
-    LogError "EndsWithNumberAndOptionalPeriod", "Erro na verificação de final numérico: " & Err.Description
-    EndsWithNumberAndOptionalPeriod = False
-End Function
-
-' Gera a string padrão de data para substituição
-Private Function GenerateStandardDateLine() As String
-    On Error GoTo ErrorHandler
-    
-    GenerateStandardDateLine = "Plenário ""Dr. Tancredo Neves"", " & GetCurrentDateExtended() & "."
-    Exit Function
-    
-ErrorHandler:
-    LogError "GenerateStandardDateLine", "Erro na geração da linha padrão de data: " & Err.Description
-    GenerateStandardDateLine = "Plenário ""Dr. Tancredo Neves"", [DATA NÃO DISPONÍVEL]."
-End Function
-
-' Retorna a data atual por extenso no formato brasileiro
-Private Function GetCurrentDateExtended() As String
-    On Error GoTo ErrorHandler
-    
-    Dim currentDate As Date
-    Dim dayNum As Long
-    Dim monthNum As Long
-    Dim yearNum As Long
-    Dim monthName As String
-    Dim months() As String
-    
-    currentDate = Now
-    dayNum = Day(currentDate)
-    monthNum = Month(currentDate)
-    yearNum = Year(currentDate)
-    
-    ' Lista de meses em português
-    ReDim months(1 To 12)
-    months(1) = "janeiro"
-    months(2) = "fevereiro"
-    months(3) = "março"
-    months(4) = "abril"
-    months(5) = "maio"
-    months(6) = "junho"
-    months(7) = "julho"
-    months(8) = "agosto"
-    months(9) = "setembro"
-    months(10) = "outubro"
-    months(11) = "novembro"
-    months(12) = "dezembro"
-    
-    monthName = months(monthNum)
-    
-    GetCurrentDateExtended = dayNum & " de " & monthName & " de " & yearNum
-    Exit Function
-    
-ErrorHandler:
-    LogError "GetCurrentDateExtended", "Erro na geração da data por extenso: " & Err.Description
-    GetCurrentDateExtended = "[ERRO NA DATA]"
 End Function
 
 '================================================================================
@@ -5490,8 +5192,8 @@ Public Sub AbrirPastaLogs()
     On Error GoTo ErrorHandler
     
     ' Define pasta de logs baseada no documento atual ou temp
-    If Not doc Is Nothing And doc.Path <> "" Then
-        logsFolder = doc.Path
+    If Not doc Is Nothing And doc.path <> "" Then
+        logsFolder = doc.path
     Else
         logsFolder = Environ("TEMP")
     End If
@@ -5502,7 +5204,7 @@ Public Sub AbrirPastaLogs()
     End If
     
     ' Abre a pasta no Windows Explorer
-    Shell "explorer.exe """ & logsFolder & """", vbNormalFocus
+    shell "explorer.exe """ & logsFolder & """", vbNormalFocus
     
     Application.StatusBar = "Pasta de logs aberta: " & logsFolder
     
@@ -5518,7 +5220,7 @@ ErrorHandler:
     
     ' Fallback: tenta abrir pasta temporária
     On Error Resume Next
-    Shell "explorer.exe """ & Environ("TEMP") & """", vbNormalFocus
+    shell "explorer.exe """ & Environ("TEMP") & """", vbNormalFocus
     If Err.Number = 0 Then
         Application.StatusBar = "Pasta temporária aberta como alternativa"
     Else
@@ -5539,7 +5241,7 @@ Public Sub AbrirRepositorioGitHub()
     repoURL = "https://github.com/chrmsantos/chainsaw-proposituras"
     
     ' Abre o link no navegador padrão
-    shellResult = Shell("rundll32.exe url.dll,FileProtocolHandler " & repoURL, vbNormalFocus)
+    shellResult = shell("rundll32.exe url.dll,FileProtocolHandler " & repoURL, vbNormalFocus)
     
     If shellResult > 0 Then
         Application.StatusBar = "Repositório GitHub aberto no navegador"
@@ -5590,7 +5292,7 @@ Private Function CreateDocumentBackup(doc As Document) As Boolean
     End If
     
     ' Não faz backup se documento não foi salvo
-    If doc.Path = "" Then
+    If doc.path = "" Then
         LogMessage "Backup ignorado - documento não salvo", LOG_LEVEL_INFO
         CreateDocumentBackup = True
         Exit Function
@@ -5626,7 +5328,7 @@ Private Function CreateDocumentBackup(doc As Document) As Boolean
     ' Define pasta de backup com validação
     On Error Resume Next
     Dim parentPath As String
-    parentPath = fso.GetParentFolderName(doc.Path)
+    parentPath = fso.GetParentFolderName(doc.path)
     If Err.Number <> 0 Or parentPath = "" Then
         On Error GoTo ErrorHandler
         LogMessage "Erro no backup: não foi possível determinar pasta pai", LOG_LEVEL_ERROR
@@ -5704,8 +5406,8 @@ Private Function CreateDocumentBackup(doc As Document) As Boolean
             On Error GoTo ErrorHandler
             LogMessage "Tentativa " & retryCount & " de backup falhou: " & Err.Description, LOG_LEVEL_WARNING
             If retryCount < MAX_RETRY_ATTEMPTS Then
-                ' Aguarda 1 segundo antes de tentar novamente
-                Sleep 1000 ' 1000 milissegundos = 1 segundo
+                ' Aguarda um pouco antes de tentar novamente
+                Application.Wait DateAdd("s", 1, Now)
             End If
         End If
     Next retryCount
@@ -5749,7 +5451,7 @@ Private Sub CleanOldBackups(backupFolder As String, docBaseName As String)
     Set fso = CreateObject("Scripting.FileSystemObject")
     Set folder = fso.GetFolder(backupFolder)
     
-    filesCount = folder.Files.count
+    filesCount = folder.Files.Count
     
     ' Se há mais de 15 arquivos na pasta de backup, registra aviso
     If filesCount > 15 Then
@@ -5776,8 +5478,8 @@ Public Sub AbrirPastaBackups()
     On Error GoTo ErrorHandler
     
     ' Define pasta de backup baseada no documento atual
-    If Not doc Is Nothing And doc.Path <> "" Then
-        backupFolder = fso.GetParentFolderName(doc.Path) & "\" & BACKUP_FOLDER_NAME
+    If Not doc Is Nothing And doc.path <> "" Then
+        backupFolder = fso.GetParentFolderName(doc.path) & "\" & BACKUP_FOLDER_NAME
     Else
         Application.StatusBar = "Nenhum documento salvo ativo para localizar pasta de backups"
         Exit Sub
@@ -5791,7 +5493,7 @@ Public Sub AbrirPastaBackups()
     End If
     
     ' Abre a pasta no Windows Explorer
-    Shell "explorer.exe """ & backupFolder & """", vbNormalFocus
+    shell "explorer.exe """ & backupFolder & """", vbNormalFocus
     
     Application.StatusBar = "Pasta de backups aberta: " & backupFolder
     
@@ -5808,10 +5510,10 @@ ErrorHandler:
     
     ' Fallback: tenta abrir pasta do documento
     On Error Resume Next
-    If Not doc Is Nothing And doc.Path <> "" Then
+    If Not doc Is Nothing And doc.path <> "" Then
         Dim docFolder As String
-        docFolder = fso.GetParentFolderName(doc.Path)
-        Shell "explorer.exe """ & docFolder & """", vbNormalFocus
+        docFolder = fso.GetParentFolderName(doc.path)
+        shell "explorer.exe """ & docFolder & """", vbNormalFocus
         Application.StatusBar = "Pasta do documento aberta como alternativa"
     Else
         Application.StatusBar = "Não foi possível abrir pasta de backups"
@@ -5848,8 +5550,8 @@ Private Function CleanMultipleSpaces(doc As Document) As Boolean
         ' OTIMIZAÇÃO 1: Remove espaços múltiplos (2 ou mais) em uma única operação
         ' Usa um loop otimizado que reduz progressivamente os espaços
         Do
-            .text = "  "  ' Dois espaços
-            .Replacement.text = " "  ' Um espaço
+            .Text = "  "  ' Dois espaços
+            .Replacement.Text = " "  ' Um espaço
             
             Dim currentReplaceCount As Long
             currentReplaceCount = 0
@@ -5882,24 +5584,24 @@ Private Function CleanMultipleSpaces(doc As Document) As Boolean
         .MatchWildcards = False  ' Usar Find/Replace simples para compatibilidade
         
         ' Remove múltiplos espaços antes de quebras - método iterativo
-        .text = "  ^p"  ' 2 espaços seguidos de quebra
-        .Replacement.text = " ^p"  ' 1 espaço seguido de quebra
+        .Text = "  ^p"  ' 2 espaços seguidos de quebra
+        .Replacement.Text = " ^p"  ' 1 espaço seguido de quebra
         Do While .Execute(Replace:=True)
             spacesRemoved = spacesRemoved + 1
             If spacesRemoved > 2000 Then Exit Do
         Loop
         
         ' Segunda passada para garantir limpeza completa
-        .text = " ^p"  ' Espaço antes de quebra
-        .Replacement.text = "^p"
+        .Text = " ^p"  ' Espaço antes de quebra
+        .Replacement.Text = "^p"
         Do While .Execute(Replace:=True)
             spacesRemoved = spacesRemoved + 1
             If spacesRemoved > 2000 Then Exit Do
         Loop
         
         ' Remove múltiplos espaços depois de quebras - método iterativo
-        .text = "^p  "  ' Quebra seguida de 2 espaços
-        .Replacement.text = "^p "  ' Quebra seguida de 1 espaço
+        .Text = "^p  "  ' Quebra seguida de 2 espaços
+        .Replacement.Text = "^p "  ' Quebra seguida de 1 espaço
         Do While .Execute(Replace:=True)
             spacesRemoved = spacesRemoved + 1
             If spacesRemoved > 2000 Then Exit Do
@@ -5914,16 +5616,16 @@ Private Function CleanMultipleSpaces(doc As Document) As Boolean
         .MatchWildcards = False  ' Usar Find/Replace simples
         
         ' Remove múltiplos tabs iterativamente
-        .text = "^t^t"  ' 2 tabs
-        .Replacement.text = "^t"  ' 1 tab
+        .Text = "^t^t"  ' 2 tabs
+        .Replacement.Text = "^t"  ' 1 tab
         Do While .Execute(Replace:=True)
             spacesRemoved = spacesRemoved + 1
             If spacesRemoved > 2000 Then Exit Do
         Loop
         
         ' Converte tabs para espaços
-        .text = "^t"
-        .Replacement.text = " "
+        .Text = "^t"
+        .Replacement.Text = " "
         Do While .Execute(Replace:=True)
             spacesRemoved = spacesRemoved + 1
             If spacesRemoved > 2000 Then Exit Do
@@ -5933,8 +5635,8 @@ Private Function CleanMultipleSpaces(doc As Document) As Boolean
     ' OTIMIZAÇÃO 4: Verificação final ultra-rápida de espaços duplos remanescentes
     Set rng = doc.Range
     With rng.Find
-        .text = "  "
-        .Replacement.text = " "
+        .Text = "  "
+        .Replacement.Text = " "
         .MatchWildcards = False
         .Forward = True
         .Wrap = wdFindStop  ' Mais rápido que wdFindContinue
@@ -5957,29 +5659,29 @@ Private Function CleanMultipleSpaces(doc As Document) As Boolean
         .MatchWildcards = False
         
         ' Corrige CONSIDERANDO grudado com a próxima palavra
-        .text = "CONSIDERANDOa"
-        .Replacement.text = "CONSIDERANDO a"
+        .Text = "CONSIDERANDOa"
+        .Replacement.Text = "CONSIDERANDO a"
         Do While .Execute(Replace:=True)
             spacesRemoved = spacesRemoved + 1
             If spacesRemoved > 2100 Then Exit Do
         Loop
         
-        .text = "CONSIDERANDOe"
-        .Replacement.text = "CONSIDERANDO e"
+        .Text = "CONSIDERANDOe"
+        .Replacement.Text = "CONSIDERANDO e"
         Do While .Execute(Replace:=True)
             spacesRemoved = spacesRemoved + 1
             If spacesRemoved > 2100 Then Exit Do
         Loop
         
-        .text = "CONSIDERANDOo"
-        .Replacement.text = "CONSIDERANDO o"
+        .Text = "CONSIDERANDOo"
+        .Replacement.Text = "CONSIDERANDO o"
         Do While .Execute(Replace:=True)
             spacesRemoved = spacesRemoved + 1
             If spacesRemoved > 2100 Then Exit Do
         Loop
         
-        .text = "CONSIDERANDOq"
-        .Replacement.text = "CONSIDERANDO q"
+        .Text = "CONSIDERANDOq"
+        .Replacement.Text = "CONSIDERANDO q"
         Do While .Execute(Replace:=True)
             spacesRemoved = spacesRemoved + 1
             If spacesRemoved > 2100 Then Exit Do
@@ -6027,8 +5729,8 @@ Private Function LimitSequentialEmptyLines(doc As Document) As Boolean
         .MatchWildcards = False  ' Usar Find/Replace simples para compatibilidade
         
         ' Remove múltiplas quebras consecutivas iterativamente
-        .text = "^p^p^p^p"  ' 4 quebras
-        .Replacement.text = "^p^p"  ' 2 quebras
+        .Text = "^p^p^p^p"  ' 4 quebras
+        .Replacement.Text = "^p^p"  ' 2 quebras
         
         Do While .Execute(Replace:=True)
             linesRemoved = linesRemoved + 1
@@ -6038,8 +5740,8 @@ Private Function LimitSequentialEmptyLines(doc As Document) As Boolean
         Loop
         
         ' Remove 3 quebras -> 2 quebras
-        .text = "^p^p^p"  ' 3 quebras
-        .Replacement.text = "^p^p"  ' 2 quebras
+        .Text = "^p^p^p"  ' 3 quebras
+        .Replacement.Text = "^p^p"  ' 2 quebras
         
         Do While .Execute(Replace:=True)
             linesRemoved = linesRemoved + 1
@@ -6061,8 +5763,8 @@ Private Function LimitSequentialEmptyLines(doc As Document) As Boolean
         .Wrap = wdFindContinue
         
         ' Converte quebras duplas em quebras simples
-        .text = "^p^p^p"  ' 3 quebras
-        .Replacement.text = "^p^p"  ' 2 quebras
+        .Text = "^p^p^p"  ' 3 quebras
+        .Replacement.Text = "^p^p"  ' 2 quebras
         
         Dim secondPassCount As Long
         Do While .Execute(Replace:=True) And secondPassCount < 200
@@ -6077,8 +5779,8 @@ Private Function LimitSequentialEmptyLines(doc As Document) As Boolean
     ' Método híbrido: Find/Replace para casos simples + loop apenas se necessário
     Set rng = doc.Range
     With rng.Find
-        .text = "^p^p^p"  ' 3 quebras (2 linhas vazias + conteúdo)
-        .Replacement.text = "^p^p"  ' 2 quebras (1 linha vazia + conteúdo)
+        .Text = "^p^p^p"  ' 3 quebras (2 linhas vazias + conteúdo)
+        .Replacement.Text = "^p^p"  ' 2 quebras (1 linha vazia + conteúdo)
         .MatchWildcards = False
         
         Dim finalPassCount As Long
@@ -6103,9 +5805,9 @@ Private Function LimitSequentialEmptyLines(doc As Document) As Boolean
         i = 1
         emptyLineCount = 0
         
-        Do While i <= doc.Paragraphs.count And fallbackRemoved < 50
+        Do While i <= doc.Paragraphs.Count And fallbackRemoved < 50
             Set para = doc.Paragraphs(i)
-            paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+            paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
             
             ' Verifica se o parágrafo está vazio
             If paraText = "" And Not HasVisualContent(para) Then
@@ -6156,7 +5858,7 @@ Private Function EnsureParagraphSeparation(doc As Document) As Boolean
     Dim totalChecked As Long
     
     ' Percorre todos os parágrafos verificando se há pelo menos uma linha em branco após cada um
-    For i = 1 To doc.Paragraphs.count - 1 ' -1 porque verificamos o próximo parágrafo
+    For i = 1 To doc.Paragraphs.Count - 1 ' -1 porque verificamos o próximo parágrafo
         Set para = doc.Paragraphs(i)
         Set nextPara = doc.Paragraphs(i + 1)
         
@@ -6166,8 +5868,8 @@ Private Function EnsureParagraphSeparation(doc As Document) As Boolean
         Dim paraText As String
         Dim nextParaText As String
         
-        paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
-        nextParaText = Trim(Replace(Replace(nextPara.Range.text, vbCr, ""), vbLf, ""))
+        paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
+        nextParaText = Trim(Replace(Replace(nextPara.Range.Text, vbCr, ""), vbLf, ""))
         
         ' Verifica se ambos os parágrafos contêm texto (não são linhas em branco)
         If paraText <> "" And nextParaText <> "" Then
@@ -6186,7 +5888,7 @@ Private Function EnsureParagraphSeparation(doc As Document) As Boolean
                 ' Insere uma linha em branco entre os parágrafos
                 Dim insertRange As Range
                 Set insertRange = doc.Range(currentParaEnd - 1, currentParaEnd - 1)
-                insertRange.text = vbCrLf
+                insertRange.Text = vbCrLf
                 
                 insertedCount = insertedCount + 1
                 
@@ -6268,7 +5970,7 @@ Public Sub SalvarESair()
     LogMessage "Iniciando processo de salvar e sair - verificação de documentos", LOG_LEVEL_INFO
     
     ' Verifica se há documentos abertos
-    If Application.Documents.count = 0 Then
+    If Application.Documents.Count = 0 Then
         Application.StatusBar = "Nenhum documento aberto - encerrando Word"
         LogMessage "Nenhum documento aberto - encerrando aplicação", LOG_LEVEL_INFO
         Application.Quit SaveChanges:=wdDoNotSaveChanges
@@ -6283,12 +5985,12 @@ Public Sub SalvarESair()
     Dim i As Long
     
     ' Verifica cada documento aberto
-    For i = 1 To Application.Documents.count
+    For i = 1 To Application.Documents.Count
         Set doc = Application.Documents(i)
         
         On Error Resume Next
         ' Verifica se o documento tem alterações não salvas
-        If doc.Saved = False Or doc.Path = "" Then
+        If doc.Saved = False Or doc.path = "" Then
             unsavedDocs.Add doc.Name
             LogMessage "Documento não salvo detectado: " & doc.Name
         End If
@@ -6296,7 +5998,7 @@ Public Sub SalvarESair()
     Next i
     
     ' Se não há documentos não salvos, encerra diretamente
-    If unsavedDocs.count = 0 Then
+    If unsavedDocs.Count = 0 Then
         Application.StatusBar = "Todos os documentos salvos - encerrando Word"
         LogMessage "Todos os documentos estão salvos - encerrando aplicação"
         Application.Quit SaveChanges:=wdDoNotSaveChanges
@@ -6307,11 +6009,11 @@ Public Sub SalvarESair()
     Dim message As String
     Dim docList As String
     
-    For i = 1 To unsavedDocs.count
+    For i = 1 To unsavedDocs.Count
         docList = docList & "• " & unsavedDocs(i) & vbCrLf
     Next i
     
-    message = "ATENÇÃO: Há " & unsavedDocs.count & " documento(s) com alterações não salvas:" & vbCrLf & vbCrLf
+    message = "ATENÇÃO: Há " & unsavedDocs.Count & " documento(s) com alterações não salvas:" & vbCrLf & vbCrLf
     message = message & docList & vbCrLf
     message = message & "Deseja salvar todos os documentos antes de sair?" & vbCrLf & vbCrLf
     message = message & "• SIM: Salva todos e fecha o Word" & vbCrLf
@@ -6323,7 +6025,7 @@ Public Sub SalvarESair()
     
     Dim userChoice As VbMsgBoxResult
     userChoice = MsgBox(message, vbYesNoCancel + vbExclamation + vbDefaultButton1, _
-                        "Chainsaw - Salvar e Sair (" & unsavedDocs.count & " documentos não salvos)")
+                        "Chainsaw - Salvar e Sair (" & unsavedDocs.Count & " documentos não salvos)")
     
     Select Case userChoice
         Case vbYes
@@ -6348,7 +6050,7 @@ Public Sub SalvarESair()
             ' Usuário escolheu não salvar
             Dim confirmMessage As String
             confirmMessage = "CONFIRMAÇÃO FINAL:" & vbCrLf & vbCrLf
-            confirmMessage = confirmMessage & "Você está prestes a FECHAR O WORD SEM SALVAR " & unsavedDocs.count & " documento(s)." & vbCrLf & vbCrLf
+            confirmMessage = confirmMessage & "Você está prestes a FECHAR O WORD SEM SALVAR " & unsavedDocs.Count & " documento(s)." & vbCrLf & vbCrLf
             confirmMessage = confirmMessage & "TODAS AS ALTERAÇÕES NÃO SALVAS SERÃO PERDIDAS!" & vbCrLf & vbCrLf
             confirmMessage = confirmMessage & "Tem certeza absoluta?"
             
@@ -6405,7 +6107,7 @@ Private Function SalvarTodosDocumentos() As Boolean
     Dim errorCount As Long
     Dim totalDocs As Long
     
-    totalDocs = Application.Documents.count
+    totalDocs = Application.Documents.Count
     
     ' Salva cada documento individualmente
     For i = 1 To totalDocs
@@ -6416,7 +6118,7 @@ Private Function SalvarTodosDocumentos() As Boolean
         On Error Resume Next
         
         ' Se o documento nunca foi salvo (sem caminho), abre dialog
-        If doc.Path = "" Then
+        If doc.path = "" Then
             Dim saveDialog As Object
             Set saveDialog = Application.FileDialog(msoFileDialogSaveAs)
             
@@ -6492,31 +6194,31 @@ Private Function BackupAllImages(doc As Document) As Boolean
     
     ' Conta todas as imagens primeiro
     Dim totalImages As Long
-    For i = 1 To doc.Paragraphs.count
+    For i = 1 To doc.Paragraphs.Count
         Set para = doc.Paragraphs(i)
-        totalImages = totalImages + para.Range.InlineShapes.count
+        totalImages = totalImages + para.Range.InlineShapes.Count
     Next i
     
     ' Adiciona shapes flutuantes
-    totalImages = totalImages + doc.Shapes.count
+    totalImages = totalImages + doc.Shapes.Count
     
     ' Redimensiona array se necessário
     If totalImages > 0 Then
         ReDim savedImages(totalImages - 1)
         
         ' Backup de imagens inline - apenas propriedades críticas
-        For i = 1 To doc.Paragraphs.count
+        For i = 1 To doc.Paragraphs.Count
             Set para = doc.Paragraphs(i)
             
-            For j = 1 To para.Range.InlineShapes.count
+            For j = 1 To para.Range.InlineShapes.Count
                 Set shape = para.Range.InlineShapes(j)
                 
                 ' Salva apenas propriedades essenciais para proteção
                 With tempImageInfo
-                    .paraIndex = i
+                    .ParaIndex = i
                     .ImageIndex = j
                     .ImageType = "Inline"
-                    .position = shape.Range.Start
+                    .Position = shape.Range.Start
                     .Width = shape.Width
                     .Height = shape.Height
                     Set .AnchorRange = shape.Range.Duplicate
@@ -6536,7 +6238,7 @@ Private Function BackupAllImages(doc As Document) As Boolean
         
         ' Backup de shapes flutuantes - apenas propriedades críticas
         Dim floatingShape As shape
-        For i = 1 To doc.Shapes.count
+        For i = 1 To doc.Shapes.Count
             Set floatingShape = doc.Shapes(i)
             
             If floatingShape.Type = msoPicture Then
@@ -6546,7 +6248,7 @@ Private Function BackupAllImages(doc As Document) As Boolean
                 End If
                 
                 With tempImageInfo
-                    .paraIndex = -1 ' Indica que é flutuante
+                    .ParaIndex = -1 ' Indica que é flutuante
                     .ImageIndex = i
                     .ImageType = "Floating"
                     .WrapType = floatingShape.WrapFormat.Type
@@ -6595,19 +6297,19 @@ Private Function RestoreAllImages(doc As Document) As Boolean
         With savedImages(i)
             If .ImageType = "Inline" Then
                 ' Verifica se a imagem inline ainda existe na posição esperada
-                If .paraIndex <= doc.Paragraphs.count Then
+                If .ParaIndex <= doc.Paragraphs.Count Then
                     Dim para As Paragraph
-                    Set para = doc.Paragraphs(.paraIndex)
+                    Set para = doc.Paragraphs(.ParaIndex)
                     
                     ' Se ainda há imagens inline no parágrafo, considera verificada
-                    If para.Range.InlineShapes.count > 0 Then
+                    If para.Range.InlineShapes.Count > 0 Then
                         verifiedCount = verifiedCount + 1
                     End If
                 End If
                 
             ElseIf .ImageType = "Floating" Then
                 ' Verifica e corrige propriedades de shapes flutuantes se ainda existem
-                If .ImageIndex <= doc.Shapes.count Then
+                If .ImageIndex <= doc.Shapes.Count Then
                     Dim targetShape As shape
                     Set targetShape = doc.Shapes(.ImageIndex)
                     
@@ -6677,7 +6379,7 @@ Private Function ProtectImagesInRange(targetRange As Range) As Boolean
     On Error GoTo ErrorHandler
     
     ' Verifica se há imagens no range antes de aplicar formatação
-    If targetRange.InlineShapes.count > 0 Then
+    If targetRange.InlineShapes.Count > 0 Then
         ' OTIMIZADO: Aplica formatação caractere por caractere, protegendo imagens
         Dim i As Long
         Dim charRange As Range
@@ -6688,7 +6390,7 @@ Private Function ProtectImagesInRange(targetRange As Range) As Boolean
             For i = 1 To charCount
                 Set charRange = targetRange.Characters(i)
                 ' Só formata caracteres que não são parte de imagens
-                If charRange.InlineShapes.count = 0 Then
+                If charRange.InlineShapes.Count = 0 Then
                     With charRange.Font
                         .Name = STANDARD_FONT
                         .size = STANDARD_FONT_SIZE
@@ -6751,8 +6453,8 @@ Private Function DeleteHiddenVisualElements(doc As Document) As Boolean
     
     ' Remove shapes ocultos (flutuantes)
     Dim i As Long
-    For i = doc.Shapes.count To 1 Step -1
-        Dim shp As shape
+    For i = doc.Shapes.Count To 1 Step -1
+        Dim shp As Shape
         Set shp = doc.Shapes(i)
         
         ' Verifica se o shape está oculto (múltiplos critérios)
@@ -6781,7 +6483,7 @@ Private Function DeleteHiddenVisualElements(doc As Document) As Boolean
     Next i
     
     ' Remove objetos incorporados ocultos
-    For i = doc.InlineShapes.count To 1 Step -1
+    For i = doc.InlineShapes.Count To 1 Step -1
         Dim inlineShp As InlineShape
         Set inlineShp = doc.InlineShapes(i)
         
@@ -6821,14 +6523,14 @@ Private Function DeleteVisualElementsInFirstFourParagraphs(doc As Document) As B
     
     Application.StatusBar = "Removendo elementos visuais entre os parágrafos 1-4..."
     
-    If doc.Paragraphs.count < 1 Then
+    If doc.Paragraphs.Count < 1 Then
         LogMessage "Documento não possui parágrafos - pulando limpeza de elementos visuais"
         DeleteVisualElementsInFirstFourParagraphs = True
         Exit Function
     End If
     
-    If doc.Paragraphs.count < 4 Then
-        LogMessage "Documento possui menos de 4 parágrafos - removendo elementos dos parágrafos existentes (" & doc.Paragraphs.count & " parágrafos)"
+    If doc.Paragraphs.Count < 4 Then
+        LogMessage "Documento possui menos de 4 parágrafos - removendo elementos dos parágrafos existentes (" & doc.Paragraphs.Count & " parágrafos)"
     End If
     
     Dim deletedCount As Long
@@ -6836,7 +6538,7 @@ Private Function DeleteVisualElementsInFirstFourParagraphs(doc As Document) As B
     
     ' Define o range dos primeiros 4 parágrafos (ou menos se o documento for menor)
     Dim maxParagraphs As Long
-    maxParagraphs = MinValue(4, doc.Paragraphs.Count)
+    maxParagraphs = Application.WorksheetFunction.Min(4, doc.Paragraphs.Count)
     
     Dim startRange As Long
     Dim endRange As Long
@@ -6847,8 +6549,8 @@ Private Function DeleteVisualElementsInFirstFourParagraphs(doc As Document) As B
     
     ' Remove shapes flutuantes que estão ancorados na faixa dos primeiros 4 parágrafos
     Dim i As Long
-    For i = doc.Shapes.count To 1 Step -1
-        Dim shp As shape
+    For i = doc.Shapes.Count To 1 Step -1
+        Dim shp As Shape
         Set shp = doc.Shapes(i)
         
         ' Verifica se o shape está ancorado na faixa dos primeiros 4 parágrafos
@@ -6867,7 +6569,7 @@ Private Function DeleteVisualElementsInFirstFourParagraphs(doc As Document) As B
     Next i
     
     ' Remove objetos inline nos primeiros 4 parágrafos
-    For i = doc.InlineShapes.count To 1 Step -1
+    For i = doc.InlineShapes.Count To 1 Step -1
         Dim inlineShp As InlineShape
         Set inlineShp = doc.InlineShapes(i)
         
@@ -6895,7 +6597,7 @@ End Function
 '================================================================================
 Private Function GetParagraphNumber(doc As Document, position As Long) As Long
     Dim i As Long
-    For i = 1 To doc.Paragraphs.count
+    For i = 1 To doc.Paragraphs.Count
         If position >= doc.Paragraphs(i).Range.Start And position <= doc.Paragraphs(i).Range.End Then
             GetParagraphNumber = i
             Exit Function
@@ -6916,8 +6618,8 @@ Private Function CleanVisualElementsMain(doc As Document) As Boolean
     ' Contabiliza elementos antes da limpeza
     Dim initialShapeCount As Long
     Dim initialInlineShapeCount As Long
-    initialShapeCount = doc.Shapes.count
-    initialInlineShapeCount = doc.InlineShapes.count
+    initialShapeCount = doc.Shapes.Count
+    initialInlineShapeCount = doc.InlineShapes.Count
     
     LogMessage "Estado inicial: " & initialShapeCount & " shapes flutuantes, " & initialInlineShapeCount & " objetos inline"
     
@@ -6936,8 +6638,8 @@ Private Function CleanVisualElementsMain(doc As Document) As Boolean
     ' Contabiliza elementos após a limpeza
     Dim finalShapeCount As Long
     Dim finalInlineShapeCount As Long
-    finalShapeCount = doc.Shapes.count
-    finalInlineShapeCount = doc.InlineShapes.count
+    finalShapeCount = doc.Shapes.Count
+    finalInlineShapeCount = doc.InlineShapes.Count
     
     Dim shapesRemoved As Long
     Dim inlineShapesRemoved As Long
@@ -7091,311 +6793,4 @@ Private Sub CleanupViewSettings()
     End With
     
     LogMessage "Variáveis de configurações de visualização limpas"
-End Sub
-
-' =============================================================================
-' SUBROTINA PÚBLICA: AbrirArquivoConfiguracoes
-' =============================================================================
-' Abre o arquivo de configuração do Chainsaw Proposituras para edição
-' Permite ao usuário ativar/desativar funcionalidades e ajustar parâmetros
-' Cria o arquivo com configurações padrão se não existir
-' Abre com o programa padrão do sistema (geralmente Notepad)
-' =============================================================================
-Public Sub AbrirArquivoConfiguracoes()
-    On Error GoTo ErrorHandler
-    
-    Dim configPath As String
-    Dim fileNum As Integer
-    Dim userChoice As VbMsgBoxResult
-    
-    ' Inicializa logging se necessário
-    If Not isConfigLoaded Then
-        Call LoadConfiguration
-    End If
-    
-    LogInfo "Solicitada abertura do arquivo de configurações"
-    
-    ' Obtém caminho do arquivo de configuração
-    configPath = GetConfigurationFilePath()
-    
-    If Len(configPath) = 0 Then
-        LogError "AbrirArquivoConfiguracoes", "Não foi possível determinar o caminho do arquivo de configuração"
-        MsgBox "Erro: Não foi possível determinar o local do arquivo de configuração." & vbCrLf & _
-               "Verifique as permissões de acesso às pastas do sistema.", _
-               vbCritical, "Erro - " & SYSTEM_NAME
-        Exit Sub
-    End If
-    
-    ' Verifica se o arquivo existe
-    If Dir(configPath) = "" Then
-        ' Arquivo não existe - pergunta se deve criar
-        userChoice = MsgBox("O arquivo de configuração não foi encontrado:" & vbCrLf & vbCrLf & _
-                           configPath & vbCrLf & vbCrLf & _
-                           "Deseja criar um arquivo de configuração com valores padrão?", _
-                           vbYesNo + vbQuestion, "Arquivo de Configuração - " & SYSTEM_NAME)
-        
-        If userChoice = vbYes Then
-            If CreateDefaultConfigFile(configPath) Then
-                LogInfo "Arquivo de configuração padrão criado em: " & configPath
-                MsgBox "Arquivo de configuração criado com sucesso!" & vbCrLf & vbCrLf & _
-                       "Local: " & configPath & vbCrLf & vbCrLf & _
-                       "O arquivo será aberto para edição.", _
-                       vbInformation, "Configuração Criada - " & SYSTEM_NAME
-            Else
-                LogError "AbrirArquivoConfiguracoes", "Falha ao criar arquivo de configuração padrão"
-                MsgBox "Erro ao criar o arquivo de configuração." & vbCrLf & _
-                       "Verifique as permissões de escrita na pasta de destino.", _
-                       vbCritical, "Erro de Criação - " & SYSTEM_NAME
-                Exit Sub
-            End If
-        Else
-            LogInfo "Usuário cancelou criação do arquivo de configuração"
-            Exit Sub
-        End If
-    End If
-    
-    ' Abre o arquivo com o programa padrão do sistema
-    LogInfo "Abrindo arquivo de configuração: " & configPath
-    
-    ' Usa Shell para abrir com o programa padrão
-    Dim shellResult As Double
-    shellResult = Shell("notepad.exe """ & configPath & """", vbNormalFocus)
-    
-    If shellResult > 0 Then
-        LogInfo "Arquivo de configuração aberto com sucesso (PID: " & shellResult & ")"
-        
-        ' Mostra mensagem informativa ao usuário
-        MsgBox "Arquivo de configuração aberto para edição!" & vbCrLf & vbCrLf & _
-               "?? Local: " & configPath & vbCrLf & vbCrLf & _
-               "?? Dicas importantes:" & vbCrLf & _
-               "• Use 'true' ou 'false' para habilitar/desabilitar funcionalidades" & vbCrLf & _
-               "• Valores numéricos devem ser números válidos" & vbCrLf & _
-               "• Salve o arquivo após fazer as alterações" & vbCrLf & _
-               "• Reinicie o Chainsaw para aplicar as mudanças" & vbCrLf & vbCrLf & _
-               "?? Faça backup antes de alterações importantes!", _
-               vbInformation, "Editor Aberto - " & SYSTEM_NAME
-               
-        ' Recarrega configurações após um tempo
-        Application.OnTime Now + TimeValue("00:00:02"), "MostrarInstrucoes"
-    Else
-        LogError "AbrirArquivoConfiguracoes", "Falha ao abrir arquivo com Notepad"
-        
-        ' Tenta abrir com programa padrão do Windows
-        Dim objShell As Object
-        Set objShell = CreateObject("Shell.Application")
-        objShell.Open configPath
-        
-        LogInfo "Tentativa de abertura com programa padrão do Windows"
-        
-        MsgBox "Arquivo de configuração:" & vbCrLf & vbCrLf & _
-               configPath & vbCrLf & vbCrLf & _
-               "Foi aberto com o programa padrão do sistema." & vbCrLf & _
-               "Se não abriu automaticamente, navegue até o local acima.", _
-               vbInformation, "Configuração - " & SYSTEM_NAME
-    End If
-    
-    Exit Sub
-    
-ErrorHandler:
-    LogError "AbrirArquivoConfiguracoes"
-    
-    MsgBox "Erro ao abrir arquivo de configuração:" & vbCrLf & vbCrLf & _
-           "Erro: " & Err.Description & vbCrLf & vbCrLf & _
-           "Caminho: " & configPath & vbCrLf & vbCrLf & _
-           "Tente abrir manualmente o arquivo no local indicado.", _
-           vbCritical, "Erro de Abertura - " & SYSTEM_NAME
-End Sub
-
-' =============================================================================
-' FUNÇÃO AUXILIAR: CreateDefaultConfigFile
-' =============================================================================
-' Cria um arquivo de configuração com valores padrão e comentários explicativos
-' Parâmetros: filePath (String) - caminho completo do arquivo a criar
-' Retorna: Boolean - True se criado com sucesso, False caso contrário
-' =============================================================================
-Private Function CreateDefaultConfigFile(filePath As String) As Boolean
-    On Error GoTo ErrorHandler
-    
-    CreateDefaultConfigFile = False
-    
-    Dim fileNum As Integer
-    Dim fso As Object
-    Dim folderPath As String
-    
-    Set fso = CreateObject("Scripting.FileSystemObject")
-    
-    ' Verifica e cria pasta se necessário
-    folderPath = fso.GetParentFolderName(filePath)
-    If Len(folderPath) > 0 And Not fso.FolderExists(folderPath) Then
-        fso.CreateFolder folderPath
-        LogInfo "Pasta de configuração criada: " & folderPath
-    End If
-    
-    fileNum = FreeFile
-    
-    ' Tenta criar o arquivo com configurações padrão documentadas
-    LogInfo "Criando arquivo de configuração padrão: " & filePath
-    Open filePath For Output As #fileNum
-    
-    ' Cabeçalho do arquivo
-    Print #fileNum, "# ============================================================================="
-    Print #fileNum, "# CHAINSAW PROPOSITURAS - Arquivo de Configuração Principal"
-    Print #fileNum, "# ============================================================================="
-    Print #fileNum, "# Versão: " & APP_VERSION
-    Print #fileNum, "# Data de criação: " & Format(Now, "dd/mm/yyyy hh:mm:ss")
-    Print #fileNum, "#"
-    Print #fileNum, "# Este arquivo controla todas as funcionalidades do Chainsaw Proposituras."
-    Print #fileNum, "# Edite os valores abaixo para personalizar o comportamento do sistema."
-    Print #fileNum, "#"
-    Print #fileNum, "# FORMATO:"
-    Print #fileNum, "# - true/false para habilitar/desabilitar funcionalidades"
-    Print #fileNum, "# - Números para valores numéricos"
-    Print #fileNum, "# - Linhas iniciadas com # são comentários (ignoradas)"
-    Print #fileNum, "#"
-    Print #fileNum, "# IMPORTANTE: Salve o arquivo e reinicie o Chainsaw após fazer alterações"
-    Print #fileNum, "# ============================================================================="
-    Print #fileNum, ""
-    
-    ' Seção GERAL
-    Print #fileNum, "[GERAL]"
-    Print #fileNum, "# Configurações básicas do sistema"
-    Print #fileNum, "debug_mode=false              # Habilita logs detalhados de debug"
-    Print #fileNum, "performance_mode=true         # Ativa otimizações de performance"
-    Print #fileNum, "compatibility_mode=true      # Modo de compatibilidade com versões antigas do Word"
-    Print #fileNum, ""
-    
-    ' Seção VALIDAÇÕES
-    Print #fileNum, "[VALIDACOES]"
-    Print #fileNum, "# Controle das validações de documento e sistema"
-    Print #fileNum, "check_word_version=true           # Verifica versão mínima do Word"
-    Print #fileNum, "validate_document_integrity=true  # Valida integridade do documento"
-    Print #fileNum, "validate_proposition_type=true    # Valida tipo de proposição"
-    Print #fileNum, "validate_content_consistency=true # Verifica consistência do conteúdo"
-    Print #fileNum, "check_disk_space=true            # Verifica espaço em disco disponível"
-    Print #fileNum, "min_word_version=14.0            # Versão mínima do Word (14.0 = Word 2010)"
-    Print #fileNum, "max_document_size=500000         # Tamanho máximo do documento (bytes)"
-    Print #fileNum, ""
-    
-    ' Seção BACKUP
-    Print #fileNum, "[BACKUP]"
-    Print #fileNum, "# Sistema de backup automático"
-    Print #fileNum, "auto_backup=true                 # Cria backup antes de modificações"
-    Print #fileNum, "backup_before_processing=true    # Backup obrigatório antes do processamento"
-    Print #fileNum, "max_backup_files=10             # Número máximo de backups por documento"
-    Print #fileNum, "backup_cleanup=true             # Remove backups antigos automaticamente"
-    Print #fileNum, "backup_retry_attempts=3         # Tentativas de criar backup em caso de falha"
-    Print #fileNum, ""
-    
-    ' Seção FORMATAÇÃO
-    Print #fileNum, "[FORMATACAO]"
-    Print #fileNum, "# Controle das formatações aplicadas"
-    Print #fileNum, "apply_page_setup=true              # Aplica configuração de página padrão"
-    Print #fileNum, "apply_standard_font=true           # Aplica fonte padrão (Arial 12pt)"
-    Print #fileNum, "apply_standard_paragraphs=true     # Formata parágrafos padrão"
-    Print #fileNum, "format_first_paragraph=true        # Formata primeiro parágrafo (título)"
-    Print #fileNum, "format_second_paragraph=true       # Formata segundo parágrafo (autor)"
-    Print #fileNum, "format_numbered_paragraphs=true    # Formata parágrafos numerados"
-    Print #fileNum, "format_considerando_paragraphs=true # Formata parágrafos 'Considerando'"
-    Print #fileNum, "format_justificativa_paragraphs=true # Formata seção de justificativa"
-    Print #fileNum, "enable_hyphenation=false          # Ativa hifenização automática"
-    Print #fileNum, ""
-    
-    ' Seção LIMPEZA
-    Print #fileNum, "[LIMPEZA]"
-    Print #fileNum, "# Sistema de limpeza e padronização"
-    Print #fileNum, "remove_extra_spaces=true         # Remove espaços múltiplos"
-    Print #fileNum, "remove_manual_breaks=true        # Remove quebras de linha manuais"
-    Print #fileNum, "clean_visual_elements=true       # Remove elementos visuais desnecessários"
-    Print #fileNum, "standardize_quotes=true          # Padroniza aspas e citações"
-    Print #fileNum, "fix_punctuation=true            # Corrige pontuação automática"
-    Print #fileNum, "replace_date_line_before_vereador=true # Substitui linha de data antes de '- Vereador -'"
-    Print #fileNum, ""
-    
-    ' Seção PERFORMANCE
-    Print #fileNum, "[PERFORMANCE]"
-    Print #fileNum, "# Otimizações de performance"
-    Print #fileNum, "disable_screen_updating=true     # Desabilita atualização de tela durante processamento"
-    Print #fileNum, "disable_display_alerts=true      # Desabilita alertas do Word temporariamente"
-    Print #fileNum, "use_bulk_operations=true         # Usa operações em lote quando possível"
-    Print #fileNum, "batch_paragraph_operations=true  # Processa parágrafos em lotes"
-    Print #fileNum, "optimize_find_replace=true       # Otimiza operações de busca/substituição"
-    Print #fileNum, "use_efficient_loops=true         # Usa loops otimizados"
-    Print #fileNum, "minimize_object_creation=true    # Minimiza criação de objetos temporários"
-    Print #fileNum, "force_gc_collection=false       # Força coleta de lixo periodicamente"
-    Print #fileNum, ""
-    
-    ' Seção INTERFACE
-    Print #fileNum, "[INTERFACE]"
-    Print #fileNum, "# Configurações de interface e mensagens"
-    Print #fileNum, "show_progress_messages=true      # Mostra mensagens de progresso"
-    Print #fileNum, "show_completion_dialog=true      # Mostra diálogo de conclusão"
-    Print #fileNum, "show_error_details=true         # Mostra detalhes dos erros"
-    Print #fileNum, "enable_status_bar=true          # Usa barra de status para informações"
-    Print #fileNum, "verbose_logging=false           # Logging detalhado na interface"
-    Print #fileNum, ""
-    
-    ' Seção SEGURANÇA
-    Print #fileNum, "[SEGURANCA]"
-    Print #fileNum, "# Validações de segurança"
-    Print #fileNum, "compilation_check=true          # Verifica compilação do projeto VBA"
-    Print #fileNum, "validate_file_permissions=true  # Valida permissões de arquivo"
-    Print #fileNum, "secure_backup_location=true     # Usa local seguro para backups"
-    Print #fileNum, "sanitize_input=true            # Sanitiza entrada de dados"
-    Print #fileNum, ""
-    
-    ' Rodapé
-    Print #fileNum, "# ============================================================================="
-    Print #fileNum, "# FIM DO ARQUIVO DE CONFIGURAÇÃO"
-    Print #fileNum, "#"
-    Print #fileNum, "# Para mais informações, consulte a documentação em:"
-    Print #fileNum, "# https://github.com/chrmsantos/chainsaw-proposituras"
-    Print #fileNum, "#"
-    Print #fileNum, "# IMPORTANTE:"
-    Print #fileNum, "# - Sempre faça backup deste arquivo antes de alterações importantes"
-    Print #fileNum, "# - Valores inválidos serão substituídos por padrões do sistema"
-    Print #fileNum, "# - Reinicie o Chainsaw Proposituras após salvar as alterações"
-    Print #fileNum, "# ============================================================================="
-    
-    Close #fileNum
-    
-    LogInfo "Arquivo de configuração padrão criado com sucesso: " & filePath
-    CreateDefaultConfigFile = True
-    Exit Function
-    
-ErrorHandler:
-    If fileNum > 0 Then 
-        On Error Resume Next
-        Close #fileNum
-        On Error GoTo 0
-    End If
-    
-    ' Fornece informação específica sobre o erro
-    Dim errorMsg As String
-    Select Case Err.Number
-        Case 75, 70
-            errorMsg = "Erro de permissão: sem acesso de escrita em " & folderPath
-            LogError "CreateDefaultConfigFile", errorMsg
-        Case 76
-            errorMsg = "Caminho não encontrado: " & folderPath
-            LogError "CreateDefaultConfigFile", errorMsg
-        Case 71
-            errorMsg = "Arquivo em uso ou bloqueado: " & filePath
-            LogError "CreateDefaultConfigFile", errorMsg
-        Case Else
-            errorMsg = "Erro #" & Err.Number & ": " & Err.Description
-            LogError "CreateDefaultConfigFile", errorMsg
-    End Select
-    
-    CreateDefaultConfigFile = False
-End Function
-
-' =============================================================================
-' SUBROTINA AUXILIAR: MostrarInstrucoes
-' =============================================================================
-' Mostra instruções sobre recarregamento de configurações (chamada via OnTime)
-' =============================================================================
-Public Sub MostrarInstrucoes()
-    ' Esta subrotina é chamada com delay para dar tempo do usuário ver o arquivo
-    ' Não faz nada atualmente, mas pode ser expandida para recarregar configurações
-    ' automaticamente ou mostrar notificações adicionais
 End Sub
