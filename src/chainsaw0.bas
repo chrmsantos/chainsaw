@@ -5,7 +5,7 @@
 ' Automated system for standardizing legislative documents in Microsoft Word
 '
 ' License: Modified Apache 2.0 (see LICENSE)
-' Version: 1.9.1-Alpha-8 | Date: 2025-09-23
+' Version: 1.0.0-Beta1 | Date: 2025-09-27
 ' Repository: github.com/chrmsantos/chainsaw-proposituras
 ' Author: Christian Martin dos Santos <chrmsantos@gmail.com>
 
@@ -19,7 +19,7 @@ Option Explicit
 '================================================================================
 
 ' System constants
-Private Const VERSION As String = "v1.9.1-Alpha-8"
+Private Const VERSION As String = "v1.0.0-Beta1"
 Private Const SYSTEM_NAME As String = "CHAINSAW PROPOSITURAS"
 
 ' Message constants
@@ -1333,7 +1333,7 @@ Public Sub PadronizarDocumentoMain()
         LogMessage "Falha ao inicializar sistema de logs", LOG_LEVEL_WARNING
     End If
     
-    LogMessage "Iniciando padronização do documento: " & doc.Name & " (Chainsaw Proposituras v2.0)", LOG_LEVEL_INFO
+    LogMessage "Starting document standardization: " & doc.Name & " (Chainsaw Proposituras v1.0.0-Beta1)", LOG_LEVEL_INFO
     
     ' Configuração do grupo de desfazer
     StartUndoGroup "Padronização de Documento - " & doc.Name

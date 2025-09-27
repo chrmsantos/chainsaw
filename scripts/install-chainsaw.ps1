@@ -6,7 +6,7 @@
 # incluindo módulo VBA, interface, autotexto e configurações do Word.
 #
 # Versão: 2.0.0
-# Data: 2025-09-23
+# Data: 2025-09-27
 # Autor: Christian Martin dos Santos
 # Repositório: https://github.com/chrmsantos/chainsaw-proposituras
 #

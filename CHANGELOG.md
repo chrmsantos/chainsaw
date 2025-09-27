@@ -5,6 +5,14 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-Beta1] - 2025-09-27
+
+### Release Notes
+- Stable beta release with comprehensive English documentation
+- All critical bugs fixed and code optimized for production use
+- Full translation of documentation and user interface
+- Ready for production deployment in municipal legislative environments
+
 ## [1.9.1-Alpha-8] - 2025-09-23
 
 ### Adicionado

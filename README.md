@@ -1,6 +1,6 @@
 # CHAINSAW PROPOSITURAS
 
-## v1.9.1-Alpha-8
+## v1.0.0-Beta1
 
 *A solução open source em VBA para padronização e automação avançada de documentos legislativos no Microsoft Word, desenvolvida especificamente para Câmaras Municipais e ambientes institucionais.*
 
@@ -11,7 +11,7 @@
 
 ## 📋 Índice
 
-- [Novidades da Versão](#-novidades-da-versão-191-alpha-8)
+- [Novidades da Versão](#-novidades-da-versão-100-beta1)
 - [Principais Funcionalidades](#-principais-funcionalidades)
 - [Estrutura do Projeto](#-estrutura-do-projeto)
 - [Instalação](#-instalação)
@@ -23,7 +23,7 @@
 - [Contribuição](#-contribuição)
 - [Licença](#-licença)
 
-## 🆕 Novidades da Versão 1.9.1-Alpha-8
+## 🆕 Novidades da Versão 1.0.0-Beta1
 
 ### Sistema de Configuração Avançado
 
