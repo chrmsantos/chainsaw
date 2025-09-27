@@ -5274,7 +5274,7 @@ Private Function CreateDocumentBackup(doc As Document) As Boolean
             LogMessage "Tentativa " & retryCount & " de backup falhou: " & Err.Description, LOG_LEVEL_WARNING
             If retryCount < MAX_RETRY_ATTEMPTS Then
                 ' Aguarda um pouco antes de tentar novamente
-                Application.Wait DateAdd("s", 1, Now)
+                Application.Wait Now + TimeSerial(0, 0, 1)
             End If
         End If
     Next retryCount
