@@ -9,6 +9,9 @@
 ' Repositório: github.com/chrmsantos/chainsaw-proposituras
 ' Autor: Christian Martin dos Santos <chrmsantos@gmail.com>
 
+' Windows API declarations
+Private Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
+
 Option Explicit
 
 '================================================================================
@@ -5274,7 +5277,7 @@ Private Function CreateDocumentBackup(doc As Document) As Boolean
             LogMessage "Tentativa " & retryCount & " de backup falhou: " & Err.Description, LOG_LEVEL_WARNING
             If retryCount < MAX_RETRY_ATTEMPTS Then
                 ' Aguarda um pouco antes de tentar novamente
-                Application.Wait Now + TimeSerial(0, 0, 1)
+                Sleep 1000 ' 1 segundo = 1000 milissegundos
             End If
         End If
     Next retryCount
