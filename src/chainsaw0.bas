@@ -1576,7 +1576,7 @@ Private Function CompileVBAProject() As Boolean
     testConstant = Config.minWordVersion
     If Err.Number = 0 And testConstant > 0 Then
         LogMessage "Constantes do módulo acessíveis - estrutura VBA íntegra", LOG_LEVEL_INFO
-        CompileVBAProduct = True
+        CompileVBAProject = True
         On Error GoTo ErrorHandler
         Exit Function
     End If
