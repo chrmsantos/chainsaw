@@ -1303,6 +1303,7 @@ Public Sub PadronizarDocumentoMain()
         If Config.showProgressMessages Then
             MsgBox "Nenhum documento está aberto ou acessível." & vbCrLf & _
                "Abra um documento antes de executar a padronização.", vbExclamation, "Documento Não Encontrado - Chainsaw Proposituras"
+        End If
         Exit Sub
     End If
     On Error GoTo CriticalErrorHandler
