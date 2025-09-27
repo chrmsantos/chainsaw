@@ -4669,7 +4669,7 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
                                 .AllCaps = True                       ' Caixa alta
                             End With
 
-                            With para.Range.Font
+                            With paraPrev.Range.Font
                                 .Bold = True                  ' Negrito
                             End With
                             
