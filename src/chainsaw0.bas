@@ -19,10 +19,6 @@ Option Explicit
 Private Const VERSION As String = "v1.9.1-Alpha-8"
 Private Const SYSTEM_NAME As String = "CHAINSAW PROPOSITURAS"
 
-' Configuration file constants
-Private Const CONFIG_FILE_NAME As String = "\chainsaw-config.ini"
-Private Const CONFIG_FILE_PATH As String = ""
-
 ' Message constants
 Private Const MSG_BACKUP_SUCCESS As String = "Backup criado com sucesso: "
 Private Const MSG_BACKUP_FAILED As String = "Falha ao criar backup: "
