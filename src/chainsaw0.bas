@@ -1248,7 +1248,6 @@ Private Sub ForceGarbageCollection()
     End If
 End Sub
 
-Private originalViewSettings As ViewSettings
     End Select
 End Sub
 
@@ -1285,8 +1284,6 @@ Private Sub ProcessAdvancedConfig(key As String, value As String)
             Config.forceGcCollection = (LCase(value) = "true")
     End Select
 End Sub
-
-Private originalViewSettings As ViewSettings
 
 '================================================================================
 ' MAIN ENTRY POINT - #STABLE
@@ -1630,7 +1627,7 @@ Private Function CompileVBAProject() As Boolean
     testConstant = Config.minWordVersion
     If Err.Number = 0 And testConstant > 0 Then
         LogMessage "Constantes do módulo acessíveis - estrutura VBA íntegra", LOG_LEVEL_INFO
-        CompileVBAProject = True
+        CompileVBAProduct = True
         On Error GoTo ErrorHandler
         Exit Function
     End If
@@ -1656,85 +1653,7 @@ ErrorHandler:
     LogMessage "Continuando execução apesar do erro de compilação (modo compatibilidade)", LOG_LEVEL_WARNING
     CompileVBAProject = True ' Permite continuar por compatibilidade máxima
 End Function
-    
-    ' Se não conseguiu acessar o VBE, tenta compilação alternativa
-    If vbProj Is Nothing Then
-        LogMessage "VBE não acessível - tentando compilação alternativa", LOG_LEVEL_WARNING
-        GoTo AlternativeCompilation
-    End If
-    
-    ' Força compilação através de tentativa de execução de código
-    On Error Resume Next
-    Dim compileTest As String
-    compileTest = vbProj.Name
-    
-    ' Verifica se houve erro na compilação
-    If Err.Number <> 0 Then
-        LogMessage "Erro na verificação do projeto VBA: " & Err.Description, LOG_LEVEL_WARNING
-        Err.Clear
-        On Error GoTo ErrorHandler
-        GoTo AlternativeCompilation
-    End If
-    
-    On Error GoTo ErrorHandler
-    
-    ' Se chegou até aqui, tenta compilar o projeto
-    Application.StatusBar = "Compilando projeto VBA..."
-    
-    ' Força recompilação através do VBE
-    On Error Resume Next
-    vbProj.Save
-    
-    ' Verifica se a compilação foi bem-sucedida
-    If Err.Number = 0 Then
-        LogMessage "Projeto VBA compilado com sucesso via VBE", LOG_LEVEL_INFO
-        Application.StatusBar = "Projeto VBA compilado - prosseguindo..."
-        CompileVBAProject = True
-        On Error GoTo ErrorHandler
-        Exit Function
-    Else
-        LogMessage "Aviso na compilação via VBE: " & Err.Description, LOG_LEVEL_WARNING
-        Err.Clear
-        On Error GoTo ErrorHandler
-    End If
 
-AlternativeCompilation:
-    ' Método alternativo: força compilação através de execução de função dummy
-    Application.StatusBar = "Aplicando compilação alternativa..."
-    
-    On Error Resume Next
-    
-    ' Chama uma função simples para forçar compilação do módulo atual
-    Dim testResult As Boolean
-    testResult = CheckWordVersion()
-    
-    ' Se chegou até aqui sem erro, considera compilado
-    If Err.Number = 0 Then
-        LogMessage "Compilação alternativa bem-sucedida", LOG_LEVEL_INFO
-        Application.StatusBar = "Projeto verificado e pronto para execução"
-        CompileVBAProject = True
-    Else
-        LogMessage "Falha na compilação alternativa: " & Err.Description, LOG_LEVEL_ERROR
-        Application.StatusBar = "Erro na compilação - verificar código"
-        CompileVBAProject = False
-    End If
-    
-    On Error GoTo ErrorHandler
-    Exit Function
-
-ErrorHandler:
-    LogMessage "Erro crítico na compilação: " & Err.Description, LOG_LEVEL_ERROR
-    Application.StatusBar = "Erro crítico na compilação"
-    
-    ' Tenta continuar mesmo com erro de compilação (modo de compatibilidade)
-    MsgBox "Aviso: Não foi possível verificar a compilação do projeto VBA." & vbCrLf & _
-           "O sistema tentará executar mesmo assim." & vbCrLf & vbCrLf & _
-           "Se houver problemas, verifique se há erros de sintaxe no código.", _
-           vbExclamation, "Chainsaw - Aviso de Compilação"
-    
-    LogMessage "Continuando execução apesar do erro de compilação", LOG_LEVEL_WARNING
-    CompileVBAProject = True ' Permite continuar por compatibilidade
-End Function
 
 '================================================================================
 ' DOCUMENT INTEGRITY VALIDATION - #STABLE
@@ -2072,7 +1991,7 @@ ErrorHandler:
     InitializeLogging = False
 End Function
 
-Private Sub LogMessage(message As String, Optional level As Long = LOG_LEVEL_INFO)
+Private Sub LogMessage(message As String, Optional level As String = LOG_LEVEL_INFO)
     On Error GoTo ErrorHandler
     
     If Not loggingEnabled Then Exit Sub
@@ -2513,7 +2432,7 @@ Private Function ApplyStdFont(doc As Document) As Boolean
             Loop
             cleanParaText = Trim(LCase(cleanParaText))
 
-            If cleanParaText = "justificativa:" Or "justificativa:" IsVereadorPattern(cleanParaText) Or IsAnexoPattern(cleanParaText) Then
+            If cleanParaText = "justificativa:" Or IsVereadorPattern(cleanParaText) Or IsAnexoPattern(cleanParaText) Then
                 isSpecialParagraph = True
             End If
             
@@ -4061,7 +3980,7 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
     ' Funcionalidade 11: Substitui variantes de "- Vereador -"
     Set rng = doc.Range
     Dim vereadorVariants() As String
-    ReDim vereadorVariants(0 To 7)
+    ReDim vereadorVariants(0 To 17)
     
     ' Variantes dos caracteres inicial e final
 
@@ -4090,12 +4009,12 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
     vereadorVariants(11) = "—vereador—"     ' Sem espaços em dash minúscula
 
     ' Todas em maiúsculas:
-    vereadorVariants(12) = "-VEREADOR-"      ' Sem espaços maiúscula
-    vereadorVariants(13) = "–VEREADOR–"      ' Sem espaços travessão maiúscula
-    vereadorVariants(14) = "—VEREADOR—"     ' Sem espaços em dash maiúscula
-    vereadorVariants(15) = "-VEREADOR-"      ' Sem espaços minúscula
-    vereadorVariants(16) = "–VEREADOR–"      ' Sem espaços travessão minúscula
-    vereadorVariants(17) = "—VEREADOR—"     ' Sem espaços em dash minúscula
+    vereadorVariants(12) = "- VEREADOR -"      ' Com espaços maiúscula
+    vereadorVariants(13) = "– VEREADOR –"      ' Com espaços travessão maiúscula
+    vereadorVariants(14) = "— VEREADOR —"     ' Com espaços em dash maiúscula
+    vereadorVariants(15) = "-VEREADOR-"      ' Sem espaços maiúscula
+    vereadorVariants(16) = "–VEREADOR–"      ' Sem espaços travessão maiúscula
+    vereadorVariants(17) = "—VEREADOR—"     ' Sem espaços em dash maiúscula
     
     For i = 0 To UBound(vereadorVariants)
         If vereadorVariants(i) <> "- Vereador -" Then
