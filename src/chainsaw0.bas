@@ -1245,43 +1245,6 @@ Private Sub ForceGarbageCollection()
     End If
 End Sub
 
-    End Select
-End Sub
-
-Private Sub ProcessSecurityConfig(key As String, value As String)
-    Select Case key
-        Case "REQUIRE_DOCUMENT_SAVED"
-            Config.requireDocumentSaved = (LCase(value) = "true")
-        Case "VALIDATE_FILE_PERMISSIONS"
-            Config.validateFilePermissions = (LCase(value) = "true")
-        Case "CHECK_DOCUMENT_PROTECTION"
-            Config.checkDocumentProtection = (LCase(value) = "true")
-        Case "ENABLE_EMERGENCY_BACKUP"
-            Config.enableEmergencyBackup = (LCase(value) = "true")
-        Case "SANITIZE_INPUTS"
-            Config.sanitizeInputs = (LCase(value) = "true")
-        Case "VALIDATE_RANGES"
-            Config.validateRanges = (LCase(value) = "true")
-    End Select
-End Sub
-
-Private Sub ProcessAdvancedConfig(key As String, value As String)
-    Select Case key
-        Case "MAX_RETRY_ATTEMPTS"
-            Config.maxRetryAttempts = CLng(value)
-        Case "RETRY_DELAY_MS"
-            Config.retryDelayMs = CLng(value)
-        Case "COMPILATION_CHECK"
-            Config.compilationCheck = (LCase(value) = "true")
-        Case "VBA_ACCESS_REQUIRED"
-            Config.vbaAccessRequired = (LCase(value) = "true")
-        Case "AUTO_CLEANUP"
-            Config.autoCleanup = (LCase(value) = "true")
-        Case "FORCE_GC_COLLECTION"
-            Config.forceGcCollection = (LCase(value) = "true")
-    End Select
-End Sub
-
 '================================================================================
 ' MAIN ENTRY POINT - #STABLE
 '================================================================================
