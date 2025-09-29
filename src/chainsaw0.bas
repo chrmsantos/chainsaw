@@ -1351,7 +1351,7 @@ Public Sub StandardizeDocumentMain()
     ' Salvamento obrigatório para documentos não salvos
     If doc.path = "" Then
         If Not SaveDocumentFirst(doc) Then
-            Application.StatusBar = "Operação cancelada: documento precisa ser salvo"
+            Application.StatusBar = "Operation cancelled: document needs to be saved"
             LogMessage "Operação cancelada - documento não foi salvo", LOG_LEVEL_INFO
             GoTo CleanUp
         End If
@@ -1360,7 +1360,7 @@ Public Sub StandardizeDocumentMain()
     ' Criação de backup com validação
     If Not CreateDocumentBackup(doc) Then
         LogMessage "Falha ao criar backup - continuando sem backup", LOG_LEVEL_WARNING
-        Application.StatusBar = "Aviso: Backup não foi possível - processando sem backup"
+        Application.StatusBar = "Warning: Backup was not possible - processing without backup"
         Dim backupResponse As VbMsgBoxResult
         backupResponse = MsgBox("Não foi possível criar backup do documento." & vbCrLf & _
                               "Deseja continuar mesmo assim?", vbYesNo + vbExclamation, "Falha no Backup - Chainsaw Proposituras")
@@ -2173,8 +2173,10 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     ' Insert header image only  
     InsertHeaderstamp doc
     
-    ' Make clipboard visible (requirement #5)
-    Application.DisplayClipboardWindow = True
+    ' Make clipboard visible (requirement #5) - Use Word VBA compatible method
+    On Error Resume Next
+    Application.CommandBars("Clipboard").Visible = True
+    On Error GoTo ErrorHandler
     
     PreviousFormatting = True
     LogMessage "Document processing completed - header image added", LOG_LEVEL_INFO
