@@ -1,11 +1,11 @@
 ========================================================
 LOG DE FORMATAÇÃO DE DOCUMENTO - SISTEMA DE REGISTRO
 ========================================================
-Duração: 4,25 segundos
+Duração: 14,88 segundos
 Erros: 0 - 
 Status: INICIANDO
 --------------------------------------------------------
-Sessão: 2025-09-27 19:02:28
+Sessão: 2025-09-27 19:36:04
 Usuário: csantos
 Estação: NOTEPROCLEG07
 Versão Word: 16.0
@@ -14,53 +14,57 @@ Local: C:\Users\csantos\Meu Drive\Câmara\Câmara 2025\Legislativo\Projects\chains
 Proteção: Sem proteção
 Tamanho: 5,5 KB
 ========================================================
-2025-09-27 19:02:28 [INFO]  Iniciando padronização do documento: prop-de-testes-01.docx (Chainsaw Proposituras v2.0)
-2025-09-27 19:02:28 [INFO]  Verificações de segurança concluídas com sucesso
-2025-09-27 19:02:28 [ERRO]  Erro ao criar pasta de backup: 
-2025-09-27 19:02:28 [AVISO]  Falha ao criar backup - continuando sem backup
-2025-09-27 19:02:39 [INFO]  Backup das configurações de visualização concluído
-2025-09-27 19:02:39 [INFO]  ============ INICIANDO LIMPEZA DE ELEMENTOS VISUAIS ============
-2025-09-27 19:02:39 [INFO]  Aplicando regras: (1) Remover elementos ocultos, (2) Remover elementos dos parágrafos 1-4
-2025-09-27 19:02:39 [INFO]  Estado inicial: 0 shapes flutuantes, 0 objetos inline
-2025-09-27 19:02:39 [INFO]  === FASE 1: Removendo elementos visuais ocultos ===
-2025-09-27 19:02:39 [INFO]  Remoção de elementos ocultos concluída: 0 elementos removidos
-2025-09-27 19:02:39 [INFO]  === FASE 2: Removendo elementos visuais dos parágrafos 1-4 ===
-2025-09-27 19:02:39 [INFO]  Removendo elementos visuais dos parágrafos 1 a 4 (posição 0 a 245)
-2025-09-27 19:02:39 [INFO]  Remoção de elementos visuais dos primeiros 4 parágrafos concluída: 0 elementos removidos
-2025-09-27 19:02:39 [INFO]  Estado final: 0 shapes flutuantes, 0 objetos inline
-2025-09-27 19:02:39 [INFO]  Resumo da limpeza: 0 shapes flutuantes removidos, 0 objetos inline removidos
-2025-09-27 19:02:39 [INFO]  ============ LIMPEZA DE ELEMENTOS VISUAIS CONCLUÍDA ============
-2025-09-27 19:02:39 [INFO]  Backup de propriedades de imagens concluído: 0 imagens catalogadas
-2025-09-27 19:02:39 [INFO]  Formatação limpa: 33 parágrafos resetados
-2025-09-27 19:02:39 [INFO]  Tipo de proposição validado: indicação
-2025-09-27 19:02:39 [INFO]  Validação de consistência: 19 palavras comuns encontradas entre ementa e teor
-2025-09-27 19:02:39 [INFO]  Consistência adequada: 19 palavras comuns entre ementa e teor
-2025-09-27 19:02:39 [INFO]  Título de proposição formatado: INDICAÇÃO Nº $NUMERO$/$ANO$ (centralizado, caixa alta, negrito, sublinhado)
-2025-09-27 19:02:40 [INFO]  2º parágrafo formatado com 2 linhas em branco antes e depois (posição: 4)
-2025-09-27 19:02:40 [INFO]  Formatação 'considerando' aplicada: 0 ocorrências em negrito e caixa alta
-2025-09-27 19:02:40 [ERRO]  Erro nas substituições de texto: Argumento ou chamada de procedimento inválida
-2025-09-27 19:02:40 [INFO]  Substituições específicas concluídas (por parágrafo e globais): 0 substituições realizadas
-2025-09-27 19:02:40 [INFO]  Formatação de listas numeradas concluída: 0 parágrafos convertidos
-2025-09-27 19:02:40 [INFO]  Parágrafo 'Justificativa' formatado (centralizado, negrito, sem recuos)
-2025-09-27 19:02:40 [INFO]  Formatação especial concluída: 1 parágrafos formatados (incluindo 0 '- Vereador -')
-2025-09-27 19:02:40 [AVISO]  Imagem de cabeçalho não encontrada em nenhum local: \chsw-prop\private\header\stamp.png
-2025-09-27 19:02:41 [INFO]  Limpeza de espaços concluída: 0 correções aplicadas (com proteção CONSIDERANDO)
-2025-09-27 19:02:41 [INFO]  Controle de linhas vazias concluído em 2 passada(s): 2 linhas excedentes removidas (máximo 1 sequencial)
-2025-09-27 19:02:41 [INFO]  Separação de parágrafos garantida: 0 linhas em branco inseridas de 30 pares verificados
-2025-09-27 19:02:41 [INFO]  Linhas em branco do 2º parágrafo reforçadas (antes: 2, depois: 2)
-2025-09-27 19:02:41 [INFO]  Parágrafo 'Justificativa' formatado (centralizado, negrito, sem recuos)
-2025-09-27 19:02:41 [INFO]  Formatação especial concluída: 1 parágrafos formatados (incluindo 0 '- Vereador -')
-2025-09-27 19:02:41 [INFO]  Visualização configurada: zoom definido para 110%, demais configurações preservadas
-2025-09-27 19:02:41 [INFO]  Formatação completa aplicada
-2025-09-27 19:02:41 [INFO]  Configurações de visualização originais restauradas (zoom mantido em 110%)
-2025-09-27 19:02:41 [INFO]  Documento padronizado com sucesso
-2025-09-27 19:02:41 [INFO]  Restaurando configurações de performance...
-2025-09-27 19:02:41 [INFO]  Configurações de performance restauradas
-2025-09-27 19:02:41 [INFO]  Variáveis de proteção de imagens limpas
-2025-09-27 19:02:41 [INFO]  Variáveis de configurações de visualização limpas
+2025-09-27 19:36:04 [INFO]  Iniciando padronização do documento: prop-de-testes-01.docx (Chainsaw Proposituras v2.0)
+2025-09-27 19:36:04 [INFO]  Verificações de segurança concluídas com sucesso
+2025-09-27 19:36:04 [ERRO]  Erro ao criar pasta de backup: 
+2025-09-27 19:36:04 [AVISO]  Falha ao criar backup - continuando sem backup
+2025-09-27 19:36:06 [INFO]  Backup das configurações de visualização concluído
+2025-09-27 19:36:06 [INFO]  ============ INICIANDO LIMPEZA DE ELEMENTOS VISUAIS ============
+2025-09-27 19:36:06 [INFO]  Aplicando regras: (1) Remover elementos ocultos, (2) Remover elementos dos parágrafos 1-4
+2025-09-27 19:36:06 [INFO]  Estado inicial: 0 shapes flutuantes, 0 objetos inline
+2025-09-27 19:36:06 [INFO]  === FASE 1: Removendo elementos visuais ocultos ===
+2025-09-27 19:36:06 [INFO]  Remoção de elementos ocultos concluída: 0 elementos removidos
+2025-09-27 19:36:06 [INFO]  === FASE 2: Removendo elementos visuais dos parágrafos 1-4 ===
+2025-09-27 19:36:06 [INFO]  Removendo elementos visuais dos parágrafos 1 a 4 (posição 0 a 31)
+2025-09-27 19:36:06 [INFO]  Remoção de elementos visuais dos primeiros 4 parágrafos concluída: 0 elementos removidos
+2025-09-27 19:36:06 [INFO]  Estado final: 0 shapes flutuantes, 0 objetos inline
+2025-09-27 19:36:06 [INFO]  Resumo da limpeza: 0 shapes flutuantes removidos, 0 objetos inline removidos
+2025-09-27 19:36:06 [INFO]  ============ LIMPEZA DE ELEMENTOS VISUAIS CONCLUÍDA ============
+2025-09-27 19:36:06 [INFO]  Backup de propriedades de imagens concluído: 0 imagens catalogadas
+2025-09-27 19:36:06 [INFO]  Formatação limpa: 36 parágrafos resetados
+2025-09-27 19:36:06 [INFO]  Estrutura limpa: 1 linhas vazias removidas
+2025-09-27 19:36:06 [INFO]  Tipo de proposição validado: indicação
+2025-09-27 19:36:06 [INFO]  Validação de consistência: 19 palavras comuns encontradas entre ementa e teor
+2025-09-27 19:36:06 [INFO]  Consistência adequada: 19 palavras comuns entre ementa e teor
+2025-09-27 19:36:06 [INFO]  Título de proposição formatado: INDICAÇÃO Nº $NUMERO$/$ANO$ (centralizado, caixa alta, negrito, sublinhado)
+2025-09-27 19:36:07 [INFO]  2º parágrafo formatado com 2 linhas em branco antes e depois (posição: 4)
+2025-09-27 19:36:07 [INFO]  Formatação 'considerando' aplicada: 0 ocorrências em negrito e caixa alta
+2025-09-27 19:36:07 [ERRO]  Erro nas substituições de texto: Argumento ou chamada de procedimento inválida
+2025-09-27 19:36:07 [INFO]  Substituições específicas concluídas (por parágrafo e globais): 0 substituições realizadas
+2025-09-27 19:36:07 [INFO]  Formatação de listas numeradas concluída: 0 parágrafos convertidos
+2025-09-27 19:36:07 [INFO]  Parágrafo 'Justificativa' formatado (centralizado, negrito, sem recuos)
+2025-09-27 19:36:07 [INFO]  Formatação especial concluída: 1 parágrafos formatados (incluindo 0 '- Vereador -')
+2025-09-27 19:36:07 [AVISO]  Imagem de cabeçalho não encontrada em nenhum local: \chsw-prop\private\header\stamp.png
+2025-09-27 19:36:08 [INFO]  Limpeza de espaços concluída: 1 correções aplicadas (com proteção CONSIDERANDO)
+2025-09-27 19:36:08 [INFO]  Controle de linhas vazias concluído em 2 passada(s): 7 linhas excedentes removidas (máximo 1 sequencial)
+2025-09-27 19:36:08 [INFO]  Linha em branco inserida entre parágrafos 15 e 16 (total: 1)
+2025-09-27 19:36:08 [INFO]  Linha em branco inserida entre parágrafos 21 e 22 (total: 2)
+2025-09-27 19:36:08 [INFO]  Linha em branco inserida entre parágrafos 23 e 24 (total: 3)
+2025-09-27 19:36:08 [INFO]  Separação de parágrafos garantida: 3 linhas em branco inseridas de 26 pares verificados
+2025-09-27 19:36:08 [INFO]  Linhas em branco do 2º parágrafo reforçadas (antes: 2, depois: 2)
+2025-09-27 19:36:08 [INFO]  Parágrafo 'Justificativa' formatado (centralizado, negrito, sem recuos)
+2025-09-27 19:36:08 [INFO]  Formatação especial concluída: 1 parágrafos formatados (incluindo 0 '- Vereador -')
+2025-09-27 19:36:08 [INFO]  Visualização configurada: zoom definido para 110%, demais configurações preservadas
+2025-09-27 19:36:08 [INFO]  Formatação completa aplicada
+2025-09-27 19:36:08 [INFO]  Configurações de visualização originais restauradas (zoom mantido em 110%)
+2025-09-27 19:36:08 [INFO]  Documento padronizado com sucesso
+2025-09-27 19:36:08 [INFO]  Restaurando configurações de performance...
+2025-09-27 19:36:08 [INFO]  Configurações de performance restauradas
+2025-09-27 19:36:08 [INFO]  Variáveis de proteção de imagens limpas
+2025-09-27 19:36:08 [INFO]  Variáveis de configurações de visualização limpas
 ================================================
-FIM DA SESSÃO - 2025-09-27 19:02:41
-Duração: 17,38 segundos
+FIM DA SESSÃO - 2025-09-27 19:36:08
+Duração: 19,70 segundos
 Erros: Nenhum
 Status: CONCLUÍDO
 ================================================
