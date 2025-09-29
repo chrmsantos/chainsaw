@@ -118,25 +118,25 @@ Private processingStartTime As Double
 '   - Complete removal of manual line breaks (preserves paragraph breaks)
 '   - Context and formatting preservation during replacements
 '
-' • SISTEMA DE LOGS E MONITORAMENTO:
-'   - Registro detalhado de operações
-'   - Controle de erros com fallback
-'   - Mensagens na barra de status
-'   - Histórico de execução
+' • LOGGING AND MONITORING SYSTEM:
+'   - Detailed operation logging
+'   - Error control with fallback
+'   - Status bar messages
+'   - Execution history
 '
-' • SISTEMA DE PROTEÇÃO DE CONFIGURAÇÕES DE VISUALIZAÇÃO:
-'   - Backup automático de todas as configurações de exibição
-'   - Preservação de réguas (horizontal e vertical)
-'   - Manutenção do modo de visualização original
-'   - Proteção de configurações de marcas de formatação
-'   - Restauração completa após processamento (exceto zoom)
-'   - Compatibilidade com todos os modos de exibição do Word
+' • VIEW CONFIGURATION PROTECTION SYSTEM:
+'   - Automatic backup of all display settings
+'   - Preservation of rulers (horizontal and vertical)
+'   - Maintenance of original view mode
+'   - Protection of formatting mark settings
+'   - Complete restoration after processing (except zoom)
+'   - Compatibility with all Word display modes
 '
-' • PERFORMANCE OTIMIZADA:
-'   - Processamento eficiente para documentos grandes
-'   - Desabilitação temporária de atualizações visuais
-'   - Gerenciamento inteligente de recursos
-'   - Sistema de logging otimizado (principais, warnings e erros)
+' • OPTIMIZED PERFORMANCE:
+'   - Efficient processing for large documents
+'   - Temporary disabling of visual updates
+'   - Intelligent resource management
+'   - Optimized logging system (main events, warnings and errors)
 '
 ' =============================================================================
 
@@ -392,7 +392,7 @@ End Type
 Private originalViewSettings As ViewSettings
 
 '================================================================================
-' CONFIGURATION SYSTEM - SISTEMA DE CONFIGURAÇÃO - #NEW
+' CONFIGURATION SYSTEM - #NEW
 '================================================================================
 
 Private Function LoadConfiguration() As Boolean
@@ -403,7 +403,7 @@ Private Function LoadConfiguration() As Boolean
     ' Define valores padrão primeiro
     SetDefaultConfiguration
     
-    ' Tenta carregar do arquivo de configuração
+    ' Try to load from configuration file
     Dim configPath As String
     configPath = GetConfigurationFilePath()
     
@@ -413,7 +413,7 @@ Private Function LoadConfiguration() As Boolean
         Exit Function
     End If
     
-    ' Carrega configurações do arquivo
+    ' Load settings from file
     If ParseConfigurationFile(configPath) Then
         LogMessage "Configuration loaded successfully from: " & configPath, LOG_LEVEL_INFO
         LoadConfiguration = True
@@ -437,19 +437,19 @@ Private Function GetConfigurationFilePath() As String
     Dim doc As Document
     Dim basePath As String
     
-    ' Tenta obter pasta do documento atual
+    ' Try to get current document folder
     Set doc = Nothing
     On Error Resume Next
     Set doc = ActiveDocument
     If Not doc Is Nothing And doc.path <> "" Then
         basePath = doc.path
     Else
-        ' Fallback para pasta do usuário
+        ' Fallback to user folder
         basePath = Environ("USERPROFILE") & "\Documents"
     End If
     On Error GoTo ErrorHandler
     
-    ' Constrói caminho do arquivo de configuração
+    ' Build configuration file path
     GetConfigurationFilePath = basePath & CONFIG_FILE_PATH & CONFIG_FILE_NAME
     
     Exit Function
@@ -601,7 +601,7 @@ Private Function ParseConfigurationFile(configPath As String) As Boolean
             If Left(fileLine, 1) = "[" And Right(fileLine, 1) = "]" Then
                 currentSection = UCase(Mid(fileLine, 2, Len(fileLine) - 2))
             ElseIf InStr(fileLine, "=") > 0 Then
-                ' Processa linha de configuração
+                ' Process configuration line
                 ProcessConfigLine currentSection, fileLine
             End If
         End If
@@ -1518,9 +1518,9 @@ Private Function CheckWordVersion() As Boolean
     Exit Function
     
 ErrorHandler:
-    ' Se não conseguir detectar a versão, assume incompatibilidade por segurança
+    ' If cannot detect version, assume incompatibility for safety
     CheckWordVersion = False
-    LogMessage "Erro ao detectar versão do Word: " & Err.Description, LOG_LEVEL_ERROR
+    LogMessage "Error detecting Word version: " & Err.Description, LOG_LEVEL_ERROR
 End Function
 
 '================================================================================
@@ -2134,7 +2134,7 @@ End Function
 Private Function CheckDiskSpace(doc As Document) As Boolean
     On Error GoTo ErrorHandler
     
-    ' Verificação simplificada - assume espaço suficiente se não conseguir verificar
+    ' Simplified verification - assume sufficient space if cannot verify
     Dim fso As Object
     Dim drive As Object
     
@@ -2157,7 +2157,7 @@ Private Function CheckDiskSpace(doc As Document) As Boolean
     Exit Function
     
 ErrorHandler:
-    ' Se não conseguir verificar, assume que há espaço suficiente
+    ' If cannot verify, assume there is sufficient space
     CheckDiskSpace = True
 End Function
 
@@ -2184,15 +2184,6 @@ Private Function PreviousFormatting(doc As Document) As Boolean
 
 ErrorHandler:
     LogMessage "Error in document processing: " & Err.Description, LOG_LEVEL_ERROR
-    PreviousFormatting = False
-End Function
-    
-    LogMessage "Formatação completa aplicada", LOG_LEVEL_INFO
-    PreviousFormatting = True
-    Exit Function
-
-ErrorHandler:
-    LogMessage "Erro durante formatação: " & Err.Description, LOG_LEVEL_ERROR
     PreviousFormatting = False
 End Function
 
