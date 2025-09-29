@@ -1,56 +1,56 @@
 ========================================================
-LOG DE FORMATAÇÃO DE DOCUMENTO - SISTEMA DE REGISTRO
+DOCUMENT FORMATTING LOG - LOGGING SYSTEM
 ========================================================
-Duração: 3,26 segundos
-Erros: 0 - 
-Status: INICIANDO
+Duration: 0,05 seconds
+Errors: 0 - 
+Status: STARTING
 --------------------------------------------------------
-Sessão: 2025-09-29 15:19:31
-Usuário: csantos
-Estação: NOTEPROCLEG07
-Versão Word: 16.0
-Documento: prop-de-testes-01.docx
-Local: C:\Users\csantos\Meu Drive\Câmara\Câmara 2025\Legislativo\Projects\chainsaw\examples
-Proteção: Sem proteção
-Tamanho: 5,5 KB
+Session: 2025-09-29 15:45:19
+User: csantos
+Computer: NOTEPROCLEG07
+Word Version: 16.0
+Document: prop-de-testes-01.docx
+Location: C:\Users\csantos\Meu Drive\Câmara\Câmara 2025\Legislativo\Projects\chainsaw\examples
+Protection: Sem proteção
+Size: 5,5 KB
 ========================================================
-2025-09-29 15:19:31 [INFO]  Starting document standardization: prop-de-testes-01.docx (Chainsaw Proposituras v1.0.0-Beta1)
-2025-09-29 15:19:31 [INFO]  Verificações de segurança concluídas com sucesso
-2025-09-29 15:19:31 [ERRO]  Erro ao criar pasta de backup: 
-2025-09-29 15:19:31 [AVISO]  Falha ao criar backup - continuando sem backup
-2025-09-29 15:19:32 [INFO]  Backup das configurações de visualização concluído
-2025-09-29 15:19:32 [INFO]  ============ INICIANDO LIMPEZA DE ELEMENTOS VISUAIS ============
-2025-09-29 15:19:32 [INFO]  Aplicando regras: (1) Remover elementos ocultos, (2) Remover elementos dos parágrafos 1-4
-2025-09-29 15:19:32 [INFO]  Estado inicial: 0 shapes flutuantes, 0 objetos inline
-2025-09-29 15:19:32 [INFO]  === FASE 1: Removendo elementos visuais ocultos ===
-2025-09-29 15:19:32 [INFO]  Remoção de elementos ocultos concluída: 0 elementos removidos
-2025-09-29 15:19:32 [INFO]  === FASE 2: Removendo elementos visuais dos parágrafos 1-4 ===
-2025-09-29 15:19:32 [INFO]  Removendo elementos visuais dos parágrafos 1 a 4 (posição 0 a 31)
-2025-09-29 15:19:32 [INFO]  Remoção de elementos visuais dos primeiros 4 parágrafos concluída: 0 elementos removidos
-2025-09-29 15:19:32 [INFO]  Estado final: 0 shapes flutuantes, 0 objetos inline
-2025-09-29 15:19:32 [INFO]  Resumo da limpeza: 0 shapes flutuantes removidos, 0 objetos inline removidos
-2025-09-29 15:19:32 [INFO]  ============ LIMPEZA DE ELEMENTOS VISUAIS CONCLUÍDA ============
-2025-09-29 15:19:32 [INFO]  Starting document formatting based on configuration
-2025-09-29 15:19:32 [INFO]  Applying page setup
-2025-09-29 15:19:32 [INFO]  Applying standard font
-2025-09-29 15:19:32 [INFO]  Applying standard paragraphs
-2025-09-29 15:19:33 [INFO]  Applying text replacements
-2025-09-29 15:19:33 [ERRO]  Erro nas substituições de texto: Argumento ou chamada de procedimento inválida
-2025-09-29 15:19:33 [AVISO]  Warning: Failed to apply text replacements
-2025-09-29 15:19:33 [INFO]  Applying specific paragraph replacements
-2025-09-29 15:19:33 [INFO]  Substituições específicas concluídas (por parágrafo e globais): 0 substituições realizadas
-2025-09-29 15:19:33 [INFO]  Processing header image
-2025-09-29 15:19:33 [AVISO]  Imagem de cabeçalho não encontrada em nenhum local: \chsw-prop\private\header\stamp.png
-2025-09-29 15:19:33 [INFO]  Document formatting completed successfully
-2025-09-29 15:19:33 [INFO]  Configurações de visualização originais restauradas (zoom mantido em 110%)
-2025-09-29 15:19:33 [INFO]  Documento padronizado com sucesso
-2025-09-29 15:19:33 [INFO]  Restoring performance settings...
-2025-09-29 15:19:33 [INFO]  Performance settings restored
-2025-09-29 15:19:33 [INFO]  Variáveis de proteção de imagens limpas
-2025-09-29 15:19:33 [INFO]  Variáveis de configurações de visualização limpas
+2025-09-29 15:45:19 [INFO]  Starting document standardization: prop-de-testes-01.docx (Chainsaw Proposituras v1.0.0-Beta1)
+2025-09-29 15:45:19 [INFO]  Security checks completed successfully
+2025-09-29 15:45:19 [ERROR]  Erro ao criar pasta de backup: 
+2025-09-29 15:45:19 [WARNING]  Failed to create backup - continuing without backup
+2025-09-29 15:45:31 [INFO]  Backup das configurações de visualização concluído
+2025-09-29 15:45:31 [INFO]  ============ STARTING VISUAL ELEMENTS CLEANUP ============
+2025-09-29 15:45:31 [INFO]  Applying rules: (1) Remove hidden elements, (2) Remove elements from paragraphs 1-4
+2025-09-29 15:45:31 [INFO]  Initial state: 0 floating shapes, 0 inline objects
+2025-09-29 15:45:31 [INFO]  === PHASE 1: Removing hidden visual elements ===
+2025-09-29 15:45:31 [INFO]  Remoção de elementos ocultos concluída: 0 elementos removidos
+2025-09-29 15:45:31 [INFO]  === PHASE 2: Removing visual elements from paragraphs 1-4 ===
+2025-09-29 15:45:31 [INFO]  Removendo elementos visuais dos parágrafos 1 a 4 (posição 0 a 31)
+2025-09-29 15:45:31 [INFO]  Removal of visual elements from the first 4 paragraphs completed: 0 elements removed
+2025-09-29 15:45:31 [INFO]  Final state: 0 floating shapes, 0 inline objects
+2025-09-29 15:45:31 [INFO]  Cleanup summary: 0 floating shapes removed, 0 inline objects removed
+2025-09-29 15:45:31 [INFO]  ============ VISUAL ELEMENTS CLEANUP COMPLETED ============
+2025-09-29 15:45:31 [INFO]  Starting document formatting based on configuration
+2025-09-29 15:45:31 [INFO]  Applying page setup
+2025-09-29 15:45:31 [INFO]  Applying standard font
+2025-09-29 15:45:31 [INFO]  Applying standard paragraphs
+2025-09-29 15:45:32 [INFO]  Applying text replacements
+2025-09-29 15:45:32 [ERROR]  Erro nas substituições de texto: Argumento ou chamada de procedimento inválida
+2025-09-29 15:45:32 [WARNING]  Warning: Failed to apply text replacements
+2025-09-29 15:45:32 [INFO]  Applying specific paragraph replacements
+2025-09-29 15:45:32 [INFO]  Substituições específicas concluídas (por parágrafo e globais): 0 substituições realizadas
+2025-09-29 15:45:32 [INFO]  Processing header image
+2025-09-29 15:45:32 [WARNING]  Header image not found at: assets\stamp.png
+2025-09-29 15:45:32 [INFO]  Document formatting completed successfully
+2025-09-29 15:45:32 [INFO]  Configurações de visualização originais restauradas (zoom mantido em 110%)
+2025-09-29 15:45:32 [INFO]  Document standardized successfully
+2025-09-29 15:45:32 [INFO]  Restoring performance settings...
+2025-09-29 15:45:32 [INFO]  Performance settings restored
+2025-09-29 15:45:32 [INFO]  Variáveis de proteção de imagens limpas
+2025-09-29 15:45:32 [INFO]  Variáveis de configurações de visualização limpas
 ================================================
-FIM DA SESSÃO - 2025-09-29 15:19:33
-Duração: 5,51 segundos
-Erros: Nenhum
-Status: CONCLUÍDO
+END OF SESSION - 2025-09-29 15:45:32
+Duration: 13,76 seconds
+Errors: None
+Status: COMPLETED
 ================================================
