@@ -925,7 +925,7 @@ Private Function InitializePerformanceOptimization() As Boolean
     
     ' Aplica otimizações baseadas na configuração
     If Config.performanceMode Then
-        LogMessage "Iniciando otimizações de performance...", LOG_LEVEL_INFO
+        LogMessage "Starting performance optimizations...", LOG_LEVEL_INFO
         
         ' Desabilita atualizações de tela
         If Config.disableScreenUpdating Then
@@ -942,14 +942,14 @@ Private Function InitializePerformanceOptimization() As Boolean
         ' Otimizações específicas do Word
         Call OptimizeWordSettings
         
-        LogMessage "Otimizações de performance aplicadas", LOG_LEVEL_INFO
+        LogMessage "Performance optimizations applied", LOG_LEVEL_INFO
     End If
     
     InitializePerformanceOptimization = True
     Exit Function
     
 ErrorHandler:
-    LogMessage "Erro ao inicializar otimizações: " & Err.Description, LOG_LEVEL_ERROR
+    LogMessage "Error initializing optimizations: " & Err.Description, LOG_LEVEL_ERROR
     InitializePerformanceOptimization = False
 End Function
 
@@ -985,20 +985,20 @@ Private Function RestorePerformanceSettings() As Boolean
     RestorePerformanceSettings = False
     
     If Config.performanceMode Then
-        LogMessage "Restaurando configurações de performance...", LOG_LEVEL_INFO
+        LogMessage "Restoring performance settings...", LOG_LEVEL_INFO
         
         ' Restaura configurações originais
         Application.ScreenUpdating = True
         Application.DisplayAlerts = True
         
-        LogMessage "Configurações de performance restauradas", LOG_LEVEL_INFO
+        LogMessage "Performance settings restored", LOG_LEVEL_INFO
     End If
     
     RestorePerformanceSettings = True
     Exit Function
     
 ErrorHandler:
-    LogMessage "Erro ao restaurar configurações: " & Err.Description, LOG_LEVEL_ERROR
+    LogMessage "Error restoring settings: " & Err.Description, LOG_LEVEL_ERROR
     RestorePerformanceSettings = False
 End Function
 
@@ -1269,11 +1269,11 @@ Public Sub StandardizeDocumentMain()
     If Config.checkWordVersion Then
         If Not CheckWordVersion() Then
             Application.StatusBar = "Error: Word version not supported (minimum: Word " & Config.minWordVersion & ")"
-            LogMessage "Versão do Word " & Application.version & " não suportada. Mínimo: " & CStr(Config.minWordVersion), LOG_LEVEL_ERROR
+            LogMessage "Word version " & Application.version & " not supported. Minimum: " & CStr(Config.minWordVersion), LOG_LEVEL_ERROR
             If Config.showProgressMessages Then
-                MsgBox "Esta ferramenta requer Microsoft Word " & Config.minWordVersion & " ou superior." & vbCrLf & _
-                       "Versão atual: " & Application.version & vbCrLf & _
-                       "Versão mínima: " & CStr(Config.minWordVersion), vbCritical, "Versão Incompatível - " & SYSTEM_NAME
+                MsgBox "This tool requires Microsoft Word " & Config.minWordVersion & " or higher." & vbCrLf & _
+                       "Current version: " & Application.version & vbCrLf & _
+                       "Minimum version: " & CStr(Config.minWordVersion), vbCritical, "Incompatible Version - " & SYSTEM_NAME
             End If
             Exit Sub
         End If
@@ -1282,8 +1282,8 @@ Public Sub StandardizeDocumentMain()
     ' Verificação e compilação do projeto VBA (se habilitada)
     If Config.compilationCheck Then
         If Not CompileVBAProject() Then
-            Application.StatusBar = "Erro: Falha na compilação do projeto VBA"
-            LogMessage "Falha na compilação do projeto VBA", LOG_LEVEL_ERROR
+            Application.StatusBar = "Error: VBA project compilation failed"
+            LogMessage "VBA project compilation failed", LOG_LEVEL_ERROR
             If Config.showProgressMessages Then
                 MsgBox "Erro na compilação do projeto VBA." & vbCrLf & _
                        "Verifique se há erros de sintaxe no código." & vbCrLf & _
@@ -1324,13 +1324,13 @@ Public Sub StandardizeDocumentMain()
     ' ========================================
     
     If Not InitializePerformanceOptimization() Then
-        LogMessage "Aviso: Falha ao inicializar otimizações de performance", LOG_LEVEL_WARNING
+        LogMessage "Warning: Failed to initialize performance optimizations", LOG_LEVEL_WARNING
         ' Continua execução mesmo com falha nas otimizações
     End If
     
     ' Inicialização do sistema de logs
     If Not InitializeLogging(doc) Then
-        LogMessage "Falha ao inicializar sistema de logs", LOG_LEVEL_WARNING
+        LogMessage "Failed to initialize logging system", LOG_LEVEL_WARNING
     End If
     
     LogMessage "Starting document standardization: " & doc.Name & " (Chainsaw Proposituras v1.0.0-Beta1)", LOG_LEVEL_INFO
@@ -1340,7 +1340,7 @@ Public Sub StandardizeDocumentMain()
     
     ' Configuração do estado da aplicação
     If Not SetAppState(False, "Formatando documento...") Then
-        LogMessage "Falha ao configurar estado da aplicação", LOG_LEVEL_WARNING
+        LogMessage "Failed to configure application state", LOG_LEVEL_WARNING
     End If
     
     ' Verificações preliminares

@@ -2,32 +2,32 @@
 
 ## v1.0.0-Beta1
 
-*A solução open source em VBA para padronização e automação avançada de documentos legislativos no Microsoft Word, desenvolvida especificamente para Câmaras Municipais e ambientes institucionais.*
+*An open source VBA solution for standardization and advanced automation of legislative documents in Microsoft Word, developed specifically for Municipal Chambers and institutional environments.*
 
 [![License](https://img.shields.io/badge/License-Apache%202.0%20Modified-blue.svg)](LICENSE)
 ![Word Version](https://img.shields.io/badge/Word-2010+-green.svg)
 ![Language](https://img.shields.io/badge/Language-VBA-orange.svg)
 ![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)
 
-## 📋 Índice
+## 📋 Table of Contents
 
-- [Novidades da Versão](#-novidades-da-versão-100-beta1)
-- [Principais Funcionalidades](#-principais-funcionalidades)
-- [Estrutura do Projeto](#-estrutura-do-projeto)
-- [Instalação](#-instalação)
-- [Configuração](#️-configuração)
-- [Uso](#-uso)
-- [Segurança](#-segurança)
-- [Requisitos](#-requisitos)
-- [Documentação](#-documentação)
-- [Contribuição](#-contribuição)
-- [Licença](#-licença)
+- [Version News](#-version-news-100-beta1)
+- [Main Features](#-main-features)
+- [Project Structure](#-project-structure)
+- [Installation](#-installation)
+- [Configuration](#️-configuration)
+- [Usage](#-usage)
+- [Security](#-security)
+- [Requirements](#-requirements)
+- [Documentation](#-documentation)
+- [Contributing](#-contributing)
+- [License](#-license)
 
-## 🆕 Novidades da Versão 1.0.0-Beta1
+## 🆕 Version News 1.0.0-Beta1
 
-### Sistema de Configuração Avançado
+### Advanced Configuration System
 
-- **Arquivo de configuração externo:** `chainsaw-config.ini` com mais de 100 configurações
+- **External configuration file:** `chainsaw-config.ini` with over 100 settings
 - **Controle granular:** Habilite/desabilite qualquer funcionalidade do sistema
 - **15 categorias de configuração:** Geral, Validações, Backup, Formatação, Limpeza, Performance, etc.
 - **Configuração automática:** Sistema carrega valores padrão se arquivo não encontrado
