@@ -927,19 +927,19 @@ Private Function InitializePerformanceOptimization() As Boolean
     If Config.performanceMode Then
         LogMessage "Starting performance optimizations...", LOG_LEVEL_INFO
         
-        ' Desabilita atualizações de tela
+        ' Disable screen updates
         If Config.disableScreenUpdating Then
             Application.ScreenUpdating = False
-            LogMessage "Screen updating desabilitado", LOG_LEVEL_DEBUG
+            LogMessage "Screen updating disabled", LOG_LEVEL_DEBUG
         End If
         
-        ' Desabilita alertas
+        ' Disable alerts
         If Config.disableDisplayAlerts Then
             Application.DisplayAlerts = False
-            LogMessage "Display alerts desabilitado", LOG_LEVEL_DEBUG
+            LogMessage "Display alerts disabled", LOG_LEVEL_DEBUG
         End If
         
-        ' Otimizações específicas do Word
+        ' Word-specific optimizations
         Call OptimizeWordSettings
         
         LogMessage "Performance optimizations applied", LOG_LEVEL_INFO
@@ -1117,20 +1117,20 @@ Private Function BatchProcessParagraphs(processingFunction As String) As Boolean
     Dim batchSize As Long
     batchSize = IIf(paragraphCount > OPTIMIZATION_THRESHOLD, MAX_PARAGRAPH_BATCH_SIZE, paragraphCount)
     
-    LogMessage "Processando " & paragraphCount & " parágrafos em lotes de " & batchSize, LOG_LEVEL_DEBUG
+    LogMessage "Processing " & paragraphCount & " paragraphs in batches of " & batchSize, LOG_LEVEL_DEBUG
     
     Dim i As Long
     For i = 1 To paragraphCount Step batchSize
         Dim endIndex As Long
         endIndex = IIf(i + batchSize - 1 > paragraphCount, paragraphCount, i + batchSize - 1)
         
-        ' Processa lote de parágrafos
+        ' Process paragraph batch
         If Not ProcessParagraphBatch(i, endIndex, processingFunction) Then
-            LogMessage "Erro no processamento do lote " & i & "-" & endIndex, LOG_LEVEL_ERROR
+            LogMessage "Error processing batch " & i & "-" & endIndex, LOG_LEVEL_ERROR
             Exit Function
         End If
         
-        ' Coleta lixo periodicamente se configurado
+        ' Periodically force garbage collection if configured
         If Config.forceGcCollection And i Mod (batchSize * 5) = 0 Then
             Call ForceGarbageCollection
         End If
@@ -1140,7 +1140,7 @@ Private Function BatchProcessParagraphs(processingFunction As String) As Boolean
     Exit Function
     
 ErrorHandler:
-    LogMessage "Erro no processamento em lote: " & Err.Description, LOG_LEVEL_ERROR
+    LogMessage "Error in batch processing: " & Err.Description, LOG_LEVEL_ERROR
     BatchProcessParagraphs = False
 End Function
 
@@ -1230,9 +1230,9 @@ Private Sub ForceGarbageCollection()
     On Error Resume Next
     
     If Config.forceGcCollection Then
-        ' Força coleta de lixo - apenas em casos específicos
-        DoEvents ' Permite ao sistema processar mensagens pendentes
-        LogMessage "Coleta de lixo forçada executada", LOG_LEVEL_DEBUG
+        ' Force garbage collection - only in specific cases
+        DoEvents ' Allow system to process pending messages
+        LogMessage "Forced garbage collection executed", LOG_LEVEL_DEBUG
     End If
 End Sub
 
@@ -1243,13 +1243,13 @@ Public Sub StandardizeDocumentMain()
     On Error GoTo CriticalErrorHandler
     
     ' ========================================
-    ' INICIALIZAÇÃO E CARREGAMENTO DE CONFIGURAÇÃO - #NEW
+    ' INITIALIZATION AND CONFIG LOAD - #NEW
     ' ========================================
     
     processingStartTime = Timer
     formattingCancelled = False
     
-    ' Carrega configurações do sistema
+    ' Load system configuration
     If Not isConfigLoaded Then
         If Not LoadConfiguration() Then
             LogMessage "Critical error loading configuration. Aborting execution.", LOG_LEVEL_ERROR
@@ -1257,15 +1257,15 @@ Public Sub StandardizeDocumentMain()
                    "Execution was aborted to prevent issues.", vbCritical, "Configuration Error - " & SYSTEM_NAME
             Exit Sub
         End If
-        isConfigLoaded = True
-        LogMessage "Sistema inicializado: " & SYSTEM_NAME & " " & VERSION, LOG_LEVEL_INFO
+    isConfigLoaded = True
+    LogMessage "System initialized: " & SYSTEM_NAME & " " & VERSION, LOG_LEVEL_INFO
     End If
     
     ' ========================================
-    ' VALIDAÇÕES PRELIMINARES BASEADAS EM CONFIGURAÇÃO - #NEW
+    ' PRELIMINARY VALIDATIONS BASED ON CONFIGURATION - #NEW
     ' ========================================
     
-    ' Validação da versão do Word (se habilitada)
+    ' Word version validation (if enabled)
     If Config.checkWordVersion Then
         If Not CheckWordVersion() Then
             Application.StatusBar = "Error: Word version not supported (minimum: Word " & Config.minWordVersion & ")"
@@ -1279,21 +1279,21 @@ Public Sub StandardizeDocumentMain()
         End If
     End If
     
-    ' Verificação e compilação do projeto VBA (se habilitada)
+    ' Check and compile the VBA project (if enabled)
     If Config.compilationCheck Then
         If Not CompileVBAProject() Then
             Application.StatusBar = "Error: VBA project compilation failed"
             LogMessage "VBA project compilation failed", LOG_LEVEL_ERROR
             If Config.showProgressMessages Then
-                MsgBox "Erro na compilação do projeto VBA." & vbCrLf & _
-                       "Verifique se há erros de sintaxe no código." & vbCrLf & _
-                       "A execução pode ser instável.", vbExclamation, "Aviso de Compilação - " & SYSTEM_NAME
+                MsgBox "VBA project compilation error." & vbCrLf & _
+                       "Check for syntax errors in the code." & vbCrLf & _
+                       "Execution may be unstable.", vbExclamation, "Compilation Warning - " & SYSTEM_NAME
             End If
             ' Continua a execução mesmo com falha na compilação para compatibilidade
         End If
     End If
     
-    ' Validação do documento ativo
+    ' Active document validation
     Dim doc As Document
     Set doc = Nothing
     
@@ -1304,80 +1304,80 @@ Public Sub StandardizeDocumentMain()
         Application.StatusBar = "Error: No document is accessible"
         LogMessage "No document accessible for processing", LOG_LEVEL_ERROR
         If Config.showProgressMessages Then
-            MsgBox "Nenhum documento está aberto ou acessível." & vbCrLf & _
-               "Abra um documento antes de executar a padronização.", vbExclamation, "Documento Não Encontrado - Chainsaw Proposituras"
+            MsgBox "No document is open or accessible." & vbCrLf & _
+               "Open a document before running the standardization.", vbExclamation, "Document Not Found - Chainsaw Proposituras"
         End If
         Exit Sub
     End If
     On Error GoTo CriticalErrorHandler
     
-    ' Validação de integridade do documento (se habilitada)
+    ' Document integrity validation (if enabled)
     If Config.validateDocumentIntegrity Then
         If Not ValidateDocumentIntegrity(doc) Then
-            LogMessage "Documento falhou na validação de integridade", LOG_LEVEL_ERROR
+            LogMessage "Document failed integrity validation", LOG_LEVEL_ERROR
             GoTo CleanUp
         End If
     End If
     
     ' ========================================
-    ' INICIALIZAÇÃO DE OTIMIZAÇÕES DE PERFORMANCE - #NEW
+    ' PERFORMANCE OPTIMIZATION INITIALIZATION - #NEW
     ' ========================================
     
     If Not InitializePerformanceOptimization() Then
         LogMessage "Warning: Failed to initialize performance optimizations", LOG_LEVEL_WARNING
-        ' Continua execução mesmo com falha nas otimizações
+    ' Continue execution even if optimizations fail
     End If
     
-    ' Inicialização do sistema de logs
+    ' Initialize logging system
     If Not InitializeLogging(doc) Then
         LogMessage "Failed to initialize logging system", LOG_LEVEL_WARNING
     End If
     
     LogMessage "Starting document standardization: " & doc.Name & " (Chainsaw Proposituras v1.0.0-Beta1)", LOG_LEVEL_INFO
     
-    ' Configuração do grupo de desfazer
-    StartUndoGroup "Padronização de Documento - " & doc.Name
+    ' Configure undo group
+    StartUndoGroup "Document Standardization - " & doc.Name
     
-    ' Configuração do estado da aplicação
-    If Not SetAppState(False, "Formatando documento...") Then
+    ' Configure application state
+    If Not SetAppState(False, "Formatting document...") Then
         LogMessage "Failed to configure application state", LOG_LEVEL_WARNING
     End If
     
-    ' Verificações preliminares
+    ' Preliminary checks
     If Not PreviousChecking(doc) Then
         GoTo CleanUp
     End If
     
-    ' Salvamento obrigatório para documentos não salvos
+    ' Mandatory save for unsaved documents
     If doc.path = "" Then
         If Not SaveDocumentFirst(doc) Then
             Application.StatusBar = "Operation cancelled: document needs to be saved"
-            LogMessage "Operação cancelada - documento não foi salvo", LOG_LEVEL_INFO
+            LogMessage "Operation cancelled - document was not saved", LOG_LEVEL_INFO
             GoTo CleanUp
         End If
     End If
     
-    ' Criação de backup com validação
+    ' Backup creation with validation
     If Not CreateDocumentBackup(doc) Then
-        LogMessage "Falha ao criar backup - continuando sem backup", LOG_LEVEL_WARNING
+        LogMessage "Failed to create backup - continuing without backup", LOG_LEVEL_WARNING
         Application.StatusBar = "Warning: Backup was not possible - processing without backup"
         Dim backupResponse As VbMsgBoxResult
-        backupResponse = MsgBox("Não foi possível criar backup do documento." & vbCrLf & _
-                              "Deseja continuar mesmo assim?", vbYesNo + vbExclamation, "Falha no Backup - Chainsaw Proposituras")
+        backupResponse = MsgBox("It was not possible to create a backup of the document." & vbCrLf & _
+                              "Do you want to continue anyway?", vbYesNo + vbExclamation, "Backup Failure - Chainsaw Proposituras")
         If backupResponse = vbNo Then
-            LogMessage "Operação cancelada pelo usuário devido à falha no backup", LOG_LEVEL_INFO
+            LogMessage "Operation cancelled by user due to backup failure", LOG_LEVEL_INFO
             GoTo CleanUp
         End If
     Else
-        Application.StatusBar = "Backup criado - formatando documento..."
+        Application.StatusBar = "Backup created - formatting document..."
     End If
     
-    ' Backup das configurações de visualização originais
+    ' Backup original view settings
     If Not BackupViewSettings(doc) Then
-        LogMessage "Aviso: Falha no backup das configurações de visualização", LOG_LEVEL_WARNING
+        LogMessage "Warning: Failed to backup view settings", LOG_LEVEL_WARNING
     End If
 
-    ' Limpeza de elementos visuais conforme especificado
+    ' Visual elements cleanup as specified
     Application.StatusBar = "Processing document structure..."
     If Not CleanVisualElementsMain(doc) Then
         LogMessage "Warning: Failed to clean visual elements", LOG_LEVEL_WARNING
@@ -1387,17 +1387,17 @@ Public Sub StandardizeDocumentMain()
         GoTo CleanUp
     End If
 
-    ' Restaura configurações de visualização originais (exceto zoom)
+    ' Restore original view settings (except zoom)
     If Not RestoreViewSettings(doc) Then
-        LogMessage "Aviso: Algumas configurações de visualização podem não ter sido restauradas", LOG_LEVEL_WARNING
+        LogMessage "Warning: Some view settings may not have been restored", LOG_LEVEL_WARNING
     End If
 
     If formattingCancelled Then
         GoTo CleanUp
     End If
 
-    Application.StatusBar = "Documento padronizado com sucesso!"
-    LogMessage "Documento padronizado com sucesso", LOG_LEVEL_INFO
+    Application.StatusBar = "Document standardized successfully!"
+    LogMessage "Document standardized successfully", LOG_LEVEL_INFO
 
 CleanUp:
     ' Restaura configurações de performance
@@ -1904,20 +1904,20 @@ Private Function InitializeLogging(doc As Document) As Boolean
     
     Open logFilePath For Output As #1
     Print #1, "========================================================"
-    Print #1, "LOG DE FORMATAÇÃO DE DOCUMENTO - SISTEMA DE REGISTRO"
+    Print #1, "DOCUMENT FORMATTING LOG - LOGGING SYSTEM"
     Print #1, "========================================================"
-    Print #1, "Duração: " & Format(Timer - processingStartTime, "0.00") & " segundos"
-    Print #1, "Erros: " & Err.Number & " - " & Err.Description
-    Print #1, "Status: INICIANDO"
+    Print #1, "Duration: " & Format(Timer - processingStartTime, "0.00") & " seconds"
+    Print #1, "Errors: " & Err.Number & " - " & Err.Description
+    Print #1, "Status: STARTING"
     Print #1, "--------------------------------------------------------"
-    Print #1, "Sessão: " & Format(Now, "yyyy-mm-dd HH:MM:ss")
-    Print #1, "Usuário: " & Environ("USERNAME")
-    Print #1, "Estação: " & Environ("COMPUTERNAME")
-    Print #1, "Versão Word: " & Application.version
-    Print #1, "Documento: " & doc.Name
-    Print #1, "Local: " & IIf(doc.path = "", "(Não salvo)", doc.path)
-    Print #1, "Proteção: " & GetProtectionType(doc)
-    Print #1, "Tamanho: " & GetDocumentSize(doc)
+    Print #1, "Session: " & Format(Now, "yyyy-mm-dd HH:MM:ss")
+    Print #1, "User: " & Environ("USERNAME")
+    Print #1, "Computer: " & Environ("COMPUTERNAME")
+    Print #1, "Word Version: " & Application.version
+    Print #1, "Document: " & doc.Name
+    Print #1, "Location: " & IIf(doc.path = "", "(Not saved)", doc.path)
+    Print #1, "Protection: " & GetProtectionType(doc)
+    Print #1, "Size: " & GetDocumentSize(doc)
     Print #1, "========================================================"
     Close #1
     
@@ -1944,13 +1944,13 @@ Private Sub LogMessage(message As String, Optional level As String = LOG_LEVEL_I
             levelText = "INFO"
             levelIcon = ""
         Case LOG_LEVEL_WARNING
-            levelText = "AVISO"
+            levelText = "WARNING"
             levelIcon = ""
         Case LOG_LEVEL_ERROR
-            levelText = "ERRO"
+            levelText = "ERROR"
             levelIcon = ""
         Case Else
-            levelText = "OUTRO"
+            levelText = "OTHER"
             levelIcon = ""
     End Select
     
@@ -1966,7 +1966,7 @@ Private Sub LogMessage(message As String, Optional level As String = LOG_LEVEL_I
     Exit Sub
     
 ErrorHandler:
-    Debug.Print "FALHA NO LOGGING: " & message
+    Debug.Print "LOGGING FAILURE: " & message
 End Sub
 
 Private Sub SafeFinalizeLogging()
@@ -1975,10 +1975,10 @@ Private Sub SafeFinalizeLogging()
     If loggingEnabled Then
         Open logFilePath For Append As #1
         Print #1, "================================================"
-        Print #1, "FIM DA SESSÃO - " & Format(Now, "yyyy-mm-dd HH:MM:ss")
-        Print #1, "Duração: " & Format(Timer - processingStartTime, "0.00") & " segundos"
-        Print #1, "Erros: " & IIf(Err.Number = 0, "Nenhum", Err.Number & " - " & Err.Description)
-        Print #1, "Status: " & IIf(formattingCancelled, "CANCELADO", "CONCLUÍDO")
+        Print #1, "END OF SESSION - " & Format(Now, "yyyy-mm-dd HH:MM:ss")
+        Print #1, "Duration: " & Format(Timer - processingStartTime, "0.00") & " seconds"
+        Print #1, "Errors: " & IIf(Err.Number = 0, "None", Err.Number & " - " & Err.Description)
+        Print #1, "Status: " & IIf(formattingCancelled, "CANCELLED", "COMPLETED")
         Print #1, "================================================"
         Close #1
     End If
@@ -2078,15 +2078,15 @@ Private Function PreviousChecking(doc As Document) As Boolean
     On Error GoTo ErrorHandler
 
     If doc Is Nothing Then
-        Application.StatusBar = "Erro: Documento não acessível para verificação"
-        LogMessage "Documento não acessível para verificação", LOG_LEVEL_ERROR
+        Application.StatusBar = "Error: Document not accessible for verification"
+        LogMessage "Document not accessible for verification", LOG_LEVEL_ERROR
         PreviousChecking = False
         Exit Function
     End If
 
     If doc.Type <> wdTypeDocument Then
-        Application.StatusBar = "Erro: Tipo de documento não suportado (Tipo: " & doc.Type & ")"
-        LogMessage "Tipo de documento não suportado: " & doc.Type, LOG_LEVEL_ERROR
+        Application.StatusBar = "Error: Unsupported document type (Type: " & doc.Type & ")"
+        LogMessage "Unsupported document type: " & doc.Type, LOG_LEVEL_ERROR
         PreviousChecking = False
         Exit Function
     End If
@@ -2094,37 +2094,37 @@ Private Function PreviousChecking(doc As Document) As Boolean
     If doc.protectionType <> wdNoProtection Then
         Dim protectionType As String
         protectionType = GetProtectionType(doc)
-        Application.StatusBar = "Erro: Documento protegido (" & protectionType & ")"
-        LogMessage "Documento protegido detectado: " & protectionType, LOG_LEVEL_ERROR
+        Application.StatusBar = "Error: Document is protected (" & protectionType & ")"
+        LogMessage "Protected document detected: " & protectionType, LOG_LEVEL_ERROR
         PreviousChecking = False
         Exit Function
     End If
     
     If doc.ReadOnly Then
-        Application.StatusBar = "Erro: Documento em modo somente leitura"
-        LogMessage "Documento em modo somente leitura: " & doc.FullName, LOG_LEVEL_ERROR
+        Application.StatusBar = "Error: Document is read-only"
+        LogMessage "Document is read-only: " & doc.FullName, LOG_LEVEL_ERROR
         PreviousChecking = False
         Exit Function
     End If
 
     If Not CheckDiskSpace(doc) Then
-        Application.StatusBar = "Erro: Espaço em disco insuficiente"
-        LogMessage "Espaço em disco insuficiente para operação segura", LOG_LEVEL_ERROR
+        Application.StatusBar = "Error: Not enough disk space"
+        LogMessage "Insufficient disk space for safe operation", LOG_LEVEL_ERROR
         PreviousChecking = False
         Exit Function
     End If
 
     If Not ValidateDocumentStructure(doc) Then
-        LogMessage "Estrutura do documento validada com avisos", LOG_LEVEL_WARNING
+        LogMessage "Document structure validated with warnings", LOG_LEVEL_WARNING
     End If
 
-    LogMessage "Verificações de segurança concluídas com sucesso", LOG_LEVEL_INFO
+    LogMessage "Security checks completed successfully", LOG_LEVEL_INFO
     PreviousChecking = True
     Exit Function
 
 ErrorHandler:
-    Application.StatusBar = "Erro durante verificações de segurança"
-    LogMessage "Erro durante verificações: " & Err.Description, LOG_LEVEL_ERROR
+    Application.StatusBar = "Error during security checks"
+    LogMessage "Error during checks: " & Err.Description, LOG_LEVEL_ERROR
     PreviousChecking = False
 End Function
 
@@ -6405,22 +6405,22 @@ Private Function DeleteVisualElementsInFirstFourParagraphs(doc As Document) As B
         Dim inlineShp As InlineShape
         Set inlineShp = doc.InlineShapes(i)
         
-        ' Verifica se o objeto inline está na faixa dos primeiros 4 parágrafos
+        ' Check if the inline object is within the first 4 paragraphs
         If inlineShp.Range.Start >= startRange And inlineShp.Range.Start <= endRange Then
             Dim inlineParagraphNum As Long
             inlineParagraphNum = GetParagraphNumber(doc, inlineShp.Range.Start)
-            LogMessage "Removendo objeto inline (tipo: " & inlineShp.Type & ") no parágrafo " & inlineParagraphNum
+            LogMessage "Removing inline object (type: " & inlineShp.Type & ") at paragraph " & inlineParagraphNum
             inlineShp.Delete
             deletedCount = deletedCount + 1
         End If
     Next i
     
-    LogMessage "Remoção de elementos visuais dos primeiros " & maxParagraphs & " parágrafos concluída: " & deletedCount & " elementos removidos"
+    LogMessage "Removal of visual elements from the first " & maxParagraphs & " paragraphs completed: " & deletedCount & " elements removed"
     DeleteVisualElementsInFirstFourParagraphs = True
     Exit Function
 
 ErrorHandler:
-    LogMessage "Erro ao remover elementos visuais dos primeiros 4 parágrafos: " & Err.Description, LOG_LEVEL_ERROR
+    LogMessage "Error removing visual elements from the first 4 paragraphs: " & Err.Description, LOG_LEVEL_ERROR
     DeleteVisualElementsInFirstFourParagraphs = False
 End Function
 
@@ -6435,7 +6435,7 @@ Private Function GetParagraphNumber(doc As Document, position As Long) As Long
             Exit Function
         End If
     Next i
-    GetParagraphNumber = 0 ' Não encontrado
+    GetParagraphNumber = 0 ' Not found
 End Function
 
 '================================================================================
@@ -6444,8 +6444,8 @@ End Function
 Private Function CleanVisualElementsMain(doc As Document) As Boolean
     On Error GoTo ErrorHandler
     
-    LogMessage "============ INICIANDO LIMPEZA DE ELEMENTOS VISUAIS ============"
-    LogMessage "Aplicando regras: (1) Remover elementos ocultos, (2) Remover elementos dos parágrafos 1-4"
+        LogMessage "============ STARTING VISUAL ELEMENTS CLEANUP ============"
+        LogMessage "Applying rules: (1) Remove hidden elements, (2) Remove elements from paragraphs 1-4"
     
     ' Contabiliza elementos antes da limpeza
     Dim initialShapeCount As Long
@@ -6453,18 +6453,18 @@ Private Function CleanVisualElementsMain(doc As Document) As Boolean
     initialShapeCount = doc.Shapes.Count
     initialInlineShapeCount = doc.InlineShapes.Count
     
-    LogMessage "Estado inicial: " & initialShapeCount & " shapes flutuantes, " & initialInlineShapeCount & " objetos inline"
+    LogMessage "Initial state: " & initialShapeCount & " floating shapes, " & initialInlineShapeCount & " inline objects"
     
     ' 1. Remove todos os elementos visuais ocultos do documento
-    LogMessage "=== FASE 1: Removendo elementos visuais ocultos ==="
+    LogMessage "=== PHASE 1: Removing hidden visual elements ==="
     If Not DeleteHiddenVisualElements(doc) Then
-        LogMessage "Falha ao remover elementos visuais ocultos", LOG_LEVEL_WARNING
+        LogMessage "Failed to remove hidden visual elements", LOG_LEVEL_WARNING
     End If
     
     ' 2. Remove elementos visuais entre os parágrafos 1-4 (visíveis ou não)
-    LogMessage "=== FASE 2: Removendo elementos visuais dos parágrafos 1-4 ==="
+    LogMessage "=== PHASE 2: Removing visual elements from paragraphs 1-4 ==="
     If Not DeleteVisualElementsInFirstFourParagraphs(doc) Then
-        LogMessage "Falha ao remover elementos visuais dos primeiros 4 parágrafos", LOG_LEVEL_WARNING
+        LogMessage "Failed to remove visual elements from the first 4 paragraphs", LOG_LEVEL_WARNING
     End If
     
     ' Contabiliza elementos após a limpeza
@@ -6478,15 +6478,15 @@ Private Function CleanVisualElementsMain(doc As Document) As Boolean
     shapesRemoved = initialShapeCount - finalShapeCount
     inlineShapesRemoved = initialInlineShapeCount - finalInlineShapeCount
     
-    LogMessage "Estado final: " & finalShapeCount & " shapes flutuantes, " & finalInlineShapeCount & " objetos inline"
-    LogMessage "Resumo da limpeza: " & shapesRemoved & " shapes flutuantes removidos, " & inlineShapesRemoved & " objetos inline removidos"
-    LogMessage "============ LIMPEZA DE ELEMENTOS VISUAIS CONCLUÍDA ============"
+    LogMessage "Final state: " & finalShapeCount & " floating shapes, " & finalInlineShapeCount & " inline objects"
+    LogMessage "Cleanup summary: " & shapesRemoved & " floating shapes removed, " & inlineShapesRemoved & " inline objects removed"
+    LogMessage "============ VISUAL ELEMENTS CLEANUP COMPLETED ============"
     
     CleanVisualElementsMain = True
     Exit Function
 
 ErrorHandler:
-    LogMessage "Erro na limpeza de elementos visuais: " & Err.Description, LOG_LEVEL_ERROR
+    LogMessage "Error during visual elements cleanup: " & Err.Description, LOG_LEVEL_ERROR
     CleanVisualElementsMain = False
 End Function
 
