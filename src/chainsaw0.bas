@@ -426,7 +426,7 @@ Private Function LoadConfiguration() As Boolean
     Exit Function
     
 ErrorHandler:
-    LogMessage "Erro ao carregar configuração: " & Err.Description, LOG_LEVEL_ERROR
+    LogMessage "Error loading configuration: " & Err.Description, LOG_LEVEL_ERROR
     SetDefaultConfiguration
     LoadConfiguration = True ' Continua com padrões
 End Function
@@ -507,7 +507,7 @@ Private Sub SetDefaultConfiguration()
         .insertHeaderstamp = True
         .insertFooterstamp = True
         .removeWatermark = True
-        .headerImagePath = "private\header\stamp.png"
+        .headerImagePath = "assets\stamp.png"
         .headerImageMaxWidth = 21#
         .headerImageHeightRatio = 0.19
         
@@ -1239,7 +1239,7 @@ End Sub
 '================================================================================
 ' MAIN ENTRY POINT - #STABLE
 '================================================================================
-Public Sub PadronizarDocumentoMain()
+Public Sub StandardizeDocumentMain()
     On Error GoTo CriticalErrorHandler
     
     ' ========================================
@@ -1252,9 +1252,9 @@ Public Sub PadronizarDocumentoMain()
     ' Carrega configurações do sistema
     If Not isConfigLoaded Then
         If Not LoadConfiguration() Then
-            LogMessage "Erro crítico ao carregar configuração. Abortando execução.", LOG_LEVEL_ERROR
-            MsgBox "Erro crítico ao carregar configuração do sistema." & vbCrLf & _
-                   "A execução foi abortada para evitar problemas.", vbCritical, "Erro de Configuração - " & SYSTEM_NAME
+            LogMessage "Critical error loading configuration. Aborting execution.", LOG_LEVEL_ERROR
+            MsgBox "Critical error loading system configuration." & vbCrLf & _
+                   "Execution was aborted to prevent issues.", vbCritical, "Configuration Error - " & SYSTEM_NAME
             Exit Sub
         End If
         isConfigLoaded = True
@@ -1268,7 +1268,7 @@ Public Sub PadronizarDocumentoMain()
     ' Validação da versão do Word (se habilitada)
     If Config.checkWordVersion Then
         If Not CheckWordVersion() Then
-            Application.StatusBar = "Erro: Versão do Word não suportada (mínimo: Word " & Config.minWordVersion & ")"
+            Application.StatusBar = "Error: Word version not supported (minimum: Word " & Config.minWordVersion & ")"
             LogMessage "Versão do Word " & Application.version & " não suportada. Mínimo: " & CStr(Config.minWordVersion), LOG_LEVEL_ERROR
             If Config.showProgressMessages Then
                 MsgBox "Esta ferramenta requer Microsoft Word " & Config.minWordVersion & " ou superior." & vbCrLf & _
@@ -1301,8 +1301,8 @@ Public Sub PadronizarDocumentoMain()
     Set doc = ActiveDocument
     If doc Is Nothing Then
         On Error GoTo CriticalErrorHandler
-        Application.StatusBar = "Erro: Nenhum documento está acessível"
-        LogMessage "Nenhum documento acessível para processamento", LOG_LEVEL_ERROR
+        Application.StatusBar = "Error: No document is accessible"
+        LogMessage "No document accessible for processing", LOG_LEVEL_ERROR
         If Config.showProgressMessages Then
             MsgBox "Nenhum documento está aberto ou acessível." & vbCrLf & _
                "Abra um documento antes de executar a padronização.", vbExclamation, "Documento Não Encontrado - Chainsaw Proposituras"
@@ -1378,25 +1378,13 @@ Public Sub PadronizarDocumentoMain()
     End If
 
     ' Limpeza de elementos visuais conforme especificado
-    Application.StatusBar = "Removendo elementos visuais conforme regras especificadas..."
+    Application.StatusBar = "Processing document structure..."
     If Not CleanVisualElementsMain(doc) Then
-        LogMessage "Aviso: Falha na limpeza de elementos visuais", LOG_LEVEL_WARNING
-    End If
-
-    ' Backup de imagens antes das formatações
-    Application.StatusBar = "Catalogando imagens do documento..."
-    If Not BackupAllImages(doc) Then
-        LogMessage "Aviso: Falha no backup de imagens - continuando com proteção básica", LOG_LEVEL_WARNING
+        LogMessage "Warning: Failed to clean visual elements", LOG_LEVEL_WARNING
     End If
 
     If Not PreviousFormatting(doc) Then
         GoTo CleanUp
-    End If
-
-    ' Restaura imagens após formatações
-    Application.StatusBar = "Verificando integridade das imagens..."
-    If Not RestoreAllImages(doc) Then
-        LogMessage "Aviso: Algumas imagens podem ter sido afetadas durante o processamento", LOG_LEVEL_WARNING
     End If
 
     ' Restaura configurações de visualização originais (exceto zoom)
@@ -2179,86 +2167,23 @@ End Function
 Private Function PreviousFormatting(doc As Document) As Boolean
     On Error GoTo ErrorHandler
 
-    ' Formatações básicas de página e estrutura
-    If Not ApplyPageSetup(doc) Then
-        LogMessage "Falha na configuração de página", LOG_LEVEL_ERROR
-        PreviousFormatting = False
-        Exit Function
-    End If
-
-    ' Limpeza e formatações otimizadas (logs reduzidos para performance)
-    ClearAllFormatting doc
-    CleanDocumentStructure doc
-    ValidatePropositionType doc
+    ' Only process header image - all other formatting removed per requirements
+    LogMessage "Processing header image only", LOG_LEVEL_INFO
     
-    ' Validação de consistência entre ementa e teor
-    If Not ValidateContentConsistency(doc) Then
-        LogMessage "Formatação interrompida devido a inconsistência detectada", LOG_LEVEL_WARNING
-        PreviousFormatting = False
-        Exit Function
-    End If
-    
-    FormatDocumentTitle doc
-    
-    ' Formatações principais
-    If Not ApplyStdFont(doc) Then
-        LogMessage "Falha na formatação de fontes", LOG_LEVEL_ERROR
-        PreviousFormatting = False
-        Exit Function
-    End If
-    
-    If Not ApplyStdParagraphs(doc) Then
-        LogMessage "Falha na formatação de parágrafos", LOG_LEVEL_ERROR
-        PreviousFormatting = False
-        Exit Function
-    End If
-
-    ' Formatação específica do 1º parágrafo (caixa alta, negrito, sublinhado)
-    FormatFirstParagraph doc
-
-    ' Formatação específica do 2º parágrafo
-    FormatSecondParagraph doc
-
-    ' Formatações específicas (sem verificação de retorno para performance)
-    FormatConsiderandoParagraphs doc
-    ApplyTextReplacements doc
-    
-    ' Substituições específicas por parágrafo (2º e 3º parágrafos)
-    ApplySpecificParagraphReplacements doc
-    
-    ' Formatação de parágrafos numerados em listas
-    FormatNumberedParagraphs doc
-    
-    ' Formatação específica para Justificativa/Anexo/Anexos
-    FormatJustificativaAnexoParagraphs doc
-    
-    EnableHyphenation doc
-    RemoveWatermark doc
+    ' Insert header image only  
     InsertHeaderstamp doc
     
-    ' Limpeza final de espaços múltiplos em todo o documento
-    CleanMultipleSpaces doc
+    ' Make clipboard visible (requirement #5)
+    Application.DisplayClipboardWindow = True
     
-    ' Controle de linhas em branco sequenciais (máximo 2)
-    LimitSequentialEmptyLines doc
-    
-    ' Garante separação mínima entre parágrafos (pelo menos uma linha em branco)
-    EnsureParagraphSeparation doc
-    
-    ' REFORÇO: Garante que o 2º parágrafo mantenha suas 2 linhas em branco
-    EnsureSecondParagraphBlankLines doc
-    
-    ' REFORÇO: Aplica novamente formatação especial para garantir que não foi sobrescrita
-    FormatJustificativaAnexoParagraphs doc
-    
-    ' Configuração final da visualização
-    ConfigureDocumentView doc
-    
-    If Not InsertFooterstamp(doc) Then
-        LogMessage "Falha na inserção do rodapé", LOG_LEVEL_ERROR
-        PreviousFormatting = False
-        Exit Function
-    End If
+    PreviousFormatting = True
+    LogMessage "Document processing completed - header image added", LOG_LEVEL_INFO
+    Exit Function
+
+ErrorHandler:
+    LogMessage "Error in document processing: " & Err.Description, LOG_LEVEL_ERROR
+    PreviousFormatting = False
+End Function
     
     LogMessage "Formatação completa aplicada", LOG_LEVEL_INFO
     PreviousFormatting = True
@@ -5048,7 +4973,7 @@ End Function
 '================================================================================
 ' SUBROTINA PÚBLICA: ABRIR PASTA DE LOGS - #NEW
 '================================================================================
-Public Sub AbrirPastaLogs()
+Public Sub OpenLogsFolder()
     On Error GoTo ErrorHandler
     
     Dim doc As Document
@@ -5101,7 +5026,7 @@ End Sub
 '================================================================================
 ' SUBROTINA PÚBLICA: ABRIR REPOSITÓRIO GITHUB - FUNCIONALIDADE 9 - #NEW
 '================================================================================
-Public Sub AbrirRepositorioGitHub()
+Public Sub OpenGitHubRepository()
     On Error GoTo ErrorHandler
     
     Dim repoURL As String
@@ -5332,7 +5257,7 @@ End Sub
 '================================================================================
 ' SUBROTINA PÚBLICA: ABRIR PASTA DE BACKUPS - #NEW
 '================================================================================
-Public Sub AbrirPastaBackups()
+Public Sub OpenBackupsFolder()
     On Error GoTo ErrorHandler
     
     Dim doc As Document
@@ -5830,7 +5755,7 @@ End Function
 '================================================================================
 ' SALVAR E SAIR - SUBROTINA PÚBLICA PROFISSIONAL E ROBUSTA
 '================================================================================
-Public Sub SalvarESair()
+Public Sub SaveAndExit()
     On Error GoTo CriticalErrorHandler
     
     Dim startTime As Date
