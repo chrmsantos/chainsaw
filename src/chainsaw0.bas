@@ -634,23 +634,23 @@ Private Sub ProcessConfigLine(section As String, configLine As String)
             configValue = Mid(configValue, 2, Len(configValue) - 2)
         End If
         
-        ' Aplica configuração baseada na seção
+        ' Apply configuration based on section (accept PT and EN)
         Select Case section
-            Case "GERAL"
+            Case "GERAL", "GENERAL"
                 ProcessGeneralConfig configKey, configValue
-            Case "VALIDACOES"
+            Case "VALIDACOES", "VALIDATIONS"
                 ProcessValidationConfig configKey, configValue
             Case "BACKUP"
                 ProcessBackupConfig configKey, configValue
-            Case "FORMATACAO"
+            Case "FORMATACAO", "FORMATTING"
                 ProcessFormattingConfig configKey, configValue
-            Case "LIMPEZA"
+            Case "LIMPEZA", "CLEANUP"
                 ProcessCleaningConfig configKey, configValue
-            Case "CABECALHO_RODAPE"
+            Case "CABECALHO_RODAPE", "HEADER_FOOTER"
                 ProcessHeaderFooterConfig configKey, configValue
-            Case "SUBSTITUICOES"
+            Case "SUBSTITUICOES", "REPLACEMENTS"
                 ProcessReplacementConfig configKey, configValue
-            Case "ELEMENTOS_VISUAIS"
+            Case "ELEMENTOS_VISUAIS", "VISUAL_ELEMENTS"
                 ProcessVisualElementsConfig configKey, configValue
             Case "LOGGING"
                 ProcessLoggingConfig configKey, configValue
@@ -658,11 +658,11 @@ Private Sub ProcessConfigLine(section As String, configLine As String)
                 ProcessPerformanceConfig configKey, configValue
             Case "INTERFACE"
                 ProcessInterfaceConfig configKey, configValue
-            Case "COMPATIBILIDADE"
+            Case "COMPATIBILIDADE", "COMPATIBILITY"
                 ProcessCompatibilityConfig configKey, configValue
-            Case "SEGURANCA"
+            Case "SEGURANCA", "SECURITY"
                 ProcessSecurityConfig configKey, configValue
-            Case "AVANCADO"
+            Case "AVANCADO", "ADVANCED"
                 ProcessAdvancedConfig configKey, configValue
         End Select
     End If
@@ -759,9 +759,9 @@ End Sub
 
 Private Sub ProcessHeaderFooterConfig(key As String, value As String)
     Select Case key
-        Case "INSERT_HEADER_stamp"
+        Case "INSERT_HEADER_STAMP"
             Config.insertHeaderstamp = (LCase(value) = "true")
-        Case "INSERT_FOOTER_stamp"
+        Case "INSERT_FOOTER_STAMP"
             Config.insertFooterstamp = (LCase(value) = "true")
         Case "REMOVE_WATERMARK"
             Config.removeWatermark = (LCase(value) = "true")
@@ -3061,28 +3061,47 @@ Private Function InsertHeaderstamp(doc As Document) As Boolean
     Dim imgFound As Boolean
     Dim sectionsProcessed As Long
 
-    username = GetSafeUserName()
-    imgFile = "C:\Users\" & username & HEADER_IMAGE_RELATIVE_PATH
-
-    ' Busca inteligente da imagem em múltiplos locais
-    If Dir(imgFile) = "" Then
-        ' Tenta localização alternativa no perfil do usuário
-        imgFile = Environ("USERPROFILE") & HEADER_IMAGE_RELATIVE_PATH
-        If Dir(imgFile) = "" Then
-            ' Tenta localização de rede corporativa
-            imgFile = "\\strqnapmain\Dir. Legislativa\Christian" & HEADER_IMAGE_RELATIVE_PATH
-            If Dir(imgFile) = "" Then
-                ' Registra erro e tenta continuar sem a imagem
-                Application.StatusBar = "Aviso: Imagem de cabeçalho não encontrada"
-                LogMessage "Imagem de cabeçalho não encontrada em nenhum local: " & HEADER_IMAGE_RELATIVE_PATH, LOG_LEVEL_WARNING
-                InsertHeaderstamp = False
-                Exit Function
+    ' Resolve image file path using configuration if provided
+    imgFile = Trim(Config.headerImagePath)
+    If Len(imgFile) = 0 Then
+        ' Fallback to relative path constant strategy
+        username = GetSafeUserName()
+        imgFile = "C:\Users\" & username & HEADER_IMAGE_RELATIVE_PATH
+        If Dir(imgFile) = "" Then imgFile = Environ("USERPROFILE") & HEADER_IMAGE_RELATIVE_PATH
+    Else
+        ' If relative path (no drive letter), try resolve from current document folder and repo root
+        If InStr(1, imgFile, ":", vbTextCompare) = 0 And Left(imgFile, 2) <> "\\" Then
+            Dim baseFolder As String
+            On Error Resume Next
+            baseFolder = IIf(doc.path <> "", doc.path, Environ("USERPROFILE") & "\Documents")
+            On Error GoTo ErrorHandler
+            If Right(baseFolder, 1) <> "\" Then baseFolder = baseFolder & "\"
+            If Dir(baseFolder & imgFile) <> "" Then
+                imgFile = baseFolder & imgFile
+            ElseIf Dir(Environ("USERPROFILE") & "\Documents\chainsaw\" & imgFile) <> "" Then
+                imgFile = Environ("USERPROFILE") & "\Documents\chainsaw\" & imgFile
             End If
         End If
     End If
 
-    imgWidth = CentimetersToPoints(HEADER_IMAGE_MAX_WIDTH_CM)
-    imgHeight = imgWidth * HEADER_IMAGE_HEIGHT_RATIO
+    If Dir(imgFile) = "" Then
+        Application.StatusBar = "Warning: Header image not found"
+        LogMessage "Header image not found at: " & imgFile, LOG_LEVEL_WARNING
+        InsertHeaderstamp = False
+        Exit Function
+    End If
+
+    ' Size based on config when available
+    If Config.headerImageMaxWidth > 0 Then
+        imgWidth = CentimetersToPoints(Config.headerImageMaxWidth)
+    Else
+        imgWidth = CentimetersToPoints(HEADER_IMAGE_MAX_WIDTH_CM)
+    End If
+    If Config.headerImageHeightRatio > 0 Then
+        imgHeight = imgWidth * Config.headerImageHeightRatio
+    Else
+        imgHeight = imgWidth * HEADER_IMAGE_HEIGHT_RATIO
+    End If
 
     For Each sec In doc.Sections
         Set header = sec.Headers(wdHeaderFooterPrimary)
@@ -3096,7 +3115,7 @@ Private Function InsertHeaderstamp(doc As Document) As Boolean
                 SaveWithDocument:=msoTrue)
             
             If shp Is Nothing Then
-                LogMessage "Falha ao inserir imagem no cabeçalho da seção " & sectionsProcessed + 1, LOG_LEVEL_WARNING
+                LogMessage "Failed to insert header image at section " & sectionsProcessed + 1, LOG_LEVEL_WARNING
             Else
                 With shp
                     .LockAspectRatio = msoTrue
@@ -3120,14 +3139,14 @@ Private Function InsertHeaderstamp(doc As Document) As Boolean
         ' Log detalhado removido para performance
         InsertHeaderstamp = True
     Else
-        LogMessage "Nenhum cabeçalho foi inserido", LOG_LEVEL_WARNING
+    LogMessage "No header was inserted", LOG_LEVEL_WARNING
         InsertHeaderstamp = False
     End If
 
     Exit Function
 
 ErrorHandler:
-    LogMessage "Erro ao inserir cabeçalho: " & Err.Description, LOG_LEVEL_ERROR
+    LogMessage "Error inserting header: " & Err.Description, LOG_LEVEL_ERROR
     InsertHeaderstamp = False
 End Function
 

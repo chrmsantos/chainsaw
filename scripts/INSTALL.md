@@ -1,42 +1,40 @@
-# CHAINSAW PROPOSITURAS - Instalação Rápida
+# CHAINSAW PROPOSITURAS - Quick Installation
 
-## 🚀 Instalação Automatizada (Recomendada)
+## 🚀 Automated Installation (Recommended)
 
 ### 1. Download
-Baixe todos os arquivos do projeto em: <https://github.com/chrmsantos/chainsaw-proposituras>
+Download all project files from: <https://github.com/chrmsantos/chainsaw-proposituras>
 
-### 2. Execução do Instalador
-Abra o PowerShell como Administrador e execute:
+### 2. Run the Installer
+Open PowerShell as Administrator and run:
 
 ```powershell
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-.\install-chainsaw-proposituras.ps1
+.\install-chainsaw.ps1
 ```
 
-### 3. Parâmetros do Instalador
+### 3. Installer Parameters
 
 ```powershell
-# Instalação padrão
-.\install-chainsaw-proposituras.ps1
+# Default installation
+.\install-chainsaw.ps1
 
-# Instalação customizada
-.\install-chainsaw-proposituras.ps1 -InstallPath "C:\MinhaPasta" -AllUsers -Silent
+# Custom installation
+.\install-chainsaw.ps1 -InstallPath "C:\MyFolder" -AllUsers -Silent
 
-# Apenas verificar compatibilidade
-.\install-chainsaw-proposituras.ps1 -CheckOnly
+# Check compatibility only
+.\install-chainsaw.ps1 -CheckOnly
 ```
 
-## 🛠️ Instalação Manual
+## 🛠️ Manual Installation
 
-### Pré-requisitos
-- Microsoft Word 2010 ou superior
-- Windows 7/8/10/11
-- Macros habilitadas no Word
+### Prerequisites
 
-### Passos
+### Steps
 
-1. **Criar estrutura de pastas:**
-   ```
+1. **Create folder structure:**
+
+   ```text
    CHAINSAW-PROPOSITURAS/
    ├── src/
    ├── private/
@@ -46,49 +44,30 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
    └── docs/
    ```
 
-2. **Copiar arquivos:**
-   - `src/Módulo1.bas` → Pasta src
-   - `private/header/stamp.png` → Pasta header
-   - Documentação → Pasta docs
+2. **Copy files:**
 
-3. **Instalar módulo VBA:**
-   - Abrir Word
-   - Alt+F11 (Editor VBA)
-   - Arquivo → Importar
-   - Selecionar `Módulo1.bas`
+3. **Install VBA module:**
 
-4. **Configurar segurança:**
-   - Arquivo → Opções → Central de Confiabilidade
-   - Configurações de Macro → "Desabilitar todas as macros com notificação"
+4. **Configure security:**
 
-## ⚡ Uso Rápido
+## ⚡ Quick Use
 
-### Executar Padronização
-1. Abrir documento no Word
-2. Alt+F8 → Executar Macro
-3. Selecionar: `PadronizarDocumentoMain`
-4. Confirmar execução
+### Run Standardization
 
-### Atalhos Disponíveis (após instalação automatizada)
-- **Área de Trabalho:** "Chainsaw Proposituras"
-- **Menu Iniciar:** Programas → Chainsaw Proposituras
+1. Open a document in Word
+2. Alt+F8 → Run Macro
+3. Select: `StandardizeDocumentMain`
+4. Confirm execution
 
-## 🔧 Configurações Principais
+### Shortcuts (after automated installation)
 
-### Tipos de Documento Suportados
-- ✅ INDICAÇÃO
-- ✅ REQUERIMENTO  
-- ✅ MOÇÃO
+## 🔧 Main Settings
 
-### Formatações Aplicadas
-- ✅ Margens institucionais (4.6/2/3/3 cm)
-- ✅ Fonte Arial 12pt, espaçamento 1.4
-- ✅ Cabeçalho com logotipo
-- ✅ Numeração de páginas
-- ✅ Formatação de parágrafos especiais
-- ✅ Limpeza de elementos visuais desnecessários
+### Supported Document Types
 
-## 📋 Autotexto Instalado
+### Applied Formatting
+
+## 📋 Installed Autotext
 
 | Código | Resultado |
 |--------|-----------|
@@ -99,27 +78,18 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 | `justificativa` | JUSTIFICATIVA |
 | `vereador` | - VEREADOR - |
 
-## 🔒 Segurança
+## 🔒 Security
 
-### Configurações Recomendadas
-- Macros com notificação habilitada
-- Pasta do projeto como local confiável
-- Antivírus atualizado
-- Backups automáticos ativos
+### Recommended Settings
 
-### Validações do Sistema
-- ✅ Verificação de versão do Word
-- ✅ Validação de integridade do documento
-- ✅ Backup automático antes de modificações
-- ✅ Log detalhado de operações
-- ✅ Recuperação de emergência
+### System Validations
 
-## 📁 Estrutura de Arquivos
+## 📁 File Structure
 
-```
+```text
 CHAINSAW-PROPOSITURAS/
 ├── src/
-│   └── Módulo1.bas              # Código VBA principal
+│   └── chainsaw0.bas            # Main VBA code
 ├── private/
 │   ├── header/
 │   │   └── stamp.png            # Logotipo institucional
@@ -135,39 +105,39 @@ CHAINSAW-PROPOSITURAS/
 └── install-config.ini           # Configurações
 ```
 
-## 🆘 Solução de Problemas
+## 🆘 Troubleshooting
 
-### Erro: "Macro não encontrada"
-1. Verificar se módulo foi importado corretamente
-2. Reabrir Word
-3. Verificar nome da macro: `PadronizarDocumentoMain`
+### Error: "Macro not found"
 
-### Erro: "Acesso negado ao VBA"
-1. Word → Opções → Central de Confiabilidade
-2. Configurações de Macro
-3. Habilitar "Acesso ao modelo de objeto do projeto VBA"
+1. Check if the module was imported correctly
+2. Reopen Word
+3. Check macro name: `StandardizeDocumentMain`
 
-### Erro: "Documento protegido"
-1. Remover proteção do documento
-2. Salvar documento
-3. Executar macro novamente
+### Error: "Access to VBA denied"
 
-### Performance Lenta
-1. Fechar outros documentos do Word
-2. Verificar tamanho do documento (máx. 500KB recomendado)
-3. Aguardar conclusão completa
+1. Word → Options → Trust Center
+2. Macro Settings
+3. Enable "Trust access to the VBA project object model"
 
-## 📞 Suporte
+### Error: "Document protected"
 
-- **Repositório:** <https://github.com/chrmsantos/chainsaw-proposituras>
-- **Issues:** <https://github.com/chrmsantos/chainsaw-proposituras/issues>
-- **Email:** chrmsantos@gmail.com
+1. Remove document protection
+2. Save the document
+3. Run the macro again
 
-## 📄 Licença
+### Slow Performance
 
-Apache 2.0 modificada - Ver arquivo LICENSE para detalhes completos.
+1. Close other Word documents
+2. Check document size (max. 500KB recommended)
+3. Wait for completion
 
----
+## 📞 Support
 
-**CHAINSAW PROPOSITURAS v2.0.0** - Sistema de padronização de documentos legislativos  
+
+## 📄 License
+
+Apache 2.0 modified - See LICENSE for details.
+
+
+CHAINSAW PROPOSITURAS v2.0.0 - Legislative document standardization system  
 © 2025 Christian Martin dos Santos

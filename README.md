@@ -28,177 +28,177 @@
 ### Advanced Configuration System
 
 - **External configuration file:** `chainsaw-config.ini` with over 100 settings
-- **Controle granular:** Habilite/desabilite qualquer funcionalidade do sistema
-- **15 categorias de configuração:** Geral, Validações, Backup, Formatação, Limpeza, Performance, etc.
-- **Configuração automática:** Sistema carrega valores padrão se arquivo não encontrado
+- **Granular control:** Enable/disable any system feature
+- **15 configuration categories:** General, Validations, Backup, Formatting, Cleanup, Performance, etc.
+- **Automatic configuration:** Loads default values if file not found
 
-### Otimizações de Performance
+### Performance Optimizations
 
-- **Processamento em lote:** Parágrafos processados em grupos para melhor performance
-- **Operações otimizadas:** Find/Replace em bulk, cache de objetos frequentes
-- **Gestão de memória:** Coleta de lixo inteligente e minimização de criação de objetos
-- **Compatibilidade preservada:** Todas as otimizações mantêm compatibilidade com Word 2010+
+- **Batch processing:** Paragraphs processed in groups for better performance
+- **Optimized operations:** Bulk Find/Replace, caching of frequently used objects
+- **Memory management:** Smart garbage collection and minimal object creation
+- **Compatibility preserved:** All optimizations keep compatibility with Word 2010+
 
-### Sistema de Logging Aprimorado
+### Enhanced Logging System
 
-- **Controle detalhado:** Configure níveis de log (ERROR, WARNING, INFO, DEBUG)
-- **Performance tracking:** Medição precisa de tempo de execução
-- **Configuração flexível:** Enable/disable logging por categoria
+- **Detailed control:** Configure log levels (ERROR, WARNING, INFO, DEBUG)
+- **Performance tracking:** Accurate execution time measurement
+- **Flexible configuration:** Enable/disable logging by category
 
-## 🚀 Principais Funcionalidades
+## 🚀 Main Features
 
-- **Padronização automática de proposituras legislativas:**  
-  Formatação específica para INDICAÇÕES, REQUERIMENTOS e MOÇÕES com controle de layout institucional.
-- **Validação de conteúdo configurável:**  
-  Verificação de consistência entre ementa e teor das proposituras (pode ser desabilitada).
-- **Remoção inteligente de elementos visuais:**  
-  Limpeza automática de elementos ocultos e formatação inadequada (totalmente configurável).
-- **Sistema robusto de backup:**  
-  Backup automático antes de modificações, com recuperação de emergência.
-- **Formatação institucional:**  
-  Cabeçalho com logotipo, numeração de páginas e margens padronizadas.
-- **Logging detalhado:**  
-  Geração de logs com timestamps, níveis de severidade e rastreamento completo.
-- **Interface aprimorada:**  
-  Mensagens claras ao usuário e validações interativas.
-- **Performance otimizada:**  
-  Processamento eficiente mesmo para documentos grandes.
-- **Segurança avançada:**  
-  Validação de integridade, verificação de versão e proteção contra falhas.
+- **Automatic standardization of legislative propositions:**
+  Specific formatting for INDICAÇÕES, REQUERIMENTOS and MOÇÕES with institutional layout control.
+- **Configurable content validation:**
+  Consistency checks between header and content (can be disabled).
+- **Smart cleanup of visual elements:**
+  Automatic removal of hidden and inappropriate formatting (fully configurable).
+- **Robust backup system:**
+  Automatic backup before modifications, with emergency recovery.
+- **Institutional formatting:**
+  Header with logo, page numbering and standardized margins.
+- **Detailed logging:**
+  Logs with timestamps, severity levels and full traceability.
+- **Enhanced interface:**
+  Clear user messages and interactive validations.
+- **Optimized performance:**
+  Efficient processing even for large documents.
+- **Advanced security:**
+  Integrity validation, version check and failure protection.
 
-## 📁 Estrutura do Projeto
+## 📁 Project Structure
 
 ```text
 chainsaw/
-├── 📁 assets/              # Recursos (imagens, ícones)
-│   └── stamp.png          # Logo institucional
-├── 📁 config/             # Arquivos de configuração
-│   ├── chainsaw-config.ini # Configuração principal
-│   └── word/              # Configurações específicas do Word
-├── 📁 docs/               # Documentação
-│   ├── CONTRIBUTORS.md    # Lista de contribuidores
-│   └── SECURITY.md        # Políticas de segurança
-├── 📁 examples/           # Documentos de exemplo
+├── 📁 assets/              # Assets (images, icons)
+│   └── stamp.png          # Institutional logo
+├── 📁 config/             # Configuration files
+│   ├── chainsaw-config.ini # Main configuration
+│   └── word/              # Word-specific settings
+├── 📁 docs/               # Documentation
+│   ├── CONTRIBUTORS.md    # Contributors list
+│   └── SECURITY.md        # Security policies
+├── 📁 examples/           # Example documents
 │   └── prop-de-testes-01.docx
-├── 📁 scripts/            # Scripts de instalação
-│   ├── install-chainsaw.ps1  # Instalador automatizado
-│   ├── install-config.ini    # Configuração do instalador
-│   └── INSTALL.md           # Guia de instalação
-├── 📁 src/                # Código fonte
-│   └── chainsaw0.bas      # Módulo VBA principal
-├── LICENSE                # Licença do projeto
-└── README.md             # Este arquivo
+├── 📁 scripts/            # Installation scripts
+│   ├── install-chainsaw.ps1  # Automated installer
+│   ├── install-config.ini    # Installer configuration
+│   └── INSTALL.md           # Installation guide
+├── 📁 src/                # Source code
+│   └── chainsaw0.bas      # Main VBA module
+├── LICENSE                # Project license
+└── README.md             # This file
 ```
 
-## 🔧 Instalação
+## 🔧 Installation
 
-### Instalação Rápida (Recomendada)
+### Quick Install (Recommended)
 
-1. **Download do projeto:**
+1. **Download the project:**
    ```bash
    git clone https://github.com/chrmsantos/chainsaw-proposituras.git
    ```
 
-2. **Execute o instalador automatizado:**
+2. **Run the automated installer:**
 
    ```powershell
    cd chainsaw-proposituras
    .\scripts\install-chainsaw.ps1
    ```
 
-### Instalação Manual
+### Manual Installation
 
-Consulte o guia detalhado em [`docs/INSTALL.md`](scripts/INSTALL.md) para instruções completas de instalação manual.
+See the detailed guide in [`scripts/INSTALL.md`](scripts/INSTALL.md) for full manual installation instructions.
 
-## ⚙️ Configuração
+## ⚙️ Configuration
 
-O sistema utiliza um arquivo de configuração externo (`config/chainsaw-config.ini`) que permite controle granular sobre todas as funcionalidades.
+The system uses an external configuration file (`config/chainsaw-config.ini`) that allows granular control over all features.
 
-### Configuração Rápida
+### Quick Configuration
 
 ```ini
-[GERAL]
+[GENERAL]
 debug_mode = false
 performance_mode = true
 compatibility_mode = true
 
-[VALIDACOES]
+[VALIDATIONS]
 validate_document_integrity = true
 validate_proposition_type = true
 check_word_version = true
 min_word_version = 14.0
 ```
 
-Para configuração completa, consulte [`config/chainsaw-config.ini`](config/chainsaw-config.ini).
+For full configuration, see [`config/chainsaw-config.ini`](config/chainsaw-config.ini).
 
-### Localização do Arquivo
+### File Location
 
-O sistema procura o arquivo `chainsaw-config.ini` em:
+The system searches for `chainsaw-config.ini` in:
 
-1. **Pasta do documento atual** (se houver documento aberto)
-2. **Pasta Documentos do usuário** (fallback)
+1. The current document folder (if a document is open)
+2. The user's Documents folder (fallback)
 
-## 📖 Uso
+## 📖 Usage
 
-### Uso Básico
+### Basic Usage
 
-1. Abra um documento no Microsoft Word
-2. Execute a macro `PadronizarDocumentoMain`
-3. O sistema processará automaticamente o documento seguindo as configurações
+1. Open a document in Microsoft Word
+2. Run the macro `StandardizeDocumentMain`
+3. The system will automatically process the document according to the configuration
 
-### Funcionalidades Principais
+### Key Shortcuts
 
-- **Alt + F8**: Abrir lista de macros
-- **Ctrl + Shift + P**: Atalho personalizado (configurável)
+- Alt + F8: Open macro list
+- Ctrl + Shift + P: Custom shortcut (configurable)
 
-## 🔒 Segurança
+## 🔒 Security
 
-### Configuração de Macros no Microsoft Word
+### Macro Configuration in Microsoft Word
 
-Para usar o CHAINSAW PROPOSITURAS com segurança:
+To use CHAINSAW PROPOSITURAS safely:
 
 1. **Configurações de Segurança:**
    - Arquivo → Opções → Central de Confiabilidade
    - Configurações de Macro → "Desabilitar todas as macros com notificação"
 
-2. **Verificações de Segurança:**
-   - ✅ Código fonte aberto e auditável
-   - ✅ Não requer conexão com internet
-   - ✅ Backup automático antes de modificações
-   - ✅ Tratamento robusto de erros
+2. **Security Checks:**
+  - ✅ Open and auditable source code
+  - ✅ No internet connection required
+  - ✅ Automatic backup before modifications
+  - ✅ Robust error handling
 
 Para políticas corporativas, consulte [`docs/SECURITY.md`](docs/SECURITY.md).
 
-## 📋 Requisitos
+## 📋 Requirements
 
-### Mínimos
+### Minimum
 
-- **Sistema Operacional:** Windows 7 ou superior
-- **Microsoft Word:** 2010 ou superior
-- **Permissões:** Execução de macros VBA habilitada
-- **Espaço em Disco:** 50MB livres
+- OS: Windows 7 or later
+- Microsoft Word: 2010 or later
+- Permissions: VBA macro execution enabled
+- Disk Space: 50MB free
 
-### Recomendados
+### Recommended
 
-- **Microsoft Word:** 2016 ou superior
-- **RAM:** 4GB ou superior
-- **Processador:** Intel/AMD 64-bit
+- Microsoft Word: 2016 or later
+- RAM: 4GB or higher
+- CPU: Intel/AMD 64-bit
 
-## 📚 Documentação
+## 📚 Documentation
 
 ### Documentos Disponíveis
 
-- [`docs/SECURITY.md`](docs/SECURITY.md) - Políticas de segurança
-- [`docs/CONTRIBUTORS.md`](docs/CONTRIBUTORS.md) - Lista de contribuidores
-- [`scripts/INSTALL.md`](scripts/INSTALL.md) - Guia de instalação detalhado
+- [`docs/SECURITY.md`](docs/SECURITY.md) - Security policies
+- [`docs/CONTRIBUTORS.md`](docs/CONTRIBUTORS.md) - Contributors list
+- [`scripts/INSTALL.md`](scripts/INSTALL.md) - Detailed installation guide
 
 ### Exemplos
 
 Consulte a pasta [`examples/`](examples/) para documentos de exemplo e casos de uso.
 
-## 🤝 Contribuição
+## 🤝 Contributing
 
-Colaborações são bem-vindas! Para contribuir:
+Contributions are welcome! To contribute:
 
 1. Fork o repositório
 2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
@@ -206,20 +206,20 @@ Colaborações são bem-vindas! Para contribuir:
 4. Push para a branch (`git push origin feature/AmazingFeature`)
 5. Abra um Pull Request
 
-Consulte [`docs/CONTRIBUTORS.md`](docs/CONTRIBUTORS.md) para detalhes sobre o processo de contribuição.
+See [`docs/CONTRIBUTORS.md`](docs/CONTRIBUTORS.md) for details on the contribution process.
 
-## 📄 Licença
+## 📄 License
 
-Este projeto está licenciado sob a **Apache 2.0 License modificada com cláusula 10 (restrição comercial)** - consulte o arquivo [LICENSE](LICENSE) para detalhes.
+This project is licensed under the **Apache 2.0 Modified License (with clause 10)** - see [LICENSE](LICENSE) for details.
 
-**Nota:** O Microsoft Word é software proprietário e requer licença própria.
+Note: Microsoft Word is proprietary software and requires its own license.
 
-## 👨‍💻 Autor
+## 👨‍💻 Author
 
-**Christian Martin dos Santos** - [chrmsantos](https://github.com/chrmsantos)
-
----
+Christian Martin dos Santos - [chrmsantos](https://github.com/chrmsantos)
 
 ---
 
-Desenvolvido com ❤️ para a comunidade legislativa brasileira
+---
+
+Built with ❤️ for the legislative community
