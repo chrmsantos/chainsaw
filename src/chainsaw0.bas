@@ -2167,10 +2167,50 @@ End Function
 Private Function PreviousFormatting(doc As Document) As Boolean
     On Error GoTo ErrorHandler
 
-    ' Only process header image - all other formatting removed per requirements
-    LogMessage "Processing header image only", LOG_LEVEL_INFO
+    LogMessage "Starting document formatting based on configuration", LOG_LEVEL_INFO
     
-    ' Insert header image only  
+    ' Apply page setup if enabled
+    If Config.applyPageSetup Then
+        LogMessage "Applying page setup", LOG_LEVEL_INFO
+        If Not ApplyPageSetup(doc) Then
+            LogMessage "Warning: Failed to apply page setup", LOG_LEVEL_WARNING
+        End If
+    End If
+    
+    ' Apply standard font if enabled
+    If Config.applyStandardFont Then
+        LogMessage "Applying standard font", LOG_LEVEL_INFO
+        If Not ApplyStdFont(doc) Then
+            LogMessage "Warning: Failed to apply standard font", LOG_LEVEL_WARNING
+        End If
+    End If
+    
+    ' Apply standard paragraphs if enabled
+    If Config.applyStandardParagraphs Then
+        LogMessage "Applying standard paragraphs", LOG_LEVEL_INFO
+        If Not ApplyStdParagraphs(doc) Then
+            LogMessage "Warning: Failed to apply standard paragraphs", LOG_LEVEL_WARNING
+        End If
+    End If
+    
+    ' Apply text replacements if enabled
+    If Config.applyTextReplacements Then
+        LogMessage "Applying text replacements", LOG_LEVEL_INFO
+        If Not ApplyTextReplacements(doc) Then
+            LogMessage "Warning: Failed to apply text replacements", LOG_LEVEL_WARNING
+        End If
+    End If
+    
+    ' Apply specific paragraph replacements if enabled
+    If Config.applySpecificParagraphReplacements Then
+        LogMessage "Applying specific paragraph replacements", LOG_LEVEL_INFO
+        If Not ApplySpecificParagraphReplacements(doc) Then
+            LogMessage "Warning: Failed to apply specific paragraph replacements", LOG_LEVEL_WARNING
+        End If
+    End If
+    
+    ' Insert header image (always enabled)
+    LogMessage "Processing header image", LOG_LEVEL_INFO
     InsertHeaderstamp doc
     
     ' Make clipboard visible (requirement #5) - Use Word VBA compatible method
@@ -2179,7 +2219,7 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     On Error GoTo ErrorHandler
     
     PreviousFormatting = True
-    LogMessage "Document processing completed - header image added", LOG_LEVEL_INFO
+    LogMessage "Document formatting completed successfully", LOG_LEVEL_INFO
     Exit Function
 
 ErrorHandler:
