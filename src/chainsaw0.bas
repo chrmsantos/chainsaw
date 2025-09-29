@@ -22,18 +22,8 @@ Option Explicit
 Private Const VERSION As String = "v1.0.0-Beta1"
 Private Const SYSTEM_NAME As String = "CHAINSAW PROPOSITURAS"
 
-' Message constants
-Private Const MSG_BACKUP_SUCCESS As String = "Backup created successfully: "
-Private Const MSG_BACKUP_FAILED As String = "Failed to create backup: "
-Private Const MSG_RESTORE_SUCCESS As String = "Restore executed successfully: "
-Private Const MSG_RESTORE_FAILED As String = "Failed to restore backup: "
-
-' Error constants
-Private Const ERR_WORD_NOT_FOUND As Long = 5000
-Private Const ERR_INCOMPATIBLE_VERSION As Long = 5001
-Private Const ERR_DOCUMENT_PROTECTED As Long = 5002
-Private Const ERR_BACKUP_FAILED As Long = 5003
-Private Const ERR_INVALID_DOCUMENT As Long = 5004
+' Message constants (removed unused)
+' Error constants (removed unused)
 
 ' Log level constants
 Private Const LOG_LEVEL_ERROR As String = "ERROR"
@@ -43,7 +33,6 @@ Private Const LOG_LEVEL_DEBUG As String = "DEBUG"
 
 ' Performance constants  
 Private Const MAX_PARAGRAPH_BATCH_SIZE As Long = 50
-Private Const MAX_FIND_REPLACE_BATCH As Long = 100
 Private Const OPTIMIZATION_THRESHOLD As Long = 1000
 
 '================================================================================
@@ -156,11 +145,8 @@ Private Const wdLineSpace1pt5 As Long = 1
 Private Const wdLineSpacingMultiple As Long = 5
 Private Const wdStatisticPages As Long = 2
 Private Const msoTrue As Long = -1
-Private Const msoFalse As Long = 0
 Private Const msoPicture As Long = 13
 Private Const msoTextEffect As Long = 15
-Private Const msoTextBox As Long = 17
-Private Const msoAutoShape As Long = 1
 Private Const wdCollapseEnd As Long = 0
 Private Const wdCollapseStart As Long = 1
 Private Const wdFieldPage As Long = 33
@@ -176,7 +162,6 @@ Private Const wdOrientPortrait As Long = 0
 Private Const wdUnderlineNone As Long = 0
 Private Const wdUnderlineSingle As Long = 1
 Private Const wdTextureNone As Long = 0
-Private Const wdPrintView As Long = 3
 
 ' Document formatting constants
 Private Const STANDARD_FONT As String = "Arial"
@@ -193,28 +178,13 @@ Private Const HEADER_DISTANCE_CM As Double = 0.3
 Private Const FOOTER_DISTANCE_CM As Double = 0.9
 
 ' Header image constants
-Private Const HEADER_IMAGE_RELATIVE_PATH As String = "\chsw-prop\private\header\stamp.png"
 Private Const HEADER_IMAGE_MAX_WIDTH_CM As Double = 21
 Private Const HEADER_IMAGE_TOP_MARGIN_CM As Double = 0.7
 Private Const HEADER_IMAGE_HEIGHT_RATIO As Double = 0.19
 
-' Minimum supported version
-Private Const MIN_SUPPORTED_VERSION As Long = 14 ' Word 2010
-
-' Required string constant
-Private Const REQUIRED_STRING As String = "$NUMERO$/$ANO$"
-
-' Timeout constants
-Private Const MAX_RETRY_ATTEMPTS As Long = 3
-Private Const RETRY_DELAY_MS As Long = 1000
-
 ' Configuration file constants
 Private Const CONFIG_FILE_NAME As String = "chainsaw-config.ini"
-Private Const CONFIG_FILE_PATH As String = "\chsw-prop\"
-
-' Backup constants
-Private Const BACKUP_FOLDER_NAME As String = "\chsw-prop\private\backups\"
-Private Const MAX_BACKUP_FILES As Long = 10
+Private Const CONFIG_FILE_PATH As String = "\chainsaw\"
 
 '================================================================================
 ' GLOBAL VARIABLES
@@ -223,7 +193,6 @@ Private undoGroupEnabled As Boolean
 Private loggingEnabled As Boolean
 Private logFilePath As String
 Private formattingCancelled As Boolean
-Private executionStartTime As Date
 Private backupFilePath As String
 
 ' Configuration variables - loaded from chainsaw-config.ini
@@ -3064,10 +3033,17 @@ Private Function InsertHeaderstamp(doc As Document) As Boolean
     ' Resolve image file path using configuration if provided
     imgFile = Trim(Config.headerImagePath)
     If Len(imgFile) = 0 Then
-        ' Fallback to relative path constant strategy
-        username = GetSafeUserName()
-        imgFile = "C:\Users\" & username & HEADER_IMAGE_RELATIVE_PATH
-        If Dir(imgFile) = "" Then imgFile = Environ("USERPROFILE") & HEADER_IMAGE_RELATIVE_PATH
+        ' No configured path; try common locations relative to document or repo folder
+        Dim baseFolder As String
+        On Error Resume Next
+        baseFolder = IIf(doc.path <> "", doc.path, Environ("USERPROFILE") & "\Documents")
+        On Error GoTo ErrorHandler
+        If Right(baseFolder, 1) <> "\" Then baseFolder = baseFolder & "\"
+        If Dir(baseFolder & "assets\stamp.png") <> "" Then
+            imgFile = baseFolder & "assets\stamp.png"
+        ElseIf Dir(Environ("USERPROFILE") & "\Documents\chainsaw\assets\stamp.png") <> "" Then
+            imgFile = Environ("USERPROFILE") & "\Documents\chainsaw\assets\stamp.png"
+        End If
     Else
         ' If relative path (no drive letter), try resolve from current document folder and repo root
         If InStr(1, imgFile, ":", vbTextCompare) = 0 And Left(imgFile, 2) <> "\\" Then
@@ -5183,7 +5159,7 @@ Private Function CreateDocumentBackup(doc As Document) As Boolean
     End If
     On Error GoTo ErrorHandler
     
-    backupFolder = parentPath & BACKUP_FOLDER_NAME
+    backupFolder = parentPath & "\backups"
     
     ' Cria pasta de backup com verificação robusta
     If Not fso.FolderExists(backupFolder) Then
@@ -5243,7 +5219,7 @@ Private Function CreateDocumentBackup(doc As Document) As Boolean
     On Error GoTo ErrorHandler
     
     ' Cria uma cópia do arquivo usando FileSystemObject com retry
-    For retryCount = 1 To MAX_RETRY_ATTEMPTS
+    For retryCount = 1 To Config.maxRetryAttempts
         On Error Resume Next
         fso.CopyFile doc.FullName, backupFilePath, True
         If Err.Number = 0 Then
@@ -5252,9 +5228,9 @@ Private Function CreateDocumentBackup(doc As Document) As Boolean
         Else
             On Error GoTo ErrorHandler
             LogMessage "Tentativa " & retryCount & " de backup falhou: " & Err.Description, LOG_LEVEL_WARNING
-            If retryCount < MAX_RETRY_ATTEMPTS Then
+            If retryCount < Config.maxRetryAttempts Then
                 ' Aguarda um pouco antes de tentar novamente
-                Sleep 1000 ' 1 segundo = 1000 milissegundos
+                Sleep Config.retryDelayMs ' aguarda de acordo com configuração
             End If
         End If
     Next retryCount
@@ -5326,7 +5302,7 @@ Public Sub OpenBackupsFolder()
     
     ' Define pasta de backup baseada no documento atual
     If Not doc Is Nothing And doc.path <> "" Then
-        backupFolder = fso.GetParentFolderName(doc.path) & "\" & BACKUP_FOLDER_NAME
+    backupFolder = fso.GetParentFolderName(doc.path) & "\backups"
     Else
         Application.StatusBar = "Nenhum documento salvo ativo para localizar pasta de backups"
         Exit Sub
