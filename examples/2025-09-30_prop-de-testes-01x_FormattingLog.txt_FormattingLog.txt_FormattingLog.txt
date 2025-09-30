@@ -1,7 +1,7 @@
 ========================================================
 DOCUMENT FORMATTING LOG - LOGGING SYSTEM
 ========================================================
-Session: 2025-09-30 12:46:17
+Session: 2025-09-30 13:18:56
 User: csantos
 Computer: NOTEPROCLEG07
 Word Version: 16.0
@@ -9,7 +9,7 @@ Document: prop-de-testes-01.docx
 Location: C:\Users\csantos\Meu Drive\Câmara\Câmara 2025\Legislativo\Projects\chainsaw\examples
 Protection: No protection
 Size: 5,5 KB
-Paragraphs: 35 | Sections: 1
+Paragraphs: 33 | Sections: 1
 Log Level: INFO | Detailed: Verdadeiro
 ========================================================
 Pipeline will run the following steps (simplified):
@@ -22,91 +22,89 @@ Pipeline will run the following steps (simplified):
 - Special headers/footers (header image + footer page numbers)
 - Spacing cleanup and paragraph separation
 ========================================================
-2025-09-30 12:46:17 [INFO]  Starting document standardization: prop-de-testes-01.docx (Chainsaw Proposituras v1.0.0-Beta1)
-2025-09-30 12:46:17 [INFO]  Security checks completed successfully
-2025-09-30 12:46:17 [INFO]  Backup created successfully: prop-de-testes-01_backup_2025-09-30_124617.docx
-2025-09-30 12:46:17 [INFO]  Backup of view settings completed
-2025-09-30 12:46:17 [INFO]  Starting document formatting based on configuration
-2025-09-30 12:46:17 [INFO]  START: Page setup
-2025-09-30 12:46:17 [INFO]  END: Page setup (ok) | 0,13s
-2025-09-30 12:46:17 [INFO]  START: Clean document structure
-2025-09-30 12:46:17 [INFO]  Structure cleaned: 2 empty lines removed
-2025-09-30 12:46:17 [INFO]  END: Clean document structure (ok) | 0,04s
-2025-09-30 12:46:17 [INFO]  START: Validate proposition type
-2025-09-30 12:46:17 [INFO]  Proposition type validated: indicação
-2025-09-30 12:46:17 [INFO]  END: Validate proposition type (ok) | 0,01s
-2025-09-30 12:46:17 [INFO]  START: Validate content consistency
-2025-09-30 12:46:17 [INFO]  Consistency validation: 19 common words between summary and body
-2025-09-30 12:46:17 [INFO]  Consistency adequate: 19 common words between summary and body
-2025-09-30 12:46:17 [INFO]  END: Validate content consistency (ok) | 0,04s
-2025-09-30 12:46:17 [INFO]  START: Format document title
-2025-09-30 12:46:17 [INFO]  Proposition title formatted: INDICAÇÃO Nº $NUMERO$/$ANO$ (centered, uppercase, bold, underlined)
-2025-09-30 12:46:17 [INFO]  END: Format document title (ok) | 0,01s
-2025-09-30 12:46:17 [INFO]  START: Apply standard font
-2025-09-30 12:46:17 [INFO]  END: Apply standard font (ok) | 0,05s
-2025-09-30 12:46:17 [INFO]  START: Apply standard paragraphs
-2025-09-30 12:46:17 [INFO]  END: Apply standard paragraphs (ok) | 0,17s
-2025-09-30 12:46:17 [INFO]  START: Format first paragraph
-2025-09-30 12:46:17 [INFO]  END: Format first paragraph (ok) | 0,00s
-2025-09-30 12:46:17 [INFO]  START: Format second paragraph
-2025-09-30 12:46:17 [INFO]  2nd paragraph formatted with 2 blank lines before and after (position: 4)
-2025-09-30 12:46:17 [INFO]  END: Format second paragraph (ok) | 0,01s
-2025-09-30 12:46:17 [INFO]  START: Format 'CONSIDERANDO' paragraphs
-2025-09-30 12:46:17 [ERROR]  Error formatting 'CONSIDERANDO': Argumento ou chamada de procedimento inválida
-2025-09-30 12:46:17 [WARNING]  Warning: Failed to format 'CONSIDERANDO' paragraphs
-2025-09-30 12:46:17 [INFO]  END: Format 'CONSIDERANDO' paragraphs (with warnings/errors) | 0,01s
-2025-09-30 12:46:17 [INFO]  START: Apply text replacements
-2025-09-30 12:46:17 [ERROR]  Error applying text replacements: Argumento ou chamada de procedimento inválida
-2025-09-30 12:46:17 [WARNING]  Warning: Failed to apply text replacements
-2025-09-30 12:46:17 [INFO]  END: Apply text replacements (with warnings/errors) | 0,01s
-2025-09-30 12:46:17 [INFO]  START: Apply specific paragraph replacements
-2025-09-30 12:46:17 [INFO]  Specific replacements completed (per-paragraph and global): 0 replacements performed
-2025-09-30 12:46:17 [INFO]  END: Apply specific paragraph replacements (ok) | 0,06s
-2025-09-30 12:46:17 [INFO]  START: Format numbered paragraphs
-2025-09-30 12:46:17 [INFO]  Numbered lists formatting complete: 0 paragraphs converted
-2025-09-30 12:46:17 [INFO]  END: Format numbered paragraphs (ok) | 0,02s
-2025-09-30 12:46:17 [INFO]  START: Format 'Justificativa/Anexo' paragraphs
-2025-09-30 12:46:17 [INFO]  Paragraph 'Justificativa' formatted (centered, bold, no indents)
-2025-09-30 12:46:17 [INFO]  Special formatting complete: 1 paragraphs formatted
-2025-09-30 12:46:17 [INFO]  END: Format 'Justificativa/Anexo' paragraphs (ok) | 0,04s
-2025-09-30 12:46:17 [INFO]  START: Enable hyphenation
-2025-09-30 12:46:17 [INFO]  END: Enable hyphenation (ok) | 0,00s
-2025-09-30 12:46:17 [INFO]  START: Remove watermark
-2025-09-30 12:46:17 [INFO]  END: Remove watermark (ok) | 0,04s
-2025-09-30 12:46:17 [INFO]  START: Insert header image
-2025-09-30 12:46:18 [INFO]  END: Insert header image (ok) | 0,44s
-2025-09-30 12:46:18 [INFO]  START: Insert footer page numbers
-2025-09-30 12:46:18 [INFO]  END: Insert footer page numbers (ok) | 0,05s
-2025-09-30 12:46:18 [INFO]  START: Clean multiple spaces
-2025-09-30 12:46:18 [INFO]  Space cleanup complete: 0 corrections applied (with CONSIDERANDO protection)
-2025-09-30 12:46:18 [INFO]  END: Clean multiple spaces (ok) | 0,05s
-2025-09-30 12:46:18 [INFO]  START: Limit sequential empty lines
-2025-09-30 12:46:18 [INFO]  Consecutive blank lines control completed in 2 pass(es): 2 extra line(s) removed (max 1 in a row)
-2025-09-30 12:46:18 [INFO]  END: Limit sequential empty lines (ok) | 0,09s
-2025-09-30 12:46:18 [INFO]  START: Ensure paragraph separation
-2025-09-30 12:46:18 [INFO]  Paragraph separation ensured: 0 blank line(s) inserted out of 30 pairs checked
-2025-09-30 12:46:18 [INFO]  END: Ensure paragraph separation (ok) | 0,04s
-2025-09-30 12:46:18 [INFO]  START: Reinforce 2nd paragraph blank lines
-2025-09-30 12:46:18 [INFO]  2nd paragraph blank lines ensured (before: 2, after: 2)
-2025-09-30 12:46:18 [INFO]  END: Reinforce 2nd paragraph blank lines (ok) | 0,01s
-2025-09-30 12:46:18 [INFO]  START: Reapply 'Justificativa/Anexo' formatting
-2025-09-30 12:46:18 [INFO]  Paragraph 'Justificativa' formatted (centered, bold, no indents)
-2025-09-30 12:46:18 [INFO]  Special formatting complete: 1 paragraphs formatted
-2025-09-30 12:46:18 [INFO]  END: Reapply 'Justificativa/Anexo' formatting (ok) | 0,04s
-2025-09-30 12:46:18 [INFO]  START: Configure document view
-2025-09-30 12:46:18 [INFO]  View configured: zoom set to 110%, other settings preserved
-2025-09-30 12:46:18 [INFO]  END: Configure document view (ok) | 0,02s
-2025-09-30 12:46:18 [INFO]  Document formatting completed successfully
-2025-09-30 12:46:19 [INFO]  Original view settings restored (zoom kept at 110%)
-2025-09-30 12:46:19 [INFO]  Document standardized successfully
-2025-09-30 12:46:19 [INFO]  Restoring performance settings...
-2025-09-30 12:46:19 [INFO]  Performance settings restored
-2025-09-30 12:46:19 [INFO]  Image protection variables cleaned
-2025-09-30 12:46:19 [INFO]  View settings variables cleaned
+2025-09-30 13:18:56 [INFO]  Starting document standardization: prop-de-testes-01.docx (Chainsaw Proposituras v1.0.0-Beta1)
+2025-09-30 13:18:56 [INFO]  Security checks completed successfully
+2025-09-30 13:18:57 [INFO]  Backup created successfully: prop-de-testes-01_backup_2025-09-30_131856.docx
+2025-09-30 13:18:57 [INFO]  Backup of view settings completed
+2025-09-30 13:18:57 [INFO]  Starting document formatting based on configuration
+2025-09-30 13:18:57 [INFO]  START: Page setup
+2025-09-30 13:18:57 [INFO]  END: Page setup (ok) | 0,11s
+2025-09-30 13:18:57 [INFO]  START: Clean document structure
+2025-09-30 13:18:57 [INFO]  END: Clean document structure (ok) | 0,03s
+2025-09-30 13:18:57 [INFO]  START: Validate proposition type
+2025-09-30 13:18:57 [INFO]  Proposition type validated: indicação
+2025-09-30 13:18:57 [INFO]  END: Validate proposition type (ok) | 0,00s
+2025-09-30 13:18:57 [INFO]  START: Validate content consistency
+2025-09-30 13:18:57 [INFO]  Consistency validation: 19 common words between summary and body
+2025-09-30 13:18:57 [INFO]  Consistency adequate: 19 common words between summary and body
+2025-09-30 13:18:57 [INFO]  END: Validate content consistency (ok) | 0,04s
+2025-09-30 13:18:57 [INFO]  START: Format document title
+2025-09-30 13:18:57 [INFO]  Proposition title formatted: INDICAÇÃO Nº $NUMERO$/$ANO$ (centered, uppercase, bold, underlined)
+2025-09-30 13:18:57 [INFO]  END: Format document title (ok) | 0,02s
+2025-09-30 13:18:57 [INFO]  START: Apply standard font
+2025-09-30 13:18:57 [INFO]  END: Apply standard font (ok) | 0,03s
+2025-09-30 13:18:57 [INFO]  START: Apply standard paragraphs
+2025-09-30 13:18:57 [INFO]  END: Apply standard paragraphs (ok) | 0,16s
+2025-09-30 13:18:57 [INFO]  START: Format first paragraph
+2025-09-30 13:18:57 [INFO]  END: Format first paragraph (ok) | 0,00s
+2025-09-30 13:18:57 [INFO]  START: Format second paragraph
+2025-09-30 13:18:57 [INFO]  2nd paragraph formatted with 2 blank lines before and after (position: 4)
+2025-09-30 13:18:57 [INFO]  END: Format second paragraph (ok) | 0,00s
+2025-09-30 13:18:57 [INFO]  START: Format 'CONSIDERANDO' paragraphs
+2025-09-30 13:18:57 [INFO]  Formatting 'CONSIDERANDO' applied: 5 occurrences
+2025-09-30 13:18:57 [INFO]  END: Format 'CONSIDERANDO' paragraphs (ok) | 0,02s
+2025-09-30 13:18:57 [INFO]  START: Apply text replacements
+2025-09-30 13:18:57 [ERROR]  Error applying text replacements: Argumento ou chamada de procedimento inválida
+2025-09-30 13:18:57 [WARNING]  Warning: Failed to apply text replacements
+2025-09-30 13:18:57 [INFO]  END: Apply text replacements (with warnings/errors) | 0,01s
+2025-09-30 13:18:57 [INFO]  START: Apply specific paragraph replacements
+2025-09-30 13:18:57 [INFO]  Specific replacements completed (per-paragraph and global): 0 replacements performed
+2025-09-30 13:18:57 [INFO]  END: Apply specific paragraph replacements (ok) | 0,06s
+2025-09-30 13:18:57 [INFO]  START: Format numbered paragraphs
+2025-09-30 13:18:57 [INFO]  Numbered lists formatting complete: 0 paragraphs converted
+2025-09-30 13:18:57 [INFO]  END: Format numbered paragraphs (ok) | 0,03s
+2025-09-30 13:18:57 [INFO]  START: Format 'Justificativa/Anexo' paragraphs
+2025-09-30 13:18:57 [INFO]  Paragraph 'Justificativa' formatted (centered, bold, no indents)
+2025-09-30 13:18:57 [INFO]  Special formatting complete: 1 paragraphs formatted
+2025-09-30 13:18:57 [INFO]  END: Format 'Justificativa/Anexo' paragraphs (ok) | 0,03s
+2025-09-30 13:18:57 [INFO]  START: Enable hyphenation
+2025-09-30 13:18:57 [INFO]  END: Enable hyphenation (ok) | 0,00s
+2025-09-30 13:18:57 [INFO]  START: Remove watermark
+2025-09-30 13:18:57 [INFO]  END: Remove watermark (ok) | 0,10s
+2025-09-30 13:18:57 [INFO]  START: Insert header image
+2025-09-30 13:18:58 [INFO]  END: Insert header image (ok) | 0,55s
+2025-09-30 13:18:58 [INFO]  START: Insert footer page numbers
+2025-09-30 13:18:58 [INFO]  END: Insert footer page numbers (ok) | 0,07s
+2025-09-30 13:18:58 [INFO]  START: Clean multiple spaces
+2025-09-30 13:18:58 [INFO]  Space cleanup complete: 0 corrections applied (with CONSIDERANDO protection)
+2025-09-30 13:18:58 [INFO]  END: Clean multiple spaces (ok) | 0,05s
+2025-09-30 13:18:58 [INFO]  START: Limit sequential empty lines
+2025-09-30 13:18:58 [INFO]  Consecutive blank lines control completed in 2 pass(es): 2 extra line(s) removed (max 1 in a row)
+2025-09-30 13:18:58 [INFO]  END: Limit sequential empty lines (ok) | 0,07s
+2025-09-30 13:18:58 [INFO]  START: Ensure paragraph separation
+2025-09-30 13:18:58 [INFO]  Paragraph separation ensured: 0 blank line(s) inserted out of 30 pairs checked
+2025-09-30 13:18:58 [INFO]  END: Ensure paragraph separation (ok) | 0,03s
+2025-09-30 13:18:58 [INFO]  START: Reinforce 2nd paragraph blank lines
+2025-09-30 13:18:58 [INFO]  2nd paragraph blank lines ensured (before: 2, after: 2)
+2025-09-30 13:18:58 [INFO]  END: Reinforce 2nd paragraph blank lines (ok) | 0,01s
+2025-09-30 13:18:58 [INFO]  START: Reapply 'Justificativa/Anexo' formatting
+2025-09-30 13:18:58 [INFO]  Paragraph 'Justificativa' formatted (centered, bold, no indents)
+2025-09-30 13:18:58 [INFO]  Special formatting complete: 1 paragraphs formatted
+2025-09-30 13:18:58 [INFO]  END: Reapply 'Justificativa/Anexo' formatting (ok) | 0,04s
+2025-09-30 13:18:58 [INFO]  START: Configure document view
+2025-09-30 13:18:58 [INFO]  View configured: zoom set to 110%, other settings preserved
+2025-09-30 13:18:58 [INFO]  END: Configure document view (ok) | 0,02s
+2025-09-30 13:18:58 [INFO]  Document formatting completed successfully
+2025-09-30 13:18:58 [INFO]  Original view settings restored (zoom kept at 110%)
+2025-09-30 13:18:58 [INFO]  Document standardized successfully
+2025-09-30 13:18:58 [INFO]  Restoring performance settings...
+2025-09-30 13:18:58 [INFO]  Performance settings restored
+2025-09-30 13:18:58 [INFO]  Image protection variables cleaned
+2025-09-30 13:18:58 [INFO]  View settings variables cleaned
 ================================================
-END OF SESSION - 2025-09-30 12:46:19
+END OF SESSION - 2025-09-30 13:18:58
 Duration: 0,02 seconds
 Errors: None
 Status: COMPLETED
-Log counters -> INFO: 231, WARNING: 6, ERROR: 6
+Log counters -> INFO: 77, WARNING: 1, ERROR: 1
 ================================================
