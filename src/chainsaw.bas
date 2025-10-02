@@ -2247,10 +2247,7 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     Call ConfigureDocumentView(doc)
     LogStepEnd True
     
-    ' Make clipboard visible (requirement #5) - Use Word VBA compatible method
-    On Error Resume Next
-    Application.CommandBars("Clipboard").Visible = True
-    On Error GoTo ErrorHandler
+    ' Clipboard pane visibility enforcement removed per request
     
     PreviousFormatting = True
     LogMessage "Document formatting completed successfully", LOG_LEVEL_INFO
@@ -3775,10 +3772,11 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
     For i = 0 To UBound(dOesteVariants)
         With rng.Find
             .ClearFormatting
+            .Replacement.ClearFormatting
             .text = dOesteVariants(i) & "este"
             .Replacement.text = "d'Oeste"
             .Forward = True
-            .Wrap = wdFindContinue
+            .Wrap = wdFindStop
             .Format = False
             .MatchCase = False
             .MatchWholeWord = False
@@ -3816,7 +3814,7 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
                 .text = dashVariants(i)
                 .Replacement.text = " — "    ' Em dash (travessão) com espaços
                 .Forward = True
-                .Wrap = wdFindContinue
+                .Wrap = wdFindStop
                 .Format = False
                 .MatchCase = False
                 .MatchWholeWord = False
@@ -3847,7 +3845,7 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
             .text = lineStartDashVariants(i)
             .Replacement.text = "^p— "    ' Em dash at line start
             .Forward = True
-            .Wrap = wdFindContinue
+            .Wrap = wdFindStop
             .Format = False
             .MatchCase = False
             .MatchWholeWord = False
@@ -3877,7 +3875,7 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
             .text = lineEndDashVariants(i)
             .Replacement.text = " —^p"    ' Em dash at line end
             .Forward = True
-            .Wrap = wdFindContinue
+            .Wrap = wdFindStop
             .Format = False
             .MatchCase = False
             .MatchWholeWord = False
@@ -3902,7 +3900,7 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
         .text = "^l"  ' Manual line break
         .Replacement.text = " "  ' Replace with space
         .Forward = True
-        .Wrap = wdFindContinue
+        .Wrap = wdFindStop
         .Format = False
         .MatchCase = False
         .MatchWholeWord = False
@@ -3916,15 +3914,16 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
         Loop
     End With
     
-    ' Remove manual line breaks using character code
+    ' Remove manual line breaks using character code (guarded)
+    On Error Resume Next
     Set rng = doc.Range
     With rng.Find
         .ClearFormatting
         .Replacement.ClearFormatting
-        .text = Chr(11)  ' Manual line break (VT - Vertical Tab)
+        .text = Chr(11)  ' Manual line break (VT)
         .Replacement.text = " "  ' Replace with space
         .Forward = True
-        .Wrap = wdFindContinue
+        .Wrap = wdFindStop
         .Format = False
         .MatchCase = False
         .MatchWholeWord = False
@@ -3933,12 +3932,19 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
         .MatchAllWordForms = False
         
         Do While .Execute(Replace:=wdReplaceOne)
+            If Err.Number <> 0 Then Exit Do
             replacementCount = replacementCount + 1
             rng.Collapse wdCollapseEnd
         Loop
     End With
+    If Err.Number <> 0 Then
+        LogMessage "Warning: Skipped VT (Chr(11)) replacement due to error: " & Err.Description, LOG_LEVEL_WARNING
+        Err.Clear
+    End If
+    On Error GoTo ErrorHandler
     
     ' Remove Line Feed chars that aren't paragraph breaks
+    On Error Resume Next
     Set rng = doc.Range
     With rng.Find
         .ClearFormatting
@@ -3946,7 +3952,7 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
         .text = Chr(10)  ' Line Feed (LF)
         .Replacement.text = " "  ' Replace with space
         .Forward = True
-        .Wrap = wdFindContinue
+        .Wrap = wdFindStop
         .Format = False
         .MatchCase = False
         .MatchWholeWord = False
@@ -3955,10 +3961,16 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
         .MatchAllWordForms = False
         
         Do While .Execute(Replace:=wdReplaceOne)
+            If Err.Number <> 0 Then Exit Do
             replacementCount = replacementCount + 1
             rng.Collapse wdCollapseEnd
         Loop
     End With
+    If Err.Number <> 0 Then
+        LogMessage "Warning: Skipped LF (Chr(10)) replacement due to error: " & Err.Description, LOG_LEVEL_WARNING
+        Err.Clear
+    End If
+    On Error GoTo ErrorHandler
     
     LogMessage "Text replacements applied: " & replacementCount & " replacements performed", LOG_LEVEL_INFO
     ApplyTextReplacements = True
@@ -4861,54 +4873,6 @@ ErrorHandler:
     End If
 End Sub
 
-'================================================================================
-' PUBLIC SUBROUTINE: OPEN GITHUB REPOSITORY
-'================================================================================
-Public Sub OpenGitHubRepository()
-    On Error GoTo ErrorHandler
-    
-    Dim repoURL As String
-    Dim shellResult As Long
-    
-    ' Project repository URL
-    repoURL = "https://github.com/chrmsantos/chainsaw-proposituras"
-    
-    ' Open the link in the default browser
-    shellResult = Shell("rundll32.exe url.dll,FileProtocolHandler " & repoURL, vbNormalFocus)
-    
-    If shellResult > 0 Then
-    Application.StatusBar = "GitHub repository opened in browser"
-        
-    ' Log action if logging is enabled
-        If loggingEnabled Then
-            LogMessage "GitHub repository opened by user: " & repoURL, LOG_LEVEL_INFO
-        End If
-    Else
-        GoTo ErrorHandler
-    End If
-    
-    Exit Sub
-    
-ErrorHandler:
-    Application.StatusBar = "Error opening GitHub repository"
-    
-    ' Log error if logging is enabled
-    If loggingEnabled Then
-    LogMessage "Error opening GitHub repository: " & Err.Description, LOG_LEVEL_ERROR
-    End If
-    
-    ' Fallback: try to copy URL to clipboard
-    On Error Resume Next
-    Dim dataObj As Object
-    Set dataObj = CreateObject("htmlfile").parentWindow.clipboardData
-    dataObj.setData "text", repoURL
-    
-    If Err.Number = 0 Then
-        Application.StatusBar = "URL copied to clipboard: " & repoURL
-    Else
-        Application.StatusBar = "Could not open the repository. URL: " & repoURL
-    End If
-End Sub
 
 '================================================================================
 ' BACKUP SYSTEM - SAFETY FEATURE
@@ -4958,33 +4922,14 @@ Private Function CreateDocumentBackup(doc As Document) As Boolean
         Exit Function
     End If
     
-    ' Define backup folder with validation
-    On Error Resume Next
-    Dim parentPath As String
-    parentPath = fso.GetParentFolderName(doc.Path)
-    If Err.Number <> 0 Or parentPath = "" Then
-        On Error GoTo ErrorHandler
-    LogMessage "Backup error: unable to determine parent folder", LOG_LEVEL_ERROR
-        Exit Function
-    End If
-    On Error GoTo ErrorHandler
-    
-    backupFolder = parentPath & "\backups"
-    
-    ' Create backup folder with robust checks
-    If Not fso.FolderExists(backupFolder) Then
-        On Error Resume Next
-        fso.CreateFolder backupFolder
-        If Err.Number <> 0 Then
-            On Error GoTo ErrorHandler
-            LogMessage "Error creating backup folder: " & Err.Description, LOG_LEVEL_ERROR
-            Exit Function
-        End If
-        On Error GoTo ErrorHandler
-        LogMessage "Backup folder created: " & backupFolder, LOG_LEVEL_INFO
+    ' Choose backup folder same as logs folder: document folder or TEMP
+    If doc.Path <> "" Then
+        backupFolder = doc.Path
+    Else
+        backupFolder = Environ("TEMP")
     End If
     
-    ' Verify write permissions in the backup folder
+    ' Verify write permissions in the chosen folder
     On Error Resume Next
     Dim testFile As String
     testFile = backupFolder & "\test_write_" & Format(Now, "HHmmss") & ".tmp"
@@ -5051,7 +4996,7 @@ Private Function CreateDocumentBackup(doc As Document) As Boolean
         Exit Function
     End If
     
-    ' Clean old backups if needed
+    ' Clean old backups if needed (now in the same folder as logs)
     CleanOldBackups backupFolder, docName
     
     LogMessage "Backup created successfully: " & backupFileName, LOG_LEVEL_INFO
@@ -5110,18 +5055,17 @@ Public Sub OpenBackupsFolder()
     Set doc = ActiveDocument
     On Error GoTo ErrorHandler
     
-    ' Define backups folder based on current document
+    ' Define backups folder to match logs folder: document folder or TEMP
     If Not doc Is Nothing And doc.Path <> "" Then
-    backupFolder = fso.GetParentFolderName(doc.Path) & "\backups"
+        backupFolder = doc.Path
     Else
-    Application.StatusBar = "No saved active document to locate backups folder"
-        Exit Sub
+        backupFolder = Environ("TEMP")
     End If
     
-    ' Check if backups folder exists
+    ' Check if folder exists
     If Not fso.FolderExists(backupFolder) Then
-    Application.StatusBar = "Backups folder not found - no backups created yet"
-    LogMessage "Backups folder not found: " & backupFolder, LOG_LEVEL_WARNING
+        Application.StatusBar = "Folder not found"
+        LogMessage "Backups/logs folder not found: " & backupFolder, LOG_LEVEL_WARNING
         Exit Sub
     End If
     
@@ -5141,12 +5085,13 @@ ErrorHandler:
     Application.StatusBar = "Error opening backups folder"
     LogMessage "Error opening backups folder: " & Err.Description, LOG_LEVEL_ERROR
     
-    ' Fallback: try to open the document folder
+    ' Fallback: try to open the TEMP folder or document folder
     On Error Resume Next
-    If Not doc Is Nothing And doc.Path <> "" Then
-        Dim docFolder As String
-        docFolder = fso.GetParentFolderName(doc.Path)
-        Shell "explorer.exe """ & docFolder & """", vbNormalFocus
+    If fso.FolderExists(Environ("TEMP")) Then
+        Shell "explorer.exe """ & Environ("TEMP") & """", vbNormalFocus
+        Application.StatusBar = "TEMP folder opened as fallback"
+    ElseIf Not doc Is Nothing And doc.Path <> "" Then
+        Shell "explorer.exe """ & doc.Path & """", vbNormalFocus
         Application.StatusBar = "Document folder opened as fallback"
     Else
         Application.StatusBar = "Could not open backups folder"
