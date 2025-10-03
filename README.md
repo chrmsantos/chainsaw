@@ -19,7 +19,7 @@
 - [Usage](#-usage)
 - [Security](#-security)
 - [Requirements](#-requirements)
-- [Documentation](#-documentation)
+- [Configuration Reference](#-configuration-reference)
 - [Contributing](#-contributing)
 - [License](#-license)
 
@@ -70,49 +70,34 @@
 
 ```text
 chainsaw/
-├── 📁 assets/              # Assets (images, icons)
-│   └── stamp.png          # Institutional logo
-├── 📁 config/             # Configuration files
-│   ├── chainsaw-config.ini # Main configuration
-│   └── word/              # Word-specific settings
-├── 📁 docs/               # Documentation
-│   ├── CONTRIBUTORS.md    # Contributors list
-│   └── SECURITY.md        # Security policies
-├── 📁 examples/           # Example documents
-│   └── prop-de-testes-01.docx
-├── 📁 scripts/            # Installation scripts
-│   ├── install-chainsaw.ps1  # Automated installer
-│   ├── install-config.ini    # Installer configuration
-│   └── INSTALL.md           # Installation guide
-├── 📁 src/                # Source code
-│   └── chainsaw0.bas      # Main VBA module
-├── LICENSE                # Project license
-└── README.md             # This file
+├── assets/                    # Assets (images, icons)
+│   └── stamp.png              # Header/logo image
+├── config/                    # Configuration and Word UI customizations
+│   ├── Normal.dotm            # Word Normal template (customized)
+│   └── Word Personalizações.exportedUI  # Ribbon/QAT export
+├── scripts/                   # Scripts (currently empty)
+├── src/                       # Source code
+│   └── chainsaw.bas           # Main VBA module
+├── LICENSE                    # Project license
+├── README.md                  # This file
+└── SECURITY.md                # Security policy
 ```
 
 ## 🔧 Installation
 
 ### Quick Install (Recommended)
 
-1. **Download the project:**
-   ```bash
-   git clone https://github.com/chrmsantos/chainsaw-proposituras.git
-   ```
-
-2. **Run the automated installer:**
-
-   ```powershell
-   cd chainsaw-proposituras
-   .\scripts\install-chainsaw.ps1
-   ```
+1. Download the project (or copy the files to a trusted folder).
+2. Import `src/chainsaw.bas` into Word’s VBA editor (ALT+F11).
+3. Optionally import `config/Word Personalizações.exportedUI` into Word to add ribbon/QAT buttons.
 
 ### Manual Installation
 
-See the detailed guide in [`scripts/INSTALL.md`](scripts/INSTALL.md) for full manual installation instructions.
+Manual steps depend on your Word setup. If you need an installer, we can add one later in `scripts/`.
 
 ## ⚙️ Configuration
 
-The system uses an external configuration file (`config/chainsaw-config.ini`) that allows granular control over all features.
+The system loads settings from `chainsaw-config.ini` (placed alongside the document or in the expected configuration path). If the file is missing, safe defaults are applied.
 
 ### Quick Configuration
 
@@ -129,14 +114,13 @@ check_word_version = true
 min_word_version = 14.0
 ```
 
-For full configuration, see [`config/chainsaw-config.ini`](config/chainsaw-config.ini).
+As configuration evolves, this section will be expanded. See the Configuration Reference below for newly added flags.
 
-### File Location
+### File Locations
 
-The system searches for `chainsaw-config.ini` in:
-
-1. The current document folder (if a document is open)
-2. The user's Documents folder (fallback)
+- Logs and backups: same folder as the current document, or TEMP if unsaved.
+- Assets: `assets/` (header image, etc.).
+- Word UI customizations: `config/Word Personalizações.exportedUI`.
 
 ## 📖 Usage
 
@@ -167,7 +151,7 @@ To use CHAINSAW PROPOSITURAS safely:
   - ✅ Automatic backup before modifications
   - ✅ Robust error handling
 
-Para políticas corporativas, consulte [`docs/SECURITY.md`](docs/SECURITY.md).
+Para políticas corporativas, consulte [`SECURITY.md`](SECURITY.md).
 
 ## 📋 Requirements
 
@@ -184,17 +168,43 @@ Para políticas corporativas, consulte [`docs/SECURITY.md`](docs/SECURITY.md).
 - RAM: 4GB or higher
 - CPU: Intel/AMD 64-bit
 
+## � Configuration Reference
+
+Below are selected, stable keys you can place in `chainsaw-config.ini` (section names accept Portuguese or English equivalents):
+
+```ini
+[INTERFACE]
+dialog_ascii_normalization = true    ; true/false — fold accents & special chars in MsgBox text
+
+[VALIDATIONS]
+check_word_version = true            ; disable only for legacy environments
+validate_document_integrity = true
+validate_proposition_type = true
+validate_content_consistency = true
+
+[GENERAL]
+debug_mode = false
+performance_mode = true
+compatibility_mode = true
+```
+
+Notes:
+- Key names are case-insensitive; values: true/false/1/0.
+- Portuguese section names also work (e.g., `[INTERFACE]` or `[INTERFACE]`, `[VALIDACOES]`).
+- If a key is omitted, its safe default is used.
+
+### Dialog ASCII Normalization
+When enabled (`dialog_ascii_normalization = true`), all user-facing dialog strings are converted to an ASCII-safe form (accents replaced, smart quotes normalized) to avoid encoding issues on restricted systems. Set to `false` to retain original accents.
+
 ## 📚 Documentation
 
-### Documentos Disponíveis
+Project root files:
 
-- [`docs/SECURITY.md`](docs/SECURITY.md) - Security policies
-- [`docs/CONTRIBUTORS.md`](docs/CONTRIBUTORS.md) - Contributors list
-- [`scripts/INSTALL.md`](scripts/INSTALL.md) - Detailed installation guide
+- `SECURITY.md` – Security policies
+- `CONTRIBUTORS.md` – Contributors list
+- `installation/INSTALL.md` – Detailed installation & deployment guide
 
-### Exemplos
-
-Consulte a pasta [`examples/`](examples/) para documentos de exemplo e casos de uso.
+Historical/legacy example or docs folders referenced earlier have been consolidated; examples can be added in a future `examples/` directory as needed.
 
 ## 🤝 Contributing
 
@@ -206,7 +216,7 @@ Contributions are welcome! To contribute:
 4. Push para a branch (`git push origin feature/AmazingFeature`)
 5. Abra um Pull Request
 
-See [`docs/CONTRIBUTORS.md`](docs/CONTRIBUTORS.md) for details on the contribution process.
+See `CONTRIBUTORS.md` for details on the contribution process.
 
 ## 📄 License
 

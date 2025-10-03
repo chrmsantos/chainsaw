@@ -22,6 +22,93 @@ Option Explicit
 Private Const version As String = "v1.0.0-Beta1"
 Private Const SYSTEM_NAME As String = "CHAINSAW PROPOSITURAS"
 
+'================================================================================
+' CENTRALIZED USER-FACING MESSAGES & TITLES
+'================================================================================
+Private Const MSG_ERR_CONFIG_LOAD As String = "Critical error loading system configuration." & vbCrLf & _
+    "Execution was aborted to prevent issues."
+Private Const MSG_ERR_VERSION As String = "This tool requires Microsoft Word %MIN% or higher." & vbCrLf & _
+    "Current version: %CUR%" & vbCrLf & _
+    "Minimum version: %MIN%"
+Private Const MSG_NO_DOCUMENT As String = "No document is open or accessible." & vbCrLf & _
+    "Open a document before running the standardization."
+Private Const MSG_BACKUP_FAIL As String = "It was not possible to create a backup of the document." & vbCrLf & _
+    "Do you want to continue anyway?"
+Private Const MSG_ENABLE_EDITING As String = "This document is currently protected or read-only." & vbCrLf & _
+    "To proceed, the document must be editable." & vbCrLf & vbCrLf & _
+    "Do you want to Save As a new editable copy now?"
+Private Const MSG_INACCESSIBLE As String = "Error: Document is inaccessible."
+Private Const MSG_PROTECTED As String = "This document is protected and may not be fully formatable." & vbCrLf & _
+    "Protection type: %PROT%" & vbCrLf & vbCrLf & _
+    "Do you want to continue anyway?"
+Private Const MSG_EMPTY_DOC As String = "The document is empty." & vbCrLf & _
+    "Add content before running the standardization."
+Private Const MSG_LARGE_DOC As String = "This is a very large document (%SIZE% characters)." & vbCrLf & _
+    "Processing may be slow." & vbCrLf & vbCrLf & _
+    "Do you want to continue?"
+Private Const MSG_UNSAVED As String = "The document has unsaved changes." & vbCrLf & _
+    "It is recommended to save before standardization." & vbCrLf & vbCrLf & _
+    "Do you want to save now?"
+Private Const MSG_VALIDATION_ERROR As String = "Error during document validation:" & vbCrLf & _
+    "%ERR%" & vbCrLf & vbCrLf & _
+    "The operation will be cancelled for safety."
+Private Const MSG_PROCESSING_CANCELLED As String = "Processing cancelled." & vbCrLf & vbCrLf & _
+    "For proposition documents, ensure the first word is " & vbCrLf & _
+    "INDICAÇÃO, REQUERIMENTO or MOÇÃO."
+Private Const MSG_SAVE_ERROR As String = "Error saving one or more documents." & vbCrLf & _
+    "The operation was cancelled for safety." & vbCrLf & vbCrLf & _
+    "Check the documents and try again."
+Private Const MSG_OPERATION_CANCELLED As String = "Operation cancelled." & vbCrLf & "Documents remain open."
+Private Const MSG_CRITICAL_SAVE_EXIT As String = "Critical error during Save and Exit:" & vbCrLf & vbCrLf & _
+    "%ERR%" & vbCrLf & vbCrLf & _
+    "The operation was cancelled for safety." & vbCrLf & _
+    "Please save important documents manually."
+Private Const MSG_DOC_TYPE_WARNING As String = _
+    "ATTENTION: POSSIBLE NON-STANDARD DOCUMENT" & vbCrLf & vbCrLf & _
+    "The document doesn't start with the expected proposition keywords:" & vbCrLf & _
+    "• INDICAÇÃO" & vbCrLf & _
+    "• REQUERIMENTO" & vbCrLf & _
+    "• MOÇÃO" & vbCrLf & vbCrLf & _
+    "First word found: \"%FIRSTWORD%\"" & vbCrLf & vbCrLf & _
+    "Document start:" & vbCrLf & _
+    "\"%DOCSTART%...\"" & vbCrLf & vbCrLf & _
+    "This may not be a legislative proposition," & vbCrLf & _
+    "but you can still choose to format it." & vbCrLf & vbCrLf & _
+    "Do you want to proceed with formatting?"
+Private Const MSG_INCONSISTENCY_WARNING As String = _
+    "ATENÇÃO: POSSÍVEL INCONSISTÊNCIA DETECTADA" & vbCrLf & vbCrLf & _
+    "Foi detectada uma possível inconsistência entre a EMENTA " & vbCrLf & _
+    "(2º parágrafo) e o CORPO da proposição (restante do texto)." & vbCrLf & vbCrLf & _
+    "EMENTA (2º parágrafo):" & vbCrLf & _
+    "\"%Ementa%\"" & vbCrLf & vbCrLf & _
+    "Apenas %COMMON% palavra(s) em comum foram encontradas " & vbCrLf & _
+    "entre a ementa e o corpo da proposição." & vbCrLf & vbCrLf & _
+    "Por favor, revise o documento para garantir:" & vbCrLf & _
+    "• A ementa reflete adequadamente o conteúdo" & vbCrLf & _
+    "• O corpo está alinhado com a ementa" & vbCrLf & vbCrLf & _
+    "Deseja continuar a formatação mesmo assim?"
+
+Private Const TITLE_CONFIG_ERROR As String = "Configuration Error - " & SYSTEM_NAME
+Private Const TITLE_VERSION_ERROR As String = "Incompatible Version - " & SYSTEM_NAME
+Private Const TITLE_DOC_NOT_FOUND As String = "Document Not Found - " & SYSTEM_NAME
+Private Const TITLE_BACKUP_FAIL As String = "Backup Failure - " & SYSTEM_NAME
+Private Const TITLE_ENABLE_EDITING As String = SYSTEM_NAME & " - Enable Editing"
+Private Const TITLE_INTEGRITY_ERROR As String = "Integrity Error - " & SYSTEM_NAME
+Private Const TITLE_PROTECTED As String = "Protected Document - " & SYSTEM_NAME
+Private Const TITLE_EMPTY_DOC As String = "Empty Document - " & SYSTEM_NAME
+Private Const TITLE_LARGE_DOC As String = "Large Document - " & SYSTEM_NAME
+Private Const TITLE_UNSAVED As String = "Unsaved Changes - " & SYSTEM_NAME
+Private Const TITLE_VALIDATION_ERROR As String = "Validation Error - " & SYSTEM_NAME
+Private Const TITLE_DOC_TYPE As String = SYSTEM_NAME & " - Document Type Validation"
+Private Const TITLE_OPERATION_CANCELLED As String = SYSTEM_NAME & " - Operation Cancelled"
+Private Const TITLE_SAVE_ERROR As String = SYSTEM_NAME & " - Save Error"
+Private Const TITLE_FINAL_CONFIRM As String = SYSTEM_NAME & " - FINAL CONFIRMATION"
+Private Const TITLE_CRITICAL_SAVE_EXIT As String = SYSTEM_NAME & " - Critical Error"
+Private Const TITLE_CONSISTENCY As String = SYSTEM_NAME & " - Validação de Consistência"
+
+' Feature flag (overridable by config later if needed)
+Private dialogAsciiNormalizationEnabled As Boolean
+
 ' Message constants (removed unused)
 ' Error constants (removed unused)
 
@@ -374,7 +461,8 @@ Private Function LoadConfiguration() As Boolean
     LoadConfiguration = False
     
     ' Define default values first
-           SetDefaultConfiguration
+    SetDefaultConfiguration
+    dialogAsciiNormalizationEnabled = True ' default on for safe ASCII dialogs
     
     ' Try to load from configuration file
     Dim configPath As String
@@ -821,6 +909,8 @@ Private Sub ProcessInterfaceConfig(key As String, value As String)
             Config.enableEmergencyRecovery = (LCase(value) = "true")
         Case "TIMEOUT_OPERATIONS"
             Config.timeoutOperations = (LCase(value) = "true")
+        Case "DIALOG_ASCII_NORMALIZATION", "DIALOG_ASCII_NORMALIZE", "ASCII_DIALOGS"
+            dialogAsciiNormalizationEnabled = (LCase(value) <> "false" And LCase(value) <> "0")
     End Select
 End Sub
 
@@ -1174,8 +1264,8 @@ Public Sub StandardizeDocumentMain()
     If Not isConfigLoaded Then
         If Not LoadConfiguration() Then
             LogMessage "Critical error loading configuration. Aborting execution.", LOG_LEVEL_ERROR
-            MsgBox "Critical error loading system configuration." & vbCrLf & _
-                   "Execution was aborted to prevent issues.", vbCritical, "Configuration Error - " & SYSTEM_NAME
+         MsgBox NormalizeForUI("Critical error loading system configuration." & vbCrLf & _
+             "Execution was aborted to prevent issues."), vbCritical, NormalizeForUI("Configuration Error - " & SYSTEM_NAME)
             Exit Sub
         End If
     isConfigLoaded = True
@@ -1208,8 +1298,8 @@ Public Sub StandardizeDocumentMain()
         On Error GoTo CriticalErrorHandler
         Application.StatusBar = "Error: No document is accessible"
         LogMessage "No document accessible for processing", LOG_LEVEL_ERROR
-     MsgBox "No document is open or accessible." & vbCrLf & _
-         "Open a document before running the standardization.", vbExclamation, "Document Not Found - Chainsaw Proposituras"
+     MsgBox NormalizeForUI("No document is open or accessible." & vbCrLf & _
+         "Open a document before running the standardization."), vbExclamation, NormalizeForUI("Document Not Found - Chainsaw Proposituras")
         Exit Sub
     End If
     On Error GoTo CriticalErrorHandler
@@ -1270,8 +1360,8 @@ Public Sub StandardizeDocumentMain()
         LogMessage "Failed to create backup - continuing without backup", LOG_LEVEL_WARNING
         Application.StatusBar = "Warning: Backup was not possible - processing without backup"
         Dim backupResponse As VbMsgBoxResult
-        backupResponse = MsgBox("It was not possible to create a backup of the document." & vbCrLf & _
-                              "Do you want to continue anyway?", vbYesNo + vbExclamation, "Backup Failure - Chainsaw Proposituras")
+    backupResponse = MsgBox(NormalizeForUI("It was not possible to create a backup of the document." & vbCrLf & _
+                  "Do you want to continue anyway?"), vbYesNo + vbExclamation, NormalizeForUI("Backup Failure - Chainsaw Proposituras"))
         If backupResponse = vbNo Then
             LogMessage "Operation cancelled by user due to backup failure", LOG_LEVEL_INFO
             GoTo CleanUp
@@ -1361,8 +1451,8 @@ Private Function EnsureDocumentEditable(doc As Document) As Boolean
                  "Do you want to Save As a new editable copy now?"
         
         Dim userChoice As VbMsgBoxResult
-        userChoice = MsgBox(prompt, vbYesNo + vbQuestion + vbDefaultButton1, _
-                            "Chainsaw - Enable Editing")
+    userChoice = MsgBox(NormalizeForUI(prompt), vbYesNo + vbQuestion + vbDefaultButton1, _
+                NormalizeForUI("Chainsaw - Enable Editing"))
         
         If userChoice = vbYes Then
             On Error Resume Next
@@ -1502,7 +1592,7 @@ Private Function ValidateDocumentIntegrity(doc As Document) As Boolean
     ' Basic accessibility check
     If doc Is Nothing Then
     LogMessage "Document is Nothing during integrity validation", LOG_LEVEL_ERROR
-    MsgBox "Error: Document is inaccessible.", vbCritical, "Integrity Error - Chainsaw Proposituras"
+    MsgBox NormalizeForUI("Error: Document is inaccessible."), vbCritical, NormalizeForUI("Integrity Error - Chainsaw Proposituras")
         Exit Function
     End If
     
@@ -1519,10 +1609,10 @@ Private Function ValidateDocumentIntegrity(doc As Document) As Boolean
     
     If isProtected Then
      LogMessage "Protected document detected: " & GetProtectionType(doc), LOG_LEVEL_WARNING
-     MsgBox "This document is protected and may not be fully formatable." & vbCrLf & _
+     MsgBox NormalizeForUI("This document is protected and may not be fully formatable." & vbCrLf & _
          "Protection type: " & GetProtectionType(doc) & vbCrLf & vbCrLf & _
-         "Do you want to continue anyway?", vbYesNo + vbExclamation, "Protected Document - Chainsaw Proposituras"
-        If vbNo = MsgBox("", vbYesNo) Then ' Simula resposta para compatibilidade
+         "Do you want to continue anyway?"), vbYesNo + vbExclamation, NormalizeForUI("Protected Document - Chainsaw Proposituras")
+    If vbNo = MsgBox(NormalizeForUI(""), vbYesNo) Then ' Simula resposta para compatibilidade
             LogMessage "User cancelled due to document protection", LOG_LEVEL_INFO
             Exit Function
         End If
@@ -1531,8 +1621,8 @@ Private Function ValidateDocumentIntegrity(doc As Document) As Boolean
     ' Minimum content check
     If doc.Paragraphs.count < 1 Then
      LogMessage "Empty document detected", LOG_LEVEL_ERROR
-     MsgBox "The document is empty." & vbCrLf & _
-         "Add content before running the standardization.", vbExclamation, "Empty Document - Chainsaw Proposituras"
+     MsgBox NormalizeForUI("The document is empty." & vbCrLf & _
+         "Add content before running the standardization."), vbExclamation, NormalizeForUI("Empty Document - Chainsaw Proposituras")
         Exit Function
     End If
     
@@ -1549,9 +1639,9 @@ Private Function ValidateDocumentIntegrity(doc As Document) As Boolean
     If docSize > 500000 Then ' ~500KB of text
         LogMessage "Very large document detected: " & docSize & " characters", LOG_LEVEL_WARNING
         Dim continueResponse As VbMsgBoxResult
-    continueResponse = MsgBox("This is a very large document (" & Format(docSize, "#,##0") & " characters)." & vbCrLf & _
+    continueResponse = MsgBox(NormalizeForUI("This is a very large document (" & Format(docSize, "#,##0") & " characters)." & vbCrLf & _
                 "Processing may be slow." & vbCrLf & vbCrLf & _
-                "Do you want to continue?", vbYesNo + vbQuestion, "Large Document - Chainsaw Proposituras")
+                "Do you want to continue?"), vbYesNo + vbQuestion, NormalizeForUI("Large Document - Chainsaw Proposituras"))
         If continueResponse = vbNo Then
             LogMessage "User cancelled due to document size", LOG_LEVEL_INFO
             Exit Function
@@ -1562,9 +1652,9 @@ Private Function ValidateDocumentIntegrity(doc As Document) As Boolean
     If Not doc.Saved And doc.Path <> "" Then
     LogMessage "Document has unsaved changes", LOG_LEVEL_WARNING
         Dim saveResponse As VbMsgBoxResult
-    saveResponse = MsgBox("The document has unsaved changes." & vbCrLf & _
+    saveResponse = MsgBox(NormalizeForUI("The document has unsaved changes." & vbCrLf & _
                 "It is recommended to save before standardization." & vbCrLf & vbCrLf & _
-                "Do you want to save now?", vbYesNoCancel + vbQuestion, "Unsaved Changes - Chainsaw Proposituras")
+                "Do you want to save now?"), vbYesNoCancel + vbQuestion, NormalizeForUI("Unsaved Changes - Chainsaw Proposituras"))
         Select Case saveResponse
             Case vbYes
                 doc.Save
@@ -1584,9 +1674,9 @@ Private Function ValidateDocumentIntegrity(doc As Document) As Boolean
     
 ErrorHandler:
     LogMessage "Error during integrity validation: " & Err.Description, LOG_LEVEL_ERROR
-    MsgBox "Error during document validation:" & vbCrLf & _
+    MsgBox NormalizeForUI("Error during document validation:" & vbCrLf & _
         Err.Description & vbCrLf & vbCrLf & _
-        "The operation will be cancelled for safety.", vbCritical, "Validation Error - Chainsaw Proposituras"
+        "The operation will be cancelled for safety."), vbCritical, NormalizeForUI("Validation Error - Chainsaw Proposituras")
     ValidateDocumentIntegrity = False
 End Function
 
@@ -1607,8 +1697,7 @@ FallbackMethod:
     Exit Function
     
 ErrorHandler:
-    ' Last resort - safe default value
-    SafeGetCharacterCount = 0
+          ' Removed stray duplicated MsgBox (already handled in main flow)
     LogMessage "Error getting character count: " & Err.Description, LOG_LEVEL_WARNING
 End Function
 
@@ -1622,9 +1711,7 @@ Private Function SafeSetFont(targetRange As Range, fontName As String, fontSize 
         .Color = wdColorAutomatic
     End With
     
-    SafeSetFont = True
-    Exit Function
-    
+                ' Removed stray duplicated version requirement MsgBox (handled earlier)
 ErrorHandler:
     SafeSetFont = False
     LogMessage "Error applying font: " & Err.Description & " - Range: " & Left(targetRange.text, 20), LOG_LEVEL_WARNING
@@ -1638,8 +1725,8 @@ Private Function SafeSetParagraphFormat(para As Paragraph, alignment As Long, le
         If leftIndent >= 0 Then .leftIndent = leftIndent
         If firstLineIndent >= 0 Then .firstLineIndent = firstLineIndent
     End With
-    
-    SafeSetParagraphFormat = True
+            MsgBox NormalizeForUI("No document is open or accessible." & vbCrLf & _
+                 "Open a document before running the standardization."), vbExclamation, NormalizeForUI("Document Not Found - Chainsaw Proposituras")
     Exit Function
     
 ErrorHandler:
@@ -1803,11 +1890,11 @@ Private Function InitializeLogging(doc As Document) As Boolean
     Print #1, "DOCUMENT FORMATTING LOG - LOGGING SYSTEM"
     Print #1, "========================================================"
     Print #1, "Session: " & Format(Now, "yyyy-mm-dd HH:MM:ss")
-    Print #1, "User: " & Environ("USERNAME")
-    Print #1, "Computer: " & Environ("COMPUTERNAME")
-    Print #1, "Word Version: " & Application.version
-    Print #1, "Document: " & doc.Name
-    Print #1, "Location: " & IIf(doc.Path = "", "(Not saved)", doc.Path)
+    Print #1, "User: " & NormalizeForLog(Environ("USERNAME"))
+    Print #1, "Computer: " & NormalizeForLog(Environ("COMPUTERNAME"))
+    Print #1, "Word Version: " & NormalizeForLog(CStr(Application.version))
+    Print #1, "Document: " & NormalizeForLog(doc.Name)
+    Print #1, "Location: " & NormalizeForLog(IIf(doc.Path = "", "(Not saved)", doc.Path))
     Print #1, "Protection: " & GetProtectionType(doc)
     Print #1, "Size: " & GetDocumentSize(doc)
     Print #1, "Paragraphs: " & doc.Paragraphs.count & " | Sections: " & doc.Sections.count
@@ -1862,7 +1949,7 @@ Private Sub LogMessage(message As String, Optional level As String = LOG_LEVEL_I
     End Select
     
     Dim formattedMessage As String
-    formattedMessage = Format(Now, "yyyy-mm-dd HH:MM:ss") & " [" & levelText & "] " & levelIcon & " " & message
+    formattedMessage = Format(Now, "yyyy-mm-dd HH:MM:ss") & " [" & levelText & "] " & levelIcon & " " & NormalizeForLog(message)
     
     Open logFilePath For Append As #1
     Print #1, formattedMessage
@@ -3535,20 +3622,11 @@ Private Function ValidatePropositionType(doc As Document) As Boolean
         
     ' Build a detailed message for the user
         Dim confirmationMessage As String
-        confirmationMessage = "ATTENTION: POSSIBLE NON-STANDARD DOCUMENT" & vbCrLf & vbCrLf
-        confirmationMessage = confirmationMessage & "The document doesn't start with the expected proposition keywords:" & vbCrLf
-        confirmationMessage = confirmationMessage & "• INDICAÇÃO" & vbCrLf
-        confirmationMessage = confirmationMessage & "• REQUERIMENTO" & vbCrLf
-        confirmationMessage = confirmationMessage & "• MOÇÃO" & vbCrLf & vbCrLf
-        confirmationMessage = confirmationMessage & "First word found: """ & UCase(firstWord) & """" & vbCrLf & vbCrLf
-        confirmationMessage = confirmationMessage & "Document start:" & vbCrLf
-        confirmationMessage = confirmationMessage & """" & Left(paraText, 150) & "...""" & vbCrLf & vbCrLf
-        confirmationMessage = confirmationMessage & "This may not be a legislative proposition," & vbCrLf
-        confirmationMessage = confirmationMessage & "but you can still choose to format it." & vbCrLf & vbCrLf
-        confirmationMessage = confirmationMessage & "Do you want to proceed with formatting?"
-        
-        userResponse = MsgBox(confirmationMessage, vbYesNo + vbQuestion + vbDefaultButton2, _
-                             "Chainsaw - Document Type Validation")
+        confirmationMessage = FormatTemplate(MSG_DOC_TYPE_WARNING, _
+                                             "%FIRSTWORD%", UCase(firstWord), _
+                                             "%DOCSTART%", Left(paraText, 150))
+        userResponse = MsgBox(NormalizeForUI(confirmationMessage), vbYesNo + vbQuestion + vbDefaultButton2, _
+                 NormalizeForUI(TITLE_DOC_TYPE))
         
         If userResponse = vbYes Then
             LogMessage "User chose to proceed with non-standard document: " & firstWord, LOG_LEVEL_INFO
@@ -3559,10 +3637,10 @@ Private Function ValidatePropositionType(doc As Document) As Boolean
             Application.StatusBar = "Processing cancelled by user"
             
             ' Final cancellation message
-            MsgBox "Processing cancelled." & vbCrLf & vbCrLf & _
-                   "For proposition documents, ensure the first word is " & vbCrLf & _
-                   "INDICAÇÃO, REQUERIMENTO or MOÇÃO.", _
-                   vbInformation, "Chainsaw - Operation Cancelled"
+         MsgBox NormalizeForUI("Processing cancelled." & vbCrLf & vbCrLf & _
+             "For proposition documents, ensure the first word is " & vbCrLf & _
+             "INDICAÇÃO, REQUERIMENTO or MOÇÃO."), _
+             vbInformation, NormalizeForUI("Chainsaw - Operation Cancelled")
             
             ValidatePropositionType = False
         End If
@@ -3733,6 +3811,82 @@ Private Function FormatConsiderandoParagraphs(doc As Document) As Boolean
 ErrorHandler:
     LogMessage "Error formatting 'CONSIDERANDO': " & Err.Description, LOG_LEVEL_ERROR
     FormatConsiderandoParagraphs = False
+End Function
+
+'================================================================================
+' LOG STRING NORMALIZATION - avoid encoding issues in log files
+'================================================================================
+Private Function NormalizeForLog(ByVal s As String) As String
+    On Error Resume Next
+    Dim i As Long, ch As String, code As Long
+    Dim out As String
+    out = ""
+    For i = 1 To Len(s)
+        ch = Mid$(s, i, 1)
+        code = AscW(ch)
+        ' Keep ASCII printable and common punctuation; replace others with '?'
+        If code >= 32 And code <= 126 Then
+            out = out & ch
+        ElseIf ch = vbCr Or ch = vbLf Or ch = vbTab Then
+            out = out & ch
+        Else
+            out = out & "?"
+        End If
+    Next i
+    NormalizeForLog = out
+End Function
+
+'================================================================================
+' UI STRING NORMALIZATION - produce ASCII-safe text for MsgBox dialogs
+'================================================================================
+Private Function NormalizeForUI(ByVal s As String) As String
+    On Error Resume Next
+    If Not dialogAsciiNormalizationEnabled Then
+        NormalizeForUI = s
+        Exit Function
+    End If
+    Dim i As Long, ch As String, code As Long
+    Dim out As String
+    out = ""
+    For i = 1 To Len(s)
+        ch = Mid$(s, i, 1)
+        code = AscW(ch)
+        Select Case code
+            Case 192 To 197, 224 To 229: out = out & "a"   ' ÀÁÂÃÄÅàáâãäå
+            Case 199: out = out & "C"                      ' Ç
+            Case 231: out = out & "c"                      ' ç
+            Case 200 To 203, 232 To 235: out = out & "e"
+            Case 204 To 207, 236 To 239: out = out & "i"
+            Case 210 To 214, 242 To 246: out = out & "o"
+            Case 217 To 220, 249 To 252: out = out & "u"
+            Case 209: out = out & "N"                      ' Ñ
+            Case 241: out = out & "n"                      ' ñ
+            Case 8211, 8212: out = out & "-"               ' en/em dash
+            Case 8216, 8217: out = out & "'"               ' curly apostrophes
+            Case 8220, 8221, 171, 187: out = out & """"    ' various quotes -> standard quote
+            Case 10, 13: out = out & ch                    ' CR/LF
+            Case 32 To 126: out = out & ch                 ' standard ASCII
+            Case Else: out = out & "?"
+        End Select
+    Next i
+    NormalizeForUI = out
+End Function
+
+'================================================================================
+' TEMPLATE STRING REPLACEMENT HELPER
+'================================================================================
+Private Function FormatTemplate(ByVal template As String, ParamArray pairs()) As String
+    On Error Resume Next
+    Dim i As Long
+    Dim result As String
+    result = template
+    ' pairs should be an even number: key, value, key, value ...
+    For i = LBound(pairs) To UBound(pairs) Step 2
+        If i + 1 <= UBound(pairs) Then
+            result = Replace(result, CStr(pairs(i)), CStr(pairs(i + 1)))
+        End If
+    Next i
+    FormatTemplate = result
 End Function
 
 '================================================================================
@@ -4246,21 +4400,12 @@ Private Function ValidateContentConsistency(doc As Document) As Boolean
     If commonWordsCount < 2 Then
     ' Show a warning to the user
         Dim inconsistencyMessage As String
-    inconsistencyMessage = "WARNING: POSSIBLE INCONSISTENCY DETECTED" & vbCrLf & vbCrLf
-    inconsistencyMessage = inconsistencyMessage & "A possible inconsistency was detected between the SUMMARY " & vbCrLf
-    inconsistencyMessage = inconsistencyMessage & "(2nd paragraph) and the BODY of the proposition (rest of the text)." & vbCrLf & vbCrLf
-    inconsistencyMessage = inconsistencyMessage & "SUMMARY (2nd paragraph):" & vbCrLf
-    inconsistencyMessage = inconsistencyMessage & """" & Left(secondParaText, 200) & """" & vbCrLf & vbCrLf
-    inconsistencyMessage = inconsistencyMessage & "Only " & commonWordsCount & " common word(s) were found " & vbCrLf
-    inconsistencyMessage = inconsistencyMessage & "between the summary and the body of the proposition." & vbCrLf & vbCrLf
-    inconsistencyMessage = inconsistencyMessage & "Please review the document to ensure:" & vbCrLf
-    inconsistencyMessage = inconsistencyMessage & "• The summary adequately reflects the content" & vbCrLf
-    inconsistencyMessage = inconsistencyMessage & "• The body is aligned with the summary" & vbCrLf & vbCrLf
-    inconsistencyMessage = inconsistencyMessage & "Do you want to continue formatting anyway?"
-        
         Dim userResponse As VbMsgBoxResult
-    userResponse = MsgBox(inconsistencyMessage, vbYesNo + vbExclamation + vbDefaultButton2, _
-                 "Chainsaw - Consistency Validation")
+        inconsistencyMessage = FormatTemplate(MSG_INCONSISTENCY_WARNING, _
+                                              "%Ementa%", Left(secondParaText, 200), _
+                                              "%COMMON%", CStr(commonWordsCount))
+        userResponse = MsgBox(NormalizeForUI(inconsistencyMessage), vbYesNo + vbExclamation + vbDefaultButton2, _
+                 NormalizeForUI(TITLE_CONSISTENCY))
         
         If userResponse = vbNo Then
             LogMessage "User chose to stop due to detected inconsistency", LOG_LEVEL_WARNING
@@ -4327,6 +4472,78 @@ Private Function CountCommonWords(text1 As String, text2 As String) As Long
 
 ErrorHandler:
     CountCommonWords = 0
+End Function
+
+'================================================================================
+' COPY BODY TEXT AND OPEN CHATGPT SITE WITH OPTIONAL AUTO-PASTE
+'================================================================================
+' WARNING / LIMITATIONS:
+' - This routine copies only the main body (wdMainTextStory) excluding headers/footers, footnotes, etc.
+' - It opens the default browser at https://chat.openai.com.
+' - Optional auto-paste uses SendKeys which is inherently unreliable and may paste into the wrong window
+'   if the user changes focus. Use autoPaste:=True only if you understand the risk.
+' - Authentication or site load timing is not controlled; a delay (browserWaitMs) is used before attempting paste.
+' - For very large documents, browser text areas may lag or reject full pastes.
+' - Sensitive or confidential data should NOT be pasted into third-party services without approval.
+'================================================================================
+Public Sub CopyBodyAndOpenChatGPT(Optional ByVal autoPaste As Boolean = False, _
+                                  Optional ByVal browserWaitMs As Long = 3000)
+    On Error GoTo ErrorHandler
+    Const CHATGPT_URL As String = "https://chat.openai.com/"
+
+    Dim bodyRng As Range
+    Dim bodyText As String
+    Dim copiedPlain As Boolean
+
+    ' Obtain main story range (body only)
+    Set bodyRng = ActiveDocument.StoryRanges(wdMainTextStory).Duplicate
+    bodyText = bodyRng.Text
+
+    ' Normalize line endings lightly (optional)
+    bodyText = Replace(bodyText, vbCrLf & vbCrLf & vbCrLf, vbCrLf & vbCrLf)
+
+    ' Try to put plain text into clipboard via DataObject
+    copiedPlain = PutTextInClipboard(bodyText)
+    If Not copiedPlain Then
+        ' Fallback: copy formatted range (includes formatting) – still gets text when pasted
+        bodyRng.Copy
+    End If
+
+    LogMessage "Body text copied to clipboard (plain=" & CStr(copiedPlain) & ")", LOG_LEVEL_INFO
+
+    ' Open site in default browser
+    Application.FollowHyperlink CHATGPT_URL, NewWindow:=True
+
+    If autoPaste Then
+        ' Wait for the browser to launch (crude delay)
+        If browserWaitMs < 500 Then browserWaitMs = 500
+        Sleep browserWaitMs
+        ' Attempt to paste (focus must be in the prompt box manually or by site default)
+        Application.SendKeys "^v", True
+        LogMessage "Attempted auto-paste to ChatGPT site", LOG_LEVEL_INFO
+    End If
+
+    Exit Sub
+
+ErrorHandler:
+    LogMessage "Error in CopyBodyAndOpenChatGPT: " & Err.Description, LOG_LEVEL_ERROR
+    MsgBox NormalizeForUI("Failed to copy/paste to ChatGPT: " & Err.Description), _
+           vbCritical, NormalizeForUI(TITLE_OPERATION_CANCELLED)
+End Sub
+
+'--------------------------------------------------------------------------------
+' Helper: Put plain text into clipboard using late-bound DataObject
+'--------------------------------------------------------------------------------
+Private Function PutTextInClipboard(ByVal s As String) As Boolean
+    On Error GoTo Fail
+    Dim dobj As Object
+    Set dobj = CreateObject("MSForms.DataObject")
+    dobj.SetText s
+    dobj.PutInClipboard
+    PutTextInClipboard = True
+    Exit Function
+Fail:
+    PutTextInClipboard = False
 End Function
 
 '================================================================================
@@ -5611,8 +5828,8 @@ Public Sub SaveAndExit()
     Application.StatusBar = "Waiting for user decision about unsaved documents..."
     
     Dim userChoice As VbMsgBoxResult
-    userChoice = MsgBox(message, vbYesNoCancel + vbExclamation + vbDefaultButton1, _
-                        "Chainsaw - Save and Exit (" & unsavedDocs.count & " unsaved document(s))")
+    userChoice = MsgBox(NormalizeForUI(message), vbYesNoCancel + vbExclamation + vbDefaultButton1, _
+                        NormalizeForUI(SYSTEM_NAME & " - Save and Exit (" & unsavedDocs.count & " unsaved document(s))"))
     
     Select Case userChoice
         Case vbYes
@@ -5627,23 +5844,21 @@ Public Sub SaveAndExit()
             Else
           Application.StatusBar = "Error saving documents - operation cancelled"
           LogMessage "Failed to save some documents - exit operation cancelled", LOG_LEVEL_ERROR
-          MsgBox "Error saving one or more documents." & vbCrLf & _
-              "The operation was cancelled for safety." & vbCrLf & vbCrLf & _
-              "Check the documents and try again.", _
-              vbCritical, "Chainsaw - Save Error"
+          MsgBox NormalizeForUI(MSG_SAVE_ERROR), _
+              vbCritical, NormalizeForUI(TITLE_SAVE_ERROR)
             End If
             
         Case vbNo
             ' User chose not to save
             Dim confirmMessage As String
-            confirmMessage = "FINAL CONFIRMATION:" & vbCrLf & vbCrLf
-            confirmMessage = confirmMessage & "You are about to CLOSE WORD WITHOUT SAVING " & unsavedDocs.count & " document(s)." & vbCrLf & vbCrLf
-            confirmMessage = confirmMessage & "ALL UNSAVED CHANGES WILL BE LOST!" & vbCrLf & vbCrLf
-            confirmMessage = confirmMessage & "Are you absolutely sure?"
+            confirmMessage = "FINAL CONFIRMATION:" & vbCrLf & vbCrLf & _
+                "You are about to CLOSE WORD WITHOUT SAVING " & unsavedDocs.count & " document(s)." & vbCrLf & vbCrLf & _
+                "ALL UNSAVED CHANGES WILL BE LOST!" & vbCrLf & vbCrLf & _
+                "Are you absolutely sure?"
             
             Dim finalConfirm As VbMsgBoxResult
-            finalConfirm = MsgBox(confirmMessage, vbYesNo + vbCritical + vbDefaultButton2, _
-                                  "Chainsaw - FINAL CONFIRMATION")
+            finalConfirm = MsgBox(NormalizeForUI(confirmMessage), vbYesNo + vbCritical + vbDefaultButton2, _
+                                  NormalizeForUI(TITLE_FINAL_CONFIRM))
             
             If finalConfirm = vbYes Then
                 Application.StatusBar = "Closing Word without saving changes..."
@@ -5652,16 +5867,16 @@ Public Sub SaveAndExit()
             Else
           Application.StatusBar = "Operation cancelled by user"
           LogMessage "User cancelled closing without saving"
-          MsgBox "Operation cancelled." & vbCrLf & "Documents remain open.", _
-              vbInformation, "Chainsaw - Operation Cancelled"
+          MsgBox NormalizeForUI(MSG_OPERATION_CANCELLED), _
+              vbInformation, NormalizeForUI(TITLE_OPERATION_CANCELLED)
             End If
             
         Case vbCancel
          ' User cancelled
          Application.StatusBar = "Exit operation cancelled by user"
          LogMessage "User cancelled save and exit operation"
-         MsgBox "Operation cancelled." & vbCrLf & "Documents remain open.", _
-             vbInformation, "Chainsaw - Operation Cancelled"
+         MsgBox NormalizeForUI(MSG_OPERATION_CANCELLED), _
+             vbInformation, NormalizeForUI(TITLE_OPERATION_CANCELLED)
     End Select
     
     Application.StatusBar = False
@@ -5675,11 +5890,11 @@ CriticalErrorHandler:
     LogMessage errDesc, LOG_LEVEL_ERROR
     Application.StatusBar = "Critical error - operation cancelled"
     
-    MsgBox "Critical error during Save and Exit:" & vbCrLf & vbCrLf & _
+    MsgBox NormalizeForUI("Critical error during Save and Exit:" & vbCrLf & vbCrLf & _
         Err.Description & vbCrLf & vbCrLf & _
         "The operation was cancelled for safety." & vbCrLf & _
-        "Please save important documents manually.", _
-        vbCritical, "Chainsaw - Critical Error"
+        "Please save important documents manually."), _
+        vbCritical, NormalizeForUI("Chainsaw - Critical Error")
 End Sub
 
 '================================================================================
