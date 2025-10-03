@@ -11,6 +11,7 @@
 
 ' Windows API declarations
 Private Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
+'(Removed keybd_event and virtual key constants – obsolete after ChatGPT feature removal)
 
 Option Explicit
 
@@ -22,158 +23,67 @@ Option Explicit
 Private Const version As String = "v1.0.0-Beta1"
 Private Const SYSTEM_NAME As String = "CHAINSAW PROPOSITURAS"
 
+' Logging level constants (restored)
+Private Const LOG_LEVEL_INFO    As String = "INFO"
+Private Const LOG_LEVEL_WARNING As String = "WARN"
+Private Const LOG_LEVEL_ERROR   As String = "ERROR"
+Private Const LOG_LEVEL_DEBUG   As String = "DEBUG"
+
 '================================================================================
 ' CENTRALIZED USER-FACING MESSAGES & TITLES
 '================================================================================
 Private Const MSG_ERR_CONFIG_LOAD As String = "Critical error loading system configuration." & vbCrLf & _
     "Execution was aborted to prevent issues."
-Private Const MSG_ERR_VERSION As String = "This tool requires Microsoft Word %MIN% or higher." & vbCrLf & _
-    "Current version: %CUR%" & vbCrLf & _
-    "Minimum version: %MIN%"
+Private Const MSG_ERR_VERSION As String = "This tool requires Microsoft Word {{MIN}} or higher." & vbCrLf & _
+    "Current version: {{CUR}}" & vbCrLf & _
+    "Minimum version: {{MIN}}"
 Private Const MSG_NO_DOCUMENT As String = "No document is open or accessible." & vbCrLf & _
     "Open a document before running the standardization."
-Private Const MSG_BACKUP_FAIL As String = "It was not possible to create a backup of the document." & vbCrLf & _
-    "Do you want to continue anyway?"
-Private Const MSG_ENABLE_EDITING As String = "This document is currently protected or read-only." & vbCrLf & _
-    "To proceed, the document must be editable." & vbCrLf & vbCrLf & _
-    "Do you want to Save As a new editable copy now?"
-Private Const MSG_INACCESSIBLE As String = "Error: Document is inaccessible."
-Private Const MSG_PROTECTED As String = "This document is protected and may not be fully formatable." & vbCrLf & _
-    "Protection type: %PROT%" & vbCrLf & vbCrLf & _
-    "Do you want to continue anyway?"
-Private Const MSG_EMPTY_DOC As String = "The document is empty." & vbCrLf & _
-    "Add content before running the standardization."
-Private Const MSG_LARGE_DOC As String = "This is a very large document (%SIZE% characters)." & vbCrLf & _
-    "Processing may be slow." & vbCrLf & vbCrLf & _
-    "Do you want to continue?"
+Private Const MSG_ENABLE_EDITING As String = "The document appears to be in Protected View or not fully editable." & vbCrLf & _
+    "Do you want to attempt enabling editing now?"
+Private Const MSG_INACCESSIBLE As String = "The document cannot be fully accessed or is in a state that prevents processing." & vbCrLf & _
+    "Check protection, permissions, or file integrity."
+Private Const MSG_PROTECTED As String = "The document is protected: {{PROT}}." & vbCrLf & _
+    "Some operations may not be possible until protection is removed. Continue?"
+Private Const MSG_EMPTY_DOC As String = "The document contains no substantive content to process." & vbCrLf & _
+    "Add text before running the formatter."
+Private Const MSG_LARGE_DOC As String = "This document is large ({{SIZE}} bytes)." & vbCrLf & _
+    "Processing may take longer. Continue?"
 Private Const MSG_UNSAVED As String = "The document has unsaved changes." & vbCrLf & _
-    "It is recommended to save before standardization." & vbCrLf & vbCrLf & _
-    "Do you want to save now?"
-Private Const MSG_VALIDATION_ERROR As String = "Error during document validation:" & vbCrLf & _
-    "%ERR%" & vbCrLf & vbCrLf & _
-    "The operation will be cancelled for safety."
-Private Const MSG_PROCESSING_CANCELLED As String = "Processing cancelled." & vbCrLf & vbCrLf & _
-    "For proposition documents, ensure the first word is " & vbCrLf & _
-    "INDICAÇÃO, REQUERIMENTO or MOÇÃO."
-Private Const MSG_SAVE_ERROR As String = "Error saving one or more documents." & vbCrLf & _
-    "The operation was cancelled for safety." & vbCrLf & vbCrLf & _
-    "Check the documents and try again."
-Private Const MSG_OPERATION_CANCELLED As String = "Operation cancelled." & vbCrLf & "Documents remain open."
-Private Const MSG_CRITICAL_SAVE_EXIT As String = "Critical error during Save and Exit:" & vbCrLf & vbCrLf & _
-    "%ERR%" & vbCrLf & vbCrLf & _
-    "The operation was cancelled for safety." & vbCrLf & _
-    "Please save important documents manually."
-Private Const MSG_DOC_TYPE_WARNING As String = _
-    "ATTENTION: POSSIBLE NON-STANDARD DOCUMENT" & vbCrLf & vbCrLf & _
-    "The document doesn't start with the expected proposition keywords:" & vbCrLf & _
-    "• INDICAÇÃO" & vbCrLf & _
-    "• REQUERIMENTO" & vbCrLf & _
-    "• MOÇÃO" & vbCrLf & vbCrLf & _
-    "First word found: \"%FIRSTWORD%\"" & vbCrLf & vbCrLf & _
-    "Document start:" & vbCrLf & _
-    "\"%DOCSTART%...\"" & vbCrLf & vbCrLf & _
-    "This may not be a legislative proposition," & vbCrLf & _
-    "but you can still choose to format it." & vbCrLf & vbCrLf & _
-    "Do you want to proceed with formatting?"
-Private Const MSG_INCONSISTENCY_WARNING As String = _
-    "ATENÇÃO: POSSÍVEL INCONSISTÊNCIA DETECTADA" & vbCrLf & vbCrLf & _
-    "Foi detectada uma possível inconsistência entre a EMENTA " & vbCrLf & _
-    "(2º parágrafo) e o CORPO da proposição (restante do texto)." & vbCrLf & vbCrLf & _
-    "EMENTA (2º parágrafo):" & vbCrLf & _
-    "\"%Ementa%\"" & vbCrLf & vbCrLf & _
-    "Apenas %COMMON% palavra(s) em comum foram encontradas " & vbCrLf & _
-    "entre a ementa e o corpo da proposição." & vbCrLf & vbCrLf & _
-    "Por favor, revise o documento para garantir:" & vbCrLf & _
-    "• A ementa reflete adequadamente o conteúdo" & vbCrLf & _
-    "• O corpo está alinhado com a ementa" & vbCrLf & vbCrLf & _
-    "Deseja continuar a formatação mesmo assim?"
+    "Do you want to save before continuing?"
+Private Const MSG_VALIDATION_ERROR As String = "A validation error occurred: {{ERR}}" & vbCrLf & _
+    "Review the document and try again."
+Private Const MSG_DOC_TYPE_WARNING As String = "The detected document type may not match expected patterns." & vbCrLf & _
+    "Proceed anyway?"
+Private Const MSG_PROCESSING_CANCELLED As String = "Processing cancelled by user." & vbCrLf & _
+    "No changes were finalized."
+Private Const MSG_INCONSISTENCY_WARNING As String = "Potential content inconsistencies were detected." & vbCrLf & _
+    "Review highlighted sections. Continue processing?"
+Private Const MSG_SAVE_ERROR As String = "An error occurred while saving the document." & vbCrLf & _
+    "Verify permissions and disk space."
+Private Const MSG_OPERATION_CANCELLED As String = "Operation cancelled by user." & vbCrLf & _
+    "No further actions executed."
+Private Const MSG_CRITICAL_SAVE_EXIT As String = "Critical save failure: {{ERR}}" & vbCrLf & _
+    "Processing aborted to prevent data loss."
 
-Private Const TITLE_CONFIG_ERROR As String = "Configuration Error - " & SYSTEM_NAME
-Private Const TITLE_VERSION_ERROR As String = "Incompatible Version - " & SYSTEM_NAME
+' Dialog/MsgBox title constants (centralized UI titles)
+Private Const TITLE_VERSION_ERROR As String = "Version Requirement - " & SYSTEM_NAME
 Private Const TITLE_DOC_NOT_FOUND As String = "Document Not Found - " & SYSTEM_NAME
-Private Const TITLE_BACKUP_FAIL As String = "Backup Failure - " & SYSTEM_NAME
-Private Const TITLE_ENABLE_EDITING As String = SYSTEM_NAME & " - Enable Editing"
+Private Const TITLE_ENABLE_EDITING As String = "Enable Editing - " & SYSTEM_NAME
 Private Const TITLE_INTEGRITY_ERROR As String = "Integrity Error - " & SYSTEM_NAME
 Private Const TITLE_PROTECTED As String = "Protected Document - " & SYSTEM_NAME
 Private Const TITLE_EMPTY_DOC As String = "Empty Document - " & SYSTEM_NAME
 Private Const TITLE_LARGE_DOC As String = "Large Document - " & SYSTEM_NAME
-Private Const TITLE_UNSAVED As String = "Unsaved Changes - " & SYSTEM_NAME
+Private Const TITLE_UNSAVED As String = "Unsaved Document - " & SYSTEM_NAME
 Private Const TITLE_VALIDATION_ERROR As String = "Validation Error - " & SYSTEM_NAME
-Private Const TITLE_DOC_TYPE As String = SYSTEM_NAME & " - Document Type Validation"
-Private Const TITLE_OPERATION_CANCELLED As String = SYSTEM_NAME & " - Operation Cancelled"
-Private Const TITLE_SAVE_ERROR As String = SYSTEM_NAME & " - Save Error"
-Private Const TITLE_FINAL_CONFIRM As String = SYSTEM_NAME & " - FINAL CONFIRMATION"
-Private Const TITLE_CRITICAL_SAVE_EXIT As String = SYSTEM_NAME & " - Critical Error"
-Private Const TITLE_CONSISTENCY As String = SYSTEM_NAME & " - Validação de Consistência"
+Private Const TITLE_DOC_TYPE As String = "Document Type - " & SYSTEM_NAME
+Private Const TITLE_OPERATION_CANCELLED As String = "Operation Cancelled - " & SYSTEM_NAME
+Private Const TITLE_CONSISTENCY As String = "Consistency Check - " & SYSTEM_NAME
+Private Const TITLE_SAVE_ERROR As String = "Save Error - " & SYSTEM_NAME
+Private Const TITLE_FINAL_CONFIRM As String = "Final Confirmation - " & SYSTEM_NAME
+Private Const TITLE_CRITICAL_SAVE_EXIT As String = "Critical Save Exit - " & SYSTEM_NAME
 
-' Feature flag (overridable by config later if needed)
-Private dialogAsciiNormalizationEnabled As Boolean
-
-' Message constants (removed unused)
-' Error constants (removed unused)
-
-' Log level constants
-Private Const LOG_LEVEL_ERROR As String = "ERROR"
-Private Const LOG_LEVEL_WARNING As String = "WARNING"
-Private Const LOG_LEVEL_INFO As String = "INFO"
-Private Const LOG_LEVEL_DEBUG As String = "DEBUG"
-
-' Performance constants
-Private Const MAX_PARAGRAPH_BATCH_SIZE As Long = 50
-Private Const OPTIMIZATION_THRESHOLD As Long = 1000
-
-'================================================================================
-' VARIABLES
-'================================================================================
-
-' Configuration instance
-Private Config As ConfigSettings
-
-' Global state variables
-Private isConfigLoaded As Boolean
-Private processingStartTime As Double
-
-'
-' =============================================================================
-' MAIN FEATURES:
-' =============================================================================
-'
-' • SECURITY AND COMPATIBILITY CHECKS:
-'   - Word version validation (minimum: 2010)
-'   - Document type and protection verification
-'   - Disk space control and minimum structure
-'   - Failure protection and automatic recovery
-'
-' • AUTOMATIC BACKUP SYSTEM:
-'   - Automatic backup before any modification
-'   - Backup folder organized by document
-'   - Automatic cleanup of old backups (limit: 10 files)
-'   - Public subroutine for backup folder access
-'
-' • VISUAL ELEMENTS CLEANUP SYSTEM:
-'   - Automatically removes hidden visual elements throughout the document
-'   - Removes visual elements (visible or not) between paragraphs 1-4
-'   - Preserves essential visual elements outside cleanup area
-'   - Smart protection against accidental removal of relevant content
-'
-' • PUBLIC SUBROUTINE FOR SAVE AND EXIT:
-'   - Automatic verification of all open documents
-'   - Detection of documents with unsaved changes
-'   - Professional interface with clear options for user
-'   - Assisted saving with dialogs for new files
-'   - Double confirmation for closing without saving
-'   - Robust error handling and recovery
-'
-' • INSTITUTIONAL AUTOMATED FORMATTING:
-'   - Complete formatting cleanup at startup
-'   - Robust removal of multiple spaces and tabs
-'   - Empty lines control (maximum 2 sequential)
-'   - ADVANCED CLEANUP: Removes hidden visual elements throughout document
-'   - ADVANCED CLEANUP: Removes visual elements between paragraphs 1-4 (visible or not)
-'   - MAXIMUM PROTECTION: Advanced backup/restoration system for images
-'   - MAXIMUM PROTECTION: Preserves inline, floating images and objects (except per rules)
-'   - MAXIMUM PROTECTION: Detects and protects anchored shapes and visual fields (except per rules)
-'   - First line: ALWAYS uppercase, bold, underlined, centered
+' ChatGPT / external browser integration removed for codebase simplification.
 '   - 2nd, 3rd and 4th paragraphs: 9cm left indent, no first line indent
 '   - "Considerando": uppercase and bold at paragraph beginning
 '   - "Justificativa": centered, no indents, bold, capitalized
@@ -272,6 +182,12 @@ Private Const HEADER_IMAGE_MAX_WIDTH_CM As Double = 21
 Private Const HEADER_IMAGE_TOP_MARGIN_CM As Double = 0.7
 Private Const HEADER_IMAGE_HEIGHT_RATIO As Double = 0.19
 
+' Performance batching constants (added to fix undefined symbol errors)
+' When total paragraphs exceed OPTIMIZATION_THRESHOLD we process them in
+' chunks of MAX_PARAGRAPH_BATCH_SIZE to balance speed and UI responsiveness.
+Private Const OPTIMIZATION_THRESHOLD As Long = 400
+Private Const MAX_PARAGRAPH_BATCH_SIZE As Long = 120
+
 ' Configuration file constants
 Private Const CONFIG_FILE_NAME As String = "chainsaw-config.ini"
 Private Const CONFIG_FILE_PATH As String = "\chainsaw\"
@@ -289,6 +205,8 @@ Private logWarnCount As Long
 Private logErrorCount As Long
 Private currentStepName As String
 Private currentStepStart As Double
+Private processingStartTime As Double ' Session start timestamp for total duration logging
+Private isConfigLoaded As Boolean     ' Tracks whether configuration defaults/file have been applied
 
 ' Configuration variables - loaded from chainsaw-config.ini
 Private Type ConfigSettings
@@ -358,22 +276,16 @@ Private Type ConfigSettings
     
     ' Logging
     enableLogging As Boolean
-    logLevel As String
-    logToFile As Boolean
-    logDetailedOperations As Boolean
-    logWarnings As Boolean
-    logErrors As Boolean
-    maxLogSizeMb As Long
+    logLevel As String      ' INFO|WARN|ERROR|DEBUG
+    logToFile As Boolean    ' retain only essential toggle
+    maxLogSizeMb As Long    ' size cap
     
     ' Performance
     disableScreenUpdating As Boolean
     disableDisplayAlerts As Boolean
     useBulkOperations As Boolean
     optimizeFindReplace As Boolean
-    minimizeObjectCreation As Boolean
-    cacheFrequentlyUsedObjects As Boolean
-    useEfficientLoops As Boolean
-    batchParagraphOperations As Boolean
+    ' Removed legacy micro-optimization flags: minimizeObjectCreation, cacheFrequentlyUsedObjects, useEfficientLoops, batchParagraphOperations (batching now unconditional)
     
     ' Interface
     showProgressMessages As Boolean
@@ -404,6 +316,9 @@ Private Type ConfigSettings
     retryDelayMs As Long
     ' Removed: compilationCheck, vbaAccessRequired, autoCleanup, forceGcCollection
 End Type
+
+' Active configuration instance
+Private Config As ConfigSettings
 
 ' Image protection variables
 Private Type ImageInfo
@@ -450,6 +365,9 @@ Private Type ViewSettings
 End Type
 
 Private originalViewSettings As ViewSettings
+
+' Dialog/UI normalization flag (controls ASCII folding for MsgBox text)
+Private dialogAsciiNormalizationEnabled As Boolean
 
 '================================================================================
 ' CONFIGURATION SYSTEM
@@ -587,22 +505,19 @@ Private Sub SetDefaultConfiguration()
         .RestoreViewSettings = True
         
         ' Performance (always on)
-        .enableLogging = True
-        .logLevel = "INFO"
-        .logToFile = True
-        .logDetailedOperations = True
-        .logWarnings = True
-        .logErrors = True
-        .maxLogSizeMb = 10
+    .enableLogging = True
+    .logLevel = "INFO"
+    .logToFile = True
+    .maxLogSizeMb = 10
         
         ' Performance
         .disableScreenUpdating = True
         .disableDisplayAlerts = True
-        .useBulkOperations = True
-        .optimizeFindReplace = True
-        .showCompletionMessage = True
-        .enableEmergencyRecovery = True
-        .timeoutOperations = True
+    .useBulkOperations = True
+    .optimizeFindReplace = True
+    .showCompletionMessage = True
+    .enableEmergencyRecovery = True
+    .timeoutOperations = True
         
         ' Advanced (retry policy)
         .maxRetryAttempts = 3
@@ -863,12 +778,6 @@ Private Sub ProcessLoggingConfig(key As String, value As String)
             Config.logLevel = UCase(value)
         Case "LOG_TO_FILE"
             Config.logToFile = (LCase(value) = "true")
-        Case "LOG_DETAILED_OPERATIONS"
-            Config.logDetailedOperations = (LCase(value) = "true")
-        Case "LOG_WARNINGS"
-            Config.logWarnings = (LCase(value) = "true")
-        Case "LOG_ERRORS"
-            Config.logErrors = (LCase(value) = "true")
         Case "MAX_LOG_SIZE_MB"
             Config.maxLogSizeMb = CLng(value)
     End Select
@@ -884,14 +793,6 @@ Private Sub ProcessPerformanceConfig(key As String, value As String)
             Config.useBulkOperations = (LCase(value) = "true")
         Case "OPTIMIZE_FIND_REPLACE"
             Config.optimizeFindReplace = (LCase(value) = "true")
-        Case "MINIMIZE_OBJECT_CREATION"
-            Config.minimizeObjectCreation = (LCase(value) = "true")
-        Case "CACHE_FREQUENTLY_USED_OBJECTS"
-            Config.cacheFrequentlyUsedObjects = (LCase(value) = "true")
-        Case "USE_EFFICIENT_LOOPS"
-            Config.useEfficientLoops = (LCase(value) = "true")
-        Case "BATCH_PARAGRAPH_OPERATIONS"
-            Config.batchParagraphOperations = (LCase(value) = "true")
     End Select
 End Sub
 
@@ -1280,9 +1181,11 @@ Public Sub StandardizeDocumentMain()
     If Not CheckWordVersion() Then
         Application.StatusBar = "Error: Word version not supported (minimum: Word " & Config.minWordVersion & ")"
         LogMessage "Word version " & Application.version & " not supported. Minimum: " & CStr(Config.minWordVersion), LOG_LEVEL_ERROR
-        MsgBox "This tool requires Microsoft Word " & Config.minWordVersion & " or higher." & vbCrLf & _
-               "Current version: " & Application.version & vbCrLf & _
-               "Minimum version: " & CStr(Config.minWordVersion), vbCritical, "Incompatible Version - " & SYSTEM_NAME
+        Dim verMsg As String
+        verMsg = ReplacePlaceholders(MSG_ERR_VERSION, _
+                    "MIN", CStr(Config.minWordVersion), _
+                    "CUR", CStr(Application.version))
+        MsgBox NormalizeForUI(verMsg), vbCritical, NormalizeForUI(TITLE_VERSION_ERROR)
         Exit Sub
     End If
     
@@ -1298,8 +1201,7 @@ Public Sub StandardizeDocumentMain()
         On Error GoTo CriticalErrorHandler
         Application.StatusBar = "Error: No document is accessible"
         LogMessage "No document accessible for processing", LOG_LEVEL_ERROR
-     MsgBox NormalizeForUI("No document is open or accessible." & vbCrLf & _
-         "Open a document before running the standardization."), vbExclamation, NormalizeForUI("Document Not Found - Chainsaw Proposituras")
+        MsgBox NormalizeForUI(MSG_NO_DOCUMENT), vbExclamation, NormalizeForUI(TITLE_DOC_NOT_FOUND)
         Exit Sub
     End If
     On Error GoTo CriticalErrorHandler
@@ -1445,14 +1347,9 @@ Private Function EnsureDocumentEditable(doc As Document) As Boolean
     
     ' If document is protected or read-only, assist the user
     If doc.protectionType <> wdNoProtection Or doc.ReadOnly Then
-        Dim prompt As String
-        prompt = "This document is currently protected or read-only." & vbCrLf & _
-                 "To proceed, the document must be editable." & vbCrLf & vbCrLf & _
-                 "Do you want to Save As a new editable copy now?"
-        
         Dim userChoice As VbMsgBoxResult
-    userChoice = MsgBox(NormalizeForUI(prompt), vbYesNo + vbQuestion + vbDefaultButton1, _
-                NormalizeForUI("Chainsaw - Enable Editing"))
+        userChoice = MsgBox(NormalizeForUI(MSG_ENABLE_EDITING), vbYesNo + vbQuestion + vbDefaultButton1, _
+                            NormalizeForUI(TITLE_ENABLE_EDITING))
         
         If userChoice = vbYes Then
             On Error Resume Next
@@ -1532,10 +1429,8 @@ Private Sub ReleaseObjects()
     Set nullObj = Nothing
     
     Dim memoryCounter As Long
-    For memoryCounter = 1 To 3
-        processingStartTime = Timer
-        formattingCancelled = False
-    Next memoryCounter
+    ' Previous loop resetting processingStartTime and formattingCancelled removed.
+    ' If future memory pressure mitigation is needed, place controlled cleanup here.
 End Sub
 '================================================================================
 ' CLOSE ALL OPEN FILES
@@ -1591,8 +1486,8 @@ Private Function ValidateDocumentIntegrity(doc As Document) As Boolean
     
     ' Basic accessibility check
     If doc Is Nothing Then
-    LogMessage "Document is Nothing during integrity validation", LOG_LEVEL_ERROR
-    MsgBox NormalizeForUI("Error: Document is inaccessible."), vbCritical, NormalizeForUI("Integrity Error - Chainsaw Proposituras")
+        LogMessage "Document is Nothing during integrity validation", LOG_LEVEL_ERROR
+        MsgBox NormalizeForUI(MSG_INACCESSIBLE), vbCritical, NormalizeForUI(TITLE_INTEGRITY_ERROR)
         Exit Function
     End If
     
@@ -1608,11 +1503,10 @@ Private Function ValidateDocumentIntegrity(doc As Document) As Boolean
     On Error GoTo ErrorHandler
     
     If isProtected Then
-     LogMessage "Protected document detected: " & GetProtectionType(doc), LOG_LEVEL_WARNING
-     MsgBox NormalizeForUI("This document is protected and may not be fully formatable." & vbCrLf & _
-         "Protection type: " & GetProtectionType(doc) & vbCrLf & vbCrLf & _
-         "Do you want to continue anyway?"), vbYesNo + vbExclamation, NormalizeForUI("Protected Document - Chainsaw Proposituras")
-    If vbNo = MsgBox(NormalizeForUI(""), vbYesNo) Then ' Simula resposta para compatibilidade
+        LogMessage "Protected document detected: " & GetProtectionType(doc), LOG_LEVEL_WARNING
+        Dim protMsg As String
+        protMsg = ReplacePlaceholders(MSG_PROTECTED, "PROT", GetProtectionType(doc))
+        If vbNo = MsgBox(NormalizeForUI(protMsg), vbYesNo + vbExclamation, NormalizeForUI(TITLE_PROTECTED)) Then
             LogMessage "User cancelled due to document protection", LOG_LEVEL_INFO
             Exit Function
         End If
@@ -1620,9 +1514,8 @@ Private Function ValidateDocumentIntegrity(doc As Document) As Boolean
     
     ' Minimum content check
     If doc.Paragraphs.count < 1 Then
-     LogMessage "Empty document detected", LOG_LEVEL_ERROR
-     MsgBox NormalizeForUI("The document is empty." & vbCrLf & _
-         "Add content before running the standardization."), vbExclamation, NormalizeForUI("Empty Document - Chainsaw Proposituras")
+        LogMessage "Empty document detected", LOG_LEVEL_ERROR
+        MsgBox NormalizeForUI(MSG_EMPTY_DOC), vbExclamation, NormalizeForUI(TITLE_EMPTY_DOC)
         Exit Function
     End If
     
@@ -1639,9 +1532,9 @@ Private Function ValidateDocumentIntegrity(doc As Document) As Boolean
     If docSize > 500000 Then ' ~500KB of text
         LogMessage "Very large document detected: " & docSize & " characters", LOG_LEVEL_WARNING
         Dim continueResponse As VbMsgBoxResult
-    continueResponse = MsgBox(NormalizeForUI("This is a very large document (" & Format(docSize, "#,##0") & " characters)." & vbCrLf & _
-                "Processing may be slow." & vbCrLf & vbCrLf & _
-                "Do you want to continue?"), vbYesNo + vbQuestion, NormalizeForUI("Large Document - Chainsaw Proposituras"))
+        Dim largeMsg As String
+        largeMsg = ReplacePlaceholders(MSG_LARGE_DOC, "SIZE", Format(docSize, "#,##0"))
+        continueResponse = MsgBox(NormalizeForUI(largeMsg), vbYesNo + vbQuestion, NormalizeForUI(TITLE_LARGE_DOC))
         If continueResponse = vbNo Then
             LogMessage "User cancelled due to document size", LOG_LEVEL_INFO
             Exit Function
@@ -1650,11 +1543,9 @@ Private Function ValidateDocumentIntegrity(doc As Document) As Boolean
     
     ' Save state check
     If Not doc.Saved And doc.Path <> "" Then
-    LogMessage "Document has unsaved changes", LOG_LEVEL_WARNING
+        LogMessage "Document has unsaved changes", LOG_LEVEL_WARNING
         Dim saveResponse As VbMsgBoxResult
-    saveResponse = MsgBox(NormalizeForUI("The document has unsaved changes." & vbCrLf & _
-                "It is recommended to save before standardization." & vbCrLf & vbCrLf & _
-                "Do you want to save now?"), vbYesNoCancel + vbQuestion, NormalizeForUI("Unsaved Changes - Chainsaw Proposituras"))
+        saveResponse = MsgBox(NormalizeForUI(MSG_UNSAVED), vbYesNoCancel + vbQuestion, NormalizeForUI(TITLE_UNSAVED))
         Select Case saveResponse
             Case vbYes
                 doc.Save
@@ -1674,9 +1565,9 @@ Private Function ValidateDocumentIntegrity(doc As Document) As Boolean
     
 ErrorHandler:
     LogMessage "Error during integrity validation: " & Err.Description, LOG_LEVEL_ERROR
-    MsgBox NormalizeForUI("Error during document validation:" & vbCrLf & _
-        Err.Description & vbCrLf & vbCrLf & _
-        "The operation will be cancelled for safety."), vbCritical, NormalizeForUI("Validation Error - Chainsaw Proposituras")
+    Dim valErr As String
+    valErr = ReplacePlaceholders(MSG_VALIDATION_ERROR, "ERR", Err.Description)
+    MsgBox NormalizeForUI(valErr), vbCritical, NormalizeForUI(TITLE_VALIDATION_ERROR)
     ValidateDocumentIntegrity = False
 End Function
 
@@ -1898,7 +1789,7 @@ Private Function InitializeLogging(doc As Document) As Boolean
     Print #1, "Protection: " & GetProtectionType(doc)
     Print #1, "Size: " & GetDocumentSize(doc)
     Print #1, "Paragraphs: " & doc.Paragraphs.count & " | Sections: " & doc.Sections.count
-    Print #1, "Log Level: " & Config.logLevel & " | Detailed: " & CStr(Config.logDetailedOperations)
+    Print #1, "Log Level: " & Config.logLevel
     Print #1, "========================================================"
     Print #1, "Pipeline will run the following steps (simplified):"
     Print #1, "- Page setup"
@@ -3622,9 +3513,9 @@ Private Function ValidatePropositionType(doc As Document) As Boolean
         
     ' Build a detailed message for the user
         Dim confirmationMessage As String
-        confirmationMessage = FormatTemplate(MSG_DOC_TYPE_WARNING, _
-                                             "%FIRSTWORD%", UCase(firstWord), _
-                                             "%DOCSTART%", Left(paraText, 150))
+    confirmationMessage = ReplacePlaceholders(MSG_DOC_TYPE_WARNING, _
+                         "FIRSTWORD", UCase(firstWord), _
+                         "DOCSTART", Left(paraText, 150))
         userResponse = MsgBox(NormalizeForUI(confirmationMessage), vbYesNo + vbQuestion + vbDefaultButton2, _
                  NormalizeForUI(TITLE_DOC_TYPE))
         
@@ -3637,10 +3528,8 @@ Private Function ValidatePropositionType(doc As Document) As Boolean
             Application.StatusBar = "Processing cancelled by user"
             
             ' Final cancellation message
-         MsgBox NormalizeForUI("Processing cancelled." & vbCrLf & vbCrLf & _
-             "For proposition documents, ensure the first word is " & vbCrLf & _
-             "INDICAÇÃO, REQUERIMENTO or MOÇÃO."), _
-             vbInformation, NormalizeForUI("Chainsaw - Operation Cancelled")
+            MsgBox NormalizeForUI(MSG_PROCESSING_CANCELLED), _
+                vbInformation, NormalizeForUI(TITLE_OPERATION_CANCELLED)
             
             ValidatePropositionType = False
         End If
@@ -3872,21 +3761,22 @@ Private Function NormalizeForUI(ByVal s As String) As String
     NormalizeForUI = out
 End Function
 
-'================================================================================
-' TEMPLATE STRING REPLACEMENT HELPER
-'================================================================================
-Private Function FormatTemplate(ByVal template As String, ParamArray pairs()) As String
+'--------------------------------------------------------------------------------
+' ReplacePlaceholders - convenience wrapper for common {{KEY}} replacements
+' Example: ReplacePlaceholders(MSG_ERR_VERSION, "MIN", 14, "CUR", Application.Version)
+'--------------------------------------------------------------------------------
+Private Function ReplacePlaceholders(ByVal template As String, ParamArray kv()) As String
     On Error Resume Next
-    Dim i As Long
-    Dim result As String
+    Dim i As Long, result As String, k As String, val As String
     result = template
-    ' pairs should be an even number: key, value, key, value ...
-    For i = LBound(pairs) To UBound(pairs) Step 2
-        If i + 1 <= UBound(pairs) Then
-            result = Replace(result, CStr(pairs(i)), CStr(pairs(i + 1)))
+    For i = LBound(kv) To UBound(kv) Step 2
+        If i + 1 <= UBound(kv) Then
+            k = CStr(kv(i))
+            val = CStr(kv(i + 1))
+            result = Replace(result, "{{" & k & "}}", val)
         End If
     Next i
-    FormatTemplate = result
+    ReplacePlaceholders = result
 End Function
 
 '================================================================================
@@ -4401,9 +4291,9 @@ Private Function ValidateContentConsistency(doc As Document) As Boolean
     ' Show a warning to the user
         Dim inconsistencyMessage As String
         Dim userResponse As VbMsgBoxResult
-        inconsistencyMessage = FormatTemplate(MSG_INCONSISTENCY_WARNING, _
-                                              "%Ementa%", Left(secondParaText, 200), _
-                                              "%COMMON%", CStr(commonWordsCount))
+    inconsistencyMessage = ReplacePlaceholders(MSG_INCONSISTENCY_WARNING, _
+                           "Ementa", Left(secondParaText, 200), _
+                           "COMMON", CStr(commonWordsCount))
         userResponse = MsgBox(NormalizeForUI(inconsistencyMessage), vbYesNo + vbExclamation + vbDefaultButton2, _
                  NormalizeForUI(TITLE_CONSISTENCY))
         
@@ -4474,77 +4364,7 @@ ErrorHandler:
     CountCommonWords = 0
 End Function
 
-'================================================================================
-' COPY BODY TEXT AND OPEN CHATGPT SITE WITH OPTIONAL AUTO-PASTE
-'================================================================================
-' WARNING / LIMITATIONS:
-' - This routine copies only the main body (wdMainTextStory) excluding headers/footers, footnotes, etc.
-' - It opens the default browser at https://chat.openai.com.
-' - Optional auto-paste uses SendKeys which is inherently unreliable and may paste into the wrong window
-'   if the user changes focus. Use autoPaste:=True only if you understand the risk.
-' - Authentication or site load timing is not controlled; a delay (browserWaitMs) is used before attempting paste.
-' - For very large documents, browser text areas may lag or reject full pastes.
-' - Sensitive or confidential data should NOT be pasted into third-party services without approval.
-'================================================================================
-Public Sub CopyBodyAndOpenChatGPT(Optional ByVal autoPaste As Boolean = False, _
-                                  Optional ByVal browserWaitMs As Long = 3000)
-    On Error GoTo ErrorHandler
-    Const CHATGPT_URL As String = "https://chat.openai.com/"
 
-    Dim bodyRng As Range
-    Dim bodyText As String
-    Dim copiedPlain As Boolean
-
-    ' Obtain main story range (body only)
-    Set bodyRng = ActiveDocument.StoryRanges(wdMainTextStory).Duplicate
-    bodyText = bodyRng.Text
-
-    ' Normalize line endings lightly (optional)
-    bodyText = Replace(bodyText, vbCrLf & vbCrLf & vbCrLf, vbCrLf & vbCrLf)
-
-    ' Try to put plain text into clipboard via DataObject
-    copiedPlain = PutTextInClipboard(bodyText)
-    If Not copiedPlain Then
-        ' Fallback: copy formatted range (includes formatting) – still gets text when pasted
-        bodyRng.Copy
-    End If
-
-    LogMessage "Body text copied to clipboard (plain=" & CStr(copiedPlain) & ")", LOG_LEVEL_INFO
-
-    ' Open site in default browser
-    Application.FollowHyperlink CHATGPT_URL, NewWindow:=True
-
-    If autoPaste Then
-        ' Wait for the browser to launch (crude delay)
-        If browserWaitMs < 500 Then browserWaitMs = 500
-        Sleep browserWaitMs
-        ' Attempt to paste (focus must be in the prompt box manually or by site default)
-        Application.SendKeys "^v", True
-        LogMessage "Attempted auto-paste to ChatGPT site", LOG_LEVEL_INFO
-    End If
-
-    Exit Sub
-
-ErrorHandler:
-    LogMessage "Error in CopyBodyAndOpenChatGPT: " & Err.Description, LOG_LEVEL_ERROR
-    MsgBox NormalizeForUI("Failed to copy/paste to ChatGPT: " & Err.Description), _
-           vbCritical, NormalizeForUI(TITLE_OPERATION_CANCELLED)
-End Sub
-
-'--------------------------------------------------------------------------------
-' Helper: Put plain text into clipboard using late-bound DataObject
-'--------------------------------------------------------------------------------
-Private Function PutTextInClipboard(ByVal s As String) As Boolean
-    On Error GoTo Fail
-    Dim dobj As Object
-    Set dobj = CreateObject("MSForms.DataObject")
-    dobj.SetText s
-    dobj.PutInClipboard
-    PutTextInClipboard = True
-    Exit Function
-Fail:
-    PutTextInClipboard = False
-End Function
 
 '================================================================================
 ' CLEAN TEXT FOR COMPARISON - LIMPA TEXTO PARA COMPARAÇÃO
@@ -4682,7 +4502,7 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
             cleanText = Trim(LCase(cleanText))
             
             ' Format "Justificativa"
-            If cleanText = "justificativa" Then
+            If cleanText = "Justificativa" Then
                 ' Apply specific formatting for "Justificativa"
                 With para.Format
                     .leftIndent = 0
@@ -5890,11 +5710,10 @@ CriticalErrorHandler:
     LogMessage errDesc, LOG_LEVEL_ERROR
     Application.StatusBar = "Critical error - operation cancelled"
     
-    MsgBox NormalizeForUI("Critical error during Save and Exit:" & vbCrLf & vbCrLf & _
-        Err.Description & vbCrLf & vbCrLf & _
-        "The operation was cancelled for safety." & vbCrLf & _
-        "Please save important documents manually."), _
-        vbCritical, NormalizeForUI("Chainsaw - Critical Error")
+    Dim critMsg As String
+    critMsg = ReplacePlaceholders(MSG_CRITICAL_SAVE_EXIT, "ERR", Err.Description)
+    MsgBox NormalizeForUI(critMsg), _
+        vbCritical, NormalizeForUI(TITLE_CRITICAL_SAVE_EXIT)
 End Sub
 
 '================================================================================

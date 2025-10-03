@@ -146,10 +146,11 @@ To use CHAINSAW PROPOSITURAS safely:
    - Configurações de Macro → "Desabilitar todas as macros com notificação"
 
 2. **Security Checks:**
-  - ✅ Open and auditable source code
-  - ✅ No internet connection required
-  - ✅ Automatic backup before modifications
-  - ✅ Robust error handling
+
+- ✅ Open and auditable source code
+- ✅ No internet connection required
+- ✅ Automatic backup before modifications
+- ✅ Robust error handling
 
 Para políticas corporativas, consulte [`SECURITY.md`](SECURITY.md).
 
@@ -189,11 +190,13 @@ compatibility_mode = true
 ```
 
 Notes:
+
 - Key names are case-insensitive; values: true/false/1/0.
 - Portuguese section names also work (e.g., `[INTERFACE]` or `[INTERFACE]`, `[VALIDACOES]`).
 - If a key is omitted, its safe default is used.
 
 ### Dialog ASCII Normalization
+
 When enabled (`dialog_ascii_normalization = true`), all user-facing dialog strings are converted to an ASCII-safe form (accents replaced, smart quotes normalized) to avoid encoding issues on restricted systems. Set to `false` to retain original accents.
 
 ## 📚 Documentation
@@ -233,3 +236,51 @@ Christian Martin dos Santos - [chrmsantos](https://github.com/chrmsantos)
 ---
 
 Built with ❤️ for the legislative community
+
+## 🧩 Message Templating System
+
+Dynamic user-facing messages use a lightweight placeholder system to avoid repetitive string concatenation and to simplify localization.
+
+Placeholders format:
+
+  {{KEY}}
+
+Examples:
+
+```vb
+MSG_ERR_VERSION = "This tool requires Microsoft Word {{MIN}} or higher." & vbCrLf & _
+                  "Current version: {{CUR}}" & vbCrLf & _
+                  "Minimum version: {{MIN}}"
+```
+
+Helpers:
+
+- ReplacePlaceholders(template, "KEY1", value1, "KEY2", value2, ...)
+  Replaces each {{KEY}} with its corresponding value (converted to string). Odd trailing key without a value is ignored safely.
+
+### ASCII Hardening of Dialog Text
+
+Some environments (older Word builds / locale mismatches) raised compilation or rendering issues with certain Unicode characters (accented capitals, bullets •, ordinal indicators º). To guarantee reliability of the exported `.bas` module we applied an explicit ASCII hardening to several Portuguese messages:
+
+- Accented letters were flattened (INDICAÇÃO → INDICACAO, MOÇÃO → MOCAO, ATENÇÃO → ATENCAO, CONSISTÊNCIA → CONSISTENCIA, etc.)
+- Bullets (•) replaced with hyphens (-)
+- Ordinal indicator º replaced with 'o'
+
+Runtime readability is still acceptable; if future builds require restoring original accents, two approaches are possible:
+
+1. Reintroduce accented literals directly in the constants (if your environment accepts them) and rely on `NormalizeForUI` to fold when `dialog_ascii_normalization = true`.
+2. Maintain ASCII in constants and add a small helper that maps specific hardened words back to accented display forms right before `MsgBox`.
+
+Given current goals (robust compilation across Word 2010+ and mixed encodings), we kept the source ASCII-safe by default. Open an issue if you want an optional accent-restoration layer added.
+
+Usage example inside code:
+
+```vb
+Dim msg As String
+msg = ReplacePlaceholders(MSG_ERR_VERSION, "MIN", Config.minWordVersion, "CUR", Application.Version)
+MsgBox NormalizeForUI(msg), vbCritical, NormalizeForUI(TITLE_VERSION_ERROR)
+```
+
+Why double braces? They avoid conflicts with legacy %PLACEHOLDER% tokens that caused a compilation issue and are visually distinct from regular percent symbols sometimes present in legislative text.
+
+All new dynamic dialogs should prefer ReplacePlaceholders over manual Replace() chains for maintainability.
