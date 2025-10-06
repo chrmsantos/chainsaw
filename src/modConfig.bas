@@ -17,13 +17,6 @@ Public Type ConfigSettings
     CheckDiskSpace As Boolean
     minWordVersion As Double
     maxDocumentSize As Long
-    ' --- BACKUP SYSTEM (DEPRECATED / DISABLED IN CURRENT BETA) ---
-    ' Retained for forward compatibility; currently ignored by processing pipeline.
-    autoBackup As Boolean              ' Deprecated: no backups are performed
-    backupBeforeProcessing As Boolean  ' Deprecated
-    maxBackupFiles As Long             ' Deprecated
-    backupCleanup As Boolean           ' Deprecated
-    backupRetryAttempts As Long        ' Deprecated
     ApplyPageSetup As Boolean
     applyStandardFont As Boolean
     applyStandardParagraphs As Boolean
@@ -49,11 +42,6 @@ Public Type ConfigSettings
     replaceHyphensWithEmDash As Boolean
     removeManualLineBreaks As Boolean
     normalizeDosteVariants As Boolean
-    BackupAllImages As Boolean
-    RestoreAllImages As Boolean
-    ProtectImagesInRange As Boolean
-    BackupViewSettings As Boolean
-    RestoreViewSettings As Boolean
     ' --- LOGGING (STUB ONLY IN CURRENT BETA) ---
     enableLogging As Boolean           ' Deprecated: logging routines are no-op
     logLevel As String                 ' Reserved for future reinstatement
@@ -78,7 +66,6 @@ Public Type ConfigSettings
     requireDocumentSaved As Boolean
     validateFilePermissions As Boolean
     checkDocumentProtection As Boolean
-    enableEmergencyBackup As Boolean
     sanitizeInputs As Boolean
     validateRanges As Boolean
     maxRetryAttempts As Long
@@ -141,8 +128,6 @@ Private Sub SetDefaultConfiguration()
         .debugMode = False: .performanceMode = True: .compatibilityMode = True
         .CheckWordVersion = True: .ValidateDocumentIntegrity = True: .ValidatePropositionType = True: .ValidateContentConsistency = True: .CheckDiskSpace = True
         .minWordVersion = 14#: .maxDocumentSize = 500000
-    ' Backup defaults forced to disabled (feature deprecated this beta)
-    .autoBackup = False: .backupBeforeProcessing = False: .maxBackupFiles = 0: .backupCleanup = False: .backupRetryAttempts = 0
         .ApplyPageSetup = True: .applyStandardFont = True: .applyStandardParagraphs = True: .FormatFirstParagraph = True: .FormatSecondParagraph = True
         .FormatNumberedParagraphs = True: .FormatConsiderandoParagraphs = True: .formatJustificativaParagraphs = True: .EnableHyphenation = True
         .CleanDocumentStructure = True: .CleanMultipleSpaces = True: .LimitSequentialEmptyLines = True: .EnsureParagraphSeparation = True
@@ -150,14 +135,13 @@ Private Sub SetDefaultConfiguration()
         .InsertHeaderstamp = True: .InsertFooterstamp = True: .RemoveWatermark = True: .headerImagePath = ""
         .ApplyTextReplacements = True: .ApplySpecificParagraphReplacements = True: .replaceHyphensWithEmDash = True: .removeManualLineBreaks = True
         .normalizeDosteVariants = True
-    .BackupAllImages = True: .RestoreAllImages = True: .ProtectImagesInRange = True: .BackupViewSettings = True: .RestoreViewSettings = True
     ' Logging disabled; keep defaults minimal
     .enableLogging = False: .logLevel = "INFO": .logToFile = False: .maxLogSizeMb = 0
         .disableScreenUpdating = True: .disableDisplayAlerts = True: .useBulkOperations = True: .optimizeFindReplace = True
         .showProgressMessages = True: .showStatusBarUpdates = True: .confirmCriticalOperations = True: .showCompletionMessage = True
         .enableEmergencyRecovery = True: .timeoutOperations = False
         .supportWord2010 = True: .supportWord2013 = True: .supportWord2016 = True: .useSafePropertyAccess = True: .fallbackMethods = True: .handleMissingFeatures = True
-        .requireDocumentSaved = True: .validateFilePermissions = True: .checkDocumentProtection = True: .enableEmergencyBackup = True
+    .requireDocumentSaved = True: .validateFilePermissions = True: .checkDocumentProtection = True
         .sanitizeInputs = True: .validateRanges = True
         .maxRetryAttempts = 3: .retryDelayMs = 250
     End With
@@ -202,11 +186,6 @@ Private Sub ApplyConfigurationKey(key As String, value As String)
         Case "checkdiskspace": Config.CheckDiskSpace = CBool(value)
         Case "minwordversion": Config.minWordVersion = CDbl(value)
         Case "maxdocumentsize": Config.maxDocumentSize = CLng(value)
-        Case "autobackup": Config.autoBackup = CBool(value)
-        Case "backupbeforeprocessing": Config.backupBeforeProcessing = CBool(value)
-        Case "maxbackupfiles": Config.maxBackupFiles = CLng(value)
-        Case "backupcleanup": Config.backupCleanup = CBool(value)
-        Case "backupretryattempts": Config.backupRetryAttempts = CLng(value)
         Case "applypagesetup": Config.ApplyPageSetup = CBool(value)
         Case "applystandardfont": Config.applyStandardFont = CBool(value)
         Case "applystandardparagraphs": Config.applyStandardParagraphs = CBool(value)
@@ -232,11 +211,6 @@ Private Sub ApplyConfigurationKey(key As String, value As String)
         Case "replacehyphenswithemdash": Config.replaceHyphensWithEmDash = CBool(value)
         Case "removemanuallinebreaks": Config.removeManualLineBreaks = CBool(value)
         Case "normalizedostevariants": Config.normalizeDosteVariants = CBool(value)
-        Case "backupallimages": Config.BackupAllImages = CBool(value)
-        Case "restoreallimages": Config.RestoreAllImages = CBool(value)
-        Case "protectimagesinrange": Config.ProtectImagesInRange = CBool(value)
-        Case "backupviewsettings": Config.BackupViewSettings = CBool(value)
-        Case "restoreviewsettings": Config.RestoreViewSettings = CBool(value)
         Case "enablelogging": Config.enableLogging = CBool(value)
         Case "loglevel": Config.logLevel = value
         Case "logtofile": Config.logToFile = CBool(value)
@@ -260,7 +234,6 @@ Private Sub ApplyConfigurationKey(key As String, value As String)
         Case "requiredocumentsaved": Config.requireDocumentSaved = CBool(value)
         Case "validatefilepermissions": Config.validateFilePermissions = CBool(value)
         Case "checkdocumentprotection": Config.checkDocumentProtection = CBool(value)
-        Case "enableemergencybackup": Config.enableEmergencyBackup = CBool(value)
         Case "sanitizeinputs": Config.sanitizeInputs = CBool(value)
         Case "validateranges": Config.validateRanges = CBool(value)
         Case "maxretryattempts": Config.maxRetryAttempts = CLng(value)

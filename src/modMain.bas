@@ -44,32 +44,59 @@ Private Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 ' Provides a stable callable pipeline while refactor migration continues.
 '================================================================================
 Public Function RunChainsawPipeline() As Boolean
-    On Error GoTo PipelineError
     Dim doc As Document
+    Dim prevScreenUpdating As Boolean
+    Dim prevDisplayAlerts As WdAlertLevel
+    Dim hadError As Boolean
+    Dim cfgLoaded As Boolean
+
+    hadError = False
+    RunChainsawPipeline = False
+    On Error GoTo FatalPipelineError
+
+    ' Acquire active document safely
     Set doc = Nothing
-    On Error Resume Next: Set doc = ActiveDocument: On Error GoTo PipelineError
+    Set doc = ActiveDocument
     If doc Is Nothing Then
         MsgBox NormalizeForUI("Nenhum documento ativo encontrado."), vbExclamation, NormalizeForUI("Chainsaw - Documento ausente")
-        RunChainsawPipeline = False
-        Exit Function
+        GoTo Finalize
     End If
-    ' Load configuration (idempotent)
-    Static cfgLoaded As Boolean
+
+    ' Load configuration once per session
     Call modConfig_LoadConfigIfNeeded(cfgLoaded)
-    ' Preliminary checks
-    If Not PreviousChecking(doc) Then
-        RunChainsawPipeline = False
-        Exit Function
-    End If
-    ' Main formatting
-    If Not PreviousFormatting(doc) Then
-        RunChainsawPipeline = False
-        Exit Function
-    End If
+
+    ' Runtime environment hardening
+    prevScreenUpdating = Application.ScreenUpdating
+    prevDisplayAlerts = Application.DisplayAlerts
+    If Config.disableScreenUpdating Then Application.ScreenUpdating = False
+    If Config.disableDisplayAlerts Then Application.DisplayAlerts = wdAlertsNone
+
+    ' Preliminary validation stage
+    If Not PreviousChecking(doc) Then GoTo Finalize
+
+    ' Formatting & replacement stage
+    If Not PreviousFormatting(doc) Then GoTo Finalize
+
     RunChainsawPipeline = True
-    Exit Function
-PipelineError:
+    GoTo Finalize
+
+FatalPipelineError:
+    hadError = True
+    ' Swallow unexpected errors – stability priority. (Optional: surface message)
     RunChainsawPipeline = False
+
+Finalize:
+    On Error Resume Next
+    ' Restore UI state deterministically
+    Application.ScreenUpdating = prevScreenUpdating
+    Application.DisplayAlerts = prevDisplayAlerts
+    If hadError Then
+        Application.StatusBar = "Chainsaw: erro inesperado durante o processamento"
+    ElseIf RunChainsawPipeline Then
+        If Config.showStatusBarUpdates Then Application.StatusBar = "Chainsaw: processamento concluído"
+    Else
+        If Config.showStatusBarUpdates Then Application.StatusBar = "Chainsaw: processamento interrompido"
+    End If
 End Function
 
 Private Function ApplyTextReplacements(doc As Document) As Boolean: ApplyTextReplacements = modReplacements.ApplyTextReplacements(doc): End Function
@@ -84,122 +111,6 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean: ApplyTextRep
         undoGroupEnabled = False
     End If
     
-    ' Clear image-protection variables on error
-    CleanupImageProtection
-    
-    ' Clear view-settings variables on error
-    CleanupViewSettings
-    
-        undoGroupEnabled = False
-    
-    CloseAllOpenFiles
-End Sub
-
-'================================================================================
-' SAFE CLEANUP - LIMPEZA SEGURA
-'================================================================================
-Private Sub SafeCleanup()
-    On Error Resume Next
-    
-    EndUndoGroup
-    
-    ReleaseObjects
-End Sub
-
-'================================================================================
-' RELEASE OBJECTS
-'================================================================================
-Private Sub ReleaseObjects()
-    On Error Resume Next
-    
-    Dim nullObj As Object
-    Set nullObj = Nothing
-    
-    Dim memoryCounter As Long
-    ' Previous loop resetting processingStartTime and formattingCancelled removed.
-    ' If future memory pressure mitigation is needed, place controlled cleanup here.
-End Sub
-'================================================================================
-' CLOSE ALL OPEN FILES
-'================================================================================
-Private Sub CloseAllOpenFiles()
-    On Error Resume Next
-    
-    Dim fileNumber As Integer
-    For fileNumber = 1 To 511
-        If Not EOF(fileNumber) Then
-            Close fileNumber
-        End If
-    Next fileNumber
-End Sub
-
-'================================================================================
-' VERSION COMPATIBILITY AND SAFETY CHECKS
-'================================================================================
-Private Function CheckWordVersion() As Boolean
-    On Error GoTo ErrorHandler
-    
-    Dim version As Double
-    ' Use CDbl to guarantee correct conversion in all versions
-    version = CDbl(Application.version)
-    
-    ' Use configuration for minimum version
-    If version < Config.minWordVersion Then
-        CheckWordVersion = False
-    Else
-        CheckWordVersion = True
-    End If
-    
-    Exit Function
-    
-ErrorHandler:
-    ' If cannot detect version, assume incompatibility for safety
-    CheckWordVersion = False
-End Function
-
- ' Removed: CompileVBAProject function (deprecated)
-
-
-'================================================================================
-' DOCUMENT INTEGRITY VALIDATION
-'================================================================================
-Private Function ValidateDocumentIntegrity(doc As Document) As Boolean
-    On Error GoTo ErrorHandler
-    
-    ValidateDocumentIntegrity = False
-    
-    ' Basic accessibility check
-    If doc Is Nothing Then
-        MsgBox NormalizeForUI(MSG_INACCESSIBLE), vbCritical, NormalizeForUI(TITLE_INTEGRITY_ERROR)
-        Exit Function
-    End If
-    
-    ' Document protection check
-    On Error Resume Next
-    Dim isProtected As Boolean
-    isProtected = (doc.protectionType <> wdNoProtection)
-    If Err.Number <> 0 Then
-        On Error GoTo ErrorHandler
-        isProtected = False
-    End If
-    On Error GoTo ErrorHandler
-    
-    If isProtected Then
-        Dim protMsg As String
-        protMsg = ReplacePlaceholders(MSG_PROTECTED, "PROT", GetProtectionType(doc))
-        If vbNo = MsgBox(NormalizeForUI(protMsg), vbYesNo + vbExclamation, NormalizeForUI(TITLE_PROTECTED)) Then
-            Exit Function
-        End If
-    End If
-    
-    ' Minimum content check
-    If doc.Paragraphs.count < 1 Then
-        MsgBox NormalizeForUI(MSG_EMPTY_DOC), vbExclamation, NormalizeForUI(TITLE_EMPTY_DOC)
-        Exit Function
-    End If
-    
-    ' Document size check
-    Dim docSize As Long
     On Error Resume Next
     docSize = doc.Range.Characters.count
     If Err.Number <> 0 Then
@@ -3639,189 +3550,6 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' IMAGE PROTECTION SYSTEM
-'================================================================================
-
-'================================================================================
-' BACKUP ALL IMAGES - Backup critical image properties
-'================================================================================
-Private Function BackupAllImages(doc As Document) As Boolean
-    On Error GoTo ErrorHandler
-    
-    Application.StatusBar = "Backing up image properties..."
-    
-    imageCount = 0
-    ReDim savedImages(0)
-    
-    Dim para As Paragraph
-    Dim i As Long
-    Dim j As Long
-    Dim shape As InlineShape
-    Dim tempImageInfo As ImageInfo
-    
-    ' Count all images first
-    Dim totalImages As Long
-    For i = 1 To doc.Paragraphs.count
-        Set para = doc.Paragraphs(i)
-        totalImages = totalImages + para.Range.InlineShapes.count
-    Next i
-    
-    ' Add floating shapes
-    totalImages = totalImages + doc.Shapes.count
-    
-    ' Resize array if needed
-    If totalImages > 0 Then
-        ReDim savedImages(totalImages - 1)
-        
-    ' Backup inline images - only critical properties
-        For i = 1 To doc.Paragraphs.count
-            Set para = doc.Paragraphs(i)
-            
-            For j = 1 To para.Range.InlineShapes.count
-                Set shape = para.Range.InlineShapes(j)
-                
-                ' Save essential properties only for protection
-                With tempImageInfo
-                    .paraIndex = i
-                    .ImageIndex = j
-                    .ImageType = "Inline"
-                    .position = shape.Range.Start
-                    .Width = shape.Width
-                    .Height = shape.Height
-                    Set .AnchorRange = shape.Range.Duplicate
-                    .ImageData = "InlineShape_Protected"
-                End With
-                
-                savedImages(imageCount) = tempImageInfo
-                imageCount = imageCount + 1
-                
-                ' Avoid overflow
-                If imageCount >= UBound(savedImages) + 1 Then Exit For
-            Next j
-            
-            ' Avoid overflow
-            If imageCount >= UBound(savedImages) + 1 Then Exit For
-        Next i
-        
-    ' Backup floating shapes - only critical properties
-        Dim floatingShape As shape
-        For i = 1 To doc.Shapes.count
-            Set floatingShape = doc.Shapes(i)
-            
-            If floatingShape.Type = msoPicture Then
-                ' Resize array if necessary
-                If imageCount >= UBound(savedImages) + 1 Then
-                    ReDim Preserve savedImages(imageCount)
-                End If
-                
-                With tempImageInfo
-                    .paraIndex = -1 ' Indicates it's floating
-                    .ImageIndex = i
-                    .ImageType = "Floating"
-                    .WrapType = floatingShape.WrapFormat.Type
-                    .Width = floatingShape.Width
-                    .Height = floatingShape.Height
-                    .LeftPosition = floatingShape.Left
-                    .TopPosition = floatingShape.Top
-                    .ImageData = "FloatingShape_Protected"
-                End With
-                
-                savedImages(imageCount) = tempImageInfo
-                imageCount = imageCount + 1
-            End If
-        Next i
-    End If
-    
-    ' (Logging removed) Image properties backup completed: " & imageCount & " image(s) catalogued
-    BackupAllImages = True
-    Exit Function
-
-ErrorHandler:
-    ' (Logging removed) Error backing up image properties: " & Err.Description
-    BackupAllImages = False
-End Function
-
-'================================================================================
-' RESTORE ALL IMAGES - Verify and correct image properties
-'================================================================================
-Private Function RestoreAllImages(doc As Document) As Boolean
-    On Error GoTo ErrorHandler
-    
-    If imageCount = 0 Then
-        RestoreAllImages = True
-        Exit Function
-    End If
-    
-    Application.StatusBar = "Verifying image integrity..."
-    
-    Dim i As Long
-    Dim verifiedCount As Long
-    Dim correctedCount As Long
-    
-    For i = 0 To imageCount - 1
-        On Error Resume Next
-        
-        With savedImages(i)
-            If .ImageType = "Inline" Then
-                ' Check if the inline image still exists at expected position
-                If .paraIndex <= doc.Paragraphs.count Then
-                    Dim para As Paragraph
-                    Set para = doc.Paragraphs(.paraIndex)
-                    
-                    ' If there are still inline images in the paragraph, consider it verified
-                    If para.Range.InlineShapes.count > 0 Then
-                        verifiedCount = verifiedCount + 1
-                    End If
-                End If
-                
-            ElseIf .ImageType = "Floating" Then
-                ' Verify and correct properties of floating shapes if they still exist
-                If .ImageIndex <= doc.Shapes.count Then
-                    Dim targetShape As shape
-                    Set targetShape = doc.Shapes(.ImageIndex)
-                    
-                    ' Check if properties have changed and correct if necessary
-                    Dim needsCorrection As Boolean
-                    needsCorrection = False
-                    
-                    If Abs(targetShape.Width - .Width) > 1 Then needsCorrection = True
-                    If Abs(targetShape.Height - .Height) > 1 Then needsCorrection = True
-                    If Abs(targetShape.Left - .LeftPosition) > 1 Then needsCorrection = True
-                    If Abs(targetShape.Top - .TopPosition) > 1 Then needsCorrection = True
-                    
-                    If needsCorrection Then
-                        ' Restore original properties
-                        With targetShape
-                            .Width = savedImages(i).Width
-                            .Height = savedImages(i).Height
-                            .Left = savedImages(i).LeftPosition
-                            .Top = savedImages(i).TopPosition
-                            .WrapFormat.Type = savedImages(i).WrapType
-                        End With
-                        correctedCount = correctedCount + 1
-                    End If
-                    
-                    verifiedCount = verifiedCount + 1
-                End If
-            End If
-        End With
-        
-        On Error GoTo ErrorHandler
-    Next i
-    
-    If correctedCount > 0 Then
-    ' (Logging removed) Image verification completed: " & verifiedCount & " verified, " & correctedCount & " corrected"
-    Else
-    ' (Logging removed) Image verification completed: " & verifiedCount & " images intact
-    End If
-    
-    RestoreAllImages = True
-    Exit Function
-
-ErrorHandler:
-    ' (Logging removed) Error verifying images: " & Err.Description
-    RestoreAllImages = False
-End Function
 
 '================================================================================
 ' GET CLIPBOARD DATA - Get data from the clipboard
