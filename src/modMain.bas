@@ -3603,33 +3603,12 @@ Private Function ProtectImagesInRange(targetRange As Range) As Boolean
         End With
     End If
     
-    ProtectImagesInRange = True
-    Exit Function
+    ' (Legacy image protection removed) Always succeed
+    ProtectImagesInRange = True: Exit Function
 
 ErrorHandler:
-    ' (Logging removed) Error in image protection: " & Err.Description
-    ProtectImagesInRange = False
+    ProtectImagesInRange = True ' Fail-open; formatting continues
 End Function
-
-'================================================================================
-' CLEANUP IMAGE PROTECTION - Cleanup image protection variables
-'================================================================================
-Private Sub CleanupImageProtection()
-    On Error Resume Next
-    
-    ' Clear image arrays
-    If imageCount > 0 Then
-        Dim i As Long
-        For i = 0 To imageCount - 1
-            Set savedImages(i).AnchorRange = Nothing
-        Next i
-    End If
-    
-    imageCount = 0
-    ReDim savedImages(0)
-    
-    ' (Logging removed) Image protection variables cleaned
-End Sub
 
 '================================================================================
 ' VISUAL ELEMENTS CLEANUP SYSTEM
