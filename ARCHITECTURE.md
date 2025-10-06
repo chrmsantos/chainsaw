@@ -9,7 +9,7 @@ This document explains the modular structure introduced in the 1.0.0 Beta refact
 | Module | Responsibility | Key Public Procedures (Illustrative) |
 |--------|----------------|--------------------------------------|
 | chainsaw.bas | Entry point stub (public macro only) | ChainsawProcess |
-| modMain.bas | Transitional legacy container (to be dissolved) | RunChainsawPipeline |
+| modPipeline.bas | Pipeline orchestrator (successor of transitional modMain) | RunChainsawPipeline |
 | modFormatting.bas | All document + paragraph formatting rules | FormatFirstParagraph, FormatConsiderandoParagraphs |
 | modReplacements.bas | Pattern-based global & targeted replacements | ApplyTextReplacements |
 | modValidation.bas | Content & lexical integrity checks | ValidateContentConsistency |

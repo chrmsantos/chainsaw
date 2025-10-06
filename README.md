@@ -75,7 +75,7 @@ chainsaw/
 | Module | Responsibility | Example Procedure |
 |--------|----------------|-------------------|
 | chainsaw.bas | Public entry macro (stub only) | `ChainsawProcess` |
-| modMain | Transitional legacy orchestrator (being decomposed) | `RunChainsawPipeline` |
+| modPipeline | Pipeline orchestrator (post-refactor; formerly modMain) | `RunChainsawPipeline` |
 | modFormatting | Formatting & special paragraphs | `FormatConsiderandoParagraphs` |
 | modReplacements | Pattern / semantic replacements | `ApplyTextReplacements` |
 | modValidation | Content & lexical validation | `ValidateContentConsistency` |

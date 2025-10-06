@@ -1,7 +1,7 @@
 ' =============================================================================
 ' PROJECT: CHAINSAW PROPOSITURAS
 ' =============================================================================
-' LEGACY TRANSITION MODULE (modMain.bas)
+' LEGACY TRANSITION MODULE (modMain.bas) - DEPRECATED (replaced by modPipeline.bas)
 ' -----------------------------------------------------------------------------
 ' This file still contains portions of the original monolithic implementation.
 ' Refactor Status:

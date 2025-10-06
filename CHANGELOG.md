@@ -6,13 +6,13 @@ All notable changes to this project will be documented in this file.
 
 ### Added (Unreleased)
 
-- Legacy transition banner in `modMain.bas` guiding ongoing extraction.
+- Finalized orchestrator rename: `modMain.bas` -> `modPipeline.bas`.
 
 ### Changed (Unreleased)
 
-- `chainsaw.bas` reduced to a pure entry stub with clarified header.
-- `ARCHITECTURE.md` updated: now lists `modMain.bas` as transitional and clarifies stub role.
-- `README.md` module table updated with `ChainsawProcess` now active and `modMain` marked transitional.
+- `chainsaw.bas` remains a pure entry stub; pipeline logic consolidated in `modPipeline.bas`.
+- `ARCHITECTURE.md` updated to reflect orchestrator rename.
+- `README.md` module table updated (modPipeline supersedes legacy modMain).
 
 ### Removed (Unreleased)
 
