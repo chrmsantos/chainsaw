@@ -6,6 +6,16 @@ Option Explicit
 
 ' NOTE: Centralized formatting implementation. Remaining formatting bodies migrated from chainsaw.bas.
 
+' Public visual content detector (wrapper around safe logic; avoids dependency on legacy modMain private helper)
+Public Function HasVisualContent(para As Paragraph) As Boolean
+	On Error GoTo Fallback
+	HasVisualContent = (para.Range.InlineShapes.Count > 0 Or para.Range.ShapeRange.Count > 0)
+	Exit Function
+Fallback:
+	On Error Resume Next
+	HasVisualContent = (para.Range.InlineShapes.Count > 0)
+End Function
+
 '--------------------------------------------------------------------------------
 ' SECOND PARAGRAPH UTILITIES (migrated)
 '--------------------------------------------------------------------------------
@@ -122,37 +132,6 @@ ErrHandler:
 	FormatFirstParagraph = False
 End Function
 
-Public Function FormatSecondParagraph(doc As Document) As Boolean
-	On Error GoTo ErrHandler
-	Dim para As Paragraph, paraText As String, i As Long, actualParaIndex As Long, secondParaIndex As Long
-	For i = 1 To doc.Paragraphs.Count
-		Set para = doc.Paragraphs(i)
-		paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
-		If paraText <> "" Or HasVisualContent(para) Then
-			actualParaIndex = actualParaIndex + 1
-			If actualParaIndex = 2 Then secondParaIndex = i: Exit For
-		End If
-		If i > 10 Then Exit For
-	Next i
-	If secondParaIndex > 0 And secondParaIndex <= doc.Paragraphs.Count Then
-		Set para = doc.Paragraphs(secondParaIndex)
-		Dim insertionPoint As Range: Set insertionPoint = para.Range: insertionPoint.Collapse wdCollapseStart
-		Dim blankLinesBefore As Long: blankLinesBefore = CountBlankLinesBefore(doc, secondParaIndex)
-		If blankLinesBefore < 2 Then
-			Dim linesToAdd As Long: linesToAdd = 2 - blankLinesBefore
-			insertionPoint.InsertBefore String(linesToAdd, vbCrLf)
-			secondParaIndex = secondParaIndex + linesToAdd
-			Set para = doc.Paragraphs(secondParaIndex)
-		End If
-		With para.Format: .LeftIndent = CentimetersToPoints(9): .FirstLineIndent = 0: .RightIndent = 0: .Alignment = wdAlignParagraphJustify: End With
-		Dim insertionPointAfter As Range: Set insertionPointAfter = para.Range: insertionPointAfter.Collapse wdCollapseEnd
-		Dim blankLinesAfter As Long: blankLinesAfter = CountBlankLinesAfter(doc, secondParaIndex)
-		If blankLinesAfter < 2 Then insertionPointAfter.InsertAfter String(2 - blankLinesAfter, vbCrLf)
-	End If
-	FormatSecondParagraph = True: Exit Function
-ErrHandler:
-	FormatSecondParagraph = False
-End Function
 
 Public Function EnableHyphenation(doc As Document) As Boolean
 	On Error GoTo ErrHandler
@@ -470,52 +449,6 @@ End Sub
 '================================================================================
 ' PARAGRAPH FORMATTING
 '================================================================================
-Public Function ApplyStdParagraphs(doc As Document) As Boolean
-	On Error GoTo ErrHandler
-	Dim para As Paragraph, i As Long
-	Dim hasInlineImage As Boolean, skippedCount As Long, rightMarginPoints As Single
-	rightMarginPoints = 0
-	For i = doc.Paragraphs.Count To 1 Step -1
-		Set para = doc.Paragraphs(i)
-		hasInlineImage = (para.Range.InlineShapes.Count > 0)
-		If Not hasInlineImage And HasVisualContent(para) Then
-			hasInlineImage = True: skippedCount = skippedCount + 1
-		End If
-		Dim cleanText As String: cleanText = para.Range.Text
-		If InStr(cleanText, "  ") > 0 Or InStr(cleanText, vbTab) > 0 Then
-			Do While InStr(cleanText, "  ") > 0: cleanText = Replace(cleanText, "  ", " "): Loop
-			cleanText = Replace(cleanText, " " & vbCr, vbCr)
-			cleanText = Replace(cleanText, vbCr & " ", vbCr)
-			cleanText = Replace(cleanText, " " & vbLf, vbLf)
-			cleanText = Replace(cleanText, vbLf & " ", vbLf)
-			Do While InStr(cleanText, vbTab & vbTab) > 0: cleanText = Replace(cleanText, vbTab & vbTab, vbTab): Loop
-			cleanText = Replace(cleanText, vbTab, " ")
-			Do While InStr(cleanText, "  ") > 0: cleanText = Replace(cleanText, "  ", " "): Loop
-		End If
-		If cleanText <> para.Range.Text And Not hasInlineImage Then para.Range.Text = cleanText
-		With para.Format
-			.LineSpacingRule = wdLineSpacingMultiple
-			.LineSpacing = LINE_SPACING
-			.RightIndent = rightMarginPoints
-			.SpaceBefore = 0
-			.SpaceAfter = 0
-			If para.Alignment = wdAlignParagraphCenter Then
-				.LeftIndent = 0: .FirstLineIndent = 0
-			Else
-				If .LeftIndent >= CentimetersToPoints(5) Then
-					.LeftIndent = CentimetersToPoints(9.5)
-				ElseIf .FirstLineIndent < CentimetersToPoints(5) Then
-					.LeftIndent = 0
-					.FirstLineIndent = CentimetersToPoints(1.5)
-				End If
-			End If
-		End With
-		If para.Alignment = wdAlignParagraphLeft Then para.Alignment = wdAlignParagraphJustify
-	Next i
-	ApplyStdParagraphs = True: Exit Function
-ErrHandler:
-	ApplyStdParagraphs = False
-End Function
 
 Public Function FormatSecondParagraph(doc As Document) As Boolean
 	On Error GoTo ErrHandler

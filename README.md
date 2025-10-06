@@ -82,6 +82,8 @@ chainsaw/
 | modSafety | Safe wrappers for Word API | `SafeHasVisualContent` |
 | modConfig | Config parsing & defaults | `modConfig_LoadConfiguration` |
 | modLog | Stubbed logging API | `LogStepStart` |
+| modErrors | Centralized error/status reporting (no I/O) | `ReportUnexpected` |
+| modSelfTest | Lightweight regression/self-test macro | `ChainsawSelfTest` |
  
 - **Flexible configuration:** Enable/disable logging by category
 
@@ -105,6 +107,7 @@ chainsaw/
   Efficient processing even for large documents.
 - **Advanced security:**
   Integrity validation, version check and failure protection.
+ - **Self-test macro:** `ChainsawSelfTest` collects before/after metrics (paragraphs, words, chars, images) to help detect unintended formatting regressions during refactors.
 
 ## 📁 Project Structure
 
@@ -232,6 +235,9 @@ When enabled (`dialog_ascii_normalization = true`), all user-facing dialog strin
 ## 📚 Documentation
 
 Project root files:
+
+- `modSelfTest.bas` – Optional macro `ChainsawSelfTest` for quick regression sanity.
+- `modErrors.bas` – Minimal status/error centralization (no file writes in beta).
 
 - `CONTRIBUTORS.md` – Contributors list
 - `installation/INSTALL.md` – Detailed installation & deployment guide
