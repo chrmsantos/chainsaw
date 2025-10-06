@@ -23,11 +23,7 @@ Option Explicit
 Private Const version As String = "v1.0.0-Beta1"
 Private Const SYSTEM_NAME As String = "CHAINSAW PROPOSITURAS"
 
-' Logging level constants (restored)
-Private Const LOG_LEVEL_INFO    As String = "INFO"
-Private Const LOG_LEVEL_WARNING As String = "WARN"
-Private Const LOG_LEVEL_ERROR   As String = "ERROR"
-Private Const LOG_LEVEL_DEBUG   As String = "DEBUG"
+' (Removed logging level constants)
 
 '================================================================================
 ' CENTRALIZED USER-FACING MESSAGES & TITLES
@@ -196,15 +192,10 @@ Private Const CONFIG_FILE_PATH As String = "\chainsaw\"
 ' GLOBAL VARIABLES
 '================================================================================
 Private undoGroupEnabled As Boolean
-Private loggingEnabled As Boolean
-Private logFilePath As String
+ ' (Removed: loggingEnabled, logFilePath)
 Private formattingCancelled As Boolean
 Private backupFilePath As String
-Private logInfoCount As Long
-Private logWarnCount As Long
-Private logErrorCount As Long
-Private currentStepName As String
-Private currentStepStart As Double
+ ' (Removed: logInfoCount, logWarnCount, logErrorCount, currentStepName, currentStepStart)
 Private processingStartTime As Double ' Session start timestamp for total duration logging
 Private isConfigLoaded As Boolean     ' Tracks whether configuration defaults/file have been applied
 
@@ -387,17 +378,14 @@ Private Function LoadConfiguration() As Boolean
     configPath = GetConfigurationFilePath()
     
     If Len(configPath) = 0 Or Dir(configPath) = "" Then
-    LogMessage "Configuration file not found, using default values: " & configPath, LOG_LEVEL_WARNING
-    LoadConfiguration = True ' Use defaults
+    LoadConfiguration = True ' Use defaults (config file not found)
         Exit Function
     End If
     
     ' Load settings from file
     If ParseConfigurationFile(configPath) Then
-        LogMessage "Configuration loaded successfully from: " & configPath, LOG_LEVEL_INFO
         LoadConfiguration = True
     Else
-    LogMessage "Error loading configuration, using default values", LOG_LEVEL_WARNING
         SetDefaultConfiguration
         LoadConfiguration = True ' Patterns used as fallback
     End If
@@ -405,7 +393,6 @@ Private Function LoadConfiguration() As Boolean
     Exit Function
     
 ErrorHandler:
-    LogMessage "Error loading configuration: " & Err.Description, LOG_LEVEL_ERROR
     SetDefaultConfiguration
     LoadConfiguration = True ' Continue with defaults
 End Function
@@ -869,81 +856,72 @@ Private Function InitializePerformanceOptimization() As Boolean
     
     InitializePerformanceOptimization = False
     
-    ' Apply standard performance optimizations (always on)
-    LogMessage "Starting performance optimizations...", LOG_LEVEL_INFO
-    Application.ScreenUpdating = False
-    LogMessage "Screen updating disabled", LOG_LEVEL_DEBUG
-    Application.DisplayAlerts = False
-    LogMessage "Display alerts disabled", LOG_LEVEL_DEBUG
     
-    ' Word-specific optimizations
-    Call OptimizeWordSettings
     
-    LogMessage "Performance optimizations applied", LOG_LEVEL_INFO
     
-    InitializePerformanceOptimization = True
-    Exit Function
     
-ErrorHandler:
-    LogMessage "Error initializing optimizations: " & Err.Description, LOG_LEVEL_ERROR
-    InitializePerformanceOptimization = False
-End Function
-
-Private Sub OptimizeWordSettings()
-    On Error Resume Next
     
-    ' Apply Word-specific optimizations (always on)
-        With ActiveDocument
-            .TrackRevisions = False
-            .ShowRevisions = False
-        End With
+            
     
-        With Selection.Find
-            .Format = False
-            .MatchCase = False
-            .MatchWholeWord = False
-            .MatchWildcards = False
-            .MatchSoundsLike = False
-            .MatchAllWordForms = False
-        End With
     
-    On Error GoTo 0
-End Sub
-
-Private Function RestorePerformanceSettings() As Boolean
-    On Error GoTo ErrorHandler
     
-    RestorePerformanceSettings = False
     
-    LogMessage "Restoring performance settings...", LOG_LEVEL_INFO
-    ' Restore original settings
-    Application.ScreenUpdating = True
-    Application.DisplayAlerts = True
-    LogMessage "Performance settings restored", LOG_LEVEL_INFO
     
-    RestorePerformanceSettings = True
-    Exit Function
     
-ErrorHandler:
-    LogMessage "Error restoring settings: " & Err.Description, LOG_LEVEL_ERROR
-    RestorePerformanceSettings = False
-End Function
-
-Private Function OptimizedFindReplace(findText As String, replaceText As String, Optional searchRange As Range = Nothing) As Long
-    On Error GoTo ErrorHandler
     
-    OptimizedFindReplace = 0
     
-    ' Always use optimized bulk replace
-    OptimizedFindReplace = BulkFindReplace(findText, replaceText, searchRange)
     
-    Exit Function
     
-ErrorHandler:
-    LogMessage "Error during optimized find/replace: " & Err.Description, LOG_LEVEL_ERROR
-    OptimizedFindReplace = 0
-End Function
-
+    
+                    
+            
+    
+    
+    
+    
+    
+    
+            
+    
+            
+                
+          
+                
+          
+         
+    
+    
+                        
+                        
+                    
+                
+                
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+            
+            
+    
+    
+    
+    
+    
+            
+            
+    
+    
+    
+    
+    
+    
+    
 Private Function BulkFindReplace(findText As String, replaceText As String, Optional searchRange As Range = Nothing) As Long
     On Error GoTo ErrorHandler
     
@@ -974,7 +952,6 @@ Private Function BulkFindReplace(findText As String, replaceText As String, Opti
     Exit Function
     
 ErrorHandler:
-    LogMessage "Error during bulk find/replace: " & Err.Description, LOG_LEVEL_ERROR
     BulkFindReplace = 0
 End Function
 
@@ -1001,7 +978,6 @@ Private Function StandardFindReplace(findText As String, replaceText As String, 
     Exit Function
     
 ErrorHandler:
-    LogMessage "Error during standard find/replace: " & Err.Description, LOG_LEVEL_ERROR
     StandardFindReplace = 0
 End Function
 
@@ -1016,7 +992,6 @@ Private Function OptimizedParagraphProcessing(processingFunction As String) As B
     Exit Function
     
 ErrorHandler:
-    LogMessage "Error in optimized paragraph processing: " & Err.Description, LOG_LEVEL_ERROR
     OptimizedParagraphProcessing = False
 End Function
 
@@ -1034,7 +1009,7 @@ Private Function BatchProcessParagraphs(processingFunction As String) As Boolean
     Dim batchSize As Long
     batchSize = IIf(paragraphCount > OPTIMIZATION_THRESHOLD, MAX_PARAGRAPH_BATCH_SIZE, paragraphCount)
     
-    LogMessage "Processing " & paragraphCount & " paragraphs in batches of " & batchSize, LOG_LEVEL_DEBUG
+    ' Processing paragraphs in batches
     
     Dim i As Long
     For i = 1 To paragraphCount Step batchSize
@@ -1043,7 +1018,7 @@ Private Function BatchProcessParagraphs(processingFunction As String) As Boolean
         
         ' Process paragraph batch
         If Not ProcessParagraphBatch(i, endIndex, processingFunction) Then
-            LogMessage "Error processing batch " & i & "-" & endIndex, LOG_LEVEL_ERROR
+            ' Error processing batch segment – abort batch
             Exit Function
         End If
         
@@ -1055,7 +1030,6 @@ Private Function BatchProcessParagraphs(processingFunction As String) As Boolean
     Exit Function
     
 ErrorHandler:
-    LogMessage "Error in batch processing: " & Err.Description, LOG_LEVEL_ERROR
     BatchProcessParagraphs = False
 End Function
 
@@ -1085,7 +1059,6 @@ Private Function StandardProcessParagraphs(processingFunction As String) As Bool
     Exit Function
     
 ErrorHandler:
-    LogMessage "Error in standard processing: " & Err.Description, LOG_LEVEL_ERROR
     StandardProcessParagraphs = False
 End Function
 
@@ -1119,7 +1092,6 @@ Private Function ProcessParagraphBatch(startIndex As Long, endIndex As Long, pro
     Exit Function
     
 ErrorHandler:
-    LogMessage "Error in batch processing: " & Err.Description, LOG_LEVEL_ERROR
     ProcessParagraphBatch = False
 End Function
 
@@ -1164,13 +1136,11 @@ Public Sub StandardizeDocumentMain()
     ' Load system configuration
     If Not isConfigLoaded Then
         If Not LoadConfiguration() Then
-            LogMessage "Critical error loading configuration. Aborting execution.", LOG_LEVEL_ERROR
          MsgBox NormalizeForUI("Critical error loading system configuration." & vbCrLf & _
              "Execution was aborted to prevent issues."), vbCritical, NormalizeForUI("Configuration Error - " & SYSTEM_NAME)
             Exit Sub
         End If
     isConfigLoaded = True
-    LogMessage "System initialized: " & SYSTEM_NAME & " " & version, LOG_LEVEL_INFO
     End If
     
     ' ========================================
@@ -1180,7 +1150,6 @@ Public Sub StandardizeDocumentMain()
     ' Word version validation (always on)
     If Not CheckWordVersion() Then
         Application.StatusBar = "Error: Word version not supported (minimum: Word " & Config.minWordVersion & ")"
-        LogMessage "Word version " & Application.version & " not supported. Minimum: " & CStr(Config.minWordVersion), LOG_LEVEL_ERROR
         Dim verMsg As String
         verMsg = ReplacePlaceholders(MSG_ERR_VERSION, _
                     "MIN", CStr(Config.minWordVersion), _
@@ -1200,7 +1169,6 @@ Public Sub StandardizeDocumentMain()
     If doc Is Nothing Then
         On Error GoTo CriticalErrorHandler
         Application.StatusBar = "Error: No document is accessible"
-        LogMessage "No document accessible for processing", LOG_LEVEL_ERROR
         MsgBox NormalizeForUI(MSG_NO_DOCUMENT), vbExclamation, NormalizeForUI(TITLE_DOC_NOT_FOUND)
         Exit Sub
     End If
@@ -1208,13 +1176,11 @@ Public Sub StandardizeDocumentMain()
     
     ' Document integrity validation (always on)
     If Not ValidateDocumentIntegrity(doc) Then
-        LogMessage "Document failed integrity validation", LOG_LEVEL_ERROR
         GoTo CleanUp
     End If
     
     ' Ensure the document is editable (not Protected View, not read-only, not marked as Final)
     If Not EnsureDocumentEditable(doc) Then
-        LogMessage "Document is not editable - operation cancelled", LOG_LEVEL_WARNING
         Application.StatusBar = "Document is not editable - operation cancelled"
         GoTo CleanUp
     End If
@@ -1224,24 +1190,16 @@ Public Sub StandardizeDocumentMain()
     ' ========================================
     
     If Not InitializePerformanceOptimization() Then
-        LogMessage "Warning: Failed to initialize performance optimizations", LOG_LEVEL_WARNING
-    ' Continue execution even if optimizations fail
+        ' Continue execution even if optimizations fail
     End If
     
-    ' Initialize logging system
-    If Not InitializeLogging(doc) Then
-        LogMessage "Failed to initialize logging system", LOG_LEVEL_WARNING
-    End If
-    
-    LogMessage "Starting document standardization: " & doc.Name & " (Chainsaw Proposituras v1.0.0-Beta1)", LOG_LEVEL_INFO
+    ' Logging system removed – no initialization required
     
     ' Configure undo group
     StartUndoGroup "Document Standardization - " & doc.Name
     
     ' Configure application state
-    If Not SetAppState(False, "Formatting document...") Then
-        LogMessage "Failed to configure application state", LOG_LEVEL_WARNING
-    End If
+    If Not SetAppState(False, "Formatting document...") Then End If
     
     ' Preliminary checks
     If Not PreviousChecking(doc) Then
@@ -1252,20 +1210,17 @@ Public Sub StandardizeDocumentMain()
     If doc.Path = "" Then
         If Not SaveDocumentFirst(doc) Then
             Application.StatusBar = "Operation cancelled: document needs to be saved"
-            LogMessage "Operation cancelled - document was not saved", LOG_LEVEL_INFO
             GoTo CleanUp
         End If
     End If
     
     ' Backup creation with validation
     If Not CreateDocumentBackup(doc) Then
-        LogMessage "Failed to create backup - continuing without backup", LOG_LEVEL_WARNING
         Application.StatusBar = "Warning: Backup was not possible - processing without backup"
         Dim backupResponse As VbMsgBoxResult
     backupResponse = MsgBox(NormalizeForUI("It was not possible to create a backup of the document." & vbCrLf & _
                   "Do you want to continue anyway?"), vbYesNo + vbExclamation, NormalizeForUI("Backup Failure - Chainsaw Proposituras"))
         If backupResponse = vbNo Then
-            LogMessage "Operation cancelled by user due to backup failure", LOG_LEVEL_INFO
             GoTo CleanUp
         End If
     Else
@@ -1273,9 +1228,7 @@ Public Sub StandardizeDocumentMain()
     End If
     
     ' Backup original view settings
-    If Not BackupViewSettings(doc) Then
-        LogMessage "Warning: Failed to backup view settings", LOG_LEVEL_WARNING
-    End If
+    If Not BackupViewSettings(doc) Then End If
 
     ' Visual elements cleanup step removed
     Application.StatusBar = "Processing document structure..."
@@ -1285,32 +1238,25 @@ Public Sub StandardizeDocumentMain()
     End If
 
     ' Restore original view settings (except zoom)
-    If Not RestoreViewSettings(doc) Then
-        LogMessage "Warning: Some view settings may not have been restored", LOG_LEVEL_WARNING
-    End If
+    If Not RestoreViewSettings(doc) Then End If
 
     If formattingCancelled Then
         GoTo CleanUp
     End If
 
     Application.StatusBar = "Document standardized successfully!"
-    LogMessage "Document standardized successfully", LOG_LEVEL_INFO
 
 CleanUp:
     ' Restore performance settings
-    If Not RestorePerformanceSettings() Then
-    LogMessage "Warning: Failed to restore performance settings", LOG_LEVEL_WARNING
-    End If
+    If Not RestorePerformanceSettings() Then End If
     
     SafeCleanup
     CleanupImageProtection ' Cleanup image protection variables
     CleanupViewSettings    ' Cleanup view settings variables
     
-    If Not SetAppState(True, "Document standardized successfully!") Then
-        LogMessage "Failed to restore application state", LOG_LEVEL_WARNING
-    End If
+    If Not SetAppState(True, "Document standardized successfully!") Then End If
     
-    SafeFinalizeLogging
+    ' Logging system removed – no finalization required
     
     Exit Sub
 
@@ -1319,8 +1265,7 @@ CriticalErrorHandler:
     errDesc = "CRITICAL ERROR #" & Err.Number & ": " & Err.Description & _
               " in " & Err.Source & " (Line: " & Erl & ")"
     
-    LogMessage errDesc, LOG_LEVEL_ERROR
-    Application.StatusBar = "Critical error during processing - check logs"
+    Application.StatusBar = "Critical error during processing"
     
     EmergencyRecovery
 End Sub
@@ -1355,13 +1300,13 @@ Private Function EnsureDocumentEditable(doc As Document) As Boolean
             On Error Resume Next
             If Application.Dialogs(wdDialogFileSaveAs).Show <> -1 Then
                 On Error GoTo ErrorHandler
-                LogMessage "User cancelled Save As while enabling editing", LOG_LEVEL_WARNING
+                ' User cancelled Save As while enabling editing
                 EnsureDocumentEditable = False
                 Exit Function
             End If
             On Error GoTo ErrorHandler
         Else
-            LogMessage "User declined to Save As to enable editing", LOG_LEVEL_INFO
+            ' User declined Save As to enable editing
             EnsureDocumentEditable = False
             Exit Function
         End If
@@ -1376,7 +1321,6 @@ Private Function EnsureDocumentEditable(doc As Document) As Boolean
     Exit Function
 
 ErrorHandler:
-    LogMessage "Error ensuring document editability: " & Err.Description, LOG_LEVEL_WARNING
     EnsureDocumentEditable = False
 End Function
 
@@ -1402,7 +1346,6 @@ Private Sub EmergencyRecovery()
     ' Clear view-settings variables on error
     CleanupViewSettings
     
-    LogMessage "Emergency recovery executed", LOG_LEVEL_ERROR
         undoGroupEnabled = False
     
     CloseAllOpenFiles
@@ -1459,10 +1402,8 @@ Private Function CheckWordVersion() As Boolean
     ' Use configuration for minimum version
     If version < Config.minWordVersion Then
         CheckWordVersion = False
-    LogMessage "Detected version: " & CStr(version) & " - Minimum supported: " & CStr(Config.minWordVersion), LOG_LEVEL_ERROR
     Else
         CheckWordVersion = True
-    LogMessage "Compatible Word version: " & CStr(version), LOG_LEVEL_INFO
     End If
     
     Exit Function
@@ -1470,7 +1411,6 @@ Private Function CheckWordVersion() As Boolean
 ErrorHandler:
     ' If cannot detect version, assume incompatibility for safety
     CheckWordVersion = False
-    LogMessage "Error detecting Word version: " & Err.Description, LOG_LEVEL_ERROR
 End Function
 
  ' Removed: CompileVBAProject function (deprecated)
@@ -1486,7 +1426,6 @@ Private Function ValidateDocumentIntegrity(doc As Document) As Boolean
     
     ' Basic accessibility check
     If doc Is Nothing Then
-        LogMessage "Document is Nothing during integrity validation", LOG_LEVEL_ERROR
         MsgBox NormalizeForUI(MSG_INACCESSIBLE), vbCritical, NormalizeForUI(TITLE_INTEGRITY_ERROR)
         Exit Function
     End If
@@ -1497,24 +1436,20 @@ Private Function ValidateDocumentIntegrity(doc As Document) As Boolean
     isProtected = (doc.protectionType <> wdNoProtection)
     If Err.Number <> 0 Then
         On Error GoTo ErrorHandler
-    LogMessage "Couldn't verify document protection", LOG_LEVEL_WARNING
         isProtected = False
     End If
     On Error GoTo ErrorHandler
     
     If isProtected Then
-        LogMessage "Protected document detected: " & GetProtectionType(doc), LOG_LEVEL_WARNING
         Dim protMsg As String
         protMsg = ReplacePlaceholders(MSG_PROTECTED, "PROT", GetProtectionType(doc))
         If vbNo = MsgBox(NormalizeForUI(protMsg), vbYesNo + vbExclamation, NormalizeForUI(TITLE_PROTECTED)) Then
-            LogMessage "User cancelled due to document protection", LOG_LEVEL_INFO
             Exit Function
         End If
     End If
     
     ' Minimum content check
     If doc.Paragraphs.count < 1 Then
-        LogMessage "Empty document detected", LOG_LEVEL_ERROR
         MsgBox NormalizeForUI(MSG_EMPTY_DOC), vbExclamation, NormalizeForUI(TITLE_EMPTY_DOC)
         Exit Function
     End If
@@ -1525,46 +1460,35 @@ Private Function ValidateDocumentIntegrity(doc As Document) As Boolean
     docSize = doc.Range.Characters.count
     If Err.Number <> 0 Then
         docSize = 0
-    LogMessage "Couldn't determine document size", LOG_LEVEL_WARNING
     End If
     On Error GoTo ErrorHandler
     
     If docSize > 500000 Then ' ~500KB of text
-        LogMessage "Very large document detected: " & docSize & " characters", LOG_LEVEL_WARNING
         Dim continueResponse As VbMsgBoxResult
         Dim largeMsg As String
         largeMsg = ReplacePlaceholders(MSG_LARGE_DOC, "SIZE", Format(docSize, "#,##0"))
         continueResponse = MsgBox(NormalizeForUI(largeMsg), vbYesNo + vbQuestion, NormalizeForUI(TITLE_LARGE_DOC))
         If continueResponse = vbNo Then
-            LogMessage "User cancelled due to document size", LOG_LEVEL_INFO
             Exit Function
         End If
     End If
     
     ' Save state check
     If Not doc.Saved And doc.Path <> "" Then
-        LogMessage "Document has unsaved changes", LOG_LEVEL_WARNING
         Dim saveResponse As VbMsgBoxResult
         saveResponse = MsgBox(NormalizeForUI(MSG_UNSAVED), vbYesNoCancel + vbQuestion, NormalizeForUI(TITLE_UNSAVED))
         Select Case saveResponse
-            Case vbYes
-                doc.Save
-                LogMessage "Document saved by user before standardization", LOG_LEVEL_INFO
-            Case vbCancel
-                LogMessage "User cancelled operation", LOG_LEVEL_INFO
-                Exit Function
-            Case vbNo
-                LogMessage "User chose to continue without saving", LOG_LEVEL_WARNING
+            Case vbYes: doc.Save
+            Case vbCancel: Exit Function
+            Case vbNo: ' continue without saving
         End Select
     End If
     
     ' If we've reached this point, all validations passed
     ValidateDocumentIntegrity = True
-    LogMessage "Document integrity validation completed successfully", LOG_LEVEL_INFO
     Exit Function
     
 ErrorHandler:
-    LogMessage "Error during integrity validation: " & Err.Description, LOG_LEVEL_ERROR
     Dim valErr As String
     valErr = ReplacePlaceholders(MSG_VALIDATION_ERROR, "ERR", Err.Description)
     MsgBox NormalizeForUI(valErr), vbCritical, NormalizeForUI(TITLE_VALIDATION_ERROR)
@@ -1589,7 +1513,7 @@ FallbackMethod:
     
 ErrorHandler:
           ' Removed stray duplicated MsgBox (already handled in main flow)
-    LogMessage "Error getting character count: " & Err.Description, LOG_LEVEL_WARNING
+    
 End Function
 
 Private Function SafeSetFont(targetRange As Range, fontName As String, fontSize As Long) As Boolean
@@ -1605,7 +1529,7 @@ Private Function SafeSetFont(targetRange As Range, fontName As String, fontSize 
                 ' Removed stray duplicated version requirement MsgBox (handled earlier)
 ErrorHandler:
     SafeSetFont = False
-    LogMessage "Error applying font: " & Err.Description & " - Range: " & Left(targetRange.text, 20), LOG_LEVEL_WARNING
+    
 End Function
 
 Private Function SafeSetParagraphFormat(para As Paragraph, alignment As Long, leftIndent As Single, firstLineIndent As Single) As Boolean
@@ -1622,7 +1546,7 @@ Private Function SafeSetParagraphFormat(para As Paragraph, alignment As Long, le
     
 ErrorHandler:
     SafeSetParagraphFormat = False
-    LogMessage "Error applying paragraph format: " & Err.Description, LOG_LEVEL_WARNING
+    
 End Function
 
 Private Function SafeHasVisualContent(para As Paragraph) As Boolean
@@ -1688,7 +1612,7 @@ Private Function SafeFindReplace(doc As Document, findText As String, replaceTex
             findCount = findCount + 1
             ' Safety limit to avoid infinite loops
             If findCount > 10000 Then
-                LogMessage "Replacement limit reached for: " & findText, LOG_LEVEL_WARNING
+                
                 Exit Do
             End If
         Loop
@@ -1699,7 +1623,6 @@ Private Function SafeFindReplace(doc As Document, findText As String, replaceTex
     
 ErrorHandler:
     SafeFindReplace = 0
-    LogMessage "Error in Find/Replace operation: " & findText & " -> " & replaceText & " | " & Err.Description, LOG_LEVEL_WARNING
 End Function
 
 '================================================================================
@@ -1761,146 +1684,7 @@ ErrorHandler:
     undoGroupEnabled = False
 End Sub
 
-'================================================================================
-' LOGGING MANAGEMENT - APRIMORADO COM DETALHES
-'================================================================================
-Private Function InitializeLogging(doc As Document) As Boolean
-    On Error GoTo ErrorHandler
-    
-    If doc.Path <> "" Then
-        logFilePath = doc.Path & "\" & Format(Now, "yyyy-mm-dd") & "_" & _
-                     Replace(doc.Name, ".doc", "") & "_FormattingLog.txt"
-        logFilePath = Replace(logFilePath, ".docx", "") & "_FormattingLog.txt"
-        logFilePath = Replace(logFilePath, ".docm", "") & "_FormattingLog.txt"
-    Else
-        logFilePath = Environ("TEMP") & "\" & Format(Now, "yyyy-mm-dd") & "_DocumentFormattingLog.txt"
-    End If
-    
-    Open logFilePath For Output As #1
-    Print #1, "========================================================"
-    Print #1, "DOCUMENT FORMATTING LOG - LOGGING SYSTEM"
-    Print #1, "========================================================"
-    Print #1, "Session: " & Format(Now, "yyyy-mm-dd HH:MM:ss")
-    Print #1, "User: " & NormalizeForLog(Environ("USERNAME"))
-    Print #1, "Computer: " & NormalizeForLog(Environ("COMPUTERNAME"))
-    Print #1, "Word Version: " & NormalizeForLog(CStr(Application.version))
-    Print #1, "Document: " & NormalizeForLog(doc.Name)
-    Print #1, "Location: " & NormalizeForLog(IIf(doc.Path = "", "(Not saved)", doc.Path))
-    Print #1, "Protection: " & GetProtectionType(doc)
-    Print #1, "Size: " & GetDocumentSize(doc)
-    Print #1, "Paragraphs: " & doc.Paragraphs.count & " | Sections: " & doc.Sections.count
-    Print #1, "Log Level: " & Config.logLevel
-    Print #1, "========================================================"
-    Print #1, "Pipeline will run the following steps (simplified):"
-    Print #1, "- Page setup"
-    Print #1, "- Clean document structure (remove blank lines above title, leading spaces)"
-    Print #1, "- Proposition validation and title formatting"
-    Print #1, "- Standard fonts and paragraphs"
-    Print #1, "- CONSIDERANDO capitalization and specific replacements"
-    Print #1, "- Text replacements and numbered paragraphs normalization"
-    Print #1, "- Special headers/footers (header image + footer page numbers)"
-    Print #1, "- Spacing cleanup and paragraph separation"
-    Print #1, "========================================================"
-    Close #1
-    
-    loggingEnabled = True
-    InitializeLogging = True
-    
-    Exit Function
-    
-ErrorHandler:
-    loggingEnabled = False
-    InitializeLogging = False
-End Function
-
-Private Sub LogMessage(message As String, Optional level As String = LOG_LEVEL_INFO)
-    On Error GoTo ErrorHandler
-    
-    If Not loggingEnabled Then Exit Sub
-    
-    Dim levelText As String
-    Dim levelIcon As String
-    
-    Select Case level
-        Case LOG_LEVEL_INFO
-            levelText = "INFO"
-            levelIcon = ""
-            logInfoCount = logInfoCount + 1
-        Case LOG_LEVEL_WARNING
-            levelText = "WARNING"
-            levelIcon = ""
-            logWarnCount = logWarnCount + 1
-        Case LOG_LEVEL_ERROR
-            levelText = "ERROR"
-            levelIcon = ""
-            logErrorCount = logErrorCount + 1
-        Case Else
-            levelText = "OTHER"
-            levelIcon = ""
-    End Select
-    
-    Dim formattedMessage As String
-    formattedMessage = Format(Now, "yyyy-mm-dd HH:MM:ss") & " [" & levelText & "] " & levelIcon & " " & NormalizeForLog(message)
-    
-    Open logFilePath For Append As #1
-    Print #1, formattedMessage
-    Close #1
-    
-    Debug.Print "LOG: " & formattedMessage
-    
-    Exit Sub
-    
-ErrorHandler:
-    Debug.Print "LOGGING FAILURE: " & message
-End Sub
-
-'================================================================================
-' LOGGING HELPERS: STEP TIMING
-'================================================================================
-Private Sub LogStepStart(stepName As String)
-    On Error Resume Next
-    currentStepName = stepName
-    currentStepStart = Timer
-    LogMessage "START: " & stepName, LOG_LEVEL_INFO
-End Sub
-
-Private Sub LogStepEnd(Optional ByVal success As Boolean = True)
-    On Error Resume Next
-    If currentStepName <> "" Then
-        Dim dur As Double
-        dur = Timer - currentStepStart
-        LogMessage "END: " & currentStepName & _
-                   IIf(success, " (ok)", " (with warnings/errors)") & _
-                   " | " & Format(dur, "0.00") & "s", LOG_LEVEL_INFO
-    End If
-    currentStepName = ""
-    currentStepStart = 0
-End Sub
-
-Private Sub SafeFinalizeLogging()
-    On Error GoTo ErrorHandler
-    
-    If loggingEnabled Then
-        Open logFilePath For Append As #1
-        Print #1, "================================================"
-        Print #1, "END OF SESSION - " & Format(Now, "yyyy-mm-dd HH:MM:ss")
-        Print #1, "Duration: " & Format(Timer - processingStartTime, "0.00") & " seconds"
-        Print #1, "Errors: " & IIf(Err.Number = 0, "None", Err.Number & " - " & Err.Description)
-        Print #1, "Status: " & IIf(formattingCancelled, "CANCELLED", "COMPLETED")
-        Print #1, "Log counters -> INFO: " & logInfoCount & _
-                  ", WARNING: " & logWarnCount & ", ERROR: " & logErrorCount
-        Print #1, "================================================"
-        Close #1
-    End If
-    
-    loggingEnabled = False
-    
-    Exit Sub
-    
-ErrorHandler:
-    Debug.Print "Error finalizing logging: " & Err.Description
-    loggingEnabled = False
-End Sub
+"' Logging removed"
 
 '================================================================================
 ' UTILITY: GET PROTECTION TYPE
@@ -1989,14 +1773,14 @@ Private Function PreviousChecking(doc As Document) As Boolean
 
     If doc Is Nothing Then
         Application.StatusBar = "Error: Document not accessible for verification"
-        LogMessage "Document not accessible for verification", LOG_LEVEL_ERROR
+    
         PreviousChecking = False
         Exit Function
     End If
 
     If doc.Type <> wdTypeDocument Then
         Application.StatusBar = "Error: Unsupported document type (Type: " & doc.Type & ")"
-        LogMessage "Unsupported document type: " & doc.Type, LOG_LEVEL_ERROR
+    
         PreviousChecking = False
         Exit Function
     End If
@@ -2005,36 +1789,36 @@ Private Function PreviousChecking(doc As Document) As Boolean
         Dim protectionType As String
         protectionType = GetProtectionType(doc)
         Application.StatusBar = "Error: Document is protected (" & protectionType & ")"
-        LogMessage "Protected document detected: " & protectionType, LOG_LEVEL_ERROR
+    
         PreviousChecking = False
         Exit Function
     End If
     
     If doc.ReadOnly Then
         Application.StatusBar = "Error: Document is read-only"
-        LogMessage "Document is read-only: " & doc.FullName, LOG_LEVEL_ERROR
+    
         PreviousChecking = False
         Exit Function
     End If
 
     If Not CheckDiskSpace(doc) Then
         Application.StatusBar = "Error: Not enough disk space"
-        LogMessage "Insufficient disk space for safe operation", LOG_LEVEL_ERROR
+    
         PreviousChecking = False
         Exit Function
     End If
 
     If Not ValidateDocumentStructure(doc) Then
-        LogMessage "Document structure validated with warnings", LOG_LEVEL_WARNING
+    
     End If
 
-    LogMessage "Security checks completed successfully", LOG_LEVEL_INFO
+    
     PreviousChecking = True
     Exit Function
 
 ErrorHandler:
     Application.StatusBar = "Error during security checks"
-    LogMessage "Error during checks: " & Err.Description, LOG_LEVEL_ERROR
+    
     PreviousChecking = False
 End Function
 
@@ -2058,7 +1842,7 @@ Private Function CheckDiskSpace(doc As Document) As Boolean
     
     ' Basic verification - 10MB minimum
     If drive.AvailableSpace < 10485760 Then ' 10MB in bytes
-        LogMessage "Very low disk space", LOG_LEVEL_WARNING
+    
         CheckDiskSpace = False
     Else
         CheckDiskSpace = True
@@ -2077,12 +1861,12 @@ End Function
 Private Function PreviousFormatting(doc As Document) As Boolean
     On Error GoTo ErrorHandler
 
-    LogMessage "Starting document formatting based on configuration", LOG_LEVEL_INFO
+    
     
     ' Apply page setup (always on)
     LogStepStart "Page setup"
     If Not ApplyPageSetup(doc) Then
-        LogMessage "Warning: Failed to apply page setup", LOG_LEVEL_WARNING
+    
         LogStepEnd False
     Else
         LogStepEnd True
@@ -2091,7 +1875,7 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     ' Clean document structure (remove blank lines above the first text and leading spaces)
     LogStepStart "Clean document structure"
     If Not CleanDocumentStructure(doc) Then
-        LogMessage "Warning: Failed to clean document structure", LOG_LEVEL_WARNING
+    
         LogStepEnd False
     Else
         LogStepEnd True
@@ -2105,7 +1889,7 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     ' Validate content consistency (may cancel if user chooses so)
     LogStepStart "Validate content consistency"
     If Not ValidateContentConsistency(doc) Then
-        LogMessage "Formatting interrupted due to detected inconsistency", LOG_LEVEL_WARNING
+    
         LogStepEnd False
         PreviousFormatting = False
         Exit Function
@@ -2121,7 +1905,7 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     ' Apply standard font (always on)
     LogStepStart "Apply standard font"
     If Not ApplyStdFont(doc) Then
-        LogMessage "Warning: Failed to apply standard font", LOG_LEVEL_WARNING
+    
         LogStepEnd False
     Else
         LogStepEnd True
@@ -2130,7 +1914,7 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     ' Apply standard paragraphs (always on)
     LogStepStart "Apply standard paragraphs"
     If Not ApplyStdParagraphs(doc) Then
-        LogMessage "Warning: Failed to apply standard paragraphs", LOG_LEVEL_WARNING
+    
         LogStepEnd False
     Else
         LogStepEnd True
@@ -2147,7 +1931,7 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     ' Apply CONSIDERANDO uppercase/bold at paragraph start
     LogStepStart "Format 'CONSIDERANDO' paragraphs"
     If Not FormatConsiderandoParagraphs(doc) Then
-        LogMessage "Warning: Failed to format 'CONSIDERANDO' paragraphs", LOG_LEVEL_WARNING
+    
         LogStepEnd False
     Else
         LogStepEnd True
@@ -2156,7 +1940,7 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     ' Apply text replacements (always on)
     LogStepStart "Apply text replacements"
     If Not ApplyTextReplacements(doc) Then
-        LogMessage "Warning: Failed to apply text replacements", LOG_LEVEL_WARNING
+    
         LogStepEnd False
     Else
         LogStepEnd True
@@ -2165,7 +1949,7 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     ' Apply specific paragraph replacements (always on)
     LogStepStart "Apply specific paragraph replacements"
     If Not ApplySpecificParagraphReplacements(doc) Then
-        LogMessage "Warning: Failed to apply specific paragraph replacements", LOG_LEVEL_WARNING
+    
         LogStepEnd False
     Else
         LogStepEnd True
@@ -2197,7 +1981,7 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     ' Insert page numbers in footer (restored feature)
     LogStepStart "Insert footer page numbers"
     If Not InsertFooterstamp(doc) Then
-        LogMessage "Warning: Failed to insert footer page numbers", LOG_LEVEL_WARNING
+    
         LogStepEnd False
     Else
         LogStepEnd True
@@ -2228,11 +2012,11 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     ' Clipboard pane visibility enforcement removed per request
     
     PreviousFormatting = True
-    LogMessage "Document formatting completed successfully", LOG_LEVEL_INFO
+    
     Exit Function
 
 ErrorHandler:
-    LogMessage "Error in document processing: " & Err.Description, LOG_LEVEL_ERROR
+    
     PreviousFormatting = False
 End Function
 
@@ -2258,7 +2042,7 @@ Private Function ApplyPageSetup(doc As Document) As Boolean
     Exit Function
     
 ErrorHandler:
-    LogMessage "Error in page setup: " & Err.Description, LOG_LEVEL_ERROR
+    
     ApplyPageSetup = False
 End Function
 
@@ -2425,14 +2209,14 @@ NextParagraph:
     
     ' Optimized log
     If skippedCount > 0 Then
-    LogMessage "Fonts formatted: " & formattedCount & " paragraphs (including " & skippedCount & " with image protection)"
+    
     End If
     
     ApplyStdFont = True
     Exit Function
 
 ErrorHandler:
-    LogMessage "Error in font formatting: " & Err.Description, LOG_LEVEL_ERROR
+    
     ApplyStdFont = False
 End Function
 
@@ -2575,14 +2359,14 @@ Private Function ApplyStdParagraphs(doc As Document) As Boolean
     
     ' Updated log to reflect that all paragraphs are formatted
     If skippedCount > 0 Then
-    LogMessage "Paragraphs formatted: " & formattedCount & " (including " & skippedCount & " with image protection)"
+    
     End If
     
     ApplyStdParagraphs = True
     Exit Function
 
 ErrorHandler:
-    LogMessage "Error in paragraph formatting: " & Err.Description, LOG_LEVEL_ERROR
+    
     ApplyStdParagraphs = False
 End Function
 
@@ -2678,19 +2462,19 @@ Private Function FormatSecondParagraph(doc As Document) As Boolean
         
     ' If it has images, just log (but do not skip formatting)
         If HasVisualContent(para) Then
-            LogMessage "2nd paragraph formatted with image protection and blank lines (position: " & secondParaIndex & ")", LOG_LEVEL_INFO
+            
         Else
-            LogMessage "2nd paragraph formatted with 2 blank lines before and after (position: " & secondParaIndex & ")", LOG_LEVEL_INFO
+            
         End If
     Else
-    LogMessage "2nd paragraph not found for formatting", LOG_LEVEL_WARNING
+    
     End If
     
     FormatSecondParagraph = True
     Exit Function
 
 ErrorHandler:
-    LogMessage "Error formatting the 2nd paragraph: " & Err.Description, LOG_LEVEL_ERROR
+    
     FormatSecondParagraph = False
 End Function
 
@@ -2863,7 +2647,7 @@ Private Function EnsureSecondParagraphBlankLines(doc As Document) As Boolean
             insertionPointAfter.InsertAfter newLinesAfter
         End If
         
-    LogMessage "2nd paragraph blank lines ensured (before: " & (blankLinesBefore + linesToAdd) & ", after: " & (blankLinesAfter + linesToAddAfter) & ")", LOG_LEVEL_INFO
+    
     End If
     
     EnsureSecondParagraphBlankLines = True
@@ -2871,7 +2655,7 @@ Private Function EnsureSecondParagraphBlankLines(doc As Document) As Boolean
     
 ErrorHandler:
     EnsureSecondParagraphBlankLines = False
-    LogMessage "Error ensuring 2nd paragraph blank lines: " & Err.Description, LOG_LEVEL_WARNING
+    
 End Function
 
 '================================================================================
@@ -2935,7 +2719,7 @@ Private Function FormatFirstParagraph(doc As Document) As Boolean
                     End If
                 Next n
             End If
-            LogMessage "1st paragraph formatted with image protection (position: " & firstParaIndex & ")"
+            
         Else
             ' Normal formatting for paragraphs without images
             With para.Range.Font
@@ -2953,14 +2737,14 @@ Private Function FormatFirstParagraph(doc As Document) As Boolean
             .RightIndent = 0                          ' No right indent
         End With
     Else
-    LogMessage "1st paragraph not found for formatting", LOG_LEVEL_WARNING
+    
     End If
     
     FormatFirstParagraph = True
     Exit Function
 
 ErrorHandler:
-    LogMessage "Error formatting the 1st paragraph: " & Err.Description, LOG_LEVEL_ERROR
+    
     FormatFirstParagraph = False
 End Function
 
@@ -2984,7 +2768,7 @@ Private Function EnableHyphenation(doc As Document) As Boolean
     Exit Function
     
 ErrorHandler:
-    LogMessage "Error enabling hyphenation: " & Err.Description, LOG_LEVEL_ERROR
+    
     EnableHyphenation = False
 End Function
 
@@ -3033,7 +2817,7 @@ Private Function RemoveWatermark(doc As Document) As Boolean
     Next sec
 
     If removedCount > 0 Then
-    LogMessage "Watermarks removed: " & removedCount & " items"
+    
     End If
     ' "No watermark" log removed for performance
     
@@ -3041,7 +2825,7 @@ Private Function RemoveWatermark(doc As Document) As Boolean
     Exit Function
     
 ErrorHandler:
-    LogMessage "Error removing watermarks: " & Err.Description, LOG_LEVEL_ERROR
+    
     RemoveWatermark = False
 End Function
 
@@ -3092,7 +2876,7 @@ Private Function InsertHeaderstamp(doc As Document) As Boolean
 
     If Dir(imgFile) = "" Then
         Application.StatusBar = "Warning: Header image not found"
-        LogMessage "Header image not found at: " & imgFile, LOG_LEVEL_WARNING
+    
         InsertHeaderstamp = False
         Exit Function
     End If
@@ -3113,7 +2897,7 @@ Private Function InsertHeaderstamp(doc As Document) As Boolean
                 SaveWithDocument:=msoTrue)
             
             If shp Is Nothing Then
-                LogMessage "Failed to insert header image at section " & sectionsProcessed + 1, LOG_LEVEL_WARNING
+                
             Else
                 With shp
                     .LockAspectRatio = msoTrue
@@ -3137,14 +2921,14 @@ Private Function InsertHeaderstamp(doc As Document) As Boolean
         ' Log detalhado removido para performance
         InsertHeaderstamp = True
     Else
-    LogMessage "No header was inserted", LOG_LEVEL_WARNING
+    
         InsertHeaderstamp = False
     End If
 
     Exit Function
 
 ErrorHandler:
-    LogMessage "Error inserting header: " & Err.Description, LOG_LEVEL_ERROR
+    
     InsertHeaderstamp = False
 End Function
 
@@ -3196,7 +2980,7 @@ Private Function InsertFooterstamp(doc As Document) As Boolean
     Exit Function
 
 ErrorHandler:
-    LogMessage "Error inserting footer: " & Err.Description, LOG_LEVEL_ERROR
+    
     InsertFooterstamp = False
 End Function
 
@@ -3262,7 +3046,7 @@ Private Function ValidateDocumentStructure(doc As Document) As Boolean
     If doc.Range.End > 0 And doc.Sections.count > 0 Then
         ValidateDocumentStructure = True
     Else
-    LogMessage "Document with inconsistent structure", LOG_LEVEL_WARNING
+    
         ValidateDocumentStructure = False
     End If
 End Function
@@ -3281,7 +3065,7 @@ Private Function SaveDocumentFirst(doc As Document) As Boolean
     Set saveDialog = Application.Dialogs(wdDialogFileSaveAs)
 
     If saveDialog.Show <> -1 Then
-    LogMessage "Save operation cancelled by user", LOG_LEVEL_INFO
+    
     Application.StatusBar = "Save cancelled by user"
         SaveDocumentFirst = False
         Exit Function
@@ -3304,7 +3088,7 @@ Private Function SaveDocumentFirst(doc As Document) As Boolean
     Next waitCount
 
     If doc.Path = "" Then
-    LogMessage "Failed to save document after " & maxWait & " attempts", LOG_LEVEL_ERROR
+    
     Application.StatusBar = "Save failed - operation cancelled"
         SaveDocumentFirst = False
     Else
@@ -3316,7 +3100,7 @@ Private Function SaveDocumentFirst(doc As Document) As Boolean
     Exit Function
 
 ErrorHandler:
-    LogMessage "Error during save: " & Err.Description & " (#" & Err.Number & ")", LOG_LEVEL_ERROR
+    
     Application.StatusBar = "Error during save"
     SaveDocumentFirst = False
 End Function
@@ -3449,14 +3233,14 @@ Private Function CleanDocumentStructure(doc As Document) As Boolean
     
     ' Simplified log only if there was significant cleanup
     If emptyLinesRemoved > 0 Then
-        LogMessage "Structure cleaned: " & emptyLinesRemoved & " empty lines removed"
+    
     End If
     
     CleanDocumentStructure = True
     Exit Function
 
 ErrorHandler:
-    LogMessage "Error cleaning structure: " & Err.Description, LOG_LEVEL_ERROR
+    
     CleanDocumentStructure = False
 End Function
 
@@ -3490,7 +3274,7 @@ Private Function ValidatePropositionType(doc As Document) As Boolean
     Next i
     
     If paraText = "" Then
-        LogMessage "Document has no text to validate type", LOG_LEVEL_WARNING
+    
         ValidatePropositionType = True
         Exit Function
     End If
@@ -3504,11 +3288,11 @@ Private Function ValidatePropositionType(doc As Document) As Boolean
     
     ' Check if it's one of the expected proposition types (Portuguese terms)
     If firstWord = "indicação" Or firstWord = "requerimento" Or firstWord = "moção" Then
-        LogMessage "Proposition type validated: " & firstWord, LOG_LEVEL_INFO
+    
         ValidatePropositionType = True
     Else
         ' Not a standard proposition document — ask the user for confirmation
-        LogMessage "First word isn't a recognized standard proposition: " & firstWord, LOG_LEVEL_WARNING
+    
         Application.StatusBar = "Waiting for user confirmation about document type..."
         
     ' Build a detailed message for the user
@@ -3520,11 +3304,11 @@ Private Function ValidatePropositionType(doc As Document) As Boolean
                  NormalizeForUI(TITLE_DOC_TYPE))
         
         If userResponse = vbYes Then
-            LogMessage "User chose to proceed with non-standard document: " & firstWord, LOG_LEVEL_INFO
+            
             Application.StatusBar = "Processing non-standard document as requested..."
             ValidatePropositionType = True
         Else
-            LogMessage "User chose to cancel processing of non-standard document: " & firstWord, LOG_LEVEL_INFO
+            
             Application.StatusBar = "Processing cancelled by user"
             
             ' Final cancellation message
@@ -3538,7 +3322,7 @@ Private Function ValidatePropositionType(doc As Document) As Boolean
     Exit Function
 
 ErrorHandler:
-    LogMessage "Error validating proposition type: " & Err.Description, LOG_LEVEL_ERROR
+    
     ValidatePropositionType = False
 End Function
 
@@ -3564,7 +3348,7 @@ Private Function FormatDocumentTitle(doc As Document) As Boolean
     Next i
     
     If paraText = "" Then
-        LogMessage "No text found to format the title", LOG_LEVEL_WARNING
+    
         FormatDocumentTitle = True
         Exit Function
     End If
@@ -3622,16 +3406,16 @@ Private Function FormatDocumentTitle(doc As Document) As Boolean
     End With
     
     If isProposition Then
-        LogMessage "Proposition title formatted: " & newText & " (centered, uppercase, bold, underlined)", LOG_LEVEL_INFO
+    
     Else
-        LogMessage "First line formatted as title: " & newText & " (centered, uppercase, bold, underlined)", LOG_LEVEL_INFO
+    
     End If
     
     FormatDocumentTitle = True
     Exit Function
 
 ErrorHandler:
-    LogMessage "Error formatting title: " & Err.Description, LOG_LEVEL_ERROR
+    
     FormatDocumentTitle = False
 End Function
 
@@ -3689,41 +3473,32 @@ Private Function FormatConsiderandoParagraphs(doc As Document) As Boolean
     Next i
     
     If totalFormatted > 0 Then
-        LogMessage "Formatting 'CONSIDERANDO' applied: " & totalFormatted & " occurrences", LOG_LEVEL_INFO
+        
     Else
-        LogMessage "No 'considerando' tokens found at paragraph starts to format", LOG_LEVEL_DEBUG
+        
     End If
     
     FormatConsiderandoParagraphs = True
     Exit Function
 
 ErrorHandler:
-    LogMessage "Error formatting 'CONSIDERANDO': " & Err.Description, LOG_LEVEL_ERROR
+    
     FormatConsiderandoParagraphs = False
 End Function
 
-'================================================================================
-' LOG STRING NORMALIZATION - avoid encoding issues in log files
-'================================================================================
-Private Function NormalizeForLog(ByVal s As String) As String
-    On Error Resume Next
-    Dim i As Long, ch As String, code As Long
-    Dim out As String
-    out = ""
-    For i = 1 To Len(s)
-        ch = Mid$(s, i, 1)
-        code = AscW(ch)
-        ' Keep ASCII printable and common punctuation; replace others with '?'
-        If code >= 32 And code <= 126 Then
-            out = out & ch
-        ElseIf ch = vbCr Or ch = vbLf Or ch = vbTab Then
-            out = out & ch
-        Else
-            out = out & "?"
-        End If
-    Next i
-    NormalizeForLog = out
-End Function
+''================================================================================
+'' MODULE: chainsaw.bas
+'' PURPOSE: Standardize Word proposition documents (font, paragraphs, title, numbering,
+''          replacements, structural cleanup, validations, backups, visual element handling).
+'' VERSION: v1.0.0-Beta1 (baseline after logging removal and aggressive cleanup)
+'' DATE: 2025-10-06
+'' NOTES:
+''  - Logging system fully removed.
+''  - Comment noise aggressively minimized.
+''  - Preserve formatting logic exactly as validated earlier.
+''  - Safe helper functions ensure Word 2010+ compatibility.
+''================================================================================
+
 
 '================================================================================
 ' UI STRING NORMALIZATION - produce ASCII-safe text for MsgBox dialogs
@@ -3982,7 +3757,7 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
         Loop
     End With
     If Err.Number <> 0 Then
-        LogMessage "Warning: Skipped VT (Chr(11)) replacement due to error: " & Err.Description, LOG_LEVEL_WARNING
+        
         Err.Clear
     End If
     On Error GoTo ErrorHandler
@@ -4011,17 +3786,17 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
         Loop
     End With
     If Err.Number <> 0 Then
-        LogMessage "Warning: Skipped LF (Chr(10)) replacement due to error: " & Err.Description, LOG_LEVEL_WARNING
+        
         Err.Clear
     End If
     On Error GoTo ErrorHandler
     
-    LogMessage "Text replacements applied: " & replacementCount & " replacements performed", LOG_LEVEL_INFO
+    
     ApplyTextReplacements = True
     Exit Function
 
 ErrorHandler:
-    LogMessage "Error applying text replacements: " & Err.Description, LOG_LEVEL_ERROR
+    
     ApplyTextReplacements = False
 End Function
 
@@ -4089,14 +3864,14 @@ Private Function ApplySpecificParagraphReplacements(doc As Document) As Boolean
                 r1.SetRange r1.Start + (idxStart - 1), r1.Start + (idxStart - 1) + 7
                 r1.text = "Requeiro "
                 replacementCount = replacementCount + 1
-                LogMessage "2nd paragraph: 'Sugiro ' replaced with 'Requeiro '", LOG_LEVEL_INFO
+                
             ElseIf token = "Sugere " Then
                 Dim r2 As Range
                 Set r2 = para.Range.Duplicate
                 r2.SetRange r2.Start + (idxStart - 1), r2.Start + (idxStart - 1) + 7
                 r2.text = "Indica "
                 replacementCount = replacementCount + 1
-                LogMessage "2nd paragraph: 'Sugere ' replaced with 'Indica '", LOG_LEVEL_INFO
+                
             End If
         End If
     End If
@@ -4112,14 +3887,14 @@ Private Function ApplySpecificParagraphReplacements(doc As Document) As Boolean
         If InStr(paraText, " sugerir ") > 0 Then
             paraText = Replace(paraText, " sugerir ", " indicar ")
             replacementCount = replacementCount + 1
-            LogMessage "3rd paragraph: ' sugerir ' replaced with ' indicar '", LOG_LEVEL_INFO
+            
         End If
         
     ' REQUIREMENT 3: Replace " Setor, " with " setor competente, "
         If InStr(paraText, " Setor, ") > 0 Then
             paraText = Replace(paraText, " Setor, ", " setor competente, ")
             replacementCount = replacementCount + 1
-            LogMessage "3rd paragraph: ' Setor, ' replaced with ' setor competente, '", LOG_LEVEL_INFO
+            
         End If
         
     ' Apply changes if replacements occurred
@@ -4147,7 +3922,7 @@ Private Function ApplySpecificParagraphReplacements(doc As Document) As Boolean
         
         Do While .Execute(Replace:=wdReplaceOne)
             replacementCount = replacementCount + 1
-            LogMessage "Global replacement: 'A CÂMARA MUNICIPAL...' ? 'a Câmara Municipal...'", LOG_LEVEL_INFO
+            
             rng.Collapse wdCollapseEnd
         Loop
     End With
@@ -4192,20 +3967,20 @@ Private Function ApplySpecificParagraphReplacements(doc As Document) As Boolean
             
             Do While .Execute(Replace:=wdReplaceOne)
                 replacementCount = replacementCount + 1
-                If replacementCount <= 20 Then  ' Log only the first cases for performance
-                    LogMessage "Uppercased: '" & wordsToUppercase(j) & "' ? '" & UCase(wordsToUppercase(j)) & "'", LOG_LEVEL_INFO
+                If replacementCount <= 20 Then  
+                    
                 End If
                 rng.Collapse wdCollapseEnd
             Loop
         End With
     Next j
     
-    LogMessage "Specific replacements completed (per-paragraph and global): " & replacementCount & " replacements performed", LOG_LEVEL_INFO
+    
     ApplySpecificParagraphReplacements = True
     Exit Function
 
 ErrorHandler:
-    LogMessage "Error in specific replacements: " & Err.Description, LOG_LEVEL_ERROR
+    
     ApplySpecificParagraphReplacements = False
 End Function
 
@@ -4250,7 +4025,7 @@ Private Function ValidateContentConsistency(doc As Document) As Boolean
     
     ' If 2nd paragraph not found, skip validation
     If secondParaIndex = 0 Or secondParaText = "" Then
-    LogMessage "2nd paragraph not found for consistency validation", LOG_LEVEL_WARNING
+    
         ValidateContentConsistency = True
         Exit Function
     End If
@@ -4275,7 +4050,7 @@ Private Function ValidateContentConsistency(doc As Document) As Boolean
     
     ' If there isn't enough content to compare, skip validation
     If restOfDocumentText = "" Then
-    LogMessage "Insufficient content for consistency validation", LOG_LEVEL_WARNING
+    
         ValidateContentConsistency = True
         Exit Function
     End If
@@ -4284,7 +4059,7 @@ Private Function ValidateContentConsistency(doc As Document) As Boolean
     Dim commonWordsCount As Long
     commonWordsCount = CountCommonWords(secondParaText, restOfDocumentText)
     
-    LogMessage "Consistency validation: " & commonWordsCount & " common words between summary and body", LOG_LEVEL_INFO
+    
     
     ' If fewer than 2 common words, alert about possible inconsistency
     If commonWordsCount < 2 Then
@@ -4298,22 +4073,22 @@ Private Function ValidateContentConsistency(doc As Document) As Boolean
                  NormalizeForUI(TITLE_CONSISTENCY))
         
         If userResponse = vbNo Then
-            LogMessage "User chose to stop due to detected inconsistency", LOG_LEVEL_WARNING
+            
             Application.StatusBar = "Formatting stopped - inconsistency detected"
             ValidateContentConsistency = False
             Exit Function
         Else
-            LogMessage "User chose to continue despite the detected inconsistency", LOG_LEVEL_WARNING
+            
         End If
     Else
-    LogMessage "Consistency adequate: " & commonWordsCount & " common words between summary and body", LOG_LEVEL_INFO
+    
     End If
     
     ValidateContentConsistency = True
     Exit Function
 
 ErrorHandler:
-    LogMessage "Error validating consistency: " & Err.Description, LOG_LEVEL_ERROR
+    
     ValidateContentConsistency = False
 End Function
 
@@ -4523,7 +4298,7 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
                 End If
                 para.Range.text = "Justificativa" & originalEnd & vbCrLf
                 
-                LogMessage "Paragraph 'Justificativa' formatted (centered, bold, no indents)", LOG_LEVEL_INFO
+                
                 formattedCount = formattedCount + 1
                 
             ' Removed vereador branch
@@ -4557,7 +4332,7 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
                 End If
                 para.Range.text = anexoText & anexoEnd & vbCrLf
                 
-                LogMessage "Paragraph '" & anexoText & "' formatted (left-aligned, bold, no indents)", LOG_LEVEL_INFO
+                
                 formattedCount = formattedCount + 1
                 
             ' Format paragraphs starting with "Ante o exposto"
@@ -4567,18 +4342,18 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
                     .Bold = True
                 End With
                 
-                LogMessage "Paragraph 'Ante o exposto' formatted (bold)", LOG_LEVEL_INFO
+                
                 formattedCount = formattedCount + 1
             End If
         End If
     Next i
     
-    LogMessage "Special formatting complete: " & formattedCount & " paragraphs formatted", LOG_LEVEL_INFO
+    
     FormatJustificativaAnexoParagraphs = True
     Exit Function
 
 ErrorHandler:
-    LogMessage "Error formatting special paragraphs: " & Err.Description, LOG_LEVEL_ERROR
+    
     FormatJustificativaAnexoParagraphs = False
 End Function
 
@@ -4619,18 +4394,18 @@ Private Function FormatNumberedParagraphs(doc As Document) As Boolean
                 ' Update the paragraph text
                 para.Range.text = cleanedText & vbCrLf
                 
-                LogMessage "Paragraph converted to numbered list: " & Left(cleanedText, 50) & "...", LOG_LEVEL_INFO
+                
                 formattedCount = formattedCount + 1
             End If
         End If
     Next i
     
-    LogMessage "Numbered lists formatting complete: " & formattedCount & " paragraphs converted", LOG_LEVEL_INFO
+    
     FormatNumberedParagraphs = True
     Exit Function
 
 ErrorHandler:
-    LogMessage "Error formatting numbered lists: " & Err.Description, LOG_LEVEL_ERROR
+    
     FormatNumberedParagraphs = False
 End Function
 
@@ -4890,10 +4665,7 @@ Public Sub OpenLogsFolder()
     
     Application.StatusBar = "Logs folder opened: " & logsFolder
     
-    ' Log action if logging is enabled
-    If loggingEnabled Then
-    LogMessage "Logs folder opened by user: " & logsFolder, LOG_LEVEL_INFO
-    End If
+    
     
     Exit Sub
     
@@ -4921,13 +4693,13 @@ Private Function CreateDocumentBackup(doc As Document) As Boolean
     
     ' Initial document validation
     If doc Is Nothing Then
-        LogMessage "Backup error: document is Nothing", LOG_LEVEL_ERROR
+    
         Exit Function
     End If
     
     ' Do not create backup if the document has not been saved yet
     If doc.Path = "" Then
-        LogMessage "Backup skipped - unsaved document", LOG_LEVEL_INFO
+    ' (Logging removed) Backup skipped - unsaved document
         CreateDocumentBackup = True
         Exit Function
     End If
@@ -4938,7 +4710,7 @@ Private Function CreateDocumentBackup(doc As Document) As Boolean
     testAccess = doc.Name
     If Err.Number <> 0 Then
         On Error GoTo ErrorHandler
-    LogMessage "Backup error: document inaccessible", LOG_LEVEL_ERROR
+    ' (Logging removed) Backup error: document inaccessible
         Exit Function
     End If
     On Error GoTo ErrorHandler
@@ -4955,7 +4727,7 @@ Private Function CreateDocumentBackup(doc As Document) As Boolean
     
     ' Verify FSO was created successfully
     If fso Is Nothing Then
-        LogMessage "Backup error: could not create FileSystemObject", LOG_LEVEL_ERROR
+    ' (Logging removed) Backup error: could not create FileSystemObject
         Exit Function
     End If
     
@@ -4975,7 +4747,7 @@ Private Function CreateDocumentBackup(doc As Document) As Boolean
     Kill testFile
     If Err.Number <> 0 Then
         On Error GoTo ErrorHandler
-    LogMessage "Backup error: no write permissions to folder", LOG_LEVEL_ERROR
+    ' (Logging removed) Backup error: no write permissions to folder
         Exit Function
     End If
     On Error GoTo ErrorHandler
@@ -4986,7 +4758,7 @@ Private Function CreateDocumentBackup(doc As Document) As Boolean
     docExtension = fso.GetExtensionName(doc.Name)
     If Err.Number <> 0 Or docName = "" Then
         On Error GoTo ErrorHandler
-    LogMessage "Backup error: invalid file name", LOG_LEVEL_ERROR
+    ' (Logging removed) Backup error: invalid file name
         Exit Function
     End If
     On Error GoTo ErrorHandler
@@ -5006,7 +4778,7 @@ Private Function CreateDocumentBackup(doc As Document) As Boolean
     doc.Save
     If Err.Number <> 0 Then
         On Error GoTo ErrorHandler
-    LogMessage "Warning: could not save document before backup: " & Err.Description, LOG_LEVEL_WARNING
+    ' (Logging removed) Warning: could not save document before backup: " & Err.Description
     End If
     On Error GoTo ErrorHandler
     
@@ -5019,7 +4791,7 @@ Private Function CreateDocumentBackup(doc As Document) As Boolean
             Exit For
         Else
             On Error GoTo ErrorHandler
-            LogMessage "Backup attempt " & retryCount & " failed: " & Err.Description, LOG_LEVEL_WARNING
+            ' (Logging removed) Backup attempt " & retryCount & " failed: " & Err.Description
             If retryCount < Config.maxRetryAttempts Then
                 ' Wait briefly before trying again
                 Sleep Config.retryDelayMs ' according to config
@@ -5029,21 +4801,21 @@ Private Function CreateDocumentBackup(doc As Document) As Boolean
     
     ' Verify backup was created
     If Not fso.FileExists(backupFilePath) Then
-        LogMessage "Backup error: file was not created", LOG_LEVEL_ERROR
+    ' (Logging removed) Backup error: file was not created
         Exit Function
     End If
     
     ' Clean old backups if needed (now in the same folder as logs)
     CleanOldBackups backupFolder, docName
     
-    LogMessage "Backup created successfully: " & backupFileName, LOG_LEVEL_INFO
+    ' (Logging removed) Backup created successfully: " & backupFileName
     Application.StatusBar = "Backup created - processing document..."
     
     CreateDocumentBackup = True
     Exit Function
 
 ErrorHandler:
-    LogMessage "Critical error creating backup: " & Err.Description & " (Line: " & Erl & ")", LOG_LEVEL_ERROR
+    ' (Logging removed) Critical error creating backup: " & Err.Description & " (Line: " & Erl & ")"
     Application.StatusBar = "Backup creation failed"
     CreateDocumentBackup = False
     
@@ -5070,7 +4842,7 @@ Private Sub CleanOldBackups(backupFolder As String, docBaseName As String)
     
     ' If more than 15 files exist in the backups folder, log a warning
     If filesCount > 15 Then
-        LogMessage "Too many backups in folder (" & filesCount & " files) - consider manual cleanup", LOG_LEVEL_WARNING
+    ' (Logging removed) Too many backups in folder (" & filesCount & " files) - consider manual cleanup
     End If
 End Sub
 
@@ -5102,7 +4874,7 @@ Public Sub OpenBackupsFolder()
     ' Check if folder exists
     If Not fso.FolderExists(backupFolder) Then
         Application.StatusBar = "Folder not found"
-        LogMessage "Backups/logs folder not found: " & backupFolder, LOG_LEVEL_WARNING
+    ' (Logging removed) Backups/logs folder not found: " & backupFolder
         Exit Sub
     End If
     
@@ -5111,16 +4883,13 @@ Public Sub OpenBackupsFolder()
     
     Application.StatusBar = "Backups folder opened: " & backupFolder
     
-    ' Log the operation if logging is enabled
-    If loggingEnabled Then
-    LogMessage "Backups folder opened by user: " & backupFolder, LOG_LEVEL_INFO
-    End If
+    ' (Logging removed)
     
     Exit Sub
     
 ErrorHandler:
     Application.StatusBar = "Error opening backups folder"
-    LogMessage "Error opening backups folder: " & Err.Description, LOG_LEVEL_ERROR
+    ' (Logging removed) Error opening backups folder: " & Err.Description
     
     ' Fallback: try to open the TEMP folder or document folder
     On Error Resume Next
@@ -5313,12 +5082,12 @@ Private Function CleanMultipleSpaces(doc As Document) As Boolean
         Loop
     End With
     
-    LogMessage "Space cleanup complete: " & spacesRemoved & " corrections applied (with CONSIDERANDO protection)", LOG_LEVEL_INFO
+    ' (Logging removed) Space cleanup complete: " & spacesRemoved & " corrections applied (with CONSIDERANDO protection)
     CleanMultipleSpaces = True
     Exit Function
 
 ErrorHandler:
-    LogMessage "Error cleaning multiple spaces: " & Err.Description, LOG_LEVEL_WARNING
+    ' (Logging removed) Error cleaning multiple spaces: " & Err.Description
     CleanMultipleSpaces = False ' Do not fail the process because of this
 End Function
 
@@ -5459,12 +5228,12 @@ Private Function LimitSequentialEmptyLines(doc As Document) As Boolean
         Loop
     End If
     
-    LogMessage "Consecutive blank lines control completed in " & passCount & " pass(es): " & linesRemoved & " extra line(s) removed (max 1 in a row)", LOG_LEVEL_INFO
+    ' (Logging removed) Consecutive blank lines control completed in " & passCount & " pass(es): " & linesRemoved & " extra line(s) removed (max 1 in a row)
     LimitSequentialEmptyLines = True
     Exit Function
 
 ErrorHandler:
-    LogMessage "Error controlling blank lines: " & Err.Description, LOG_LEVEL_WARNING
+    ' (Logging removed) Error controlling blank lines: " & Err.Description
     LimitSequentialEmptyLines = False ' Do not fail the process because of this
 End Function
 
@@ -5526,7 +5295,7 @@ Private Function EnsureParagraphSeparation(doc As Document) As Boolean
                 
                 ' Log only for the first cases or significant cases
                 If insertedCount <= 10 Or insertedCount Mod 50 = 0 Then
-                    LogMessage "Blank line inserted between paragraphs " & i & " and " & (i + 1) & " (total: " & insertedCount & ")"
+                    ' (Logging removed) Blank line inserted between paragraphs " & i & " and " & (i + 1) & " (total: " & insertedCount & ")"
                 End If
             End If
         End If
@@ -5539,17 +5308,17 @@ Private Function EnsureParagraphSeparation(doc As Document) As Boolean
         
         ' Protection against very large documents
         If totalChecked > 5000 Then
-            LogMessage "Verification limit reached (5000 paragraphs) - stopping verification", LOG_LEVEL_WARNING
+            ' (Logging removed) Verification limit reached (5000 paragraphs) - stopping verification
             Exit For
         End If
     Next i
     
-    LogMessage "Paragraph separation ensured: " & insertedCount & " blank line(s) inserted out of " & totalChecked & " pairs checked"
+    ' (Logging removed) Paragraph separation ensured: " & insertedCount & " blank line(s) inserted out of " & totalChecked & " pairs checked"
     EnsureParagraphSeparation = True
     Exit Function
 
 ErrorHandler:
-    LogMessage "Error ensuring paragraph separation: " & Err.Description, LOG_LEVEL_ERROR
+    ' (Logging removed) Error ensuring paragraph separation: " & Err.Description
     EnsureParagraphSeparation = False
 End Function
 
@@ -5572,12 +5341,12 @@ Private Function ConfigureDocumentView(doc As Document) As Boolean
     
     ' Remove settings that changed global Word settings (now preserved)
     
-    LogMessage "View configured: zoom set to 110%, other settings preserved"
+    ' (Logging removed) View configured: zoom set to 110%, other settings preserved
     ConfigureDocumentView = True
     Exit Function
 
 ErrorHandler:
-    LogMessage "Error configuring view: " & Err.Description, LOG_LEVEL_WARNING
+    ' (Logging removed) Error configuring view: " & Err.Description
     ConfigureDocumentView = False ' Do not fail the process because of this
 End Function
 
@@ -5591,12 +5360,12 @@ Public Sub SaveAndExit()
     startTime = Now
     
     Application.StatusBar = "Checking open documents..."
-    LogMessage "Starting save-and-exit process - checking documents", LOG_LEVEL_INFO
+    ' (Logging removed) Starting save-and-exit process - checking documents
     
     ' Check if there are open documents
     If Application.Documents.count = 0 Then
     Application.StatusBar = "No documents open - closing Word"
-    LogMessage "No documents open - closing application", LOG_LEVEL_INFO
+    ' (Logging removed) No documents open - closing application
         Application.Quit SaveChanges:=wdDoNotSaveChanges
         Exit Sub
     End If
@@ -5616,7 +5385,7 @@ Public Sub SaveAndExit()
     ' Check if the document has unsaved changes
         If doc.Saved = False Or doc.Path = "" Then
             unsavedDocs.Add doc.Name
-            LogMessage "Unsaved document detected: " & doc.Name
+            ' (Logging removed) Unsaved document detected: " & doc.Name
         End If
         On Error GoTo CriticalErrorHandler
     Next i
@@ -5624,7 +5393,7 @@ Public Sub SaveAndExit()
     ' If no unsaved documents, close directly
     If unsavedDocs.count = 0 Then
     Application.StatusBar = "All documents saved - closing Word"
-    LogMessage "All documents are saved - closing application"
+    ' (Logging removed) All documents are saved - closing application
         Application.Quit SaveChanges:=wdDoNotSaveChanges
         Exit Sub
     End If
@@ -5655,15 +5424,15 @@ Public Sub SaveAndExit()
         Case vbYes
             ' User chose to save all
             Application.StatusBar = "Saving all documents..."
-            LogMessage "User chose to save all documents before exiting"
+            ' (Logging removed) User chose to save all documents before exiting
             
             If SalvarTodosDocumentos() Then
                 Application.StatusBar = "Documents saved successfully - closing Word"
-                LogMessage "All documents saved successfully - closing application"
+                ' (Logging removed) All documents saved successfully - closing application
                 Application.Quit SaveChanges:=wdDoNotSaveChanges
             Else
           Application.StatusBar = "Error saving documents - operation cancelled"
-          LogMessage "Failed to save some documents - exit operation cancelled", LOG_LEVEL_ERROR
+          ' (Logging removed) Failed to save some documents - exit operation cancelled
           MsgBox NormalizeForUI(MSG_SAVE_ERROR), _
               vbCritical, NormalizeForUI(TITLE_SAVE_ERROR)
             End If
@@ -5682,11 +5451,11 @@ Public Sub SaveAndExit()
             
             If finalConfirm = vbYes Then
                 Application.StatusBar = "Closing Word without saving changes..."
-                LogMessage "User confirmed closing without saving - closing application", LOG_LEVEL_WARNING
+                ' (Logging removed) User confirmed closing without saving - closing application
                 Application.Quit SaveChanges:=wdDoNotSaveChanges
             Else
           Application.StatusBar = "Operation cancelled by user"
-          LogMessage "User cancelled closing without saving"
+          ' (Logging removed) User cancelled closing without saving
           MsgBox NormalizeForUI(MSG_OPERATION_CANCELLED), _
               vbInformation, NormalizeForUI(TITLE_OPERATION_CANCELLED)
             End If
@@ -5694,20 +5463,20 @@ Public Sub SaveAndExit()
         Case vbCancel
          ' User cancelled
          Application.StatusBar = "Exit operation cancelled by user"
-         LogMessage "User cancelled save and exit operation"
+         ' (Logging removed) User cancelled save and exit operation
          MsgBox NormalizeForUI(MSG_OPERATION_CANCELLED), _
              vbInformation, NormalizeForUI(TITLE_OPERATION_CANCELLED)
     End Select
     
     Application.StatusBar = False
-    LogMessage "Save-and-exit process completed in " & Format(Now - startTime, "hh:mm:ss")
+    ' (Logging removed) Save-and-exit process completed in " & Format(Now - startTime, "hh:mm:ss")
     Exit Sub
 
 CriticalErrorHandler:
     Dim errDesc As String
     errDesc = "CRITICAL ERROR in Save and Exit operation #" & Err.Number & ": " & Err.Description
     
-    LogMessage errDesc, LOG_LEVEL_ERROR
+    ' (Logging removed) " & errDesc
     Application.StatusBar = "Critical error - operation cancelled"
     
     Dim critMsg As String
@@ -5751,14 +5520,14 @@ Private Function SalvarTodosDocumentos() As Boolean
                     doc.SaveAs2 .SelectedItems(1)
                     If Err.Number = 0 Then
                         savedCount = savedCount + 1
-                        LogMessage "Document saved as new file: " & doc.Name
+                        ' (Logging removed) Document saved as new file: " & doc.Name
                     Else
                         errorCount = errorCount + 1
-                        LogMessage "Error saving document as new: " & doc.Name & " - " & Err.Description, LOG_LEVEL_ERROR
+                        ' (Logging removed) Error saving document as new: " & doc.Name & " - " & Err.Description
                     End If
                 Else
                     errorCount = errorCount + 1
-                    LogMessage "Save cancelled by user: " & doc.Name, LOG_LEVEL_WARNING
+                    ' (Logging removed) Save cancelled by user: " & doc.Name
                 End If
             End With
         Else
@@ -5766,10 +5535,10 @@ Private Function SalvarTodosDocumentos() As Boolean
             doc.Save
             If Err.Number = 0 Then
                 savedCount = savedCount + 1
-                LogMessage "Document saved: " & doc.Name
+                ' (Logging removed) Document saved: " & doc.Name
             Else
                 errorCount = errorCount + 1
-                LogMessage "Error saving document: " & doc.Name & " - " & Err.Description, LOG_LEVEL_ERROR
+                ' (Logging removed) Error saving document: " & doc.Name & " - " & Err.Description
             End If
         End If
         
@@ -5778,17 +5547,17 @@ Private Function SalvarTodosDocumentos() As Boolean
     
     ' Verify result
     If errorCount = 0 Then
-        LogMessage "All documents saved successfully: " & savedCount & " of " & totalDocs
+    ' (Logging removed) All documents saved successfully: " & savedCount & " of " & totalDocs
         SalvarTodosDocumentos = True
     Else
-        LogMessage "Partial save failure: " & savedCount & " saved, " & errorCount & " errors", LOG_LEVEL_WARNING
+    ' (Logging removed) Partial save failure: " & savedCount & " saved, " & errorCount & " errors"
         SalvarTodosDocumentos = False
     End If
     
     Exit Function
 
 ErrorHandler:
-    LogMessage "Critical error saving documents: " & Err.Description, LOG_LEVEL_ERROR
+    ' (Logging removed) Critical error saving documents: " & Err.Description
     SalvarTodosDocumentos = False
 End Function
 
@@ -5886,12 +5655,12 @@ Private Function BackupAllImages(doc As Document) As Boolean
         Next i
     End If
     
-    LogMessage "Image properties backup completed: " & imageCount & " image(s) catalogued"
+    ' (Logging removed) Image properties backup completed: " & imageCount & " image(s) catalogued
     BackupAllImages = True
     Exit Function
 
 ErrorHandler:
-    LogMessage "Error backing up image properties: " & Err.Description, LOG_LEVEL_WARNING
+    ' (Logging removed) Error backing up image properties: " & Err.Description
     BackupAllImages = False
 End Function
 
@@ -5964,16 +5733,16 @@ Private Function RestoreAllImages(doc As Document) As Boolean
     Next i
     
     If correctedCount > 0 Then
-        LogMessage "Image verification completed: " & verifiedCount & " verified, " & correctedCount & " corrected"
+    ' (Logging removed) Image verification completed: " & verifiedCount & " verified, " & correctedCount & " corrected"
     Else
-        LogMessage "Image verification completed: " & verifiedCount & " images intact"
+    ' (Logging removed) Image verification completed: " & verifiedCount & " images intact
     End If
     
     RestoreAllImages = True
     Exit Function
 
 ErrorHandler:
-    LogMessage "Error verifying images: " & Err.Description, LOG_LEVEL_WARNING
+    ' (Logging removed) Error verifying images: " & Err.Description
     RestoreAllImages = False
 End Function
 
@@ -6033,7 +5802,7 @@ Private Function ProtectImagesInRange(targetRange As Range) As Boolean
     Exit Function
 
 ErrorHandler:
-    LogMessage "Error in image protection: " & Err.Description, LOG_LEVEL_WARNING
+    ' (Logging removed) Error in image protection: " & Err.Description
     ProtectImagesInRange = False
 End Function
 
@@ -6054,7 +5823,7 @@ Private Sub CleanupImageProtection()
     imageCount = 0
     ReDim savedImages(0)
     
-    LogMessage "Image protection variables cleaned"
+    ' (Logging removed) Image protection variables cleaned
 End Sub
 
 '================================================================================
@@ -6097,7 +5866,7 @@ Private Function DeleteHiddenVisualElements(doc As Document) As Boolean
         If shp.Left < -1000 Or shp.Top < -1000 Then isHidden = True
         
         If isHidden Then
-            LogMessage "Removing hidden shape (type: " & shp.Type & ", index: " & i & ")"
+            ' (Logging removed) Removing hidden shape (type: " & shp.Type & ", index: " & i & ")
             shp.Delete
             deletedCount = deletedCount + 1
         End If
@@ -6121,18 +5890,18 @@ Private Function DeleteHiddenVisualElements(doc As Document) As Boolean
         If inlineShp.Width <= 1 Or inlineShp.Height <= 1 Then isInlineHidden = True
         
         If isInlineHidden Then
-            LogMessage "Removing hidden inline object (type: " & inlineShp.Type & ")"
+            ' (Logging removed) Removing hidden inline object (type: " & inlineShp.Type & ")
             inlineShp.Delete
             deletedCount = deletedCount + 1
         End If
     Next i
     
-    LogMessage "Removal of hidden elements completed: " & deletedCount & " element(s) removed"
+    ' (Logging removed) Removal of hidden elements completed: " & deletedCount & " element(s) removed
     DeleteHiddenVisualElements = True
     Exit Function
 
 ErrorHandler:
-    LogMessage "Error removing hidden visual elements: " & Err.Description, LOG_LEVEL_ERROR
+    ' (Logging removed) Error removing hidden visual elements: " & Err.Description
     DeleteHiddenVisualElements = False
 End Function
 
@@ -6145,13 +5914,13 @@ Private Function DeleteVisualElementsInFirstFourParagraphs(doc As Document) As B
     Application.StatusBar = "Removing visual elements between paragraphs 1-4..."
     
     If doc.Paragraphs.count < 1 Then
-        LogMessage "Document has no paragraphs - skipping visual elements cleanup"
+    ' (Logging removed) Document has no paragraphs - skipping visual elements cleanup
         DeleteVisualElementsInFirstFourParagraphs = True
         Exit Function
     End If
     
     If doc.Paragraphs.count < 4 Then
-        LogMessage "Document has less than 4 paragraphs - removing elements from existing paragraphs (" & doc.Paragraphs.count & " paragraphs)"
+    ' (Logging removed) Document has less than 4 paragraphs - removing elements from existing paragraphs (" & doc.Paragraphs.count & " paragraphs)
     End If
     
     Dim deletedCount As Long
@@ -6170,7 +5939,7 @@ Private Function DeleteVisualElementsInFirstFourParagraphs(doc As Document) As B
     startRange = doc.Paragraphs(1).Range.Start
     endRange = doc.Paragraphs(maxParagraphs).Range.End
     
-    LogMessage "Removing visual elements from paragraphs 1 to " & maxParagraphs & " (position " & startRange & " to " & endRange & ")"
+    ' (Logging removed) Removing visual elements from paragraphs 1 to " & maxParagraphs & " (position " & startRange & " to " & endRange & ")
     
     ' Remove floating shapes anchored within the first 4 paragraphs' range
     Dim i As Long
@@ -6187,7 +5956,7 @@ Private Function DeleteVisualElementsInFirstFourParagraphs(doc As Document) As B
         If anchorPosition >= startRange And anchorPosition <= endRange Then
             Dim paragraphNum As Long
             paragraphNum = GetParagraphNumber(doc, anchorPosition)
-            LogMessage "Removing shape (type: " & shp.Type & ") anchored at paragraph " & paragraphNum
+            ' (Logging removed) Removing shape (type: " & shp.Type & ") anchored at paragraph " & paragraphNum
             shp.Delete
             deletedCount = deletedCount + 1
         End If
@@ -6202,18 +5971,18 @@ Private Function DeleteVisualElementsInFirstFourParagraphs(doc As Document) As B
         If inlineShp.Range.Start >= startRange And inlineShp.Range.Start <= endRange Then
             Dim inlineParagraphNum As Long
             inlineParagraphNum = GetParagraphNumber(doc, inlineShp.Range.Start)
-            LogMessage "Removing inline object (type: " & inlineShp.Type & ") at paragraph " & inlineParagraphNum
+            ' (Logging removed) Removing inline object (type: " & inlineShp.Type & ") at paragraph " & inlineParagraphNum
             inlineShp.Delete
             deletedCount = deletedCount + 1
         End If
     Next i
     
-    LogMessage "Removal of visual elements from the first " & maxParagraphs & " paragraphs completed: " & deletedCount & " element(s) removed"
+    ' (Logging removed) Removal of visual elements from the first " & maxParagraphs & " paragraphs completed: " & deletedCount & " element(s) removed
     DeleteVisualElementsInFirstFourParagraphs = True
     Exit Function
 
 ErrorHandler:
-    LogMessage "Error removing visual elements from the first 4 paragraphs: " & Err.Description, LOG_LEVEL_ERROR
+    ' (Logging removed) Error removing visual elements from the first 4 paragraphs: " & Err.Description
     DeleteVisualElementsInFirstFourParagraphs = False
 End Function
 
@@ -6274,12 +6043,12 @@ Private Function BackupViewSettings(doc As Document) As Boolean
     ' .EnlargeFontsLessThan removed - may not exist in all versions
     End With
     
-    LogMessage "Backup of view settings completed"
+    ' (Logging removed) Backup of view settings completed
     BackupViewSettings = True
     Exit Function
 
 ErrorHandler:
-    LogMessage "Error backing up view settings: " & Err.Description, LOG_LEVEL_WARNING
+    ' (Logging removed) Error backing up view settings: " & Err.Description
     BackupViewSettings = False
 End Function
 
@@ -6324,12 +6093,12 @@ Private Function RestoreViewSettings(doc As Document) As Boolean
     docWindow.DisplayRulers = originalViewSettings.ShowHorizontalRuler
     docWindow.DisplayVerticalRuler = originalViewSettings.ShowVerticalRuler
     
-    LogMessage "Original view settings restored (zoom kept at 110%)"
+    ' (Logging removed) Original view settings restored (zoom kept at 110%)
     RestoreViewSettings = True
     Exit Function
 
 ErrorHandler:
-    LogMessage "Error restoring view settings: " & Err.Description, LOG_LEVEL_WARNING
+    ' (Logging removed) Error restoring view settings: " & Err.Description
     RestoreViewSettings = False
 End Function
 
@@ -6365,7 +6134,7 @@ Private Sub CleanupViewSettings()
     ' .EnlargeFontsLessThan removed for compatibility
     End With
     
-    LogMessage "View settings variables cleaned"
+    ' (Logging removed) View settings variables cleaned
 End Sub
 
 
