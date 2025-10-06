@@ -1,6 +1,6 @@
 # CHAINSAW PROPOSITURAS
 
-## v1.0.0-Beta1
+## v1.0.0-Beta2
 
 *An open source VBA solution for standardization and advanced automation of legislative documents in Microsoft Word, developed specifically for Municipal Chambers and institutional environments.*
 
@@ -11,7 +11,7 @@
 
 ## 📋 Table of Contents
 
-- [Version News](#-version-news-100-beta1)
+- [Version News](#-version-news-100-beta2)
 - [Main Features](#-main-features)
 - [Project Structure](#-project-structure)
 - [Installation](#-installation)
@@ -28,16 +28,18 @@
 - [Contributing](#-contributing)
 - [License](#-license)
 
-### Refactored Architecture (Beta Refactor Wave)
+### Refactored Architecture (Beta2 Consolidation)
 
-- **Modularization:** Monolithic `chainsaw.bas` split into focused modules (`modFormatting`, `modReplacements`, `modValidation`, `modSafety`, `modConfig`, `modLog`).
-- **Logging disabled:** `modLog` provides no‑op stubs; call sites preserved.
-- **Formatting consolidation:** All formatting routines centralized (duplicate orchestrator removed).
-- **Safety layer:** Word object operations funneled through `modSafety` wrappers.
-- **Behavior preserved:** Formatting semantics unchanged per project goal.
-- **(Planned) backup system:** Keys retained; feature disabled in beta.
-- **External configuration file:** `chainsaw-config.ini` with extensive settings.
-- **Granular control:** Enable/disable feature groups independently.
+**Beta2 highlights:**
+
+- `chainsaw.bas` is now a pure stub (only `ChainsawProcess`).
+- Canonical pipeline lives in `modPipeline.RunChainsawPipeline`.
+- Transitional `modMain.bas` deprecated (scheduled for removal next beta).
+- All formatting / spacing / numbering / separation logic centralized in `modFormatting`.
+- Logging & backups remain disabled (stubs retained for compatibility; zero file writes).
+- Structural validation placeholder isolated for future enhancement.
+- Self-test harness preserved to detect regressions.
+- Clear segregation of constants (`modConstants`) and messages (`modMessages`).
 
 ### Performance Optimizations
 
@@ -48,8 +50,11 @@
 
 ### Enhanced Logging System
 
-- **Detailed control:** Configure log levels (ERROR, WARNING, INFO, DEBUG)
-- **Performance tracking:** Accurate execution time measurement
+#### Logging system (stubbed in Beta2)
+
+<!-- Retained descriptive bullets for future reinstatement -->
+<!-- Detailed control: Configure log levels (ERROR, WARNING, INFO, DEBUG) -->
+<!-- Performance tracking: Accurate execution time measurement -->
 ```text
 chainsaw/
 ├── assets/                          # Assets (images, icons)
@@ -89,25 +94,16 @@ chainsaw/
 
 ## 🚀 Main Features
 
-- **Automatic standardization of legislative propositions:**
-  Specific formatting for INDICAÇÕES, REQUERIMENTOS and MOÇÕES with institutional layout control.
-- **Configurable content validation:**
-  Consistency checks between header and content (can be disabled).
-- **Smart cleanup of visual elements:**
-  Automatic removal of hidden and inappropriate formatting (fully configurable).
-- **Robust backup system:**
-  Automatic backup before modifications, with emergency recovery.
-- **Institutional formatting:**
-  Header with logo, page numbering and standardized margins.
-- **Detailed logging:**
-  Logs with timestamps, severity levels and full traceability.
-- **Enhanced interface:**
-  Clear user messages and interactive validations.
-- **Optimized performance:**
-  Efficient processing even for large documents.
-- **Advanced security:**
-  Integrity validation, version check and failure protection.
- - **Self-test macro:** `ChainsawSelfTest` collects before/after metrics (paragraphs, words, chars, images) to help detect unintended formatting regressions during refactors.
+- **Automatic standardization of legislative propositions:** Specific formatting for INDICAÇÕES, REQUERIMENTOS and MOÇÕES with institutional layout control.
+- **Configurable content validation:** Consistency checks between header and content (can be disabled).
+- **Smart cleanup of visual elements:** Automatic removal of hidden and inappropriate formatting (fully configurable).
+- **(Planned) backup system:** Disabled this beta; keys retained.
+- **Institutional formatting:** Header with logo, page numbering and standardized margins.
+- **(Planned) structured logging:** Stub only (no file output this beta).
+- **Enhanced interface:** Clear user messages and interactive validations.
+- **Optimized performance:** Consolidated passes minimize duplication.
+- **Security:** Integrity validation hooks & reduced file I/O surface.
+- **Self-test macro:** `ChainsawSelfTest` collects metrics (paragraphs, words, chars, images) to detect unintended changes.
 
 ## 📁 Project Structure
 

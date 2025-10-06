@@ -2,6 +2,23 @@
 ' PROJECT: CHAINSAW PROPOSITURAS
 ' =============================================================================
 ' LEGACY TRANSITION MODULE (modMain.bas) - DEPRECATED (replaced by modPipeline.bas)
+' ----------------------------------------------------------------------------
+' STATUS: Deprecated in 1.0.0-Beta2. Scheduled for removal next beta.
+' DO NOT add new logic here.
+' Use instead:
+'   Orchestrator .......... modPipeline.RunChainsawPipeline
+'   Formatting / spacing .. modFormatting
+'   Text replacements ..... modReplacements
+'   Validation ............ modValidation
+'   Constants / messages .. modConstants / modMessages
+'   Error reporting ....... modErrors
+'   Self-test ............. modSelfTest
+'   Logging / backups ..... (inactive stubs this beta)
+' CLEANUP PLAN:
+'   1. Keep only thin delegations.
+'   2. Verify no external automation depends on remaining helpers.
+'   3. Delete file and update docs in next beta.
+' AUDIT: Full pre-truncation entry content archived in legacy_chainsaw_snapshot.bas.
 ' -----------------------------------------------------------------------------
 ' This file still contains portions of the original monolithic implementation.
 ' Refactor Status:

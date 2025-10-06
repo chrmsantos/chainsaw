@@ -18,14 +18,14 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
-* `chainsaw.bas` remains a pure entry stub.
+* `chainsaw.bas` now a pure entry stub (private helpers removed; archived in `legacy_chainsaw_snapshot.bas`).
 * `ARCHITECTURE.md` and `README.md` reflect removal of transitional `modMain.bas`.
 * Consolidated duplicate formatting routines (hyphenation, watermark, header/footer, second paragraph helpers) into single implementations.
 
 ### Removed
 
-* Deprecated transitional file `modMain.bas`.
 * Redundant duplicate formatting function definitions in `modFormatting.bas`.
+* (Pending) Removal of deprecated `modMain.bas` (retained one beta for migration).
 
 ### Fixed
 
@@ -33,7 +33,7 @@ All notable changes to this project will be documented in this file.
 
 ### Notes
 
-* Formatting semantics unchanged; refactor strictly architectural.
+* Formatting semantics unchanged; refactor strictly architectural. Pre-truncation content preserved in `legacy_chainsaw_snapshot.bas`.
 
 ## [1.0.0-beta1] - 2025-10-06
 
