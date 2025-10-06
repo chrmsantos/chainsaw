@@ -39,64 +39,13 @@
 Private Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 '(Removed keybd_event and virtual key constants – obsolete after ChatGPT feature removal)
 
-'================================================================================
-' PUBLIC ENTRYPOINT WRAPPER
-' Provides a stable callable pipeline while refactor migration continues.
+"================================================================================
+' DEPRECATED ENTRYPOINT: retained for backward compatibility only.
+' All new calls should reference modPipeline.RunChainsawPipeline.
+' This wrapper will be removed in a later beta after external macro updates.
 '================================================================================
 Public Function RunChainsawPipeline() As Boolean
-    Dim doc As Document
-    Dim prevScreenUpdating As Boolean
-    Dim prevDisplayAlerts As WdAlertLevel
-    Dim hadError As Boolean
-    Dim cfgLoaded As Boolean
-
-    hadError = False
-    RunChainsawPipeline = False
-    On Error GoTo FatalPipelineError
-
-    ' Acquire active document safely
-    Set doc = Nothing
-    Set doc = ActiveDocument
-    If doc Is Nothing Then
-        MsgBox NormalizeForUI("Nenhum documento ativo encontrado."), vbExclamation, NormalizeForUI("Chainsaw - Documento ausente")
-        GoTo Finalize
-    End If
-
-    ' Load configuration once per session
-    Call modConfig_LoadConfigIfNeeded(cfgLoaded)
-
-    ' Runtime environment hardening
-    prevScreenUpdating = Application.ScreenUpdating
-    prevDisplayAlerts = Application.DisplayAlerts
-    If Config.disableScreenUpdating Then Application.ScreenUpdating = False
-    If Config.disableDisplayAlerts Then Application.DisplayAlerts = wdAlertsNone
-
-    ' Preliminary validation stage
-    If Not PreviousChecking(doc) Then GoTo Finalize
-
-    ' Formatting & replacement stage
-    If Not PreviousFormatting(doc) Then GoTo Finalize
-
-    RunChainsawPipeline = True
-    GoTo Finalize
-
-FatalPipelineError:
-    hadError = True
-    ' Swallow unexpected errors – stability priority. (Optional: surface message)
-    RunChainsawPipeline = False
-
-Finalize:
-    On Error Resume Next
-    ' Restore UI state deterministically
-    Application.ScreenUpdating = prevScreenUpdating
-    Application.DisplayAlerts = prevDisplayAlerts
-    If hadError Then
-        Application.StatusBar = "Chainsaw: erro inesperado durante o processamento"
-    ElseIf RunChainsawPipeline Then
-        If Config.showStatusBarUpdates Then Application.StatusBar = "Chainsaw: processamento concluído"
-    Else
-        If Config.showStatusBarUpdates Then Application.StatusBar = "Chainsaw: processamento interrompido"
-    End If
+    RunChainsawPipeline = modPipeline.RunChainsawPipeline()
 End Function
 
 Private Function ApplyTextReplacements(doc As Document) As Boolean: ApplyTextReplacements = modReplacements.ApplyTextReplacements(doc): End Function
@@ -344,18 +293,7 @@ End Sub
 '================================================================================
 ' UTILITY: GET PROTECTION TYPE
 '================================================================================
-Private Function GetProtectionType(doc As Document) As String
-    On Error Resume Next
-    
-    Select Case doc.protectionType
-        Case wdNoProtection: GetProtectionType = "No protection"
-        Case 1: GetProtectionType = "Tracked changes protection"
-        Case 2: GetProtectionType = "Comments protection"
-        Case 3: GetProtectionType = "Forms protection"
-        Case 4: GetProtectionType = "Read-only protection"
-        Case Else: GetProtectionType = "Unknown type (" & doc.protectionType & ")"
-    End Select
-End Function
+'' Deprecated: GetProtectionType removed (logic migrated to modPipeline).
 
 '================================================================================
 ' UTILITY: GET DOCUMENT SIZE
@@ -423,257 +361,17 @@ End Function
 '================================================================================
 ' GLOBAL CHECKING
 '================================================================================
-Private Function PreviousChecking(doc As Document) As Boolean
-    On Error GoTo ErrorHandler
-
-    If doc Is Nothing Then
-        Application.StatusBar = "Error: Document not accessible for verification"
-    
-        PreviousChecking = False
-        Exit Function
-    End If
-
-    If doc.Type <> wdTypeDocument Then
-        Application.StatusBar = "Error: Unsupported document type (Type: " & doc.Type & ")"
-    
-        PreviousChecking = False
-        Exit Function
-    End If
-
-    If doc.protectionType <> wdNoProtection Then
-        Dim protectionType As String
-        protectionType = GetProtectionType(doc)
-        Application.StatusBar = "Error: Document is protected (" & protectionType & ")"
-    
-        PreviousChecking = False
-        Exit Function
-    End If
-    
-    If doc.ReadOnly Then
-        Application.StatusBar = "Error: Document is read-only"
-    
-        PreviousChecking = False
-        Exit Function
-    End If
-
-    If Not CheckDiskSpace(doc) Then
-        Application.StatusBar = "Error: Not enough disk space"
-    
-        PreviousChecking = False
-        Exit Function
-    End If
-
-    If Not ValidateDocumentStructure(doc) Then
-    
-    End If
-
-    
-    PreviousChecking = True
-    Exit Function
-
-ErrorHandler:
-    Application.StatusBar = "Error during security checks"
-    
-    PreviousChecking = False
-End Function
+'' Deprecated: PreviousChecking removed (migrated to modPipeline).
 
 '================================================================================
 ' DISK SPACE CHECK
 '================================================================================
-Private Function CheckDiskSpace(doc As Document) As Boolean
-    On Error GoTo ErrorHandler
-    
-    ' Simplified verification - assume sufficient space if cannot verify
-    Dim fso As Object
-    Dim drive As Object
-    
-    Set fso = CreateObject("Scripting.FileSystemObject")
-    
-    If doc.Path <> "" Then
-        Set drive = fso.GetDrive(Left(doc.Path, 3))
-    Else
-        Set drive = fso.GetDrive(Left(Environ("TEMP"), 3))
-    End If
-    
-    ' Basic verification - 10MB minimum
-    If drive.AvailableSpace < 10485760 Then ' 10MB in bytes
-    
-        CheckDiskSpace = False
-    Else
-        CheckDiskSpace = True
-    End If
-    
-    Exit Function
-    
-ErrorHandler:
-    ' If cannot verify, assume there is sufficient space
-    CheckDiskSpace = True
-End Function
+'' Deprecated: CheckDiskSpace removed (migrated to modPipeline).
 
 '================================================================================
 ' MAIN FORMATTING ROUTINE
 '================================================================================
-Private Function PreviousFormatting(doc As Document) As Boolean
-    On Error GoTo ErrorHandler
-
-    
-    
-    ' Apply page setup (always on)
-    LogStepStart "Page setup"
-    If Not ApplyPageSetup(doc) Then
-    
-        LogStepEnd False
-    Else
-        LogStepEnd True
-    End If
-    
-    ' Clean document structure (remove blank lines above the first text and leading spaces)
-    LogStepStart "Clean document structure"
-    If Not CleanDocumentStructure(doc) Then
-    
-        LogStepEnd False
-    Else
-        LogStepEnd True
-    End If
-
-    ' Validate proposition type (informational, can be skipped by user)
-    LogStepStart "Validate proposition type"
-    Call ValidatePropositionType(doc)
-    LogStepEnd True
-
-    ' Validate content consistency (may cancel if user chooses so)
-    LogStepStart "Validate content consistency"
-    If Not modValidation.ValidateContentConsistency(doc) Then
-    
-        LogStepEnd False
-        PreviousFormatting = False
-        Exit Function
-    Else
-        LogStepEnd True
-    End If
-    
-    ' Title formatting (uppercased, bold, underlined, centered)
-    LogStepStart "Format document title"
-    Call FormatDocumentTitle(doc)
-    LogStepEnd True
-
-    ' Apply standard font (always on)
-    LogStepStart "Apply standard font"
-    If Not ApplyStdFont(doc) Then
-    
-        LogStepEnd False
-    Else
-        LogStepEnd True
-    End If
-    
-    ' Apply standard paragraphs (always on)
-    LogStepStart "Apply standard paragraphs"
-    If Not ApplyStdParagraphs(doc) Then
-    
-        LogStepEnd False
-    Else
-        LogStepEnd True
-    End If
-
-    ' Format first and second paragraphs
-    LogStepStart "Format first paragraph"
-    Call FormatFirstParagraph(doc)
-    LogStepEnd True
-    LogStepStart "Format second paragraph"
-    Call FormatSecondParagraph(doc)
-    LogStepEnd True
-    
-    ' Apply CONSIDERANDO uppercase/bold at paragraph start
-    LogStepStart "Format 'CONSIDERANDO' paragraphs"
-    If Not FormatConsiderandoParagraphs(doc) Then
-    
-        LogStepEnd False
-    Else
-        LogStepEnd True
-    End If
-    
-    ' Apply text replacements (always on)
-    LogStepStart "Apply text replacements"
-    If Not modReplacements.ApplyTextReplacements(doc) Then
-    
-        LogStepEnd False
-    Else
-        LogStepEnd True
-    End If
-    
-    ' Apply specific paragraph replacements (always on)
-    LogStepStart "Apply specific paragraph replacements"
-    If Not modReplacements.ApplySpecificParagraphReplacements(doc) Then
-    
-        LogStepEnd False
-    Else
-        LogStepEnd True
-    End If
-    
-    ' Normalize numbered paragraphs
-    LogStepStart "Format numbered paragraphs"
-    Call FormatNumberedParagraphs(doc)
-    LogStepEnd True
-    
-    ' Justificativa/Anexo formatting
-    LogStepStart "Format 'Justificativa/Anexo' paragraphs"
-    Call FormatJustificativaAnexoParagraphs(doc)
-    LogStepEnd True
-
-    ' Hyphenation and watermark
-    LogStepStart "Enable hyphenation"
-    Call EnableHyphenation(doc)
-    LogStepEnd True
-    LogStepStart "Remove watermark"
-    Call RemoveWatermark(doc)
-    LogStepEnd True
-
-    ' Insert header image (always enabled)
-    LogStepStart "Insert header image"
-    InsertHeaderstamp doc
-    LogStepEnd True
-    
-    ' Insert page numbers in footer (restored feature)
-    LogStepStart "Insert footer page numbers"
-    If Not InsertFooterstamp(doc) Then
-    
-        LogStepEnd False
-    Else
-        LogStepEnd True
-    End If
-    
-    ' Final spacing and separation controls
-    LogStepStart "Clean multiple spaces"
-    Call CleanMultipleSpaces(doc)
-    LogStepEnd True
-    LogStepStart "Limit sequential empty lines"
-    Call LimitSequentialEmptyLines(doc)
-    LogStepEnd True
-    LogStepStart "Ensure paragraph separation"
-    Call EnsureParagraphSeparation(doc)
-    LogStepEnd True
-    LogStepStart "Reinforce 2nd paragraph blank lines"
-    Call EnsureSecondParagraphBlankLines(doc)
-    LogStepEnd True
-    LogStepStart "Reapply 'Justificativa/Anexo' formatting"
-    Call FormatJustificativaAnexoParagraphs(doc)
-    LogStepEnd True
-    
-    ' Configure view (keeps user zoom)
-    LogStepStart "Configure document view"
-    Call ConfigureDocumentView(doc)
-    LogStepEnd True
-    
-    ' Clipboard pane visibility enforcement removed per request
-    
-    PreviousFormatting = True
-    
-    Exit Function
-
-ErrorHandler:
-    
-    PreviousFormatting = False
-End Function
+'' Deprecated: PreviousFormatting removed (migrated to modPipeline).
 
  ' (Formatting functions ApplyPageSetup, ApplyStdFont, FormatCharacterByCharacter moved to modFormatting.bas)
 
