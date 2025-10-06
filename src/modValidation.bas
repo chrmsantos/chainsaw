@@ -41,6 +41,42 @@ ErrHandler:
 	ValidateContentConsistency = False
 End Function
 
+' Proposition type validation migrated from modMain.
+Public Function ValidatePropositionType(doc As Document) As Boolean
+	On Error GoTo ErrHandler
+	Dim firstPara As Paragraph, paraText As String, i As Long, firstWord As String
+	Dim userResponse As VbMsgBoxResult
+	For i = 1 To doc.Paragraphs.Count
+		Set firstPara = doc.Paragraphs(i)
+		paraText = Trim(Replace(Replace(firstPara.Range.Text, vbCr, ""), vbLf, ""))
+		If paraText <> "" Then Exit For
+	Next i
+	If paraText = "" Then ValidatePropositionType = True: Exit Function
+	Dim words() As String: words = Split(paraText, " ")
+	If UBound(words) >= 0 Then firstWord = LCase(Trim(words(0)))
+	If firstWord = "indicação" Or firstWord = "requerimento" Or firstWord = "moção" Then
+		ValidatePropositionType = True: Exit Function
+	End If
+	Application.StatusBar = "Confirmar tipo de documento..."
+	Dim confirmationMessage As String
+	confirmationMessage = ReplacePlaceholders(MSG_DOC_TYPE_WARNING, _
+						"FIRSTWORD", UCase(firstWord), _
+						"DOCSTART", Left(paraText, 150))
+	userResponse = MsgBox(NormalizeForUI(confirmationMessage), vbYesNo + vbQuestion + vbDefaultButton2, _
+				NormalizeForUI(TITLE_DOC_TYPE))
+	If userResponse = vbYes Then
+		Application.StatusBar = "Continuando com documento não padronizado..."
+		ValidatePropositionType = True
+	Else
+		Application.StatusBar = "Processamento cancelado pelo usuário"
+		MsgBox NormalizeForUI(MSG_PROCESSING_CANCELLED), vbInformation, NormalizeForUI(TITLE_OPERATION_CANCELLED)
+		ValidatePropositionType = False
+	End If
+	Exit Function
+ErrHandler:
+	ValidatePropositionType = False
+End Function
+
 Private Function CountCommonWords(text1 As String, text2 As String) As Long
 	On Error GoTo ErrHandler
 	Dim words1() As String, words2() As String, i As Long, j As Long, commonCount As Long

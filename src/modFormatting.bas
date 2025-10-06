@@ -754,3 +754,111 @@ Public Function GetSafeUserName() As String
 ErrHandler:
 	GetSafeUserName = "user"
 End Function
+
+'================================================================================
+' ADDITIONAL MIGRATED ROUTINES (extracted from modMain)
+'================================================================================
+Public Function CleanDocumentStructure(doc As Document) As Boolean
+	On Error GoTo ErrHandler
+	Dim para As Paragraph, i As Long, firstTextParaIndex As Long
+	Dim emptyLinesRemoved As Long, leadingSpacesRemoved As Long, paraCount As Long
+	paraCount = doc.Paragraphs.Count: firstTextParaIndex = -1
+	For i = 1 To paraCount
+		If i > doc.Paragraphs.Count Then Exit For
+		Set para = doc.Paragraphs(i)
+		Dim paraTextCheck As String
+		paraTextCheck = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
+		If paraTextCheck <> "" Then firstTextParaIndex = i: Exit For
+		If i > 50 Then Exit For
+	Next i
+	If firstTextParaIndex > 1 Then
+		For i = firstTextParaIndex - 1 To 1 Step -1
+			If i > doc.Paragraphs.Count Or i < 1 Then Exit For
+			Set para = doc.Paragraphs(i)
+			Dim paraTextEmpty As String
+			paraTextEmpty = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
+			If paraTextEmpty = "" Then
+				If Not HasVisualContent(para) Then
+					para.Range.Delete
+					emptyLinesRemoved = emptyLinesRemoved + 1
+					paraCount = paraCount - 1
+				End If
+			End If
+		Next i
+	End If
+	Dim rng As Range: Set rng = doc.Range
+	With rng.Find
+		.ClearFormatting: .Replacement.ClearFormatting
+		.Forward = True: .Wrap = wdFindContinue: .Format = False: .MatchWildcards = False
+		.Text = "^p ": .Replacement.Text = "^p"
+		Do While .Execute(Replace:=True): leadingSpacesRemoved = leadingSpacesRemoved + 1: If leadingSpacesRemoved > 1000 Then Exit Do: Loop
+		.Text = "^p^t": .Replacement.Text = "^p"
+		Do While .Execute(Replace:=True): leadingSpacesRemoved = leadingSpacesRemoved + 1: If leadingSpacesRemoved > 1000 Then Exit Do: Loop
+	End With
+	Set rng = doc.Range: With rng.Find
+		.ClearFormatting: .Replacement.ClearFormatting: .Forward = True: .Wrap = wdFindStop: .Format = False: .MatchWildcards = False
+		rng.Start = 0: rng.End = 1
+		If rng.Text = " " Or rng.Text = vbTab Then
+			Do While rng.End <= doc.Range.End And (Right(rng.Text, 1) = " " Or Right(rng.Text, 1) = vbTab)
+				rng.End = rng.End + 1: leadingSpacesRemoved = leadingSpacesRemoved + 1: If leadingSpacesRemoved > 100 Then Exit Do
+			Loop
+			If rng.Start < rng.End - 1 Then rng.Delete
+		End If
+	End With
+	CleanDocumentStructure = True: Exit Function
+ErrHandler:
+	CleanDocumentStructure = False
+End Function
+
+Public Function FormatDocumentTitle(doc As Document) As Boolean
+	On Error GoTo ErrHandler
+	Dim firstPara As Paragraph, paraText As String, words() As String, i As Long, newText As String
+	For i = 1 To doc.Paragraphs.Count
+		Set firstPara = doc.Paragraphs(i)
+		paraText = Trim(Replace(Replace(firstPara.Range.Text, vbCr, ""), vbLf, ""))
+		If paraText <> "" Then Exit For
+	Next i
+	If paraText = "" Then FormatDocumentTitle = True: Exit Function
+	If Right(paraText, 1) = "." Then paraText = Left(paraText, Len(paraText) - 1)
+	Dim isProp As Boolean, firstWord As String
+	words = Split(paraText, " ")
+	If UBound(words) >= 0 Then
+		firstWord = LCase(Trim(words(0)))
+		If firstWord = "indicação" Or firstWord = "requerimento" Or firstWord = "moção" Then isProp = True
+	End If
+	If isProp And UBound(words) >= 0 Then
+		For i = 0 To UBound(words) - 1
+			If i > 0 Then newText = newText & " "
+			newText = newText & words(i)
+		Next i
+		If newText <> "" Then newText = newText & " "
+		newText = newText & "$NUMERO$/$ANO$"
+	Else
+		newText = paraText
+	End If
+	firstPara.Range.Text = UCase(newText) & vbCrLf
+	With firstPara.Range.Font: .Bold = True: .Underline = wdUnderlineSingle: End With
+	With firstPara.Format: .Alignment = wdAlignParagraphCenter: .LeftIndent = 0: .FirstLineIndent = 0: .RightIndent = 0: .SpaceBefore = 0: .SpaceAfter = 6: End With
+	FormatDocumentTitle = True: Exit Function
+ErrHandler:
+	FormatDocumentTitle = False
+End Function
+
+Private Function HasSubstantiveTextAfterNumber(fullText As String, numberToken As String) As Boolean
+	On Error GoTo ErrHandler
+	Dim remainder As String
+	remainder = Mid(fullText, Len(numberToken) + 1)
+	remainder = Trim(remainder)
+	If Len(remainder) = 0 Then HasSubstantiveTextAfterNumber = False: Exit Function
+	Dim firstWord As String, spacePos As Long
+	spacePos = InStr(remainder, " ")
+	If spacePos > 0 Then
+		firstWord = Left(remainder, spacePos - 1)
+	Else
+		firstWord = remainder
+	End If
+	If Len(firstWord) < 2 Then HasSubstantiveTextAfterNumber = False: Exit Function
+	HasSubstantiveTextAfterNumber = True: Exit Function
+ErrHandler:
+	HasSubstantiveTextAfterNumber = False
+End Function
