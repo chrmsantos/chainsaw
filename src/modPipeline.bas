@@ -203,7 +203,43 @@ End Function
 ' PLACEHOLDER: STRUCTURE VALIDATION (legacy hook, always true for now)
 '================================================================================
 Private Function ValidateDocumentStructure(doc As Document) As Boolean
+    On Error GoTo ErrHandler
+    ' Lightweight structural sanity checks:
+    ' 1. Non-empty document.
+    ' 2. Reasonable paragraph count (not absurdly high for typical proposition).
+    ' 3. First non-empty paragraph length threshold.
+
+    Dim para As Paragraph, i As Long, firstText As String
+    For i = 1 To doc.Paragraphs.Count
+        Set para = doc.Paragraphs(i)
+        firstText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
+        If firstText <> "" Then Exit For
+        If i > 200 Then Exit For ' safety cap
+    Next i
+
+    If firstText = "" Then
+        MsgBox NormalizeForUI(MSG_EMPTY_DOC), vbExclamation, NormalizeForUI(TITLE_VALIDATION_ERROR)
+        ValidateDocumentStructure = False: Exit Function
+    End If
+
+    If doc.Paragraphs.Count > 5000 Then
+        Dim largeWarn As String
+        largeWarn = ReplacePlaceholders(MSG_PARAGRAPH_EXCESS, "COUNT", CStr(doc.Paragraphs.Count))
+        If MsgBox(NormalizeForUI(largeWarn), vbYesNo + vbQuestion + vbDefaultButton2, NormalizeForUI(TITLE_LARGE_DOC)) = vbNo Then
+            ValidateDocumentStructure = False: Exit Function
+        End If
+    End If
+
+    If Len(firstText) < 3 Then
+        If MsgBox(NormalizeForUI(MSG_FIRST_PARA_SHORT), vbYesNo + vbExclamation + vbDefaultButton2, NormalizeForUI(TITLE_VALIDATION_ERROR)) = vbNo Then
+            ValidateDocumentStructure = False: Exit Function
+        End If
+    End If
+
     ValidateDocumentStructure = True
+    Exit Function
+ErrHandler:
+    ValidateDocumentStructure = True ' fail-open to avoid blocking formatting
 End Function
 
 ' End of file.

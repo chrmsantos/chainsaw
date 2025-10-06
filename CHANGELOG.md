@@ -4,62 +4,73 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-### Added (Unreleased)
+### Planned
 
-- Finalized orchestrator rename: `modMain.bas` -> `modPipeline.bas` (now fully inlined).
+* Potential implementation of full structural validation (currently placeholder).
+* Additional localization pass for message constants.
 
-### Changed (Unreleased)
+## [1.0.0-beta2] - 2025-10-06
 
-- `chainsaw.bas` remains a pure entry stub; pipeline logic consolidated in `modPipeline.bas`.
-- `ARCHITECTURE.md` updated to reflect orchestrator rename.
-- `README.md` module table updated (modPipeline supersedes legacy modMain).
-- Removed duplicate formatting routine definitions (hyphenation, watermark, header/footer insertion, second paragraph helpers) from `modFormatting.bas` consolidating to single canonical implementations.
+### Added
 
-### Removed (Unreleased)
+* Final canonical orchestrator `modPipeline.RunChainsawPipeline` (logic fully inlined, legacy wrapper removed).
+* Real structural validation hook placeholder separated for future enhancement.
 
-- Accidental pasted legacy procedures from the former monolith out of `chainsaw.bas`.
-- Deprecated transitional file `modMain.bas` (deleted after migration).
+### Changed
 
-### Notes (Unreleased)
+* `chainsaw.bas` remains a pure entry stub.
+* `ARCHITECTURE.md` and `README.md` reflect removal of transitional `modMain.bas`.
+* Consolidated duplicate formatting routines (hyphenation, watermark, header/footer, second paragraph helpers) into single implementations.
 
-- Next steps: migrate remaining view/backup legacy blocks or formally deprecate.
+### Removed
+
+* Deprecated transitional file `modMain.bas`.
+* Redundant duplicate formatting function definitions in `modFormatting.bas`.
+
+### Fixed
+
+* Eliminated residual duplication that could cause ambiguous references during future maintenance.
+
+### Notes
+
+* Formatting semantics unchanged; refactor strictly architectural.
 
 ## [1.0.0-beta1] - 2025-10-06
 
 ### Added
 
-- Modular architecture: extracted formatting, replacements, validation, safety, config, and (stub) logging modules.
-- Centralized formatting routines in `modFormatting` (migrated special section handlers: Considerando, Justificativa, Anexo patterns).
-- ASCII normalization option for user dialog messages.
-- `ARCHITECTURE.md` documentation file.
+* Modular architecture: extracted formatting, replacements, validation, safety, config, and (stub) logging modules.
+* Centralized formatting routines in `modFormatting` (migrated special section handlers: Considerando, Justificativa, Anexo patterns).
+* ASCII normalization option for user dialog messages.
+* `ARCHITECTURE.md` documentation file.
 
 ### Changed
 
-- Monolithic `chainsaw.bas` reduced to orchestrator responsibilities.
-- Logging system replaced with no-op stubs (`modLog`) pending future reinstatement.
-- Backup configuration flags marked deprecated and disabled by default.
-- Default configuration rewritten for clarity; backup/logging now inert.
-- README overhauled to reflect new module structure and disabled features.
-- SECURITY policy updated (removal of active logging/backups, added threat model).
+* Monolithic `chainsaw.bas` reduced to orchestrator responsibilities.
+* Logging system replaced with no-op stubs (`modLog`) pending future reinstatement.
+* Backup configuration flags marked deprecated and disabled by default.
+* Default configuration rewritten for clarity; backup/logging now inert.
+* README overhauled to reflect new module structure and disabled features.
+* SECURITY policy updated (removal of active logging/backups, added threat model).
 
 ### Removed
 
-- Duplicate legacy orchestrator module (previous `modMain.bas`).
-- Active logging & backup runtime behavior (retained keys for compatibility).
+* Duplicate legacy orchestrator module (previous `modMain.bas`).
+* Active logging & backup runtime behavior (retained keys for compatibility).
 
 ### Deprecated
 
-- Backup-related config flags: `autoBackup`, `backupBeforeProcessing`, `maxBackupFiles`, `backupCleanup`, `backupRetryAttempts`, `enableEmergencyBackup` (inactive).
-- Logging-related config flags: `enableLogging`, `logLevel`, `logToFile`, `maxLogSizeMb` (stub only).
+* Backup-related config flags: `autoBackup`, `backupBeforeProcessing`, `maxBackupFiles`, `backupCleanup`, `backupRetryAttempts`, `enableEmergencyBackup` (inactive).
+* Logging-related config flags: `enableLogging`, `logLevel`, `logToFile`, `maxLogSizeMb` (stub only).
 
 ### Security
 
-- Reduced attack surface by disabling file write features (logs/backups).
+* Reduced attack surface by disabling file write features (logs/backups).
 
 ### Notes
 
-- Formatting semantics intentionally unchanged per original simplification goal.
-- Future beta will consider reinstating logging with structured, size-limited output and opt-in backups with retention.
+* Formatting semantics intentionally unchanged per original simplification goal.
+* Future beta will consider reinstating logging with structured, size-limited output and opt-in backups with retention.
 
 ---
 Format: Keep chronological (newest on top after first release). Use Keep a Changelog style guidelines.

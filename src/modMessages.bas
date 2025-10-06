@@ -42,6 +42,15 @@ Public Const MSG_INCONSISTENCY_WARNING As String = _
 	"Trecho analisado: {{Ementa}}" & vbCrLf & _
 	"Continuar mesmo assim?"
 
+' Structural validation messages
+Public Const MSG_EMPTY_DOC As String = _
+	"Documento vazio ou sem paragrafo com texto identificavel."
+Public Const MSG_PARAGRAPH_EXCESS As String = _
+	"Documento possui {{COUNT}} paragrafos (muito acima do esperado)." & vbCrLf & _
+	"Deseja continuar mesmo assim?"
+Public Const MSG_FIRST_PARA_SHORT As String = _
+	"Primeiro paragrafo util e muito curto. Confirmar continuidade?"
+
 ' ---- Titles (TITLE_*) ----
 Public Const TITLE_LARGE_DOC As String = "Documento grande"
 Public Const TITLE_UNSAVED As String = "Documento nao salvo"
