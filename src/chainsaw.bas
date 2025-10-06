@@ -1159,217 +1159,29 @@ End Function
 
 '================================================================================
 ' FORMAT "CONSIDERANDO" PARAGRAPHS - OPTIMIZED AND SIMPLIFIED
-'================================================================================
-Private Function FormatConsiderandoParagraphs(doc As Document) As Boolean
-    On Error GoTo ErrorHandler
-    
-    Dim para As Paragraph
-    Dim rawText As String
-    Dim textNoCrLf As String
-    Dim i As Long
-    Dim totalFormatted As Long
-    Dim startIdx As Long
-    Dim n As Long
-    Dim ch As String
-    Dim code As Long
-    Dim allowedPrefix As String
-    
-    ' Characters we can ignore before "considerando" at paragraph start
-    ' spaces/tabs, quotes, dashes, hyphen, parentheses, and a set of invisible/control chars
-    ' Note: we keep allowedPrefix defined above for readability, but detection relies on code-point checks here
-    allowedPrefix = " " ' (kept for documentation only)
-    
-    For i = 1 To doc.Paragraphs.count
-        Set para = doc.Paragraphs(i)
-        rawText = para.Range.text
-        textNoCrLf = Replace(Replace(rawText, vbCr, ""), vbLf, "")
-        
-        If Len(textNoCrLf) >= 12 Then
-            ' Find first non-prefix character index, skipping spaces, punctuation, and invisible/control marks
-            startIdx = 1
-            For n = 1 To Len(textNoCrLf)
-                ch = Mid$(textNoCrLf, n, 1)
-                code = AscW(ch)
+"' =============================================================================
+' PROJECT: CHAINSAW PROPOSITURAS
+' FILE: chainsaw.bas (public entry stub ONLY)
+' =============================================================================
+' Purpose: Maintains historical macro name and delegates to the pipeline.
+'          ALL logic lives in specialized modules. Keep this file minimal.
+' =============================================================================
+' License: Modified Apache 2.0 (see LICENSE)
+' Version: 1.0.0-Beta1
+' =============================================================================
+Option Explicit
 
-                    startIdx = n
-                    Exit For
-            Next n
-            
-            If startIdx + 11 <= Len(textNoCrLf) Then
-                If LCase$(Mid$(textNoCrLf, startIdx, 12)) = "considerando" Then
-                    Dim rng As Range
-                    Set rng = para.Range.Duplicate
-                    rng.SetRange rng.Start + (startIdx - 1), rng.Start + (startIdx - 1) + 12
-                    
-                    ' Replace token and apply bold preserving following spacing/punctuation
-                    rng.text = "CONSIDERANDO"
-                    rng.Font.Bold = True
-                    totalFormatted = totalFormatted + 1
-                End If
-            End If
-        End If
-    Next i
-    
-    If totalFormatted > 0 Then
-        
+Public Sub ChainsawProcess()
+    Dim ok As Boolean
+    ok = RunChainsawPipeline()
+    If ok Then
+        Application.StatusBar = "Chainsaw: processamento concluido"
     Else
-        
+        Application.StatusBar = "Chainsaw: processamento falhou"
     End If
-    
-    FormatConsiderandoParagraphs = True
-    Exit Function
+End Sub
 
-ErrorHandler:
-    
-    FormatConsiderandoParagraphs = False
-End Function
-
-''================================================================================
-'' MODULE: chainsaw.bas
-'' PURPOSE: Standardize Word proposition documents (font, paragraphs, title, numbering,
-''          replacements, structural cleanup, validations, backups, visual element handling).
-'' VERSION: v1.0.0-Beta1 (baseline after logging removal and aggressive cleanup)
-'' DATE: 2025-10-06
-'' NOTES:
-''  - Logging system fully removed.
-''  - Comment noise aggressively minimized.
-''  - Preserve formatting logic exactly as validated earlier.
-''  - Safe helper functions ensure Word 2010+ compatibility.
-''================================================================================
-
-
-'' UI helpers NormalizeForUI / ReplacePlaceholders moved to modUI (public)
-
-'================================================================================
-' APPLY TEXT REPLACEMENTS
-'================================================================================
-Private Function ApplyTextReplacements(doc As Document) As Boolean
-    On Error GoTo ErrorHandler
-    
-    Dim rng As Range
-    Dim replacementCount As Long
-    
-    Set rng = doc.Range
-    
-    ' Feature 10: Replace variants of "d'Oeste"
-    Dim dOesteVariants() As String
-    Dim i As Long
-    
-    ' Define possible variants of the first 3 characters of "d'Oeste"
-    ReDim dOesteVariants(0 To 15)
-    dOesteVariants(0) = "d'O"   ' Original
-    dOesteVariants(1) = "d´O"   ' Acute accent
-    dOesteVariants(2) = "d`O"   ' Grave accent
-    dOesteVariants(3) = "d" & Chr(8220) & "O"   ' Left curly quote
-    dOesteVariants(4) = "d'o"   ' Lowercase
-    dOesteVariants(5) = "d´o"
-    dOesteVariants(6) = "d`o"
-    dOesteVariants(7) = "d" & Chr(8220) & "o"
-    dOesteVariants(8) = "D'O"   ' Uppercase D
-    dOesteVariants(9) = "D´O"
-    dOesteVariants(10) = "D`O"
-    dOesteVariants(11) = "D" & Chr(8220) & "O"
-    dOesteVariants(12) = "D'o"
-    dOesteVariants(13) = "D´o"
-    dOesteVariants(14) = "D`o"
-    dOesteVariants(15) = "D" & Chr(8220) & "o"
-    
-    For i = 0 To UBound(dOesteVariants)
-        With rng.Find
-            .ClearFormatting
-            .Replacement.ClearFormatting
-            .text = dOesteVariants(i) & "este"
-            .Replacement.text = "d'Oeste"
-            .Forward = True
-            .Wrap = wdFindStop
-            .Format = False
-            .MatchCase = False
-            .MatchWholeWord = False
-            .MatchWildcards = False
-            .MatchSoundsLike = False
-            .MatchAllWordForms = False
-            
-            Do While .Execute(Replace:=wdReplaceOne)
-                replacementCount = replacementCount + 1
-                rng.Collapse wdCollapseEnd
-            Loop
-        End With
-    Next i
-    
-    ' Removed: vereador variants replacement
-    
-    ' Feature 12: Replace isolated hyphens/en dashes with em dash (—)
-    ' Normalizes hyphens (-) and en dashes (–) surrounded by spaces into em dashes (—)
-    Set rng = doc.Range
-    Dim dashVariants() As String
-    ReDim dashVariants(0 To 2)
-    
-    ' Define dash types to replace when surrounded by spaces
-    dashVariants(0) = " - "     ' Hyphen
-    dashVariants(1) = " – "     ' En dash
-    dashVariants(2) = " — "     ' Em dash (normalize)
-    
-    ' Replace all types with em dash
-    For i = 0 To UBound(dashVariants)
-    ' Only if not already an em dash
-        If dashVariants(i) <> " — " Then
-            With rng.Find
-                .ClearFormatting
-                .Replacement.ClearFormatting
-                .text = dashVariants(i)
-                .Replacement.text = " — "    ' Em dash (travessão) com espaços
-                .Forward = True
-                .Wrap = wdFindStop
-                .Format = False
-                .MatchCase = False
-                .MatchWholeWord = False
-                .MatchWildcards = False
-                .MatchSoundsLike = False
-                .MatchAllWordForms = False
-                
-                Do While .Execute(Replace:=wdReplaceOne)
-                    replacementCount = replacementCount + 1
-                    rng.Collapse wdCollapseEnd
-                Loop
-            End With
-        End If
-    Next i
-    
-    ' Special cases: hyphen/en dash at the start of the line followed by a space
-    Set rng = doc.Range
-    Dim lineStartDashVariants() As String
-    ReDim lineStartDashVariants(0 To 1)
-    
-    lineStartDashVariants(0) = "^p- "   ' Hyphen at line start
-    lineStartDashVariants(1) = "^p– "   ' En dash at line start
-    
-    For i = 0 To UBound(lineStartDashVariants)
-        With rng.Find
-            .ClearFormatting
-            .Replacement.ClearFormatting
-            .text = lineStartDashVariants(i)
-            .Replacement.text = "^p— "    ' Em dash at line start
-            .Forward = True
-            .Wrap = wdFindStop
-            .Format = False
-            .MatchCase = False
-            .MatchWholeWord = False
-            .MatchWildcards = False
-            .MatchSoundsLike = False
-            .MatchAllWordForms = False
-            
-            Do While .Execute(Replace:=wdReplaceOne)
-                replacementCount = replacementCount + 1
-                rng.Collapse wdCollapseEnd
-            Loop
-        End With
-    Next i
-    
-    ' Special cases: space then hyphen/en dash at the end of the line
-    Set rng = doc.Range
-    Dim lineEndDashVariants() As String
-    ReDim lineEndDashVariants(0 To 1)
-    
+' End of file – keep clean.
     lineEndDashVariants(0) = " -^p"   ' Hyphen at line end
     lineEndDashVariants(1) = " –^p"   ' En dash at line end
     

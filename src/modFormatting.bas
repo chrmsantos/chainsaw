@@ -810,6 +810,143 @@ ErrHandler:
 	CleanDocumentStructure = False
 End Function
 
+'================================================================================
+' FINAL STRUCTURAL / CLEANUP ROUTINES (migrated from modMain)
+'================================================================================
+Public Function ApplyStdParagraphs(doc As Document) As Boolean
+	On Error GoTo ErrHandler
+	Dim para As Paragraph, hasInlineImage As Boolean
+	Dim paragraphIndent As Single, firstIndent As Single
+	Dim rightMarginPoints As Single, i As Long
+	Dim paraText As String, skippedCount As Long
+	rightMarginPoints = 0
+	For i = doc.Paragraphs.Count To 1 Step -1
+		Set para = doc.Paragraphs(i)
+		hasInlineImage = (para.Range.InlineShapes.Count > 0) Or HasVisualContent(para)
+		' Text cleanup (avoid altering paragraphs with images)
+		If Not hasInlineImage Then
+			Dim cleanText As String: cleanText = para.Range.Text
+			If InStr(cleanText, "  ") > 0 Or InStr(cleanText, vbTab) > 0 Then
+				Do While InStr(cleanText, "  ") > 0: cleanText = Replace(cleanText, "  ", " "): Loop
+				cleanText = Replace(cleanText, " " & vbCr, vbCr)
+				cleanText = Replace(cleanText, vbCr & " ", vbCr)
+				cleanText = Replace(cleanText, vbCr & " ", vbCr)
+				cleanText = Replace(cleanText, vbTab, " ")
+				Do While InStr(cleanText, "  ") > 0: cleanText = Replace(cleanText, "  ", " "): Loop
+				If cleanText <> para.Range.Text Then para.Range.Text = cleanText
+			End If
+		Else
+			skippedCount = skippedCount + 1
+		End If
+		With para.Format
+			.LineSpacingRule = wdLineSpacingMultiple
+			.LineSpacing = LINE_SPACING
+			.RightIndent = rightMarginPoints
+			.SpaceBefore = 0: .SpaceAfter = 0
+			If para.Alignment = wdAlignParagraphCenter Then
+				.LeftIndent = 0: .FirstLineIndent = 0
+			Else
+				firstIndent = .FirstLineIndent: paragraphIndent = .LeftIndent
+				If paragraphIndent >= CentimetersToPoints(5) Then
+					.LeftIndent = CentimetersToPoints(9.5)
+				ElseIf firstIndent < CentimetersToPoints(5) Then
+					.LeftIndent = 0: .FirstLineIndent = CentimetersToPoints(1.5)
+				End If
+			End If
+		End With
+		If para.Alignment = wdAlignParagraphLeft Then para.Alignment = wdAlignParagraphJustify
+	Next i
+	ApplyStdParagraphs = True: Exit Function
+ErrHandler:
+	ApplyStdParagraphs = False
+End Function
+
+Public Function CleanMultipleSpaces(doc As Document) As Boolean
+	On Error GoTo ErrHandler
+	Dim rng As Range, spacesRemoved As Long, totalOps As Long
+	Set rng = doc.Range
+	With rng.Find
+		.ClearFormatting: .Replacement.ClearFormatting
+		.Forward = True: .Wrap = wdFindContinue
+		.Format = False: .MatchWildcards = False
+		Do
+			.Text = "  ": .Replacement.Text = " "
+			Dim cnt As Long: cnt = 0
+			Do While .Execute(Replace:=wdReplaceOne)
+				cnt = cnt + 1: spacesRemoved = spacesRemoved + 1: rng.Collapse wdCollapseEnd
+				If cnt Mod 200 = 0 Then DoEvents
+				If spacesRemoved > 2000 Then Exit Do
+			Loop
+			totalOps = totalOps + 1
+			If cnt = 0 Or totalOps > 10 Then Exit Do
+		Loop
+	End With
+	' Tabs & residual doubles
+	Set rng = doc.Range
+	With rng.Find
+		.ClearFormatting: .Replacement.ClearFormatting
+		.MatchWildcards = False: .Forward = True: .Wrap = wdFindContinue
+		.Text = "^t^t": .Replacement.Text = "^t": Do While .Execute(Replace:=wdReplaceOne): spacesRemoved = spacesRemoved + 1: rng.Collapse wdCollapseEnd: If spacesRemoved > 2000 Then Exit Do: Loop
+		.Text = "^t": .Replacement.Text = " ": Do While .Execute(Replace:=wdReplaceOne): spacesRemoved = spacesRemoved + 1: If spacesRemoved > 2000 Then Exit Do: Loop
+	End With
+	CleanMultipleSpaces = True: Exit Function
+ErrHandler:
+	CleanMultipleSpaces = False
+End Function
+
+Public Function LimitSequentialEmptyLines(doc As Document) As Boolean
+	On Error GoTo ErrHandler
+	Dim rng As Range, linesRemoved As Long, totalRepl As Long
+	Set rng = doc.Range
+	With rng.Find
+		.ClearFormatting: .Replacement.ClearFormatting
+		.Forward = True: .Wrap = wdFindContinue
+		.Format = False: .MatchWildcards = False
+		.Text = "^p^p^p^p": .Replacement.Text = "^p^p"
+		Do While .Execute(Replace:=True)
+			linesRemoved = linesRemoved + 1: totalRepl = totalRepl + 1: If totalRepl > 500 Then Exit Do
+		Loop
+		.Text = "^p^p^p": .Replacement.Text = "^p^p"
+		Do While .Execute(Replace:=True)
+			linesRemoved = linesRemoved + 1: totalRepl = totalRepl + 1: If totalRepl > 500 Then Exit Do
+		Loop
+	End With
+	LimitSequentialEmptyLines = True: Exit Function
+ErrHandler:
+	LimitSequentialEmptyLines = False
+End Function
+
+Public Function EnsureParagraphSeparation(doc As Document) As Boolean
+	On Error GoTo ErrHandler
+	Dim i As Long, para As Paragraph, nextPara As Paragraph, inserted As Long
+	For i = 1 To doc.Paragraphs.Count - 1
+		Set para = doc.Paragraphs(i): Set nextPara = doc.Paragraphs(i + 1)
+		Dim t1 As String, t2 As String
+		t1 = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
+		t2 = Trim(Replace(Replace(nextPara.Range.Text, vbCr, ""), vbLf, ""))
+		If t1 <> "" And t2 <> "" Then
+			If nextPara.Range.Start - para.Range.End <= 1 Then
+				Dim r As Range: Set r = doc.Range(para.Range.End - 1, para.Range.End - 1)
+				r.Text = vbCrLf: inserted = inserted + 1
+			End If
+		End If
+		If i Mod 500 = 0 Then DoEvents
+	Next i
+	EnsureParagraphSeparation = True: Exit Function
+ErrHandler:
+	EnsureParagraphSeparation = False
+End Function
+
+Public Function ConfigureDocumentView(doc As Document) As Boolean
+	On Error GoTo ErrHandler
+	Dim w As Window: Set w = doc.ActiveWindow
+	w.View.Zoom.Percentage = 110
+	ConfigureDocumentView = True: Exit Function
+ErrHandler:
+	ConfigureDocumentView = False
+End Function
+
+
 Public Function FormatDocumentTitle(doc As Document) As Boolean
 	On Error GoTo ErrHandler
 	Dim firstPara As Paragraph, paraText As String, words() As String, i As Long, newText As String
