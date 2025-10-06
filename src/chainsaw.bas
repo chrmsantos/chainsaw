@@ -573,7 +573,7 @@ Private Function PreviousFormatting(doc As Document) As Boolean
 
     ' Validate content consistency (may cancel if user chooses so)
     LogStepStart "Validate content consistency"
-    If Not ValidateContentConsistency(doc) Then
+    If Not modValidation.ValidateContentConsistency(doc) Then
     
         LogStepEnd False
         PreviousFormatting = False
@@ -624,7 +624,7 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     
     ' Apply text replacements (always on)
     LogStepStart "Apply text replacements"
-    If Not ApplyTextReplacements(doc) Then
+    If Not modReplacements.ApplyTextReplacements(doc) Then
     
         LogStepEnd False
     Else
@@ -633,7 +633,7 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     
     ' Apply specific paragraph replacements (always on)
     LogStepStart "Apply specific paragraph replacements"
-    If Not ApplySpecificParagraphReplacements(doc) Then
+    If Not modReplacements.ApplySpecificParagraphReplacements(doc) Then
     
         LogStepEnd False
     Else
@@ -2256,32 +2256,7 @@ ErrorHandler:
     ApplyTextReplacements = False
 End Function
 
-'================================================================================
-' APPLY SPECIFIC PARAGRAPH REPLACEMENTS
-'================================================================================
-Private Function ApplySpecificParagraphReplacements(doc As Document) As Boolean: ApplySpecificParagraphReplacements = modReplacements.ApplySpecificParagraphReplacements(doc): End Function
-
-'================================================================================
-' VALIDATE CONTENT CONSISTENCY - VALIDAÇÃO DE CONSISTÊNCIA ENTRE EMENTA E TEOR
-'================================================================================
-Private Function ValidateContentConsistency(doc As Document) As Boolean: ValidateContentConsistency = modValidation.ValidateContentConsistency(doc): End Function
-
-'================================================================================
-' COUNT COMMON WORDS - CONTA PALAVRAS COMUNS ENTRE DOIS TEXTOS
-'================================================================================
-Private Function CountCommonWords(text1 As String, text2 As String) As Long: CountCommonWords = modValidation.CountCommonWords(text1, text2): End Function
-
-
-
-'================================================================================
-' CLEAN TEXT FOR COMPARISON - LIMPA TEXTO PARA COMPARAÇÃO
-'================================================================================
-Private Function CleanTextForComparison(text As String) As String: CleanTextForComparison = modValidation.CleanTextForComparison(text): End Function
-
-'================================================================================
-' IS COMMON WORD - VERIFICA SE É PALAVRA MUITO COMUM
-'================================================================================
-Private Function IsCommonWord(word As String) As Boolean: IsCommonWord = modValidation.IsCommonWord(word): End Function
+ ' (Delegation stubs removed; using module-qualified calls where needed)
 
 '================================================================================
 ' FORMAT JUSTIFICATIVA/ANEXO PARAGRAPHS - SPECIAL FORMATTING
