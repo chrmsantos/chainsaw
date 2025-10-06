@@ -403,10 +403,10 @@ ErrHandler:
 	InsertFooterstamp = False
 End Function
 
-Public Function CentimetersToPointsCompat(ByVal cm As Double) As Single
+Public Function CentimetersToPoints(ByVal cm As Double) As Single
 	On Error Resume Next
-	CentimetersToPointsCompat = Application.CentimetersToPoints(cm)
-	If Err.Number <> 0 Then CentimetersToPointsCompat = cm * 28.35
+	CentimetersToPoints = Application.CentimetersToPoints(cm)
+	If Err.Number <> 0 Then CentimetersToPoints = cm * 28.35
 End Function
 
 Public Function GetSafeUserName() As String
