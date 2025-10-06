@@ -19,7 +19,7 @@
 - [Usage](#-usage)
 - [Security](#-security)
 - [Requirements](#-requirements)
-- [Configuration Reference](#-configuration-reference)
+- [Configuration Reference](#%EF%B8%8F-configuration-reference)
 - [Architecture Overview](#-architecture-overview)
 - [Troubleshooting](#-troubleshooting)
 - [Roadmap](#-roadmap-planned)
@@ -55,31 +55,35 @@
 <!-- Retained descriptive bullets for future reinstatement -->
 <!-- Detailed control: Configure log levels (ERROR, WARNING, INFO, DEBUG) -->
 <!-- Performance tracking: Accurate execution time measurement -->
+> Project structure shown below was updated after removal of the transitional `modMain.bas`. There is **no** `installation/` folder in this revision; former installer assets were consolidated or deferred.
+
 ```text
 chainsaw/
-├── assets/                          # Assets (images, icons)
-│   └── stamp.png                    # Header/logo image (optional)
-├── config/                          # Configuration & Word UI customizations
-│   └── Word Personalizações.exportedUI  # Ribbon/QAT export (optional)
-├── installation/                    # Optional installer scripts/resources
-├── src/                             # VBA source modules
-│   ├── chainsaw.bas                 # Macro entry stub only
-│   ├── modPipeline.bas              # Canonical orchestrator
-│   ├── modFormatting.bas            # Formatting & layout routines (centralized)
-│   ├── modReplacements.bas          # Text & semantic replacements
-│   ├── modValidation.bas            # Structural / lexical checks
-│   ├── modSafety.bas                # Defensive Word object wrappers
-│   ├── modConfig.bas                # Configuration loading & defaults
-│   ├── modMessages.bas              # User-facing strings
-│   ├── modConstants.bas             # Stable layout & font constants
-│   ├── modErrors.bas                # Error/status reporting (no I/O)
-│   ├── modSelfTest.bas              # Regression/self-test
-│   ├── modUI.bas                    # UI helpers
-│   └── modLog.bas                   # No-op logging stubs (stubbed)
-├── legacy_chainsaw_snapshot.bas     # Archived pre-truncation monolithic code
-├── LICENSE                          # Project license
-├── README.md                        # This file
-└── SECURITY.md                      # Security policy
+├── assets/                      # Images and other assets (e.g. stamp.png)
+├── config/                      # Normal.dotm + Ribbon/QAT export
+│   ├── Normal.dotm
+│   └── Word Personalizações.exportedUI
+├── scripts/                     # Utility scripts (e.g. count-loc.ps1)
+├── src/                         # VBA source modules
+│   ├── chainsaw.bas             # Public entry stub (ChainsawProcess)
+│   ├── modPipeline.bas          # Orchestrator pipeline
+│   ├── modFormatting.bas        # Formatting & layout routines
+│   ├── modReplacements.bas      # Text & semantic replacements
+│   ├── modValidation.bas        # Structural / lexical checks
+│   ├── modSafety.bas            # Defensive Word object wrappers
+│   ├── modConfig.bas            # Configuration loading & defaults
+│   ├── modMessages.bas          # User-facing strings
+│   ├── modConstants.bas         # Stable constants (fonts, version)
+│   ├── modErrors.bas            # Error/status reporting (no I/O)
+│   ├── modSelfTest.bas          # Regression/self-test macro
+│   ├── modUI.bas                # (Placeholder) UI helpers
+│   └── modLog.bas               # No-op logging stubs
+├── legacy_chainsaw_snapshot.bas # Archived pre-truncation monolith
+├── ARCHITECTURE.md              # Detailed architecture notes
+├── CHANGELOG.md                 # Changelog (Keep a Changelog style)
+├── LICENSE                      # License
+├── README.md                    # This file
+└── SECURITY.md                  # Security policy
 ```
 
 ### Module Responsibilities
@@ -114,17 +118,7 @@ chainsaw/
 
 ## 📁 Project Structure
 
-```text
-chainsaw/
-├── assets/                    # Assets (images, icons)
-│   └── stamp.png              # Header/logo image
-├── config/                    # Configuration and Word UI customizations
-│   ├── Normal.dotm            # Word Normal template (customized)
-│   └── Word Personalizações.exportedUI  # Ribbon/QAT export
-├── LICENSE                    # Project license
-├── README.md                  # This file
-└── SECURITY.md                # Security policy
-```
+See the updated structure in the earlier section (avoids duplication). `legacy_chainsaw_snapshot.bas` is retained only for audit/history and is **not** imported.
 
 ## 🔧 Installation
 
@@ -207,7 +201,7 @@ Para políticas corporativas, consulte [`SECURITY.md`](SECURITY.md).
 - RAM: 4GB or higher
 - CPU: Intel/AMD 64-bit
 
-## � Configuration Reference
+## ⚙️ Configuration Reference
 
 Below are selected, stable keys you can place in `chainsaw-config.ini` (section names accept Portuguese or English equivalents):
 
@@ -237,13 +231,13 @@ When enabled (`dialog_ascii_normalization = true`), all user-facing dialog strin
 
 ## 📚 Documentation
 
-Project root files:
+Project root files (selected):
 
-- `modSelfTest.bas` – Optional macro `ChainsawSelfTest` for quick regression sanity.
-- `modErrors.bas` – Minimal status/error centralization (no file writes in beta).
-
+- `modSelfTest.bas` – Macro `ChainsawSelfTest` (regression sanity)
+- `modErrors.bas` – Minimal status/error centralization (no file writes in beta)
 - `CONTRIBUTORS.md` – Contributors list
-- `installation/INSTALL.md` – Detailed installation & deployment guide
+- `legacy_chainsaw_snapshot.bas` – Archived pre-refactor monolith (not loaded)
+- `scripts/count-loc.ps1` – Utility to count active vs legacy LOC
 
 Historical/legacy example or docs folders referenced earlier have been consolidated; examples can be added in a future `examples/` directory as needed.
 
@@ -320,3 +314,21 @@ MsgBox NormalizeForUI(msg), vbCritical, NormalizeForUI(TITLE_VERSION_ERROR)
 Why double braces? They avoid conflicts with legacy %PLACEHOLDER% tokens that caused a compilation issue and are visually distinct from regular percent symbols sometimes present in legislative text.
 
 All new dynamic dialogs should prefer ReplacePlaceholders over manual Replace() chains for maintainability.
+
+## 📏 Code Size Metrics
+
+Active VBA source (excluding legacy snapshot) currently totals approximately **1,826** lines across 13 active modules. The archived legacy snapshot plus removed transitional module previously exceeded 4,000 lines—illustrating the reduction and clearer separation of concerns.
+
+To recompute metrics locally:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/count-loc.ps1
+```
+
+Include legacy snapshot lines as well:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/count-loc.ps1 -IncludeLegacy
+```
+
+These scripts are informational only; they perform no modifications.
