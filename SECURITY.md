@@ -16,16 +16,22 @@ Thank you for using chainsaw-proposituras. This project processes Microsoft Word
 ## Permissions and Scope
 
 - No internet access is required by the macros.
-- File system access is limited to:
-  - Creating backup copies next to your document (or TEMP if unsaved)
-  - Writing plain-text log files in the same folder
-  - Opening Windows Explorer to show the logs/backup folder on demand
+- File system access (current beta) is limited to reading the active document and optional header image resources. The legacy backup & logging writes are DISABLED.
+- Future versions (planned): optional controlled writes for backups and log files in the document directory.
 
 ## Data Handling
 
-- Backups contain full copies of your documents; protect the folder accordingly.
-- Log files contain file names and processing metadata, but not document contents (except small excerpts in warnings).
-- Delete logs and backups if they include sensitive information you no longer need.
+Current beta (logging & backup disabled):
+
+- No backups are created.
+- No log files are written.
+- No document content is exported outside Word memory space.
+
+Planned (future reinstatement):
+
+- Backups (full file copies) stored beside source document or in temp path if unsaved.
+- Logs: metadata only (timings, paragraph counts, warnings) — never full document dumps.
+- Administrators will be able to configure retention & size limits.
 
 ## Reporting a Vulnerability
 
@@ -40,16 +46,37 @@ We aim to acknowledge reports within 5 business days.
 
 ## Hardening Measures in Code
 
-- Backups created before changes; retry logic and permission checks
-- Strict document editability checks before formatting
+- Strict document editability & protection checks before formatting
 - Disabled wrap-around in critical Find/Replace loops to avoid runaway edits
-- Logging with explicit levels; errors never crash Word intentionally
+- Safe wrappers for Word object property access to reduce runtime errors
+- ASCII normalization option reduces encoding-related macro load failures
+- Graceful fallback: errors surface to user without forcing Word to close
+
+Deprecated (temporarily removed): pre-format backup creation and detailed logging instrumentation.
 
 ## Known Limitations
 
 - VBA macros inherit permissions of the host user account
-- Encoding in log files is ASCII-safe; non-ASCII characters are replaced with '?'
-- Running on unsaved documents uses the TEMP folder for logs/backups
+- Disabled features may lead to reduced forensic traceability (no logs)
+- When backup feature returns, unsaved documents will route backup to TEMP
+
+## Threat Model (Concise)
+
+| Asset | Threat | Mitigation |
+|-------|--------|------------|
+| Document content | Accidental destructive formatting | Validation + safety checks + no write until operations succeed |
+| User environment | Macro abuse by tampered module | Open-source review + recommended trusted folder usage |
+| Confidential data | Leakage via log/backups | Logging & backups disabled in current beta |
+| Stability | Infinite replace loops | Guarded Find/Replace (no wrap, bounded iterations) |
+
+## Deprecated / Disabled Features
+
+| Feature | Previous Purpose | Current Status | Planned Return |
+|---------|------------------|----------------|----------------|
+| Backups | Pre-change recovery | Disabled | Yes (revised retention) |
+| Logging | Execution trace & diagnostics | Stub only | Yes (configurable levels) |
+
+Configuration keys for these features remain for backward compatibility but are ignored.
 
 ## Best Practices
 

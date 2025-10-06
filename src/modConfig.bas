@@ -6,6 +6,7 @@
 Option Explicit
 
 Public Type ConfigSettings
+    ' --- CORE EXECUTION MODES ---
     debugMode As Boolean
     performanceMode As Boolean
     compatibilityMode As Boolean
@@ -16,11 +17,13 @@ Public Type ConfigSettings
     CheckDiskSpace As Boolean
     minWordVersion As Double
     maxDocumentSize As Long
-    autoBackup As Boolean
-    backupBeforeProcessing As Boolean
-    maxBackupFiles As Long
-    backupCleanup As Boolean
-    backupRetryAttempts As Long
+    ' --- BACKUP SYSTEM (DEPRECATED / DISABLED IN CURRENT BETA) ---
+    ' Retained for forward compatibility; currently ignored by processing pipeline.
+    autoBackup As Boolean              ' Deprecated: no backups are performed
+    backupBeforeProcessing As Boolean  ' Deprecated
+    maxBackupFiles As Long             ' Deprecated
+    backupCleanup As Boolean           ' Deprecated
+    backupRetryAttempts As Long        ' Deprecated
     ApplyPageSetup As Boolean
     applyStandardFont As Boolean
     applyStandardParagraphs As Boolean
@@ -51,10 +54,11 @@ Public Type ConfigSettings
     ProtectImagesInRange As Boolean
     BackupViewSettings As Boolean
     RestoreViewSettings As Boolean
-    enableLogging As Boolean
-    logLevel As String
-    logToFile As Boolean
-    maxLogSizeMb As Long
+    ' --- LOGGING (STUB ONLY IN CURRENT BETA) ---
+    enableLogging As Boolean           ' Deprecated: logging routines are no-op
+    logLevel As String                 ' Reserved for future reinstatement
+    logToFile As Boolean               ' Deprecated
+    maxLogSizeMb As Long               ' Deprecated
     disableScreenUpdating As Boolean
     disableDisplayAlerts As Boolean
     useBulkOperations As Boolean
@@ -137,7 +141,8 @@ Private Sub SetDefaultConfiguration()
         .debugMode = False: .performanceMode = True: .compatibilityMode = True
         .CheckWordVersion = True: .ValidateDocumentIntegrity = True: .ValidatePropositionType = True: .ValidateContentConsistency = True: .CheckDiskSpace = True
         .minWordVersion = 14#: .maxDocumentSize = 500000
-        .autoBackup = True: .backupBeforeProcessing = True: .maxBackupFiles = 10: .backupCleanup = True: .backupRetryAttempts = 3
+    ' Backup defaults forced to disabled (feature deprecated this beta)
+    .autoBackup = False: .backupBeforeProcessing = False: .maxBackupFiles = 0: .backupCleanup = False: .backupRetryAttempts = 0
         .ApplyPageSetup = True: .applyStandardFont = True: .applyStandardParagraphs = True: .FormatFirstParagraph = True: .FormatSecondParagraph = True
         .FormatNumberedParagraphs = True: .FormatConsiderandoParagraphs = True: .formatJustificativaParagraphs = True: .EnableHyphenation = True
         .CleanDocumentStructure = True: .CleanMultipleSpaces = True: .LimitSequentialEmptyLines = True: .EnsureParagraphSeparation = True
@@ -145,8 +150,9 @@ Private Sub SetDefaultConfiguration()
         .InsertHeaderstamp = True: .InsertFooterstamp = True: .RemoveWatermark = True: .headerImagePath = ""
         .ApplyTextReplacements = True: .ApplySpecificParagraphReplacements = True: .replaceHyphensWithEmDash = True: .removeManualLineBreaks = True
         .normalizeDosteVariants = True
-        .BackupAllImages = True: .RestoreAllImages = True: .ProtectImagesInRange = True: .BackupViewSettings = True: .RestoreViewSettings = True
-        .enableLogging = False: .logLevel = "INFO": .logToFile = False: .maxLogSizeMb = 2
+    .BackupAllImages = True: .RestoreAllImages = True: .ProtectImagesInRange = True: .BackupViewSettings = True: .RestoreViewSettings = True
+    ' Logging disabled; keep defaults minimal
+    .enableLogging = False: .logLevel = "INFO": .logToFile = False: .maxLogSizeMb = 0
         .disableScreenUpdating = True: .disableDisplayAlerts = True: .useBulkOperations = True: .optimizeFindReplace = True
         .showProgressMessages = True: .showStatusBarUpdates = True: .confirmCriticalOperations = True: .showCompletionMessage = True
         .enableEmergencyRecovery = True: .timeoutOperations = False

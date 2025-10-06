@@ -15,22 +15,29 @@
 - [Main Features](#-main-features)
 - [Project Structure](#-project-structure)
 - [Installation](#-installation)
-- [Configuration](#️-configuration)
+- [Configuration](#%EF%B8%8F-configuration)
 - [Usage](#-usage)
 - [Security](#-security)
 - [Requirements](#-requirements)
 - [Configuration Reference](#-configuration-reference)
+- [Architecture Overview](#-architecture-overview)
+- [Troubleshooting](#-troubleshooting)
+- [Roadmap](#-roadmap-planned)
+- [Recent Refactor Summary](#-recent-refactor-summary)
+- [Documentation](#-documentation)
 - [Contributing](#-contributing)
 - [License](#-license)
 
-## 🆕 Version News 1.0.0-Beta1
+### Refactored Architecture (Beta Refactor Wave)
 
-### Advanced Configuration System
-
-- **External configuration file:** `chainsaw-config.ini` with over 100 settings
-- **Granular control:** Enable/disable any system feature
-- **15 configuration categories:** General, Validations, Backup, Formatting, Cleanup, Performance, etc.
-- **Automatic configuration:** Loads default values if file not found
+- **Modularization:** Monolithic `chainsaw.bas` split into focused modules (`modFormatting`, `modReplacements`, `modValidation`, `modSafety`, `modConfig`, `modLog`).
+- **Logging disabled:** `modLog` provides no‑op stubs; call sites preserved.
+- **Formatting consolidation:** All formatting routines centralized (duplicate orchestrator removed).
+- **Safety layer:** Word object operations funneled through `modSafety` wrappers.
+- **Behavior preserved:** Formatting semantics unchanged per project goal.
+- **(Planned) backup system:** Keys retained; feature disabled in beta.
+- **External configuration file:** `chainsaw-config.ini` with extensive settings.
+- **Granular control:** Enable/disable feature groups independently.
 
 ### Performance Optimizations
 
@@ -43,6 +50,37 @@
 
 - **Detailed control:** Configure log levels (ERROR, WARNING, INFO, DEBUG)
 - **Performance tracking:** Accurate execution time measurement
+```text
+chainsaw/
+├── assets/                          # Assets (images, icons)
+│   └── stamp.png                    # Header/logo image (optional)
+├── config/                          # Configuration & Word UI customizations
+│   └── Word Personalizações.exportedUI  # Ribbon/QAT export (optional)
+├── installation/                    # Optional installer scripts/resources
+├── src/                             # VBA source modules
+│   ├── chainsaw.bas                 # Orchestrator (entry point macro)
+│   ├── modFormatting.bas            # All formatting & layout routines
+│   ├── modReplacements.bas          # Text & semantic replacements
+│   ├── modValidation.bas            # Consistency / lexical checks
+│   ├── modSafety.bas                # Defensive Word object wrappers
+│   ├── modConfig.bas                # Configuration loading & defaults
+│   └── modLog.bas                   # No-op logging stubs
+├── LICENSE                          # Project license
+├── README.md                        # This file
+└── SECURITY.md                      # Security policy
+```
+
+### Module Responsibilities
+
+| Module | Responsibility | Example Procedure |
+|--------|----------------|-------------------|
+| chainsaw.bas | High-level orchestration | (pending) `ChainsawProcess` |
+| modFormatting | Formatting & special paragraphs | `FormatConsiderandoParagraphs` |
+| modReplacements | Pattern / semantic replacements | `ApplyTextReplacements` |
+| modValidation | Content & lexical validation | `ValidateContentConsistency` |
+| modSafety | Safe wrappers for Word API | `SafeHasVisualContent` |
+| modConfig | Config parsing & defaults | `modConfig_LoadConfiguration` |
+| modLog | Stubbed logging API | `LogStepStart` |
 - **Flexible configuration:** Enable/disable logging by category
 
 ## 🚀 Main Features
@@ -75,9 +113,6 @@ chainsaw/
 ├── config/                    # Configuration and Word UI customizations
 │   ├── Normal.dotm            # Word Normal template (customized)
 │   └── Word Personalizações.exportedUI  # Ribbon/QAT export
-├── scripts/                   # Scripts (currently empty)
-├── src/                       # Source code
-│   └── chainsaw.bas           # Main VBA module
 ├── LICENSE                    # Project license
 ├── README.md                  # This file
 └── SECURITY.md                # Security policy
@@ -88,8 +123,8 @@ chainsaw/
 ### Quick Install (Recommended)
 
 1. Download the project (or copy the files to a trusted folder).
-2. Import `src/chainsaw.bas` into Word’s VBA editor (ALT+F11).
-3. Optionally import `config/Word Personalizações.exportedUI` into Word to add ribbon/QAT buttons.
+2. Import the required `.bas` modules into Word’s VBA editor (ALT+F11 → File > Import File...).
+3. (Optional) Import ribbon customizations from `config/Word Personalizações.exportedUI`.
 
 ### Manual Installation
 
@@ -114,21 +149,18 @@ check_word_version = true
 min_word_version = 14.0
 ```
 
-As configuration evolves, this section will be expanded. See the Configuration Reference below for newly added flags.
-
 ### File Locations
 
-- Logs and backups: same folder as the current document, or TEMP if unsaved.
+- Logs and backups: (inactive this beta) will reside beside the document when re-enabled.
 - Assets: `assets/` (header image, etc.).
 - Word UI customizations: `config/Word Personalizações.exportedUI`.
-
 ## 📖 Usage
 
 ### Basic Usage
 
-1. Open a document in Microsoft Word
-2. Run the macro `StandardizeDocumentMain`
-3. The system will automatically process the document according to the configuration
+1. Open a document in Microsoft Word.
+2. Run the macro `ChainsawProcess` (or current orchestrator name in `chainsaw.bas`).
+3. The system will process the document according to configuration.
 
 ### Key Shortcuts
 
@@ -145,18 +177,15 @@ To use CHAINSAW PROPOSITURAS safely:
    - Arquivo → Opções → Central de Confiabilidade
    - Configurações de Macro → "Desabilitar todas as macros com notificação"
 
-2. **Security Checks:**
+Checklist:
 
 - ✅ Open and auditable source code
 - ✅ No internet connection required
-- ✅ Automatic backup before modifications
+- ✅ Backup subsystem planned (disabled in this beta)
 - ✅ Robust error handling
 
 Para políticas corporativas, consulte [`SECURITY.md`](SECURITY.md).
 
-## 📋 Requirements
-
-### Minimum
 
 - OS: Windows 7 or later
 - Microsoft Word: 2010 or later
@@ -179,9 +208,7 @@ dialog_ascii_normalization = true    ; true/false — fold accents & special cha
 
 [VALIDATIONS]
 check_word_version = true            ; disable only for legacy environments
-validate_document_integrity = true
 validate_proposition_type = true
-validate_content_consistency = true
 
 [GENERAL]
 debug_mode = false
@@ -203,15 +230,12 @@ When enabled (`dialog_ascii_normalization = true`), all user-facing dialog strin
 
 Project root files:
 
-- `SECURITY.md` – Security policies
 - `CONTRIBUTORS.md` – Contributors list
 - `installation/INSTALL.md` – Detailed installation & deployment guide
 
 Historical/legacy example or docs folders referenced earlier have been consolidated; examples can be added in a future `examples/` directory as needed.
 
 ## 🤝 Contributing
-
-Contributions are welcome! To contribute:
 
 1. Fork o repositório
 2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)

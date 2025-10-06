@@ -198,6 +198,100 @@ ErrHandler:
 	RemoveWatermark = False
 End Function
 
+'--------------------------------------------------------------------------------
+' SPECIAL PARAGRAPH FORMATTING: CONSIDERANDO / JUSTIFICATIVA / ANEXO
+'--------------------------------------------------------------------------------
+Public Function FormatConsiderandoParagraphs(doc As Document) As Boolean
+	On Error GoTo ErrHandler
+	Dim para As Paragraph, rawText As String, textNoCrLf As String
+	Dim i As Long, startIdx As Long, n As Long, ch As String, code As Long
+	Dim totalFormatted As Long
+	For i = 1 To doc.Paragraphs.Count
+		Set para = doc.Paragraphs(i)
+		rawText = para.Range.Text
+		textNoCrLf = Replace(Replace(rawText, vbCr, ""), vbLf, "")
+		If Len(textNoCrLf) >= 12 Then
+			startIdx = 1
+			For n = 1 To Len(textNoCrLf)
+				ch = Mid$(textNoCrLf, n, 1)
+				code = AscW(ch)
+				' Skip leading spaces/tabs/quotes/dashes/parentheses/control (<33) and punctuation
+				If Not (code = 32 Or code = 9 Or code = 34 Or code = 39 Or code = 45 Or _
+						code = 8211 Or code = 8212 Or code = 40 Or code = 41 Or code < 33) Then
+					startIdx = n: Exit For
+				End If
+			Next n
+			If startIdx + 11 <= Len(textNoCrLf) Then
+				If LCase$(Mid$(textNoCrLf, startIdx, 12)) = "considerando" Then
+					Dim rng As Range: Set rng = para.Range.Duplicate
+					rng.SetRange rng.Start + (startIdx - 1), rng.Start + (startIdx - 1) + 12
+					rng.Text = "CONSIDERANDO"
+					rng.Font.Bold = True
+					totalFormatted = totalFormatted + 1
+				End If
+			End If
+		End If
+	Next i
+	FormatConsiderandoParagraphs = True: Exit Function
+ErrHandler:
+	FormatConsiderandoParagraphs = False
+End Function
+
+Public Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
+	On Error GoTo ErrHandler
+	Dim para As Paragraph, paraText As String, cleanText As String
+	Dim i As Long, formattedCount As Long
+	For i = 1 To doc.Paragraphs.Count
+		Set para = doc.Paragraphs(i)
+		If Not HasVisualContent(para) Then
+			paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
+			cleanText = paraText
+			Do While Len(cleanText) > 0 And (Right(cleanText, 1) = "." Or Right(cleanText, 1) = "," Or _
+				  Right(cleanText, 1) = ":" Or Right(cleanText, 1) = ";")
+				cleanText = Left(cleanText, Len(cleanText) - 1)
+			Loop
+			cleanText = Trim(LCase(cleanText))
+			If cleanText = "justificativa" Then
+				With para.Format: .LeftIndent = 0: .FirstLineIndent = 0: .Alignment = wdAlignParagraphCenter: End With
+				para.Range.Font.Bold = True
+				Dim originalEnd As String: originalEnd = ""
+				If Len(paraText) > Len(cleanText) Then originalEnd = Right(paraText, Len(paraText) - Len(cleanText))
+				para.Range.Text = "Justificativa" & originalEnd & vbCrLf
+				formattedCount = formattedCount + 1
+			ElseIf IsAnexoPattern(cleanText) Then
+				With para.Format: .LeftIndent = 0: .FirstLineIndent = 0: .RightIndent = 0: .Alignment = wdAlignParagraphLeft: End With
+				para.Range.Font.Bold = True
+				Dim anexoEnd As String: anexoEnd = ""
+				If Len(paraText) > Len(cleanText) Then anexoEnd = Right(paraText, Len(paraText) - Len(cleanText))
+				Dim anexoText As String: anexoText = IIf(cleanText = "anexo", "Anexo", "Anexos")
+				para.Range.Text = anexoText & anexoEnd & vbCrLf
+				formattedCount = formattedCount + 1
+			ElseIf IsAnteOExpostoPattern(paraText) Then
+				para.Range.Font.Bold = True
+				formattedCount = formattedCount + 1
+			End If
+		End If
+	Next i
+	FormatJustificativaAnexoParagraphs = True: Exit Function
+ErrHandler:
+	FormatJustificativaAnexoParagraphs = False
+End Function
+
+Private Function IsAnexoPattern(text As String) As Boolean
+	Dim cleanText As String: cleanText = LCase(Trim(text))
+	IsAnexoPattern = (cleanText = "anexo" Or cleanText = "anexos")
+End Function
+
+Private Function IsAnteOExpostoPattern(text As String) As Boolean
+	Dim cleanText As String: cleanText = LCase(Trim(text))
+	If Len(cleanText) = 0 Then IsAnteOExpostoPattern = False: Exit Function
+	If Len(cleanText) >= 13 And Left(cleanText, 13) = "ante o exposto" Then
+		IsAnteOExpostoPattern = True
+	Else
+		IsAnteOExpostoPattern = False
+	End If
+End Function
+
 Public Function InsertHeaderstamp(doc As Document) As Boolean
 	On Error GoTo ErrHandler
 	Dim sec As Section, header As HeaderFooter, imgFile As String, imgWidth As Single, imgHeight As Single
