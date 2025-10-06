@@ -3,8 +3,7 @@
 ' FILE: chainsaw.bas (public entry stub ONLY)
 ' =============================================================================
 ' Purpose: Maintains historical macro name and delegates to the pipeline.
-'          ALL logic lives in other modules. If anything other than the
-'          public ChainsawProcess is added here, remove it.
+'          ALL logic lives in other modules. Keep this file minimal.
 ' =============================================================================
 ' License: Modified Apache 2.0 (see LICENSE)
 ' Version: 1.0.0-Beta1
@@ -22,111 +21,6 @@ Public Sub ChainsawProcess()
 End Sub
 
 ' End of file – keep clean.
-    Call FormatNumberedParagraphs(doc)
-    LogStepEnd True
-    
-    ' Justificativa/Anexo formatting
-    LogStepStart "Format 'Justificativa/Anexo' paragraphs"
-    Call FormatJustificativaAnexoParagraphs(doc)
-    LogStepEnd True
-
-    ' Hyphenation and watermark
-    LogStepStart "Enable hyphenation"
-    Call EnableHyphenation(doc)
-    LogStepEnd True
-    LogStepStart "Remove watermark"
-    Call RemoveWatermark(doc)
-    LogStepEnd True
-
-    ' Insert header image (always enabled)
-    LogStepStart "Insert header image"
-    InsertHeaderstamp doc
-    LogStepEnd True
-    
-    ' Insert page numbers in footer (restored feature)
-    LogStepStart "Insert footer page numbers"
-    If Not InsertFooterstamp(doc) Then
-    
-        LogStepEnd False
-    Else
-        LogStepEnd True
-    End If
-    
-    ' Final spacing and separation controls
-    LogStepStart "Clean multiple spaces"
-    Call CleanMultipleSpaces(doc)
-    LogStepEnd True
-    LogStepStart "Limit sequential empty lines"
-    Call LimitSequentialEmptyLines(doc)
-    LogStepEnd True
-    LogStepStart "Ensure paragraph separation"
-    Call EnsureParagraphSeparation(doc)
-    LogStepEnd True
-    LogStepStart "Reinforce 2nd paragraph blank lines"
-    Call EnsureSecondParagraphBlankLines(doc)
-    LogStepEnd True
-    LogStepStart "Reapply 'Justificativa/Anexo' formatting"
-    Call FormatJustificativaAnexoParagraphs(doc)
-    LogStepEnd True
-    
-    ' Configure view (keeps user zoom)
-    LogStepStart "Configure document view"
-    Call ConfigureDocumentView(doc)
-    LogStepEnd True
-    
-    ' Clipboard pane visibility enforcement removed per request
-    
-    PreviousFormatting = True
-    
-    Exit Function
-
-ErrorHandler:
-    
-    PreviousFormatting = False
-End Function
-
- ' (Formatting functions ApplyPageSetup, ApplyStdFont, FormatCharacterByCharacter moved to modFormatting.bas)
-
-'================================================================================
-' PARAGRAPH FORMATTING
-'================================================================================
-Private Function ApplyStdParagraphs(doc As Document) As Boolean
-    On Error GoTo ErrorHandler
-    
-    Dim para As Paragraph
-    Dim hasInlineImage As Boolean
-    Dim paragraphIndent As Single
-    Dim firstIndent As Single
-    Dim rightMarginPoints As Single
-    Dim i As Long
-    Dim formattedCount As Long
-    Dim skippedCount As Long
-    Dim paraText As String
-    Dim prevPara As Paragraph
-
-    rightMarginPoints = 0
-
-    For i = doc.Paragraphs.count To 1 Step -1
-        Set para = doc.Paragraphs(i)
-        hasInlineImage = False
-
-        If para.Range.InlineShapes.count > 0 Then
-            hasInlineImage = True
-            skippedCount = skippedCount + 1
-        End If
-        
-    ' Additional protection: check other visual content types
-        If Not hasInlineImage And HasVisualContent(para) Then
-            hasInlineImage = True
-            skippedCount = skippedCount + 1
-        End If
-
-    ' Apply paragraph formatting to ALL paragraphs
-    ' (regardless of whether they contain images)
-        
-    ' Robust cleanup of multiple spaces - ALWAYS applied
-        Dim cleanText As String
-        cleanText = para.Range.text
         
     ' OPTIMIZED: Combine multiple cleanup operations in one block
         If InStr(cleanText, "  ") > 0 Or InStr(cleanText, vbTab) > 0 Then

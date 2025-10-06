@@ -1547,29 +1547,7 @@ End Function
 '================================================================================
 ' CLEAN DOCUMENT STRUCTURE - FEATURES 2, 6, 7
 '================================================================================
-Private Function CleanDocumentStructure(doc As Document) As Boolean
-    CleanDocumentStructure = modFormatting.CleanDocumentStructure(doc)
-End Function
-
-'================================================================================
-' SAFE CHECK FOR VISUAL CONTENT
-'================================================================================
-Private Function HasVisualContent(para As Paragraph) As Boolean: HasVisualContent = modFormatting.HasVisualContent(para): End Function
-
-'================================================================================
-' VALIDATE PROPOSITION TYPE
-'================================================================================
-Private Function ValidatePropositionType(doc As Document) As Boolean: ValidatePropositionType = modValidation.ValidatePropositionType(doc): End Function
-
-'================================================================================
-' FORMAT DOCUMENT TITLE
-'================================================================================
-Private Function FormatDocumentTitle(doc As Document) As Boolean: FormatDocumentTitle = modFormatting.FormatDocumentTitle(doc): End Function
-
-'================================================================================
-' FORMAT "CONSIDERANDO" PARAGRAPHS - OPTIMIZED AND SIMPLIFIED
-'================================================================================
-Private Function FormatConsiderandoParagraphs(doc As Document) As Boolean: FormatConsiderandoParagraphs = modFormatting.FormatConsiderandoParagraphs(doc): End Function
+'' Removed local delegate wrappers (now calling modFormatting / modValidation directly earlier).
 
 ''================================================================================
 '' MODULE: chainsaw.bas
