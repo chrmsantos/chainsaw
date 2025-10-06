@@ -712,7 +712,7 @@ End Function
 
 Public Function InsertFooterstamp(doc As Document) As Boolean
 	On Error GoTo ErrHandler
-	Dim sec As Section, footer As HeaderFooter, rng As Range, sectionsProcessed As Long
+	Dim sec As Section, footer As HeaderFooter, rng As Range
 	For Each sec In doc.Sections
 		Set footer = sec.Footers(wdHeaderFooterPrimary)
 		If footer.Exists Then
@@ -726,7 +726,6 @@ Public Function InsertFooterstamp(doc As Document) As Boolean
 				.ParagraphFormat.Alignment = wdAlignParagraphCenter
 				.Fields.Update
 			End With
-			sectionsProcessed = sectionsProcessed + 1
 		End If
 	Next sec
 	InsertFooterstamp = True: Exit Function
