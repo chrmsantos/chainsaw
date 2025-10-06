@@ -6,17 +6,19 @@ All notable changes to this project will be documented in this file.
 
 ### Added (Unreleased)
 
-- Finalized orchestrator rename: `modMain.bas` -> `modPipeline.bas`.
+- Finalized orchestrator rename: `modMain.bas` -> `modPipeline.bas` (now fully inlined).
 
 ### Changed (Unreleased)
 
 - `chainsaw.bas` remains a pure entry stub; pipeline logic consolidated in `modPipeline.bas`.
 - `ARCHITECTURE.md` updated to reflect orchestrator rename.
 - `README.md` module table updated (modPipeline supersedes legacy modMain).
+- Removed duplicate formatting routine definitions (hyphenation, watermark, header/footer insertion, second paragraph helpers) from `modFormatting.bas` consolidating to single canonical implementations.
 
 ### Removed (Unreleased)
 
 - Accidental pasted legacy procedures from the former monolith out of `chainsaw.bas`.
+- Deprecated transitional file `modMain.bas` (deleted after migration).
 
 ### Notes (Unreleased)
 
