@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added (Unreleased)
+
+- Legacy transition banner in `modMain.bas` guiding ongoing extraction.
+
+### Changed (Unreleased)
+
+- `chainsaw.bas` reduced to a pure entry stub with clarified header.
+- `ARCHITECTURE.md` updated: now lists `modMain.bas` as transitional and clarifies stub role.
+- `README.md` module table updated with `ChainsawProcess` now active and `modMain` marked transitional.
+
+### Removed (Unreleased)
+
+- Accidental pasted legacy procedures from the former monolith out of `chainsaw.bas`.
+
+### Notes (Unreleased)
+
+- Next steps: migrate remaining view/backup legacy blocks or formally deprecate.
+
 ## [1.0.0-beta1] - 2025-10-06
 
 ### Added

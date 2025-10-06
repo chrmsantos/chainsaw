@@ -74,13 +74,15 @@ chainsaw/
 
 | Module | Responsibility | Example Procedure |
 |--------|----------------|-------------------|
-| chainsaw.bas | High-level orchestration | (pending) `ChainsawProcess` |
+| chainsaw.bas | Public entry macro (stub only) | `ChainsawProcess` |
+| modMain | Transitional legacy orchestrator (being decomposed) | `RunChainsawPipeline` |
 | modFormatting | Formatting & special paragraphs | `FormatConsiderandoParagraphs` |
 | modReplacements | Pattern / semantic replacements | `ApplyTextReplacements` |
 | modValidation | Content & lexical validation | `ValidateContentConsistency` |
 | modSafety | Safe wrappers for Word API | `SafeHasVisualContent` |
 | modConfig | Config parsing & defaults | `modConfig_LoadConfiguration` |
 | modLog | Stubbed logging API | `LogStepStart` |
+ 
 - **Flexible configuration:** Enable/disable logging by category
 
 ## 🚀 Main Features
@@ -154,6 +156,7 @@ min_word_version = 14.0
 - Logs and backups: (inactive this beta) will reside beside the document when re-enabled.
 - Assets: `assets/` (header image, etc.).
 - Word UI customizations: `config/Word Personalizações.exportedUI`.
+ 
 ## 📖 Usage
 
 ### Basic Usage

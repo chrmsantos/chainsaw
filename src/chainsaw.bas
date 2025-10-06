@@ -1,166 +1,33 @@
-' =============================================================================
+"' =============================================================================
 ' PROJECT: CHAINSAW PROPOSITURAS
+' FILE: chainsaw.bas (public entry stub)
 ' =============================================================================
-' LEGACY TRANSITION MODULE (modMain.bas)
-' -----------------------------------------------------------------------------
-' This file still contains portions of the original monolithic implementation.
-' Refactor Status:
-'   * New pipeline entry: RunChainsawPipeline (public) – STABLE
-'   * Formatting logic: progressively migrating to modFormatting.bas
-'   * Text replacement logic: migrated to modReplacements.bas
-'   * Validation routines: being isolated in modValidation.bas
-'   * Safety wrappers: moved to modSafety.bas
-'   * Configuration loading: modConfig.bas
-'   * Logging: stubbed in modLog.bas (no file I/O in beta)
-'   * Backup & view/image protection: marked LEGACY; slated for isolation or
-'     removal in a future beta unless formally re‑scoped.
-'
-' Contributor Guidance:
-'   - Do NOT add new business logic here; place it in the appropriate module.
-'   - When migrating a cohesive block, move the code, update calls, then delete
-'     the legacy block to avoid divergence.
-'   - Keep behavior identical (formatting semantics MUST NOT change).
-'   - Remove obsolete comments & dead code as you extract.
-'
-' Deletion Criteria for This File:
-'   When only thin orchestration helpers remain, rename/merge or remove this
-'   module and let the entry stub (chainsaw.bas) call directly into the final
-'   orchestrator module (e.g., modPipeline.bas if created).
+' Purpose: Maintains the historical file name expected by existing Ribbon
+'          customizations and user habits. Delegates all work to
+'          RunChainsawPipeline (implemented in legacy transitional module
+'          modMain.bas while extraction continues).
 ' =============================================================================
-'
-' Automated system for standardizing legislative documents in Microsoft Word
-'
+' NOTE: This file intentionally contains ONLY the public entry macro. All
+'       other logic must live in the dedicated modules (formatting, safety,
+'       replacements, validation, config). If you find unrelated procedures
+'       here, they were likely pasted accidentally and should be removed.
+' =============================================================================
 ' License: Modified Apache 2.0 (see LICENSE)
-' Version: 1.0.0-Beta1 | Date: 2025-09-27
-' Repository: github.com/chrmsantos/chainsaw-proposituras
-' Author: Christian Martin dos Santos <chrmsantos@gmail.com>
+' Version: 1.0.0-Beta1
+' =============================================================================
+Option Explicit
 
-' Windows API declarations
-Private Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
-'(Removed keybd_event and virtual key constants – obsolete after ChatGPT feature removal)
-
-'================================================================================
-' PUBLIC ENTRYPOINT WRAPPER
-' Provides a stable callable pipeline while refactor migration continues.
-'================================================================================
-Public Function RunChainsawPipeline() As Boolean
-    On Error GoTo PipelineError
-    Dim doc As Document
-    Set doc = Nothing
-    On Error Resume Next: Set doc = ActiveDocument: On Error GoTo PipelineError
-    If doc Is Nothing Then
-        MsgBox NormalizeForUI("Nenhum documento ativo encontrado."), vbExclamation, NormalizeForUI("Chainsaw - Documento ausente")
-        RunChainsawPipeline = False
-        Exit Function
-    End If
-    ' Load configuration (idempotent)
-    Static cfgLoaded As Boolean
-    Call modConfig_LoadConfigIfNeeded(cfgLoaded)
-    ' Preliminary checks
-    If Not PreviousChecking(doc) Then
-        RunChainsawPipeline = False
-        Exit Function
-    End If
-    ' Main formatting
-    If Not PreviousFormatting(doc) Then
-        RunChainsawPipeline = False
-        Exit Function
-    End If
-    RunChainsawPipeline = True
-    Exit Function
-PipelineError:
-    RunChainsawPipeline = False
-End Function
-
-Private Function ApplyTextReplacements(doc As Document) As Boolean: ApplyTextReplacements = modReplacements.ApplyTextReplacements(doc): End Function
-    
-        Application.ScreenUpdating = True
-        Application.DisplayAlerts = wdAlertsAll
-        Application.StatusBar = ""
-        Application.EnableCancelKey = wdCancelInterrupt
-    
-    If undoGroupEnabled Then
-        Application.UndoRecord.EndCustomRecord
-        undoGroupEnabled = False
-    End If
-    
-    ' Clear image-protection variables on error
-    CleanupImageProtection
-    
-    ' Clear view-settings variables on error
-    CleanupViewSettings
-    
-        undoGroupEnabled = False
-    
-    CloseAllOpenFiles
-End Sub
-
-'================================================================================
-' SAFE CLEANUP - LIMPEZA SEGURA
-'================================================================================
-Private Sub SafeCleanup()
-    On Error Resume Next
-    
-    EndUndoGroup
-    
-    ReleaseObjects
-End Sub
-
-'================================================================================
-' RELEASE OBJECTS
-'================================================================================
-Private Sub ReleaseObjects()
-    On Error Resume Next
-    
-    Dim nullObj As Object
-    Set nullObj = Nothing
-    
-    Dim memoryCounter As Long
-    ' Previous loop resetting processingStartTime and formattingCancelled removed.
-    ' If future memory pressure mitigation is needed, place controlled cleanup here.
-End Sub
-'================================================================================
-' CLOSE ALL OPEN FILES
-'================================================================================
-Private Sub CloseAllOpenFiles()
-    On Error Resume Next
-    
-    Dim fileNumber As Integer
-    For fileNumber = 1 To 511
-        If Not EOF(fileNumber) Then
-            Close fileNumber
-        End If
-    Next fileNumber
-End Sub
-
-'================================================================================
-' VERSION COMPATIBILITY AND SAFETY CHECKS
-'================================================================================
-Private Function CheckWordVersion() As Boolean
-    On Error GoTo ErrorHandler
-    
-    Dim version As Double
-    ' Use CDbl to guarantee correct conversion in all versions
-    version = CDbl(Application.version)
-    
-    ' Use configuration for minimum version
-    If version < Config.minWordVersion Then
-        CheckWordVersion = False
+Public Sub ChainsawProcess()
+    Dim ok As Boolean
+    ok = RunChainsawPipeline()
+    If ok Then
+        Application.StatusBar = "Chainsaw: processamento concluído"
     Else
-        CheckWordVersion = True
+        Application.StatusBar = "Chainsaw: processamento falhou"
     End If
-    
-    Exit Function
-    
-ErrorHandler:
-    ' If cannot detect version, assume incompatibility for safety
-    CheckWordVersion = False
-End Function
+End Sub
 
- ' Removed: CompileVBAProject function (deprecated)
-
-
-'================================================================================
+' END OF FILE
 ' DOCUMENT INTEGRITY VALIDATION
 '================================================================================
 Private Function ValidateDocumentIntegrity(doc As Document) As Boolean
