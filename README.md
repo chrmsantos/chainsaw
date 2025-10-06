@@ -34,7 +34,7 @@
 
 - `chainsaw.bas` is now a pure stub (only `ChainsawProcess`).
 - Canonical pipeline lives in `modPipeline.RunChainsawPipeline`.
-- Transitional `modMain.bas` deprecated (scheduled for removal next beta).
+- Legacy `modMain.bas` removed (pipeline fully migrated).
 - All formatting / spacing / numbering / separation logic centralized in `modFormatting`.
 - Logging & backups remain disabled (stubs retained for compatibility; zero file writes).
 - Structural validation placeholder isolated for future enhancement.
@@ -63,13 +63,20 @@ chainsaw/
 │   └── Word Personalizações.exportedUI  # Ribbon/QAT export (optional)
 ├── installation/                    # Optional installer scripts/resources
 ├── src/                             # VBA source modules
-│   ├── chainsaw.bas                 # Orchestrator (entry point macro)
-│   ├── modFormatting.bas            # All formatting & layout routines
+│   ├── chainsaw.bas                 # Macro entry stub only
+│   ├── modPipeline.bas              # Canonical orchestrator
+│   ├── modFormatting.bas            # Formatting & layout routines (centralized)
 │   ├── modReplacements.bas          # Text & semantic replacements
-│   ├── modValidation.bas            # Consistency / lexical checks
+│   ├── modValidation.bas            # Structural / lexical checks
 │   ├── modSafety.bas                # Defensive Word object wrappers
 │   ├── modConfig.bas                # Configuration loading & defaults
-│   └── modLog.bas                   # No-op logging stubs
+│   ├── modMessages.bas              # User-facing strings
+│   ├── modConstants.bas             # Stable layout & font constants
+│   ├── modErrors.bas                # Error/status reporting (no I/O)
+│   ├── modSelfTest.bas              # Regression/self-test
+│   ├── modUI.bas                    # UI helpers
+│   └── modLog.bas                   # No-op logging stubs (stubbed)
+├── legacy_chainsaw_snapshot.bas     # Archived pre-truncation monolithic code
 ├── LICENSE                          # Project license
 ├── README.md                        # This file
 └── SECURITY.md                      # Security policy
@@ -80,7 +87,7 @@ chainsaw/
 | Module | Responsibility | Example Procedure |
 |--------|----------------|-------------------|
 | chainsaw.bas | Public entry macro (stub only) | `ChainsawProcess` |
-| modPipeline | Pipeline orchestrator (post-refactor; formerly modMain) | `RunChainsawPipeline` |
+| modPipeline | Canonical pipeline orchestrator | `RunChainsawPipeline` |
 | modFormatting | Formatting & special paragraphs | `FormatConsiderandoParagraphs` |
 | modReplacements | Pattern / semantic replacements | `ApplyTextReplacements` |
 | modValidation | Content & lexical validation | `ValidateContentConsistency` |

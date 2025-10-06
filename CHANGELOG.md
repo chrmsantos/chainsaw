@@ -25,7 +25,7 @@ All notable changes to this project will be documented in this file.
 ### Removed
 
 * Redundant duplicate formatting function definitions in `modFormatting.bas`.
-* (Pending) Removal of deprecated `modMain.bas` (retained one beta for migration).
+* Deprecated `modMain.bas` physically removed (pipeline fully in `modPipeline`).
 
 ### Fixed
 
