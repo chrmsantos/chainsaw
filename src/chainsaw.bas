@@ -1113,6 +1113,7 @@ ErrorHandler:
     EnsureSecondParagraphBlankLines = False
     
 End Function
+     ' (Removed duplicate EnsureSecondParagraphBlankLines – migrated to modFormatting.EnsureSecondParagraphBlankLines)
 
 '================================================================================
 ' FORMAT FIRST PARAGRAPH
@@ -1203,6 +1204,7 @@ ErrorHandler:
     
     FormatFirstParagraph = False
 End Function
+     ' (Removed duplicate FormatFirstParagraph – migrated to modFormatting.FormatFirstParagraph)
 
 '================================================================================
 ' ENABLE HYPHENATION
@@ -1227,11 +1229,13 @@ ErrorHandler:
     
     EnableHyphenation = False
 End Function
+     ' (Removed duplicate EnableHyphenation – migrated to modFormatting.EnableHyphenation)
 
 '================================================================================
 ' REMOVE WATERMARK
 '================================================================================
 Private Function RemoveWatermark(doc As Document) As Boolean
+ ' (Removed duplicate RemoveWatermark – migrated to modFormatting.RemoveWatermark)
     On Error GoTo ErrorHandler
 
     Dim sec As section
@@ -1289,6 +1293,7 @@ End Function
 ' INSERT HEADER IMAGE
 '================================================================================
 Private Function InsertHeaderstamp(doc As Document) As Boolean
+ ' (Removed duplicate InsertHeaderstamp – migrated to modFormatting.InsertHeaderstamp)
     On Error GoTo ErrorHandler
 
     Dim sec As section
@@ -1392,6 +1397,7 @@ End Function
 ' INSERT FOOTER PAGE NUMBERS
 '================================================================================
 Private Function InsertFooterstamp(doc As Document) As Boolean
+ ' (Removed duplicate InsertFooterstamp – migrated to modFormatting.InsertFooterstamp)
     On Error GoTo ErrorHandler
 
     Dim sec As section
@@ -1450,6 +1456,7 @@ Private Function CentimetersToPoints(ByVal cm As Double) As Single
         CentimetersToPoints = cm * 28.35
     End If
 End Function
+     ' (Removed duplicate CentimetersToPoints – migrated to modFormatting.CentimetersToPoints)
 
 '================================================================================
 ' UTILITY: SAFE USERNAME
@@ -1503,6 +1510,7 @@ Private Function ValidateDocumentStructure(doc As Document) As Boolean
         ValidateDocumentStructure = True
     Else
     
+         ' (Removed duplicate GetSafeUserName – migrated to modFormatting.GetSafeUserName)
         ValidateDocumentStructure = False
     End If
 End Function
@@ -4146,5 +4154,3 @@ Private Sub CleanupViewSettings()
     
     ' (Logging removed) View settings variables cleaned
 End Sub
-
-
