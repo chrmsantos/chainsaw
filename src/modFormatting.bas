@@ -829,21 +829,3 @@ ErrHandler:
 	FormatDocumentTitle = False
 End Function
 
-Private Function HasSubstantiveTextAfterNumber(fullText As String, numberToken As String) As Boolean
-	On Error GoTo ErrHandler
-	Dim remainder As String
-	remainder = Mid(fullText, Len(numberToken) + 1)
-	remainder = Trim(remainder)
-	If Len(remainder) = 0 Then HasSubstantiveTextAfterNumber = False: Exit Function
-	Dim firstWord As String, spacePos As Long
-	spacePos = InStr(remainder, " ")
-	If spacePos > 0 Then
-		firstWord = Left(remainder, spacePos - 1)
-	Else
-		firstWord = remainder
-	End If
-	If Len(firstWord) < 2 Then HasSubstantiveTextAfterNumber = False: Exit Function
-	HasSubstantiveTextAfterNumber = True: Exit Function
-ErrHandler:
-	HasSubstantiveTextAfterNumber = False
-End Function
