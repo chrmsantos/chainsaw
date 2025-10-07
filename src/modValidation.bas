@@ -109,7 +109,9 @@ Private Function CleanTextForComparison(text As String) As String
 			result = result & " "
 		End If
 	Next i
-	Do While InStr(result, "  ") > 0: result = Replace(result, "  ", " "): Loop
+	Do While InStr(result, "  ") > 0
+		result = Replace(result, "  ", " ")
+	Loop
 	CleanTextForComparison = Trim(result)
 End Function
 

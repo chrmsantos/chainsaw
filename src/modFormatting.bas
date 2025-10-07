@@ -226,8 +226,11 @@ Public Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
 		If Not HasVisualContent(para) Then
 			paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
 			cleanText = paraText
-			Do While Len(cleanText) > 0 And (Right(cleanText, 1) = "." Or Right(cleanText, 1) = "," Or _
-				  Right(cleanText, 1) = ":" Or Right(cleanText, 1) = ";")
+			Do While Len(cleanText) > 0 And _
+				(Right(cleanText, 1) = "." Or _
+				 Right(cleanText, 1) = "," Or _
+				 Right(cleanText, 1) = ":" Or _
+				 Right(cleanText, 1) = ";")
 				cleanText = Left(cleanText, Len(cleanText) - 1)
 			Loop
 			cleanText = Trim(LCase(cleanText))
