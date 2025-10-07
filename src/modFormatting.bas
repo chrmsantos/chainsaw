@@ -545,12 +545,24 @@ Public Function CleanDocumentStructure(doc As Document) As Boolean
 	End If
 	Dim rng As Range: Set rng = doc.Range
 	With rng.Find
-		.ClearFormatting: .Replacement.ClearFormatting
-		.Forward = True: .Wrap = wdFindContinue: .Format = False: .MatchWildcards = False
-		.Text = "^p ": .Replacement.Text = "^p"
-		Do While .Execute(Replace:=True): leadingSpacesRemoved = leadingSpacesRemoved + 1: If leadingSpacesRemoved > 1000 Then Exit Do: Loop
-		.Text = "^p^t": .Replacement.Text = "^p"
-		Do While .Execute(Replace:=True): leadingSpacesRemoved = leadingSpacesRemoved + 1: If leadingSpacesRemoved > 1000 Then Exit Do: Loop
+		.ClearFormatting
+		.Replacement.ClearFormatting
+		.Forward = True
+		.Wrap = wdFindContinue
+		.Format = False
+		.MatchWildcards = False
+		.Text = "^p "
+		.Replacement.Text = "^p"
+		Do While .Execute(Replace:=True)
+			leadingSpacesRemoved = leadingSpacesRemoved + 1
+			If leadingSpacesRemoved > 1000 Then Exit Do
+		Loop
+		.Text = "^p^t"
+		.Replacement.Text = "^p"
+		Do While .Execute(Replace:=True)
+			leadingSpacesRemoved = leadingSpacesRemoved + 1
+			If leadingSpacesRemoved > 1000 Then Exit Do
+		Loop
 	End With
 	Set rng = doc.Range: With rng.Find
 		.ClearFormatting: .Replacement.ClearFormatting: .Forward = True: .Wrap = wdFindStop: .Format = False: .MatchWildcards = False
@@ -584,12 +596,16 @@ Public Function ApplyStdParagraphs(doc As Document) As Boolean
 		If Not hasInlineImage Then
 			Dim cleanText As String: cleanText = para.Range.Text
 			If InStr(cleanText, "  ") > 0 Or InStr(cleanText, vbTab) > 0 Then
-				Do While InStr(cleanText, "  ") > 0: cleanText = Replace(cleanText, "  ", " "): Loop
+				Do While InStr(cleanText, "  ") > 0
+					cleanText = Replace(cleanText, "  ", " ")
+				Loop
 				cleanText = Replace(cleanText, " " & vbCr, vbCr)
 				cleanText = Replace(cleanText, vbCr & " ", vbCr)
-				cleanText = Replace(cleanText, vbCr & " ", vbCr)
+				cleanText = Replace(cleanText, vbCr & " ", vbCr) ' duplicate intentional (legacy behavior)
 				cleanText = Replace(cleanText, vbTab, " ")
-				Do While InStr(cleanText, "  ") > 0: cleanText = Replace(cleanText, "  ", " "): Loop
+				Do While InStr(cleanText, "  ") > 0
+					cleanText = Replace(cleanText, "  ", " ")
+				Loop
 				If cleanText <> para.Range.Text Then para.Range.Text = cleanText
 			End If
 		Else
