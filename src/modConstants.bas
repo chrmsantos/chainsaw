@@ -15,7 +15,7 @@ Public Const STANDARD_FONT As String = "Times New Roman"
 Public Const STANDARD_FONT_SIZE As Long = 12
 Public Const FOOTER_FONT_SIZE As Long = 10
 
-' When using wdLineSpacingMultiple Word expects: desired_lines * 12 (points).
+' When using wdLineSpaceMultiple Word expects: desired_lines * 12 (points).
 ' For 1.15 lines (common in legislative docs): 1.15 * 12 = 13.8 (rounded 14).
 Public Const LINE_SPACING As Long = 14
 

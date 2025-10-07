@@ -615,7 +615,8 @@ Public Function ApplyStdParagraphs(doc As Document) As Boolean
 			skippedCount = skippedCount + 1
 		End If
 		With para.Format
-			.LineSpacingRule = wdLineSpacingMultiple
+			' Corrected Word constant (was wdLineSpacingMultiple)
+			.LineSpacingRule = wdLineSpaceMultiple
 			.LineSpacing = LINE_SPACING
 			.RightIndent = rightMarginPoints
 			.SpaceBefore = 0: .SpaceAfter = 0
