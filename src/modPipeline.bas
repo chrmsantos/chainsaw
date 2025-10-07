@@ -1,4 +1,4 @@
-'Attribute VB_Name = "modPipeline"
+Attribute VB_Name = "modPipeline"
 '================================================================================
 ' MODULE: modPipeline (formerly modMain)
 ' PURPOSE: Final canonical orchestrator for the Chainsaw pipeline. All domain

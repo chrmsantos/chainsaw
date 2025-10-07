@@ -1,4 +1,4 @@
-'Attribute VB_Name = "modErrors"
+Attribute VB_Name = "modErrors"
 '================================================================================
 ' MODULE: modErrors
 ' PURPOSE: Centralized lightweight error reporting & status updates.

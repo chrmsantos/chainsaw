@@ -1,4 +1,4 @@
-'Attribute VB_Name = "modValidation"
+Attribute VB_Name = "modValidation"
 '================================================================================
 ' MODULE: modValidation
 ' PURPOSE: Document integrity, proposition type, and consistency validation functions.

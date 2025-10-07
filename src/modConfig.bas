@@ -1,4 +1,4 @@
-'Attribute VB_Name = "modConfig"
+Attribute VB_Name = "modConfig"
 '================================================================================
 ' MODULE: modConfig
 ' PURPOSE: Configuration loading and parsing for Chainsaw Proposituras.

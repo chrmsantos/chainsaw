@@ -1,4 +1,4 @@
-'Attribute VB_Name = "modSafety"
+Attribute VB_Name = "modSafety"
 '================================================================================
 ' MODULE: modSafety
 ' PURPOSE: Safe wrapper functions for Word object model interactions.
