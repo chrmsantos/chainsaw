@@ -42,11 +42,7 @@ Public Type ConfigSettings
     replaceHyphensWithEmDash As Boolean
     removeManualLineBreaks As Boolean
     normalizeDosteVariants As Boolean
-    ' --- LOGGING (STUB ONLY IN CURRENT BETA) ---
-    enableLogging As Boolean           ' Deprecated: logging routines are no-op
-    logLevel As String                 ' Reserved for future reinstatement
-    logToFile As Boolean               ' Deprecated
-    maxLogSizeMb As Long               ' Deprecated
+    ' --- RUNTIME ENV / UI ---
     disableScreenUpdating As Boolean
     disableDisplayAlerts As Boolean
     useBulkOperations As Boolean
@@ -130,8 +126,7 @@ Private Sub SetDefaultConfiguration()
         .InsertHeaderstamp = True: .InsertFooterstamp = True: .RemoveWatermark = True: .headerImagePath = ""
         .ApplyTextReplacements = True: .ApplySpecificParagraphReplacements = True: .replaceHyphensWithEmDash = True: .removeManualLineBreaks = True
         .normalizeDosteVariants = True
-    ' Logging disabled; keep defaults minimal
-    .enableLogging = False: .logLevel = "INFO": .logToFile = False: .maxLogSizeMb = 0
+    ' Logging subsystem removed (was previously stubbed)
         .disableScreenUpdating = True: .disableDisplayAlerts = True: .useBulkOperations = True: .optimizeFindReplace = True
         .showProgressMessages = True: .showStatusBarUpdates = True: .confirmCriticalOperations = True: .showCompletionMessage = True
         .enableEmergencyRecovery = True: .timeoutOperations = False
@@ -205,10 +200,6 @@ Private Sub ApplyConfigurationKey(key As String, value As String)
         Case "replacehyphenswithemdash": Config.replaceHyphensWithEmDash = CBool(value)
         Case "removemanuallinebreaks": Config.removeManualLineBreaks = CBool(value)
         Case "normalizedostevariants": Config.normalizeDosteVariants = CBool(value)
-        Case "enablelogging": Config.enableLogging = CBool(value)
-        Case "loglevel": Config.logLevel = value
-        Case "logtofile": Config.logToFile = CBool(value)
-        Case "maxlogsizemb": Config.maxLogSizeMb = CLng(value)
         Case "disablescreenupdating": Config.disableScreenUpdating = CBool(value)
         Case "disabledisplayalerts": Config.disableDisplayAlerts = CBool(value)
         Case "usebulkoperations": Config.useBulkOperations = CBool(value)

@@ -30,13 +30,13 @@
 
 ### Refactored Architecture (Beta2 Consolidation)
 
-**Beta2 highlights (updated after entrypoint consolidation):**
+**Beta2 highlights (updated after entrypoint consolidation & logging removal):**
 
 - Single public entry macro: `Chainsaw` (exposed inside `modPipeline`).
 - Legacy stub `chainsaw.bas` and macro `ChainsawProcess` removed.
 - Legacy `modMain.bas` removed (pipeline fully migrated earlier).
 - All formatting / spacing / numbering / separation logic centralized in `modFormatting`.
-- Logging & backups remain disabled (stubs retained for compatibility; zero file writes).
+- Backup system remains disabled (planned future reintroduction, currently zero file writes).
 - Structural validation placeholder isolated for future enhancement.
 - Self-test harness preserved to detect regressions.
 - Clear segregation of constants (`modConstants`) and messages (`modMessages`).
@@ -48,14 +48,7 @@
 - **Memory management:** Smart garbage collection and minimal object creation
 - **Compatibility preserved:** All optimizations keep compatibility with Word 2010+
 
-### Enhanced Logging System
-
-#### Logging system (stubbed in Beta2)
-
-<!-- Retained descriptive bullets for future reinstatement -->
-<!-- Detailed control: Configure log levels (ERROR, WARNING, INFO, DEBUG) -->
-<!-- Performance tracking: Accurate execution time measurement -->
-> Project structure shown below was updated after removal of the transitional `modMain.bas`. There is **no** `installation/` folder in this revision; former installer assets were consolidated or deferred.
+> Project structure shown below was updated after removal of the transitional `modMain.bas`. There is **no** `installation/` folder in this revision; former installer assets were consolidated or deferred. Logging stubs were fully removed in this pass for simplicity.
 
 ```text
 chainsaw/
@@ -77,7 +70,7 @@ chainsaw/
 │   ├── modErrors.bas            # Error/status reporting (no I/O)
 │   ├── modSelfTest.bas          # Regression/self-test macro
 │   ├── modUI.bas                # (Placeholder) UI helpers
-│   └── modLog.bas               # No-op logging stubs
+│   └── (removed) modLog.bas     # Removed no-op logging stubs
 ├── legacy_chainsaw_snapshot.bas # Archived pre-truncation monolith
 ├── ARCHITECTURE.md              # Detailed architecture notes
 ├── CHANGELOG.md                 # Changelog (Keep a Changelog style)
@@ -97,11 +90,10 @@ chainsaw/
 | modValidation | Content & lexical validation | `ValidateContentConsistency` |
 | modSafety | Safe wrappers for Word API | `SafeHasVisualContent` |
 | modConfig | Config parsing & defaults | `modConfig_LoadConfiguration` |
-| modLog | Stubbed logging API | `LogStepStart` |
 | modErrors | Centralized error/status reporting (no I/O) | `ReportUnexpected` |
 | modSelfTest | Lightweight regression/self-test macro | `ChainsawSelfTest` |
  
-- **Flexible configuration:** Enable/disable logging by category
+> Logging-related configuration keys and stubs were removed to simplify the codebase. Future observability (if needed) will be reintroduced as an optional, isolated module.
 
 ## 🚀 Main Features
 
@@ -110,7 +102,6 @@ chainsaw/
 - **Smart cleanup of visual elements:** Automatic removal of hidden and inappropriate formatting (fully configurable).
 - **(Planned) backup system:** Disabled this beta; keys retained.
 - **Institutional formatting:** Header with logo, page numbering and standardized margins.
-- **(Planned) structured logging:** Stub only (no file output this beta).
 - **Enhanced interface:** Clear user messages and interactive validations.
 - **Optimized performance:** Consolidated passes minimize duplication.
 - **Security:** Integrity validation hooks & reduced file I/O surface.
