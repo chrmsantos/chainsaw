@@ -6,8 +6,32 @@ All notable changes to this project will be documented in this file.
 
 ### Planned
 
-* Potential implementation of full structural validation (currently placeholder).
-* Additional localization pass for message constants.
+* Structural validation implementation (currently placeholder).
+* Optional lightweight logging/telemetry module (opt-in).
+* Accent restoration layer (configurable) for dialogs.
+
+## [1.0.0-beta3] - 2025-10-07
+
+### Added
+
+* Legacy parity routine `FormatThirdAndFourthParagraphs` ensuring mandated indenting for 3rd & 4th substantive paragraphs.
+
+### Changed
+
+* Documentation (README, ARCHITECTURE, SECURITY) aligned with simplified active module set.
+* Reduced configuration surface (removed obsolete logging & compatibility keys).
+
+### Removed
+
+* Legacy monolith (`chainsaw_old.bas`), backward stub (`chainsaw.bas`), logging stubs (`modLog.bas`), legacy snapshot references.
+
+### Fixed
+
+* Purged stale references to removed modules/features.
+
+### Notes
+
+* Formatting semantics preserved; structural and documentation simplification only.
 
 ## [1.0.0-beta2] - 2025-10-06
 

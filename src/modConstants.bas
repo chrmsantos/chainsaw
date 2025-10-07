@@ -33,6 +33,6 @@ Public Const HEADER_IMAGE_HEIGHT_RATIO As Double = 0.35  ' width * ratio = heigh
 Public Const HEADER_IMAGE_TOP_MARGIN_CM As Double = 1.0
 
 ' ---- Misc ----
-Public Const VERSION_STRING As String = "1.0.0-Beta2"
+Public Const VERSION_STRING As String = "1.0.0-Beta3"
 
 ' End of file.

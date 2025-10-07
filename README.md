@@ -1,6 +1,6 @@
 # CHAINSAW PROPOSITURAS
 
-## v1.0.0-Beta2
+## v1.0.0-Beta3
 
 *An open source VBA solution for standardization and advanced automation of legislative documents in Microsoft Word, developed specifically for Municipal Chambers and institutional environments.*
 
@@ -30,16 +30,16 @@
 
 ### Refactored Architecture (Beta2 Consolidation)
 
-**Beta2 highlights (updated after entrypoint consolidation & logging removal):**
+**Beta3 highlights (post-simplification pass):**
 
 - Single public entry macro: `Chainsaw` (exposed inside `modPipeline`).
-- Legacy stub `chainsaw.bas` and macro `ChainsawProcess` removed.
-- Legacy `modMain.bas` removed (pipeline fully migrated earlier).
-- All formatting / spacing / numbering / separation logic centralized in `modFormatting`.
-- Backup system remains disabled (planned future reintroduction, currently zero file writes).
-- Structural validation placeholder isolated for future enhancement.
-- Self-test harness preserved to detect regressions.
-- Clear segregation of constants (`modConstants`) and messages (`modMessages`).
+- Single public entry macro: `Chainsaw` (in `modPipeline`).
+- Removed legacy stubs & monolith (`chainsaw.bas`, `chainsaw_old.bas`, snapshot file).
+- Centralized formatting logic (behavior preserved) in `modFormatting` + explicit 3rd/4th paragraph parity.
+- Logging subsystem fully removed (no dormant flags or stubs).
+- Structural validation placeholder retained.
+- Self-test harness unchanged for regression confidence.
+- Reduced configuration surface (pruned obsolete compatibility/logging keys).
 
 ### Performance Optimizations
 
@@ -57,8 +57,7 @@ chainsaw/
 │   ├── Normal.dotm
 │   └── Word Personalizações.exportedUI
 ├── scripts/                     # Utility scripts (e.g. count-loc.ps1)
-├── src/                         # VBA source modules
-│   ├── (removed) chainsaw.bas   # Former stub (ChainsawProcess) – deleted
+├── src/                         # VBA source modules (active only)
 │   ├── modPipeline.bas          # Orchestrator pipeline
 │   ├── modFormatting.bas        # Formatting & layout routines
 │   ├── modReplacements.bas      # Text & semantic replacements
@@ -69,9 +68,7 @@ chainsaw/
 │   ├── modConstants.bas         # Stable constants (fonts, version)
 │   ├── modErrors.bas            # Error/status reporting (no I/O)
 │   ├── modSelfTest.bas          # Regression/self-test macro
-│   ├── modUI.bas                # (Placeholder) UI helpers
-│   └── (removed) modLog.bas     # Removed no-op logging stubs
-├── legacy_chainsaw_snapshot.bas # Archived pre-truncation monolith
+│   └── modUI.bas                # UI helpers (normalization)
 ├── ARCHITECTURE.md              # Detailed architecture notes
 ├── CHANGELOG.md                 # Changelog (Keep a Changelog style)
 ├── LICENSE                      # License
@@ -83,33 +80,34 @@ chainsaw/
 
 | Module | Responsibility | Example Procedure |
 |--------|----------------|-------------------|
-| (removed) chainsaw.bas | (Removed) legacy stub | (n/a) |
-| modPipeline | Canonical pipeline orchestrator | `RunChainsawPipeline` |
+| Module | Responsibility | Example |
+|--------|----------------|---------|
+| modPipeline | Orchestrator + public macro | `RunChainsawPipeline` |
 | modFormatting | Formatting & special paragraphs | `FormatConsiderandoParagraphs` |
-| modReplacements | Pattern / semantic replacements | `ApplyTextReplacements` |
+| modReplacements | Text & semantic replacements | `ApplyTextReplacements` |
 | modValidation | Content & lexical validation | `ValidateContentConsistency` |
-| modSafety | Safe wrappers for Word API | `SafeHasVisualContent` |
+| modSafety | Defensive Word wrappers | `SafeHasVisualContent` |
 | modConfig | Config parsing & defaults | `modConfig_LoadConfiguration` |
-| modErrors | Centralized error/status reporting (no I/O) | `ReportUnexpected` |
-| modSelfTest | Lightweight regression/self-test macro | `ChainsawSelfTest` |
+| modErrors | Status/error helpers | `ReportUnexpected` |
+| modSelfTest | Regression self-test | `ChainsawSelfTest` |
+| modUI | Dialog normalization | `NormalizeForUI` |
  
-> Logging-related configuration keys and stubs were removed to simplify the codebase. Future observability (if needed) will be reintroduced as an optional, isolated module.
+> Observability (logging/backups) removed. Future versions may offer an optional lightweight telemetry module.
 
 ## 🚀 Main Features
 
 - **Automatic standardization of legislative propositions:** Specific formatting for INDICAÇÕES, REQUERIMENTOS and MOÇÕES with institutional layout control.
 - **Configurable content validation:** Consistency checks between header and content (can be disabled).
 - **Smart cleanup of visual elements:** Automatic removal of hidden and inappropriate formatting (fully configurable).
-- **(Planned) backup system:** Disabled this beta; keys retained.
-- **Institutional formatting:** Header with logo, page numbering and standardized margins.
-- **Enhanced interface:** Clear user messages and interactive validations.
-- **Optimized performance:** Consolidated passes minimize duplication.
-- **Security:** Integrity validation hooks & reduced file I/O surface.
-- **Self-test macro:** `ChainsawSelfTest` collects metrics (paragraphs, words, chars, images) to detect unintended changes.
+- **Institutional formatting:** Header logo, footer numbering, standardized margins.
+- **Paragraph semantics preserved:** 2nd–4th paragraph indent parity retained.
+- **Optimized performance:** Single orchestrated sequence; reduced passes.
+- **Security:** No disk writes; defensive guards & fail-soft pattern.
+- **Self-test macro:** `ChainsawSelfTest` for regression assurance.
 
 ## 📁 Project Structure
 
-See the updated structure in the earlier section (avoids duplication). `legacy_chainsaw_snapshot.bas` is retained only for audit/history and is **not** imported.
+All legacy monolith artifacts were removed; formatting parity validated.
 
 ## 🔧 Installation
 
@@ -144,7 +142,7 @@ min_word_version = 14.0
 
 ### File Locations
 
-- Logs and backups: (inactive this beta) will reside beside the document when re-enabled.
+- Logs / backups: removed (no writes performed).
 - Assets: `assets/` (header image, etc.).
 - Word UI customizations: `config/Word Personalizações.exportedUI`.
  
@@ -159,7 +157,7 @@ min_word_version = 14.0
 ### Key Shortcuts
 
 - Alt + F8: Open macro list
-- Ctrl + Shift + P: Custom shortcut (configurable)
+- (Optional) Ribbon button mapped to `Chainsaw` macro.
 
 ## 🔒 Security
 
@@ -308,7 +306,7 @@ All new dynamic dialogs should prefer ReplacePlaceholders over manual Replace() 
 
 ## 📏 Code Size Metrics
 
-Active VBA source (excluding legacy snapshot) currently totals approximately **1,826** lines across 13 active modules. The archived legacy snapshot plus removed transitional module previously exceeded 4,000 lines—illustrating the reduction and clearer separation of concerns.
+Active VBA source now roughly ~1,200–1,400 lines across 11 modules (export dependent). Previous monolith + stubs exceeded 4,000 lines.
 
 To recompute metrics locally:
 

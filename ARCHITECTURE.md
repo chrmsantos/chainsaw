@@ -8,14 +8,15 @@ This document explains the modular structure introduced in the 1.0.0 Beta refact
 
 | Module | Responsibility | Key Public Procedures (Illustrative) |
 |--------|----------------|--------------------------------------|
-| chainsaw.bas | Entry point stub (public macro only) | ChainsawProcess |
-| modPipeline.bas | Pipeline orchestrator (successor of transitional modMain) | RunChainsawPipeline |
-| modFormatting.bas | All document + paragraph formatting rules | FormatFirstParagraph, FormatConsiderandoParagraphs |
-| modReplacements.bas | Pattern-based global & targeted replacements | ApplyTextReplacements |
+| modPipeline.bas | Orchestrator + single entry macro | RunChainsawPipeline |
+| modFormatting.bas | Paragraph & special section formatting | FormatFirstParagraph, FormatConsiderandoParagraphs |
+| modReplacements.bas | Global & targeted replacements | ApplyTextReplacements |
 | modValidation.bas | Content & lexical integrity checks | ValidateContentConsistency |
-| modSafety.bas | Defensive wrappers around Word object model | SafeHasVisualContent |
+| modSafety.bas | Defensive Word object wrappers | SafeHasVisualContent |
 | modConfig.bas | INI config load + defaults | modConfig_LoadConfiguration |
-| modLog.bas | No-op logging stubs | LogStepStart |
+| modErrors.bas | Status / error helpers | ReportUnexpected |
+| modSelfTest.bas | Regression self-test | ChainsawSelfTest |
+| modUI.bas | Dialog normalization | NormalizeForUI |
 
 ## Processing Pipeline (Conceptual)
 
@@ -34,7 +35,7 @@ This document explains the modular structure introduced in the 1.0.0 Beta refact
 - Separation of concerns (formatting vs replacement vs validation)
 - No hidden side-effects: each step returns quickly or fails safe
 - Defensive access to Word objects (null/collection guards)
-- Forward compatibility: deprecated features (logging, backups) kept as inert flags
+- Forward compatibility: logging/backups removed (can return later as optional module)
 - Minimal surface changes to ease diff review and auditing
 
 ## Error Handling Strategy
