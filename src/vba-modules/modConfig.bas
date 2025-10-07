@@ -90,6 +90,7 @@ Public Type ConfigSettings
     ' Advanced
     maxRetryAttempts As Long
     retryDelayMs As Long
+    autoRunSmokeTest As Boolean
 End Type
 
 ' Active configuration instance (now public)
@@ -221,6 +222,7 @@ Public Sub SetDefaultConfiguration()
         ' Advanced
         .maxRetryAttempts = 3
         .retryDelayMs = 1000
+        .autoRunSmokeTest = False
     End With
 End Sub
 
@@ -286,6 +288,7 @@ Public Sub ProcessGeneralConfig(key As String, value As String)
         Case "DEBUG_MODE":          Config.debugMode = (LCase(value) = "true")
         Case "PERFORMANCE_MODE":    Config.performanceMode = (LCase(value) = "true")
         Case "COMPATIBILITY_MODE":  Config.compatibilityMode = (LCase(value) = "true")
+        Case "AUTO_RUN_SMOKE_TEST": Config.autoRunSmokeTest = (LCase(value) = "true")
     End Select
 End Sub
 

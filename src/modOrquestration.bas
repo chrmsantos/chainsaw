@@ -97,7 +97,701 @@ Private Const TITLE_CRITICAL_SAVE_EXIT As String = "Critical Save Exit - " & SYS
 Private Const wdNoProtection As Long = -1
 Private Const wdTypeDocument As Long = 0
 Private Const wdHeaderFooterPrimary As Long = 1
-'' Performance optimization & batching moved to modPerformance
+Private Const wdAlignParagraphLeft As Long = 0
+Private Const wdAlignParagraphCenter As Long = 1
+Private Const wdAlignParagraphJustify As Long = 3
+Private Const wdLineSpaceSingle As Long = 0
+Private Const wdLineSpace1pt5 As Long = 1
+Private Const wdLineSpacingMultiple As Long = 5
+Private Const wdStatisticPages As Long = 2
+Private Const msoTrue As Long = -1
+Private Const msoPicture As Long = 13
+Private Const msoTextEffect As Long = 15
+Private Const wdCollapseEnd As Long = 0
+Private Const wdCollapseStart As Long = 1
+Private Const wdFieldPage As Long = 33
+Private Const wdFieldNumPages As Long = 26
+Private Const wdFieldEmpty As Long = -1
+Private Const wdRelativeHorizontalPositionPage As Long = 1
+Private Const wdRelativeVerticalPositionPage As Long = 1
+Private Const wdWrapTopBottom As Long = 3
+Private Const wdAlertsAll As Long = 0
+Private Const wdAlertsNone As Long = -1
+Private Const wdColorAutomatic As Long = -16777216
+Private Const wdOrientPortrait As Long = 0
+Private Const wdUnderlineNone As Long = 0
+Private Const wdUnderlineSingle As Long = 1
+Private Const wdTextureNone As Long = 0
+Private Const wdReplaceNone As Long = 0
+Private Const wdReplaceOne As Long = 1
+Private Const wdReplaceAll As Long = 2
+
+' Document formatting constants
+Public Const STANDARD_FONT As String = "Arial"
+Public Const STANDARD_FONT_SIZE As Long = 12
+Public Const FOOTER_FONT_SIZE As Long = 9
+Public Const LINE_SPACING As Single = 14
+
+' Margin constants in centimeters
+Public Const TOP_MARGIN_CM As Double = 4.6
+Public Const BOTTOM_MARGIN_CM As Double = 2
+Public Const LEFT_MARGIN_CM As Double = 3
+Public Const RIGHT_MARGIN_CM As Double = 3
+Public Const HEADER_DISTANCE_CM As Double = 0.3
+Public Const FOOTER_DISTANCE_CM As Double = 0.9
+
+' Header image constants
+Public Const HEADER_IMAGE_MAX_WIDTH_CM As Double = 21
+Public Const HEADER_IMAGE_TOP_MARGIN_CM As Double = 0.7
+Public Const HEADER_IMAGE_HEIGHT_RATIO As Double = 0.19
+
+' Performance batching constants (added to fix undefined symbol errors)
+' When total paragraphs exceed OPTIMIZATION_THRESHOLD we process them in
+' chunks of MAX_PARAGRAPH_BATCH_SIZE to balance speed and UI responsiveness.
+Private Const OPTIMIZATION_THRESHOLD As Long = 400
+Private Const MAX_PARAGRAPH_BATCH_SIZE As Long = 120
+
+' Configuration file constants
+Private Const CONFIG_FILE_NAME As String = "chainsaw-config.ini"
+Private Const CONFIG_FILE_PATH As String = "\chainsaw\"
+
+'================================================================================
+' GLOBAL VARIABLES
+'================================================================================
+Private undoGroupEnabled As Boolean
+Private formattingCancelled As Boolean
+Private isConfigLoaded As Boolean     ' Tracks whether configuration defaults/file have been applied
+Private processingStartTime As Single ' Stores Timer() value at start of processing
+Private dialogAsciiNormalizationEnabled As Boolean ' Controls ASCII folding for MsgBox text (must be before first procedure)
+
+' Configuration variables - loaded from chainsaw-config.ini (UDT must stay at top-level before any executable code)
+Private Type ConfigSettings
+    ' General
+    debugMode As Boolean
+    performanceMode As Boolean
+    compatibilityMode As Boolean
+    
+    ' Validations
+    CheckWordVersion As Boolean
+    ValidateDocumentIntegrity As Boolean
+    ValidatePropositionType As Boolean
+    ValidateContentConsistency As Boolean
+    CheckDiskSpace As Boolean
+    minWordVersion As Double
+    maxDocumentSize As Long
+    
+    
+    ' Formatting
+    ApplyPageSetup As Boolean
+    applyStandardFont As Boolean
+    applyStandardParagraphs As Boolean
+    FormatFirstParagraph As Boolean
+    FormatSecondParagraph As Boolean
+    FormatNumberedParagraphs As Boolean
+    FormatConsiderandoParagraphs As Boolean
+    formatJustificativaParagraphs As Boolean
+    EnableHyphenation As Boolean
+    
+    ' Cleaning
+    CleanDocumentStructure As Boolean
+    CleanMultipleSpaces As Boolean
+    LimitSequentialEmptyLines As Boolean
+    EnsureParagraphSeparation As Boolean
+    cleanVisualElements As Boolean
+    deleteHiddenElements As Boolean
+    deleteVisualElementsFirstFourParagraphs As Boolean
+    
+    ' Header/Footer
+    InsertHeaderstamp As Boolean
+    InsertFooterstamp As Boolean
+    RemoveWatermark As Boolean
+    headerImagePath As String
+    
+    ' Text Replacements
+    ApplyTextReplacements As Boolean
+    ApplySpecificParagraphReplacements As Boolean
+    replaceHyphensWithEmDash As Boolean
+    removeManualLineBreaks As Boolean
+    normalizeDosteVariants As Boolean
+    
+    ' Performance
+    disableScreenUpdating As Boolean
+    disableDisplayAlerts As Boolean
+    useBulkOperations As Boolean
+    optimizeFindReplace As Boolean
+    
+    ' Interface
+    showProgressMessages As Boolean
+    showStatusBarUpdates As Boolean
+    confirmCriticalOperations As Boolean
+    showCompletionMessage As Boolean
+    enableEmergencyRecovery As Boolean
+    timeoutOperations As Boolean
+    
+    ' Compatibility
+    supportWord2010 As Boolean
+    supportWord2013 As Boolean
+    supportWord2016 As Boolean
+    useSafePropertyAccess As Boolean
+    fallbackMethods As Boolean
+    handleMissingFeatures As Boolean
+    
+    ' Security
+    requireDocumentSaved As Boolean
+    validateFilePermissions As Boolean
+    checkDocumentProtection As Boolean
+    sanitizeInputs As Boolean
+    validateRanges As Boolean
+    
+    ' Advanced
+    maxRetryAttempts As Long
+    retryDelayMs As Long
+    ' Removed: compilationCheck, vbaAccessRequired, autoCleanup, forceGcCollection
+End Type
+
+' Active configuration instance
+Private Config As ConfigSettings
+
+'================================================================================
+' UNIT CONVERSION UTILITIES
+'================================================================================
+' Word uses points (1 point = 1/72 inch). 1 inch = 2.54 cm. So cm = points * 2.54 / 72.
+Private Function CmFromPoints(ByVal pts As Double) As Double
+    CmFromPoints = (pts * 2.54#) / 72#
+End Function
+
+'================================================================================
+' TIMING UTILITIES
+'================================================================================
+' Returns whole seconds elapsed since the stored processingStartTime.
+' Safe if called before initialization (returns 0). Placed after UDT per VBA ordering rules.
+Private Function ElapsedSeconds() As Long
+    If processingStartTime <= 0 Then
+        ElapsedSeconds = 0
+    Else
+        ElapsedSeconds = CLng(Timer - processingStartTime)
+        If ElapsedSeconds < 0 Then ' Timer wraps at midnight
+            ElapsedSeconds = ElapsedSeconds + 86400&
+        End If
+    End If
+End Function
+
+' Image & view protection systems fully removed in simplified build.
+
+'================================================================================
+' CONFIGURATION SYSTEM
+'================================================================================
+
+Private Function LoadConfiguration() As Boolean
+    On Error GoTo ErrorHandler
+    
+    LoadConfiguration = False
+    
+    ' Define default values first
+    SetDefaultConfiguration
+    dialogAsciiNormalizationEnabled = True ' default on for safe ASCII dialogs
+    
+    ' Try to load from configuration file
+    Dim configPath As String
+    configPath = GetConfigurationFilePath()
+    
+    If Len(configPath) = 0 Or Dir(configPath) = "" Then
+    
+    LoadConfiguration = True ' Use defaults
+        Exit Function
+    End If
+    
+    ' Load settings from file
+    If ParseConfigurationFile(configPath) Then
+        
+        LoadConfiguration = True
+    Else
+    
+        SetDefaultConfiguration
+        LoadConfiguration = True ' Patterns used as fallback
+    End If
+    
+    Exit Function
+    
+ErrorHandler:
+    
+End Function
+
+Private Function GetConfigurationFilePath() As String
+    On Error GoTo ErrorHandler
+    
+    Dim doc As Document
+    Dim basePath As String
+    
+    ' Try to get current document folder
+    Set doc = Nothing
+    On Error Resume Next
+    Set doc = ActiveDocument
+    If Not doc Is Nothing And doc.Path <> "" Then
+        basePath = doc.Path
+    Else
+        ' Fallback to user folder
+        basePath = Environ("USERPROFILE") & "\Documents"
+    End If
+    On Error GoTo ErrorHandler
+    
+    ' Build configuration file path
+            GetConfigurationFilePath = basePath & CONFIG_FILE_PATH & CONFIG_FILE_NAME
+    
+    Exit Function
+    
+ErrorHandler:
+    GetConfigurationFilePath = ""
+End Function
+
+Private Sub SetDefaultConfiguration()
+    ' Set default values for all configurations
+    With Config
+        ' General
+        .debugMode = False
+        .performanceMode = True
+        .compatibilityMode = True
+        
+        ' Validations
+        .CheckWordVersion = True
+        .ValidateDocumentIntegrity = True
+        .ValidatePropositionType = True
+        .ValidateContentConsistency = True
+        .CheckDiskSpace = True
+        .minWordVersion = 14#
+        .maxDocumentSize = 500000
+        
+        
+        ' Formatting
+        .ApplyPageSetup = True
+        .applyStandardFont = True
+        .applyStandardParagraphs = True
+        .FormatFirstParagraph = True
+        .FormatSecondParagraph = True
+        .FormatNumberedParagraphs = True
+        .FormatConsiderandoParagraphs = True
+        .formatJustificativaParagraphs = True
+        .EnableHyphenation = True
+        
+        ' Cleaning
+    ' Removed: clearAllFormatting default
+        .CleanDocumentStructure = True
+        .CleanMultipleSpaces = True
+        .LimitSequentialEmptyLines = True
+        .EnsureParagraphSeparation = True
+        .cleanVisualElements = True
+        .deleteHiddenElements = True
+        .deleteVisualElementsFirstFourParagraphs = True
+        
+        ' Header/Footer
+        .InsertHeaderstamp = True
+        .InsertFooterstamp = True
+        .RemoveWatermark = True
+        .headerImagePath = "assets\stamp.png"
+    ' Width/height are controlled by module constants
+        
+    ' Text Replacements (always on)
+        .ApplyTextReplacements = True
+        .ApplySpecificParagraphReplacements = True
+        .replaceHyphensWithEmDash = True
+        .removeManualLineBreaks = True
+        .normalizeDosteVariants = True
+    ' Removed: normalizeVereadorVariants
+        
+    ' Visual Elements (deprecated – removed)
+        
+        ' Performance (always on)
+    ' Logging (deprecated – removed)
+        
+        ' Performance
+        .disableScreenUpdating = True
+        .disableDisplayAlerts = True
+    .useBulkOperations = True
+    .optimizeFindReplace = True
+    .showCompletionMessage = True
+    .enableEmergencyRecovery = True
+    .timeoutOperations = True
+        
+        ' Advanced (retry policy)
+        .maxRetryAttempts = 3
+        .retryDelayMs = 1000
+        .timeoutOperations = True
+        
+        ' Compatibility
+        .supportWord2010 = True
+        .supportWord2013 = True
+        .supportWord2016 = True
+        .useSafePropertyAccess = True
+        .fallbackMethods = True
+        .handleMissingFeatures = True
+        
+        ' Security
+        .requireDocumentSaved = True
+        .validateFilePermissions = True
+        .checkDocumentProtection = True
+        .sanitizeInputs = True
+        .validateRanges = True
+        
+        ' Advanced
+        .maxRetryAttempts = 3
+        .retryDelayMs = 1000
+    End With
+End Sub
+
+Private Function ParseConfigurationFile(configPath As String) As Boolean
+    On Error GoTo ErrorHandler
+    
+    ParseConfigurationFile = False
+    
+    Dim fileNum As Integer
+    Dim fileLine As String
+    Dim currentSection As String
+    
+    fileNum = FreeFile
+    Open configPath For Input As #fileNum
+    
+    Do Until EOF(fileNum)
+        Line Input #fileNum, fileLine
+        fileLine = Trim(fileLine)
+        
+    ' Ignore empty lines and comments
+        If Len(fileLine) > 0 And Left(fileLine, 1) <> "#" Then
+            ' Check if this is a section header
+            If Left(fileLine, 1) = "[" And Right(fileLine, 1) = "]" Then
+                currentSection = UCase(Mid(fileLine, 2, Len(fileLine) - 2))
+            ElseIf InStr(fileLine, "=") > 0 Then
+                ' Process configuration line
+                ProcessConfigLine currentSection, fileLine
+            End If
+        End If
+    Loop
+    
+    Close #fileNum
+    ParseConfigurationFile = True
+    
+    Exit Function
+    
+ErrorHandler:
+    If fileNum > 0 Then Close #fileNum
+    ParseConfigurationFile = False
+End Function
+
+Private Sub ProcessConfigLine(section As String, configLine As String)
+    On Error Resume Next
+    
+    Dim equalPos As Integer
+    Dim configKey As String
+    Dim configValue As String
+    
+    equalPos = InStr(configLine, "=")
+    If equalPos > 0 Then
+        configKey = UCase(Trim(Left(configLine, equalPos - 1)))
+        configValue = Trim(Mid(configLine, equalPos + 1))
+        
+        ' Remove aspas se presentes
+        If Left(configValue, 1) = """" And Right(configValue, 1) = """" Then
+            configValue = Mid(configValue, 2, Len(configValue) - 2)
+        End If
+        
+        ' Apply configuration based on section (accept PT and EN)
+        Select Case section
+            Case "GERAL", "GENERAL"
+                ProcessGeneralConfig configKey, configValue
+            Case "VALIDACOES", "VALIDATIONS"
+                ProcessValidationConfig configKey, configValue
+            Case "FORMATACAO", "FORMATTING"
+                ProcessFormattingConfig configKey, configValue
+            Case "LIMPEZA", "CLEANUP"
+                ProcessCleaningConfig configKey, configValue
+            Case "CABECALHO_RODAPE", "HEADER_FOOTER"
+                ProcessHeaderFooterConfig configKey, configValue
+            Case "SUBSTITUICOES", "REPLACEMENTS"
+                ProcessReplacementConfig configKey, configValue
+            Case "ELEMENTOS_VISUAIS", "VISUAL_ELEMENTS"
+                ' Deprecated: visual element settings ignored
+            Case "LOGGING"
+                ' Deprecated: logging settings ignored
+            Case "PERFORMANCE"
+                ProcessPerformanceConfig configKey, configValue
+            Case "INTERFACE"
+                ProcessInterfaceConfig configKey, configValue
+            Case "COMPATIBILIDADE", "COMPATIBILITY"
+                ProcessCompatibilityConfig configKey, configValue
+            Case "SEGURANCA", "SECURITY"
+                ProcessSecurityConfig configKey, configValue
+            Case "AVANCADO", "ADVANCED"
+                ProcessAdvancedConfig configKey, configValue
+        End Select
+    End If
+End Sub
+
+Private Sub ProcessGeneralConfig(key As String, value As String)
+    Select Case key
+        Case "DEBUG_MODE"
+            Config.debugMode = (LCase(value) = "true")
+        Case "PERFORMANCE_MODE"
+            Config.performanceMode = (LCase(value) = "true")
+        Case "COMPATIBILITY_MODE"
+            Config.compatibilityMode = (LCase(value) = "true")
+    End Select
+End Sub
+
+Private Sub ProcessValidationConfig(key As String, value As String)
+    Select Case key
+        Case "CHECK_WORD_VERSION"
+            Config.CheckWordVersion = (LCase(value) = "true")
+        Case "VALIDATE_DOCUMENT_INTEGRITY"
+            Config.ValidateDocumentIntegrity = (LCase(value) = "true")
+        Case "VALIDATE_PROPOSITION_TYPE"
+            Config.ValidatePropositionType = (LCase(value) = "true")
+        Case "VALIDATE_CONTENT_CONSISTENCY"
+            Config.ValidateContentConsistency = (LCase(value) = "true")
+        Case "CHECK_DISK_SPACE"
+            Config.CheckDiskSpace = (LCase(value) = "true")
+        Case "MIN_WORD_VERSION"
+            Config.minWordVersion = CDbl(value)
+        Case "MAX_DOCUMENT_SIZE"
+            Config.maxDocumentSize = CLng(value)
+    End Select
+End Sub
+
+
+Private Sub ProcessFormattingConfig(key As String, value As String)
+    Select Case key
+        Case "APPLY_PAGE_SETUP"
+            Config.ApplyPageSetup = (LCase(value) = "true")
+        Case "APPLY_STANDARD_FONT"
+            Config.applyStandardFont = (LCase(value) = "true")
+        Case "APPLY_STANDARD_PARAGRAPHS"
+            Config.applyStandardParagraphs = (LCase(value) = "true")
+        Case "FORMAT_FIRST_PARAGRAPH"
+            Config.FormatFirstParagraph = (LCase(value) = "true")
+        Case "FORMAT_SECOND_PARAGRAPH"
+            Config.FormatSecondParagraph = (LCase(value) = "true")
+        Case "FORMAT_NUMBERED_PARAGRAPHS"
+            Config.FormatNumberedParagraphs = (LCase(value) = "true")
+        Case "FORMAT_CONSIDERANDO_PARAGRAPHS"
+            Config.FormatConsiderandoParagraphs = (LCase(value) = "true")
+        Case "FORMAT_JUSTIFICATIVA_PARAGRAPHS"
+            Config.formatJustificativaParagraphs = (LCase(value) = "true")
+        Case "ENABLE_HYPHENATION"
+            Config.EnableHyphenation = (LCase(value) = "true")
+    End Select
+End Sub
+
+Private Sub ProcessCleaningConfig(key As String, value As String)
+    Select Case key
+        Case "CLEAR_ALL_FORMATTING"
+            ' Removed feature; ignored
+        Case "CLEAN_DOCUMENT_STRUCTURE"
+            Config.CleanDocumentStructure = (LCase(value) = "true")
+        Case "CLEAN_MULTIPLE_SPACES"
+            Config.CleanMultipleSpaces = (LCase(value) = "true")
+        Case "LIMIT_SEQUENTIAL_EMPTY_LINES"
+            Config.LimitSequentialEmptyLines = (LCase(value) = "true")
+        Case "ENSURE_PARAGRAPH_SEPARATION"
+            Config.EnsureParagraphSeparation = (LCase(value) = "true")
+        Case "CLEAN_VISUAL_ELEMENTS"
+            Config.cleanVisualElements = (LCase(value) = "true")
+        Case "DELETE_HIDDEN_ELEMENTS"
+            Config.deleteHiddenElements = (LCase(value) = "true")
+        Case "DELETE_VISUAL_ELEMENTS_FIRST_FOUR_PARAGRAPHS"
+            Config.deleteVisualElementsFirstFourParagraphs = (LCase(value) = "true")
+    End Select
+End Sub
+
+Private Sub ProcessHeaderFooterConfig(key As String, value As String)
+    Select Case key
+        Case "INSERT_HEADER_STAMP"
+            Config.InsertHeaderstamp = (LCase(value) = "true")
+        Case "INSERT_FOOTER_STAMP"
+            Config.InsertFooterstamp = (LCase(value) = "true")
+        Case "REMOVE_WATERMARK"
+            Config.RemoveWatermark = (LCase(value) = "true")
+        Case "HEADER_IMAGE_PATH"
+            Config.headerImagePath = value
+        Case "HEADER_IMAGE_MAX_WIDTH", "HEADER_IMAGE_HEIGHT_RATIO"
+            ' Removed keys; module constants are used instead
+    End Select
+End Sub
+
+Private Sub ProcessReplacementConfig(key As String, value As String)
+    Select Case key
+        Case "APPLY_TEXT_REPLACEMENTS"
+            Config.ApplyTextReplacements = (LCase(value) = "true")
+        Case "APPLY_SPECIFIC_PARAGRAPH_REPLACEMENTS"
+            Config.ApplySpecificParagraphReplacements = (LCase(value) = "true")
+        Case "REPLACE_HYPHENS_WITH_EM_DASH"
+            Config.replaceHyphensWithEmDash = (LCase(value) = "true")
+        Case "REMOVE_MANUAL_LINE_BREAKS"
+            Config.removeManualLineBreaks = (LCase(value) = "true")
+        Case "NORMALIZE_DOESTE_VARIANTS"
+            Config.normalizeDosteVariants = (LCase(value) = "true")
+        ' Removed: NORMALIZE_VEREADOR_VARIANTS (feature deleted)
+    End Select
+End Sub
+
+Private Sub ProcessVisualElementsConfig(key As String, value As String)
+    ' Deprecated: image/view protection removed – keys ignored
+End Sub
+
+Private Sub ProcessLoggingConfig(key As String, value As String)
+    ' Deprecated: logging removed – keys ignored
+End Sub
+
+Private Sub ProcessPerformanceConfig(key As String, value As String)
+    Select Case key
+        Case "DISABLE_SCREEN_UPDATING"
+            Config.disableScreenUpdating = (LCase(value) = "true")
+        Case "DISABLE_DISPLAY_ALERTS"
+            Config.disableDisplayAlerts = (LCase(value) = "true")
+        Case "USE_BULK_OPERATIONS"
+            Config.useBulkOperations = (LCase(value) = "true")
+        Case "OPTIMIZE_FIND_REPLACE"
+            Config.optimizeFindReplace = (LCase(value) = "true")
+    End Select
+End Sub
+
+Private Sub ProcessInterfaceConfig(key As String, value As String)
+    Select Case key
+        Case "SHOW_PROGRESS_MESSAGES"
+            Config.showProgressMessages = (LCase(value) = "true")
+        Case "SHOW_STATUS_BAR_UPDATES"
+            Config.showStatusBarUpdates = (LCase(value) = "true")
+        Case "CONFIRM_CRITICAL_OPERATIONS"
+            Config.confirmCriticalOperations = (LCase(value) = "true")
+        Case "SHOW_COMPLETION_MESSAGE"
+            Config.showCompletionMessage = (LCase(value) = "true")
+        Case "ENABLE_EMERGENCY_RECOVERY"
+            Config.enableEmergencyRecovery = (LCase(value) = "true")
+        Case "TIMEOUT_OPERATIONS"
+            Config.timeoutOperations = (LCase(value) = "true")
+        Case "DIALOG_ASCII_NORMALIZATION", "DIALOG_ASCII_NORMALIZE", "ASCII_DIALOGS"
+            dialogAsciiNormalizationEnabled = (LCase(value) <> "false" And LCase(value) <> "0")
+    End Select
+End Sub
+
+Private Sub ProcessCompatibilityConfig(key As String, value As String)
+    Select Case key
+        Case "SUPPORT_WORD_2010"
+            Config.supportWord2010 = (LCase(value) = "true")
+        Case "SUPPORT_WORD_2013"
+            Config.supportWord2013 = (LCase(value) = "true")
+        Case "SUPPORT_WORD_2016"
+            Config.supportWord2016 = (LCase(value) = "true")
+        Case "USE_SAFE_PROPERTY_ACCESS"
+            Config.useSafePropertyAccess = (LCase(value) = "true")
+        Case "FALLBACK_METHODS"
+            Config.fallbackMethods = (LCase(value) = "true")
+        Case "HANDLE_MISSING_FEATURES"
+            Config.handleMissingFeatures = (LCase(value) = "true")
+    End Select
+End Sub
+
+Private Sub ProcessSecurityConfig(key As String, value As String)
+    Select Case key
+        Case "REQUIRE_DOCUMENT_SAVED"
+            Config.requireDocumentSaved = (LCase(value) = "true")
+        Case "VALIDATE_FILE_PERMISSIONS"
+            Config.validateFilePermissions = (LCase(value) = "true")
+        Case "CHECK_DOCUMENT_PROTECTION"
+            Config.checkDocumentProtection = (LCase(value) = "true")
+        Case "SANITIZE_INPUTS"
+            Config.sanitizeInputs = (LCase(value) = "true")
+        Case "VALIDATE_RANGES"
+            Config.validateRanges = (LCase(value) = "true")
+    End Select
+End Sub
+
+Private Sub ProcessAdvancedConfig(key As String, value As String)
+    Select Case key
+        Case "MAX_RETRY_ATTEMPTS"
+            Config.maxRetryAttempts = CLng(value)
+        Case "RETRY_DELAY_MS"
+            Config.retryDelayMs = CLng(value)
+        Case "COMPILATION_CHECK", "VBA_ACCESS_REQUIRED", "AUTO_CLEANUP", "FORCE_GC_COLLECTION"
+            ' Ignored
+    End Select
+End Sub
+
+'================================================================================
+' PERFORMANCE OPTIMIZATION SYSTEM
+'================================================================================
+
+Private Function InitializePerformanceOptimization() As Boolean
+    On Error GoTo ErrorHandler
+    
+    InitializePerformanceOptimization = False
+    
+    ' Apply standard performance optimizations (always on)
+    Application.ScreenUpdating = False
+    Application.DisplayAlerts = False
+    
+    ' Word-specific optimizations
+    Call OptimizeWordSettings
+    
+    
+    InitializePerformanceOptimization = True
+    Exit Function
+    
+ErrorHandler:
+    InitializePerformanceOptimization = False
+End Function
+
+Private Sub OptimizeWordSettings()
+    On Error Resume Next
+    
+    ' Apply Word-specific optimizations (always on)
+        With ActiveDocument
+            .TrackRevisions = False
+            .ShowRevisions = False
+        End With
+    
+        With Selection.Find
+            .Format = False
+            .MatchCase = False
+            .MatchWholeWord = False
+            .MatchWildcards = False
+            .MatchSoundsLike = False
+            .MatchAllWordForms = False
+        End With
+    
+    On Error GoTo 0
+End Sub
+
+Private Function RestorePerformanceSettings() As Boolean
+    On Error GoTo ErrorHandler
+    
+    RestorePerformanceSettings = False
+    
+    ' Restore original settings
+    Application.ScreenUpdating = True
+    Application.DisplayAlerts = True
+    
+    RestorePerformanceSettings = True
+    Exit Function
+    
+ErrorHandler:
+    RestorePerformanceSettings = False
+End Function
+
+Private Function OptimizedFindReplace(findText As String, replaceText As String, Optional searchRange As Range = Nothing) As Long
+    On Error GoTo ErrorHandler
+    
+    OptimizedFindReplace = 0
+    
+    ' Always use optimized bulk replace
+    OptimizedFindReplace = BulkFindReplace(findText, replaceText, searchRange)
+    
+    Exit Function
+    
+ErrorHandler:
+    OptimizedFindReplace = 0
+End Function
+
+Private Function BulkFindReplace(findText As String, replaceText As String, Optional searchRange As Range = Nothing) As Long
+    On Error GoTo ErrorHandler
+    
     BulkFindReplace = 0
     
     Dim targetRange As Range
@@ -347,63 +1041,14 @@ End Sub
 ' MAIN ENTRY POINT
 '================================================================================
 Public Sub StandardizeDocumentMain()
-    On Error GoTo CriticalErrorHandler
-    
-    ' ========================================
-    ' INITIALIZATION AND CONFIG LOAD
-    ' ========================================
-    
-    processingStartTime = Timer
-    formattingCancelled = False
-    
-    ' Load system configuration
-    If Not isConfigLoaded Then
-        If Not LoadConfiguration() Then
-         MsgBox NormalizeForUI("Critical error loading system configuration." & vbCrLf & _
-             "Execution was aborted to prevent issues."), vbCritical, NormalizeForUI("Configuration Error - " & SYSTEM_NAME)
-            Exit Sub
-        End If
-    isConfigLoaded = True
-    End If
-    
-    ' ========================================
-    ' PRELIMINARY VALIDATIONS BASED ON CONFIGURATION
-    ' ========================================
-    
-    ' Word version validation (always on)
-    If Not CheckWordVersion() Then
-        Application.StatusBar = "Error: Word version not supported (minimum: Word " & Config.minWordVersion & ")"
-        Dim verMsg As String
-        verMsg = ReplacePlaceholders(MSG_ERR_VERSION, _
-                    "MIN", CStr(Config.minWordVersion), _
-                    "CUR", CStr(Application.version))
-        MsgBox NormalizeForUI(verMsg), vbCritical, NormalizeForUI(TITLE_VERSION_ERROR)
-        Exit Sub
-    End If
-    
-    ' Compilation check step removed (CompileVBAProject deprecated)
-    
-    ' Active document validation
-    Dim doc As Document
-    Set doc = Nothing
-    
+    ' DEPRECATED: retained for backward compatibility.
+    ' Calls the new modular orchestrator entry point.
     On Error Resume Next
-    Set doc = ActiveDocument
-    If doc Is Nothing Then
-        On Error GoTo CriticalErrorHandler
-        Application.StatusBar = "Error: No document is accessible"
-        MsgBox NormalizeForUI(MSG_NO_DOCUMENT), vbExclamation, NormalizeForUI(TITLE_DOC_NOT_FOUND)
-        Exit Sub
+    ChainsawRun
+    If Err.Number <> 0 Then
+        MsgBox "Chainsaw (deprecated entry) failed: " & Err.Description, vbExclamation, "Chainsaw"
     End If
-    On Error GoTo CriticalErrorHandler
-    
-    ' Document integrity validation (always on)
-    If Not ValidateDocumentIntegrity(doc) Then GoTo CleanUp
-    
-    ' Ensure the document is editable (not Protected View, not read-only, not marked as Final)
-    If Not EnsureDocumentEditable(doc) Then
-        Application.StatusBar = "Document is not editable - operation cancelled"
-        GoTo CleanUp
+End Sub
     End If
     
     ' ========================================
@@ -663,22 +1308,7 @@ End Function
 '================================================================================
 ' SAFE PROPERTY ACCESS FUNCTIONS - Compatibilidade total com Word 2010+
 '================================================================================
-Private Function SafeGetCharacterCount(targetRange As Range) As Long
-    On Error GoTo FallbackMethod
-    
-    ' Preferred method - faster
-    SafeGetCharacterCount = targetRange.Characters.count
-    Exit Function
-    
-FallbackMethod:
-    On Error GoTo ErrorHandler
-    ' Alternative method for versions with issues in .Characters.Count
-    SafeGetCharacterCount = Len(targetRange.text)
-    Exit Function
-    
-ErrorHandler:
-          ' Removed stray duplicated MsgBox (already handled in main flow)
-End Function
+'' SafeGetCharacterCount moved to modFormatting
 
 Private Function SafeSetFont(targetRange As Range, fontName As String, fontSize As Long) As Boolean
     On Error GoTo ErrorHandler
@@ -1089,521 +1719,34 @@ End Function
 '================================================================================
 ' PAGE SETUP
 '================================================================================
-Private Function ApplyPageSetup(doc As Document) As Boolean
-    On Error GoTo ErrorHandler
-    
-    With doc.PageSetup
-        .TopMargin = CentimetersToPoints(TOP_MARGIN_CM)
-        .BottomMargin = CentimetersToPoints(BOTTOM_MARGIN_CM)
-        .LeftMargin = CentimetersToPoints(LEFT_MARGIN_CM)
-        .RightMargin = CentimetersToPoints(RIGHT_MARGIN_CM)
-        .HeaderDistance = CentimetersToPoints(HEADER_DISTANCE_CM)
-        .FooterDistance = CentimetersToPoints(FOOTER_DISTANCE_CM)
-        .Gutter = 0
-        .Orientation = wdOrientPortrait
-    End With
-    
-    ' Page setup applied (omitting detailed log for performance)
-    ApplyPageSetup = True
-    Exit Function
-    
-ErrorHandler:
-    ApplyPageSetup = False
-End Function
+'' ApplyPageSetup moved to modFormatting
 
 ' ================================================================================
 ' FONT FORMMATTING
 ' ================================================================================
-Private Function ApplyStdFont(doc As Document) As Boolean
-    On Error GoTo ErrorHandler
-    
-    Dim para As Paragraph
-    Dim hasInlineImage As Boolean
-    Dim i As Long
-    Dim formattedCount As Long
-    Dim skippedCount As Long
-    Dim underlineRemovedCount As Long
-    Dim isTitle As Boolean
-    Dim hasConsiderando As Boolean
-    Dim needsUnderlineRemoval As Boolean
-    Dim needsBoldRemoval As Boolean
-
-    For i = doc.Paragraphs.count To 1 Step -1
-        Set para = doc.Paragraphs(i)
-        hasInlineImage = False
-        isTitle = False
-        hasConsiderando = False
-        needsUnderlineRemoval = False
-        needsBoldRemoval = False
-        
-    ' SUPER OPTIMIZED: Consolidated pre-check - single read of properties
-        Dim paraFont As Font
-        Set paraFont = para.Range.Font
-        Dim needsFontFormatting As Boolean
-        needsFontFormatting = (paraFont.Name <> STANDARD_FONT) Or _
-                             (paraFont.size <> STANDARD_FONT_SIZE) Or _
-                             (paraFont.Color <> wdColorAutomatic)
-        
-    ' Cache of special formatting checks
-        needsUnderlineRemoval = (paraFont.Underline <> wdUnderlineNone)
-        needsBoldRemoval = (paraFont.Bold = True)
-        
-    ' Cache of InlineShapes count to avoid multiple calls
-        Dim inlineShapesCount As Long
-        inlineShapesCount = para.Range.InlineShapes.count
-        
-    ' MAX OPTIMIZATION: If no formatting needed, skip immediately
-        If Not needsFontFormatting And Not needsUnderlineRemoval And Not needsBoldRemoval And inlineShapesCount = 0 Then
-            formattedCount = formattedCount + 1
-            GoTo NextParagraph
-        End If
-
-        If inlineShapesCount > 0 Then
-            hasInlineImage = True
-            skippedCount = skippedCount + 1
-        End If
-        
-    ' OPTIMIZED: Check for visual content only when necessary
-        If Not hasInlineImage And (needsFontFormatting Or needsUnderlineRemoval Or needsBoldRemoval) Then
-            If HasVisualContent(para) Then
-                hasInlineImage = True
-                skippedCount = skippedCount + 1
-            End If
-        End If
-        
-        
-    ' OPTIMIZED: Consolidated paragraph type check - single read of text
-        Dim paraFullText As String
-        Dim isSpecialParagraph As Boolean
-        isSpecialParagraph = False
-        
-    ' Only check text when special formatting decisions are needed
-        If needsUnderlineRemoval Or needsBoldRemoval Then
-            paraFullText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
-            
-            ' Check if it is the first paragraph with text (title) - optimized
-            If i <= 3 And para.Format.alignment = wdAlignParagraphCenter And paraFullText <> "" Then
-                isTitle = True
-            End If
-                     
-            ' Check if it is a special paragraph - optimized
-            Dim cleanParaText As String
-            cleanParaText = paraFullText
-            ' Remove ending punctuation for analysis
-            Do While Len(cleanParaText) >  0 And (Right(cleanParaText, 1) = "." Or Right(cleanParaText, 1) = "," Or Right(cleanParaText, 1) = ":" Or Right(cleanParaText, 1) = ";")
-                cleanParaText = Left(cleanParaText, Len(cleanParaText) - 1)
-            Loop
-            cleanParaText = Trim(LCase(cleanParaText))
-
-            If cleanParaText = "justificativa:" Or IsAnexoPattern(cleanParaText) Then
-                isSpecialParagraph = True
-            End If
-            
-            ' Removed vereador-adjacent formatting logic
-            If i < doc.Paragraphs.count Then
-                Dim nextPara As Paragraph
-                Set nextPara = doc.Paragraphs(i + 1)
-                If Not HasVisualContent(nextPara) Then
-                    Dim nextParaText As String
-                    nextParaText = Trim(Replace(Replace(nextPara.Range.text, vbCr, ""), vbLf, ""))
-                    ' Remove ending punctuation for analysis
-                    Dim nextCleanText As String
-                    nextCleanText = nextParaText
-                    Do While Len(nextCleanText) > 0 And (Right(nextCleanText, 1) = "." Or Right(nextCleanText, 1) = "," Or Right(nextCleanText, 1) = ":" Or Right(nextCleanText, 1) = ";")
-                        nextCleanText = Left(nextCleanText, Len(nextCleanText) - 1)
-                    Loop
-                    nextCleanText = Trim(LCase(nextCleanText))
-                    
-                    ' Removed vereador detection in next paragraph
-                End If
-            End If
-        End If
-
-    ' MAIN FORMATTING
-        If needsFontFormatting Then
-            If Not hasInlineImage Then
-                ' Fast formatting for paragraphs without images using safe method
-                If SafeSetFont(para.Range, STANDARD_FONT, STANDARD_FONT_SIZE) Then
-                    formattedCount = formattedCount + 1
-                Else
-                    ' Fallback to traditional method in case of error
-                    With paraFont
-                        .Name = STANDARD_FONT
-                        .size = STANDARD_FONT_SIZE
-                        .Color = wdColorAutomatic
-                    End With
-                    formattedCount = formattedCount + 1
-                End If
-            Else
-                ' Paragraph has inline image – apply conservative character-wise formatting directly
-                Call FormatCharacterByCharacter(para, STANDARD_FONT, STANDARD_FONT_SIZE, wdColorAutomatic, False, False)
-                formattedCount = formattedCount + 1
-            End If
-        End If
-        
-    ' CONSOLIDATED SPECIAL FORMATTING - Remove underline and bold in a single pass
-        If needsUnderlineRemoval Or needsBoldRemoval Then
-            ' Determine which formatting to remove
-            Dim removeUnderline As Boolean
-            Dim removeBold As Boolean
-            removeUnderline = needsUnderlineRemoval And Not isTitle
-            removeBold = needsBoldRemoval And Not isTitle And Not hasConsiderando And Not isSpecialParagraph
-            
-            ' If any formatting needs to be removed
-            If removeUnderline Or removeBold Then
-                If Not hasInlineImage Then
-                    ' Fast formatting for paragraphs without images
-                    If removeUnderline Then paraFont.Underline = wdUnderlineNone
-                    If removeBold Then paraFont.Bold = False
-                Else
-                    ' CONSOLIDATED protected formatting for paragraphs with images
-                    Call FormatCharacterByCharacter(para, "", 0, 0, removeUnderline, removeBold)
-                End If
-                
-                If removeUnderline Then underlineRemovedCount = underlineRemovedCount + 1
-            End If
-        End If
-
-NextParagraph:
-    Next i
-    
-    ' Optimized log
-    If skippedCount > 0 Then
-    End If
-    
-    ApplyStdFont = True
-    Exit Function
-
-ErrorHandler:
-    ApplyStdFont = False
-End Function
+'' ApplyStdFont moved to modFormatting
 
 '================================================================================
 ' CONSOLIDATED CHARACTER-BY-CHARACTER FORMATTING - #OPTIMIZED
 '================================================================================
-Private Sub FormatCharacterByCharacter(para As Paragraph, fontName As String, fontSize As Long, fontColor As Long, removeUnderline As Boolean, removeBold As Boolean)
-    On Error Resume Next
-    
-    Dim j As Long
-    Dim charCount As Long
-    Dim charRange As Range
-    
-    charCount = SafeGetCharacterCount(para.Range) ' Cached safe count
-    
-    If charCount > 0 Then ' Safety check
-        For j = 1 To charCount
-            Set charRange = para.Range.Characters(j)
-            If charRange.InlineShapes.count = 0 Then
-                With charRange.Font
-                    ' Apply font formatting if specified
-                    If fontName <> "" Then .Name = fontName
-                    If fontSize > 0 Then .size = fontSize
-                    If fontColor >= 0 Then .Color = fontColor
-                    
-                    ' Remove special formats if requested
-                    If removeUnderline Then .Underline = wdUnderlineNone
-                    If removeBold Then .Bold = False
-                End With
-            End If
-        Next j
-    End If
-End Sub
+'' FormatCharacterByCharacter moved to modFormatting (Private there)
 
 '================================================================================
 ' PARAGRAPH FORMATTING
 '================================================================================
-Private Function ApplyStdParagraphs(doc As Document) As Boolean
-    On Error GoTo ErrorHandler
-    
-    Dim para As Paragraph
-    Dim hasInlineImage As Boolean
-    Dim paragraphIndent As Single
-    Dim firstIndent As Single
-    Dim rightMarginPoints As Single
-    Dim i As Long
-    Dim formattedCount As Long
-    Dim skippedCount As Long
-    Dim paraText As String
-    Dim prevPara As Paragraph
-
-    rightMarginPoints = 0
-
-    For i = doc.Paragraphs.count To 1 Step -1
-        Set para = doc.Paragraphs(i)
-        hasInlineImage = False
-
-        If para.Range.InlineShapes.count > 0 Then
-            hasInlineImage = True
-            skippedCount = skippedCount + 1
-        End If
-        
-    ' Additional protection: check other visual content types
-        If Not hasInlineImage And HasVisualContent(para) Then
-            hasInlineImage = True
-            skippedCount = skippedCount + 1
-        End If
-
-    ' Apply paragraph formatting to ALL paragraphs
-    ' (regardless of whether they contain images)
-        
-    ' Robust cleanup of multiple spaces - ALWAYS applied
-        Dim cleanText As String
-        cleanText = para.Range.text
-        
-    ' OPTIMIZED: Combine multiple cleanup operations in one block
-        If InStr(cleanText, "  ") > 0 Or InStr(cleanText, vbTab) > 0 Then
-            ' Remove multiple consecutive spaces
-            Do While InStr(cleanText, "  ") > 0
-                cleanText = Replace(cleanText, "  ", " ")
-            Loop
-            
-            ' Remove spaces before/after line breaks
-            cleanText = Replace(cleanText, " " & vbCr, vbCr)
-            cleanText = Replace(cleanText, vbCr & " ", vbCr)
-            cleanText = Replace(cleanText, " " & vbLf, vbLf)
-            cleanText = Replace(cleanText, vbLf & " ", vbLf)
-            
-            ' Remove extra tabs and convert to spaces
-            Do While InStr(cleanText, vbTab & vbTab) > 0
-                cleanText = Replace(cleanText, vbTab & vbTab, vbTab)
-            Loop
-            cleanText = Replace(cleanText, vbTab, " ")
-            
-            ' Final cleanup of multiple spaces
-            Do While InStr(cleanText, "  ") > 0
-                cleanText = Replace(cleanText, "  ", " ")
-            Loop
-        End If
-        
-    ' Apply cleaned text ONLY if there are no images (protection)
-        If cleanText <> para.Range.text And Not hasInlineImage Then
-            para.Range.text = cleanText
-        End If
-
-        paraText = Trim(LCase(Replace(Replace(Replace(para.Range.text, ".", ""), ",", ""), ";", "")))
-        paraText = Replace(paraText, vbCr, "")
-        paraText = Replace(paraText, vbLf, "")
-        paraText = Replace(paraText, " ", "")
-
-    ' Paragraph formatting - ALWAYS applied
-        With para.Format
-            .LineSpacingRule = wdLineSpacingMultiple
-            .LineSpacing = LINE_SPACING
-            .RightIndent = rightMarginPoints
-            .SpaceBefore = 0
-            .SpaceAfter = 0
-
-            If para.alignment = wdAlignParagraphCenter Then
-                .leftIndent = 0
-                .firstLineIndent = 0
-            Else
-                firstIndent = .firstLineIndent
-                paragraphIndent = .leftIndent
-                If paragraphIndent >= CentimetersToPoints(5) Then
-                    .leftIndent = CentimetersToPoints(9.5)
-                ElseIf firstIndent < CentimetersToPoints(5) Then
-                    .leftIndent = CentimetersToPoints(0)
-                    .firstLineIndent = CentimetersToPoints(1.5)
-                End If
-            End If
-        End With
-
-        If para.alignment = wdAlignParagraphLeft Then
-            para.alignment = wdAlignParagraphJustify
-        End If
-        
-        formattedCount = formattedCount + 1
-    Next i
-    
-    ' Updated log to reflect that all paragraphs are formatted
-    If skippedCount > 0 Then
-    End If
-    
-    ApplyStdParagraphs = True
-    Exit Function
-
-ErrorHandler:
-    ApplyStdParagraphs = False
-End Function
+'' ApplyStdParagraphs moved to modFormatting
 
 '================================================================================
 ' FORMAT SECOND PARAGRAPH - ONLY THE 2ND PARAGRAPH
 '================================================================================
-Private Function FormatSecondParagraph(doc As Document) As Boolean
-    On Error GoTo ErrorHandler
-    
-    Dim para As Paragraph
-    Dim paraText As String
-    Dim i As Long
-    Dim actualParaIndex As Long
-    Dim secondParaIndex As Long
-    
-    ' Identify only the 2nd paragraph (considering only paragraphs with text)
-    actualParaIndex = 0
-    secondParaIndex = 0
-    
-    ' Find the 2nd paragraph with content (skip empty)
-    For i = 1 To doc.Paragraphs.count
-        Set para = doc.Paragraphs(i)
-        paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
-        
-    ' If the paragraph has text or visual content, count as valid paragraph
-        If paraText <> "" Or HasVisualContent(para) Then
-            actualParaIndex = actualParaIndex + 1
-            
-            ' Record the index of the 2nd paragraph
-            If actualParaIndex = 2 Then
-                secondParaIndex = i
-                Exit For ' Found the 2nd paragraph
-            End If
-        End If
-        
-    ' Expanded protection: process up to 10 paragraphs to find the 2nd
-        If i > 10 Then Exit For
-    Next i
-    
-    ' Apply specific formatting only to the 2nd paragraph
-    If secondParaIndex > 0 And secondParaIndex <= doc.Paragraphs.count Then
-        Set para = doc.Paragraphs(secondParaIndex)
-        
-    ' FIRST: Add 2 blank lines BEFORE the 2nd paragraph
-        Dim insertionPoint As Range
-        Set insertionPoint = para.Range
-        insertionPoint.Collapse wdCollapseStart
-        
-    ' Check if blank lines already exist before
-        Dim blankLinesBefore As Long
-        blankLinesBefore = CountBlankLinesBefore(doc, secondParaIndex)
-        
-    ' Add blank lines as needed to reach 2
-        If blankLinesBefore < 2 Then
-            Dim linesToAdd As Long
-            linesToAdd = 2 - blankLinesBefore
-            
-            Dim newLines As String
-            newLines = String(linesToAdd, vbCrLf)
-            insertionPoint.InsertBefore newLines
-            
-            ' Update the index of the second paragraph (it shifted)
-            secondParaIndex = secondParaIndex + linesToAdd
-            Set para = doc.Paragraphs(secondParaIndex)
-        End If
-        
-    ' MAIN FORMATTING: Always apply formatting, protecting only images
-        With para.Format
-            .leftIndent = CentimetersToPoints(9)      ' 9 cm left indent
-            .firstLineIndent = 0                      ' No first-line indent
-            .RightIndent = 0                          ' No right indent
-            .alignment = wdAlignParagraphJustify      ' Justified
-        End With
-        
-    ' SECOND: Add 2 blank lines AFTER the 2nd paragraph
-        Dim insertionPointAfter As Range
-        Set insertionPointAfter = para.Range
-        insertionPointAfter.Collapse wdCollapseEnd
-        
-    ' Check if blank lines already exist after
-        Dim blankLinesAfter As Long
-        blankLinesAfter = CountBlankLinesAfter(doc, secondParaIndex)
-        
-    ' Add blank lines as needed to reach 2
-        If blankLinesAfter < 2 Then
-            Dim linesToAddAfter As Long
-            linesToAddAfter = 2 - blankLinesAfter
-            
-            Dim newLinesAfter As String
-            newLinesAfter = String(linesToAddAfter, vbCrLf)
-            insertionPointAfter.InsertAfter newLinesAfter
-        End If
-        
-    ' If it has images, just log (but do not skip formatting)
-        If HasVisualContent(para) Then
-        Else
-        End If
-    Else
-    End If
-    
-    FormatSecondParagraph = True
-    Exit Function
-
-ErrorHandler:
-    FormatSecondParagraph = False
-End Function
+'' FormatSecondParagraph moved to modFormatting
 
 '================================================================================
 ' HELPER FUNCTIONS FOR BLANK LINES
 '================================================================================
-Private Function CountBlankLinesBefore(doc As Document, paraIndex As Long) As Long
-    On Error GoTo ErrorHandler
-    
-    Dim count As Long
-    Dim i As Long
-    Dim para As Paragraph
-    Dim paraText As String
-    
-    count = 0
-    
-    ' Check previous paragraphs (maximum 5 for performance)
-    For i = paraIndex - 1 To 1 Step -1
-        If i <= 0 Then Exit For
-        
-        Set para = doc.Paragraphs(i)
-        paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
-        
-    ' If the paragraph is empty, count as a blank line
-        If paraText = "" And Not HasVisualContent(para) Then
-            count = count + 1
-        Else
-            ' If a paragraph with content is found, stop counting
-            Exit For
-        End If
-        
-    ' Safety limit
-        If count >= 5 Then Exit For
-    Next i
-    
-    CountBlankLinesBefore = count
-    Exit Function
-    
-ErrorHandler:
-    CountBlankLinesBefore = 0
-End Function
+'' CountBlankLinesBefore moved to modFormatting
 
-Private Function CountBlankLinesAfter(doc As Document, paraIndex As Long) As Long
-    On Error GoTo ErrorHandler
-    
-    Dim count As Long
-    Dim i As Long
-    Dim para As Paragraph
-    Dim paraText As String
-    
-    count = 0
-    
-    ' Check following paragraphs (maximum 5 for performance)
-    For i = paraIndex + 1 To doc.Paragraphs.count
-        If i > doc.Paragraphs.count Then Exit For
-        
-        Set para = doc.Paragraphs(i)
-        paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
-        
-    ' If the paragraph is empty, count as a blank line
-        If paraText = "" And Not HasVisualContent(para) Then
-            count = count + 1
-        Else
-            ' If a paragraph with content is found, stop counting
-            Exit For
-        End If
-        
-    ' Safety limit
-        If count >= 5 Then Exit For
-    Next i
-    
-    CountBlankLinesAfter = count
-    Exit Function
-    
-ErrorHandler:
-    CountBlankLinesAfter = 0
-End Function
+'' CountBlankLinesAfter moved to modFormatting
 
 '================================================================================
 ' SECOND PARAGRAPH LOCATION HELPER - Locate the second paragraph
@@ -1716,307 +1859,27 @@ End Function
 '================================================================================
 ' ENABLE HYPHENATION
 '================================================================================
-Private Function EnableHyphenation(doc As Document) As Boolean
-    On Error GoTo ErrHandler
-    ' Real implementation: enable automatic hyphenation for the active document.
-    ' Keeps previous compatibility mode assumptions minimal.
-    doc.Hyphenation = True
-    EnableHyphenation = True
-    Exit Function
-ErrHandler:
-    ' Fail-soft: do not abort formatting sequence if not supported.
-    EnableHyphenation = True ' treat as success to avoid pipeline interruption
-End Function
+'' EnableHyphenation moved to modFormatting
 
 '================================================================================
 ' FORMAT FIRST PARAGRAPH
 '================================================================================
-Private Function FormatFirstParagraph(doc As Document) As Boolean
-    On Error GoTo ErrorHandler
-    
-    Dim para As Paragraph
-    Dim paraText As String
-    Dim i As Long
-    Dim actualParaIndex As Long
-    Dim firstParaIndex As Long
-    
-    ' Identify the 1st paragraph (considering only paragraphs with text)
-    actualParaIndex = 0
-    firstParaIndex = 0
-    
-    ' Find the 1st paragraph with content (skip empty)
-    For i = 1 To doc.Paragraphs.count
-        Set para = doc.Paragraphs(i)
-        paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
-        
-    ' If the paragraph has text or visual content, count as a valid paragraph
-        If paraText <> "" Or HasVisualContent(para) Then
-            actualParaIndex = actualParaIndex + 1
-            
-            ' Record the index of the 1st paragraph
-            If actualParaIndex = 1 Then
-                firstParaIndex = i
-                Exit For ' We have found the 1st paragraph
-            End If
-        End If
-        
-        ' Expanded protection: process up to 20 paragraphs to find the 1st
-        If i > 20 Then Exit For
-    Next i
-    
-    ' Apply specific formatting only to the 1st paragraph
-    If firstParaIndex > 0 And firstParaIndex <= doc.Paragraphs.count Then
-        Set para = doc.Paragraphs(firstParaIndex)
-        
-    ' NEW: Always apply formatting, protecting only images
-    ' 1st paragraph formatting: uppercase, bold, and underlined
-        If HasVisualContent(para) Then
-            ' For paragraphs with images, apply character-by-character formatting
-            Dim n As Long
-            Dim charCount4 As Long
-            charCount4 = SafeGetCharacterCount(para.Range) ' Cache da contagem segura
-            
-            If charCount4 > 0 Then ' Safety check
-                For n = 1 To charCount4
-                    Dim charRange3 As Range
-                    Set charRange3 = para.Range.Characters(n)
-                    If charRange3.InlineShapes.count = 0 Then
-                        With charRange3.Font
-                            .AllCaps = True           ' Uppercase
-                            .Bold = True              ' Bold
-                            .Underline = wdUnderlineSingle ' Underlined
-                        End With
-                    End If
-                Next n
-            End If
-        Else
-            ' Normal formatting for paragraphs without images
-            With para.Range.Font
-                .AllCaps = True           ' Uppercase
-                .Bold = True              ' Bold
-                .Underline = wdUnderlineSingle ' Underlined
-            End With
-        End If
-        
-    ' Also apply paragraph formatting - ALWAYS
-        With para.Format
-            .alignment = wdAlignParagraphCenter       ' Centered
-            .leftIndent = 0                           ' No left indent
-            .firstLineIndent = 0                      ' No first-line indent
-            .RightIndent = 0                          ' No right indent
-        End With
-    End If
-    
-    Exit Function
-    
-ErrorHandler:
-    FormatFirstParagraph = False
-End Function
+'' FormatFirstParagraph moved to modFormatting
 
 '================================================================================
 ' REMOVE WATERMARK
 '================================================================================
-Private Function RemoveWatermark(doc As Document) As Boolean
-    On Error GoTo ErrorHandler
-
-    Dim sec As section
-    Dim header As HeaderFooter
-    Dim shp As shape
-    Dim i As Long
-    Dim removedCount As Long
-
-    For Each sec In doc.Sections
-        For Each header In sec.Headers
-            If header.Exists And header.Shapes.count > 0 Then
-                For i = header.Shapes.count To 1 Step -1
-                    Set shp = header.Shapes(i)
-                    If shp.Type = msoPicture Or shp.Type = msoTextEffect Then
-                        If InStr(1, shp.Name, "Watermark", vbTextCompare) > 0 Or _
-                           InStr(1, shp.AlternativeText, "Watermark", vbTextCompare) > 0 Then
-                            shp.Delete
-                            removedCount = removedCount + 1
-                        End If
-                    End If
-                Next i
-            End If
-        Next header
-        
-        For Each header In sec.Footers
-            If header.Exists And header.Shapes.count > 0 Then
-                For i = header.Shapes.count To 1 Step -1
-                    Set shp = header.Shapes(i)
-                    If shp.Type = msoPicture Or shp.Type = msoTextEffect Then
-                        If InStr(1, shp.Name, "Watermark", vbTextCompare) > 0 Or _
-                           InStr(1, shp.AlternativeText, "Watermark", vbTextCompare) > 0 Then
-                            shp.Delete
-                            removedCount = removedCount + 1
-                        End If
-                    End If
-                Next i
-            End If
-        Next header
-    Next sec
-
-    If removedCount > 0 Then
-    End If
-    ' (removed legacy log: no watermark)
-    
-    RemoveWatermark = True
-    Exit Function
-    
-ErrorHandler:
-    RemoveWatermark = False
-End Function
+'' RemoveWatermark moved to modFormatting
 
 '================================================================================
 ' INSERT HEADER IMAGE
 '================================================================================
-Private Function InsertHeaderstamp(doc As Document) As Boolean
-    On Error GoTo ErrorHandler
-
-    Dim sec As section
-    Dim header As HeaderFooter
-    Dim imgFile As String
-    Dim username As String
-    Dim imgWidth As Single
-    Dim imgHeight As Single
-    Dim shp As shape
-    Dim imgFound As Boolean
-    Dim sectionsProcessed As Long
-
-    ' Resolve image file path using configuration if provided
-    imgFile = Trim(Config.headerImagePath)
-    If Len(imgFile) = 0 Then
-        ' No configured path; try common locations relative to document or repo folder
-        Dim baseFolder As String
-        On Error Resume Next
-        baseFolder = IIf(doc.Path <> "", doc.Path, Environ("USERPROFILE") & "\Documents")
-        On Error GoTo ErrorHandler
-        If Right(baseFolder, 1) <> "\" Then baseFolder = baseFolder & "\"
-        If Dir(baseFolder & "assets\stamp.png") <> "" Then
-            imgFile = baseFolder & "assets\stamp.png"
-        ElseIf Dir(Environ("USERPROFILE") & "\Documents\chainsaw\assets\stamp.png") <> "" Then
-            imgFile = Environ("USERPROFILE") & "\Documents\chainsaw\assets\stamp.png"
-        End If
-    Else
-        ' If relative path (no drive letter), try resolve from current document folder and repo root
-        If InStr(1, imgFile, ":", vbTextCompare) = 0 And Left(imgFile, 2) <> "\\" Then
-            On Error Resume Next
-            baseFolder = IIf(doc.Path <> "", doc.Path, Environ("USERPROFILE") & "\Documents")
-            On Error GoTo ErrorHandler
-            If Right(baseFolder, 1) <> "\" Then baseFolder = baseFolder & "\"
-            If Dir(baseFolder & imgFile) <> "" Then
-                imgFile = baseFolder & imgFile
-            ElseIf Dir(Environ("USERPROFILE") & "\Documents\chainsaw\" & imgFile) <> "" Then
-                imgFile = Environ("USERPROFILE") & "\Documents\chainsaw\" & imgFile
-            End If
-        End If
-    End If
-
-    If Dir(imgFile) = "" Then
-        Application.StatusBar = "Warning: Header image not found"
-        InsertHeaderstamp = False
-        Exit Function
-    End If
-
-    ' Size using standard constants
-    imgWidth = CentimetersToPoints(HEADER_IMAGE_MAX_WIDTH_CM)
-    imgHeight = imgWidth * HEADER_IMAGE_HEIGHT_RATIO
-
-    For Each sec In doc.Sections
-        Set header = sec.Headers(wdHeaderFooterPrimary)
-        If header.Exists Then
-            header.LinkToPrevious = False
-            header.Range.Delete
-            
-            Set shp = header.Shapes.AddPicture( _
-                FileName:=imgFile, _
-                LinkToFile:=False, _
-                SaveWithDocument:=msoTrue)
-            
-            If shp Is Nothing Then
-            Else
-                With shp
-                    .LockAspectRatio = msoTrue
-                    .Width = imgWidth
-                    .Height = imgHeight
-                    .RelativeHorizontalPosition = wdRelativeHorizontalPositionPage
-                    .RelativeVerticalPosition = wdRelativeVerticalPositionPage
-                    .Left = (doc.PageSetup.PageWidth - .Width) / 2
-                    .Top = CentimetersToPoints(HEADER_IMAGE_TOP_MARGIN_CM)
-                    .WrapFormat.Type = wdWrapTopBottom
-                    .ZOrder msoSendToBack
-                End With
-                
-                imgFound = True
-                sectionsProcessed = sectionsProcessed + 1
-            End If
-        End If
-    Next sec
-
-    If imgFound Then
-        ' Log detalhado removido para performance
-        InsertHeaderstamp = True
-    Else
-        InsertHeaderstamp = False
-    End If
-
-    Exit Function
-
-ErrorHandler:
-    InsertHeaderstamp = False
-End Function
+'' InsertHeaderstamp moved to modFormatting
 
 '================================================================================
 ' INSERT FOOTER PAGE NUMBERS
 '================================================================================
-Private Function InsertFooterstamp(doc As Document) As Boolean
-    On Error GoTo ErrorHandler
-
-    Dim sec As section
-    Dim footer As HeaderFooter
-    Dim rng As Range
-    Dim sectionsProcessed As Long
-
-    For Each sec In doc.Sections
-        Set footer = sec.Footers(wdHeaderFooterPrimary)
-        
-        If footer.Exists Then
-            footer.LinkToPrevious = False
-            Set rng = footer.Range
-            
-            rng.Delete
-            
-            Set rng = footer.Range
-            rng.Collapse Direction:=wdCollapseEnd
-            rng.Fields.Add Range:=rng, Type:=wdFieldPage
-            
-            Set rng = footer.Range
-            rng.Collapse Direction:=wdCollapseEnd
-            rng.text = "-"
-            
-            Set rng = footer.Range
-            rng.Collapse Direction:=wdCollapseEnd
-            rng.Fields.Add Range:=rng, Type:=wdFieldNumPages
-            
-            With footer.Range
-                .Font.Name = STANDARD_FONT
-                .Font.size = FOOTER_FONT_SIZE
-                .ParagraphFormat.alignment = wdAlignParagraphCenter
-                .Fields.Update
-            End With
-            
-            sectionsProcessed = sectionsProcessed + 1
-        End If
-    Next sec
-
-    ' (removed legacy detailed log)
-    InsertFooterstamp = True
-    Exit Function
-
-ErrorHandler:
-    InsertFooterstamp = False
-End Function
+'' InsertFooterstamp moved to modFormatting
 
 '================================================================================
 ' UTILITY: CM TO POINTS
@@ -2440,500 +2303,94 @@ End Function
 '================================================================================
 ' FORMAT "CONSIDERANDO" PARAGRAPHS - OPTIMIZED AND SIMPLIFIED
 '================================================================================
-Private Function FormatConsiderandoParagraphs(doc As Document) As Boolean
-    On Error GoTo ErrorHandler
-    
-    Dim para As Paragraph
-    Dim rawText As String
-    Dim textNoCrLf As String
-    Dim i As Long
-    Dim totalFormatted As Long
-    Dim startIdx As Long
-    Dim n As Long
-    Dim ch As String
-    Dim code As Long
-    Dim allowedPrefix As String
-    
-    ' Characters we can ignore before "considerando" at paragraph start
-    ' spaces/tabs, quotes, dashes, hyphen, parentheses, and a set of invisible/control chars
-    ' Note: we keep allowedPrefix defined above for readability, but detection relies on code-point checks here
-    allowedPrefix = " " ' (kept for documentation only)
-    
-    For i = 1 To doc.Paragraphs.count
-        Set para = doc.Paragraphs(i)
-        rawText = para.Range.text
-        textNoCrLf = Replace(Replace(rawText, vbCr, ""), vbLf, "")
-        
-        If Len(textNoCrLf) >= 12 Then
-            ' Find first non-prefix character index, skipping spaces, punctuation, and invisible/control marks
-            startIdx = 1
-            For n = 1 To Len(textNoCrLf)
-                ch = Mid$(textNoCrLf, n, 1)
-                code = AscW(ch)
-
-                    startIdx = n
-                    Exit For
-            Next n
-            
-            If startIdx + 11 <= Len(textNoCrLf) Then
-                If LCase$(Mid$(textNoCrLf, startIdx, 12)) = "considerando" Then
-                    Dim rng As Range
-                    Set rng = para.Range.Duplicate
-                    rng.SetRange rng.Start + (startIdx - 1), rng.Start + (startIdx - 1) + 12
-                    
-                    ' Replace token and apply bold preserving following spacing/punctuation
-                    rng.text = "CONSIDERANDO"
-                    rng.Font.Bold = True
-                    totalFormatted = totalFormatted + 1
-                End If
-            End If
-        End If
-    Next i
-    
-    If totalFormatted > 0 Then
-    Else
-    End If
-    
-    FormatConsiderandoParagraphs = True
-    Exit Function
-
-ErrorHandler:
-    FormatConsiderandoParagraphs = False
-End Function
+'' FormatConsiderandoParagraphs moved to modFormatting
 
 '================================================================================
 ' LOG STRING NORMALIZATION - avoid encoding issues in log files
 '================================================================================
-'' NormalizeForLog moved to modUtils
+Private Function NormalizeForLog(ByVal s As String) As String
+    On Error Resume Next
+    Dim i As Long, ch As String, code As Long
+    Dim out As String
+    out = ""
+    For i = 1 To Len(s)
+        ch = Mid$(s, i, 1)
+        code = AscW(ch)
+        ' Keep ASCII printable and common punctuation; replace others with '?'
+        If code >= 32 And code <= 126 Then
+            out = out & ch
+        ElseIf ch = vbCr Or ch = vbLf Or ch = vbTab Then
+            out = out & ch
+        Else
+            out = out & "?"
+        End If
+    Next i
+    NormalizeForLog = out
+End Function
 
 '================================================================================
 ' UI STRING NORMALIZATION - produce ASCII-safe text for MsgBox dialogs
 '================================================================================
-'' NormalizeForUI moved to modUtils
+Private Function NormalizeForUI(ByVal s As String) As String
+    On Error Resume Next
+    If Not dialogAsciiNormalizationEnabled Then
+        NormalizeForUI = s
+        Exit Function
+    End If
+    Dim i As Long, ch As String, code As Long
+    Dim out As String
+    out = ""
+    For i = 1 To Len(s)
+        ch = Mid$(s, i, 1)
+        code = AscW(ch)
+        Select Case code
+            Case 192 To 197, 224 To 229: out = out & "a"   ' ������������
+            Case 199: out = out & "C"                      ' �
+            Case 231: out = out & "c"                      ' �
+            Case 200 To 203, 232 To 235: out = out & "e"
+            Case 204 To 207, 236 To 239: out = out & "i"
+            Case 210 To 214, 242 To 246: out = out & "o"
+            Case 217 To 220, 249 To 252: out = out & "u"
+            Case 209: out = out & "N"                      ' �
+            Case 241: out = out & "n"                      ' �
+            Case 8211, 8212: out = out & "-"               ' en/em dash
+            Case 8216, 8217: out = out & "'"               ' curly apostrophes
+            Case 8220, 8221, 171, 187: out = out & """"    ' various quotes -> standard quote
+            Case 10, 13: out = out & ch                    ' CR/LF
+            Case 32 To 126: out = out & ch                 ' standard ASCII
+            Case Else: out = out & "?"
+        End Select
+    Next i
+    NormalizeForUI = out
+End Function
 
 '--------------------------------------------------------------------------------
 ' ReplacePlaceholders - convenience wrapper for common {{KEY}} replacements
 ' Example: ReplacePlaceholders(MSG_ERR_VERSION, "MIN", 14, "CUR", Application.Version)
 '--------------------------------------------------------------------------------
-'' ReplacePlaceholders moved to modUtils
+Private Function ReplacePlaceholders(ByVal template As String, ParamArray kv()) As String
+    On Error Resume Next
+    Dim i As Long, result As String, k As String, val As String
+    result = template
+    For i = LBound(kv) To UBound(kv) Step 2
+        If i + 1 <= UBound(kv) Then
+            k = CStr(kv(i))
+            val = CStr(kv(i + 1))
+            result = Replace(result, "{{" & k & "}}", val)
+        End If
+    Next i
+    ReplacePlaceholders = result
+End Function
 
 '================================================================================
 ' APPLY TEXT REPLACEMENTS
 '================================================================================
-Private Function ApplyTextReplacements(doc As Document) As Boolean
-    On Error GoTo ErrorHandler
-    
-    Dim rng As Range
-    Dim replacementCount As Long
-    
-    Set rng = doc.Range
-    
-    ' Feature 10: Replace variants of "d'Oeste"
-    Dim dOesteVariants() As String
-    Dim i As Long
-    
-    ' Define possible variants of the first 3 characters of "d'Oeste"
-    ReDim dOesteVariants(0 To 15)
-    dOesteVariants(0) = "d'O"   ' Original
-    dOesteVariants(1) = "d�O"   ' Acute accent
-    dOesteVariants(2) = "d`O"   ' Grave accent
-    dOesteVariants(3) = "d" & Chr(8220) & "O"   ' Left curly quote
-    dOesteVariants(4) = "d'o"   ' Lowercase
-    dOesteVariants(5) = "d�o"
-    dOesteVariants(6) = "d`o"
-    dOesteVariants(7) = "d" & Chr(8220) & "o"
-    dOesteVariants(8) = "D'O"   ' Uppercase D
-    dOesteVariants(9) = "D�O"
-    dOesteVariants(10) = "D`O"
-    dOesteVariants(11) = "D" & Chr(8220) & "O"
-    dOesteVariants(12) = "D'o"
-    dOesteVariants(13) = "D�o"
-    dOesteVariants(14) = "D`o"
-    dOesteVariants(15) = "D" & Chr(8220) & "o"
-    
-    For i = 0 To UBound(dOesteVariants)
-        With rng.Find
-            .ClearFormatting
-            .Replacement.ClearFormatting
-            .text = dOesteVariants(i) & "este"
-            .Replacement.text = "d'Oeste"
-            .Forward = True
-            .Wrap = wdFindStop
-            .Format = False
-            .MatchCase = False
-            .MatchWholeWord = False
-            .MatchWildcards = False
-            .MatchSoundsLike = False
-            .MatchAllWordForms = False
-            
-            Do While .Execute(Replace:=wdReplaceOne)
-                replacementCount = replacementCount + 1
-                rng.Collapse wdCollapseEnd
-            Loop
-        End With
-    Next i
-    
-    ' Removed: vereador variants replacement
-    
-    ' Feature 12: Replace isolated hyphens/en dashes with em dash (�)
-    ' Normalizes hyphens (-) and en dashes (�) surrounded by spaces into em dashes (�)
-    Set rng = doc.Range
-    Dim dashVariants() As String
-    ReDim dashVariants(0 To 2)
-    
-    ' Define dash types to replace when surrounded by spaces
-    dashVariants(0) = " - "     ' Hyphen
-    dashVariants(1) = " � "     ' En dash
-    dashVariants(2) = " � "     ' Em dash (normalize)
-    
-    ' Replace all types with em dash
-    For i = 0 To UBound(dashVariants)
-    ' Only if not already an em dash
-        If dashVariants(i) <> " � " Then
-            With rng.Find
-                .ClearFormatting
-                .Replacement.ClearFormatting
-                .text = dashVariants(i)
-                .Replacement.text = " � "    ' Em dash (travess�o) com espa�os
-                .Forward = True
-                .Wrap = wdFindStop
-                .Format = False
-                .MatchCase = False
-                .MatchWholeWord = False
-                .MatchWildcards = False
-                .MatchSoundsLike = False
-                .MatchAllWordForms = False
-                
-                Do While .Execute(Replace:=wdReplaceOne)
-                    replacementCount = replacementCount + 1
-                    rng.Collapse wdCollapseEnd
-                Loop
-            End With
-        End If
-    Next i
-    
-    ' Special cases: hyphen/en dash at the start of the line followed by a space
-    Set rng = doc.Range
-    Dim lineStartDashVariants() As String
-    ReDim lineStartDashVariants(0 To 1)
-    
-    lineStartDashVariants(0) = "^p- "   ' Hyphen at line start
-    lineStartDashVariants(1) = "^p� "   ' En dash at line start
-    
-    For i = 0 To UBound(lineStartDashVariants)
-        With rng.Find
-            .ClearFormatting
-            .Replacement.ClearFormatting
-            .text = lineStartDashVariants(i)
-            .Replacement.text = "^p� "    ' Em dash at line start
-            .Forward = True
-            .Wrap = wdFindStop
-            .Format = False
-            .MatchCase = False
-            .MatchWholeWord = False
-            .MatchWildcards = False
-            .MatchSoundsLike = False
-            .MatchAllWordForms = False
-            
-            Do While .Execute(Replace:=wdReplaceOne)
-                replacementCount = replacementCount + 1
-                rng.Collapse wdCollapseEnd
-            Loop
-        End With
-    Next i
-    
-    ' Special cases: space then hyphen/en dash at the end of the line
-    Set rng = doc.Range
-    Dim lineEndDashVariants() As String
-    ReDim lineEndDashVariants(0 To 1)
-    
-    lineEndDashVariants(0) = " -^p"   ' Hyphen at line end
-    lineEndDashVariants(1) = " �^p"   ' En dash at line end
-    
-    For i = 0 To UBound(lineEndDashVariants)
-        With rng.Find
-            .ClearFormatting
-            .Replacement.ClearFormatting
-            .text = lineEndDashVariants(i)
-            .Replacement.text = " �^p"    ' Em dash at line end
-            .Forward = True
-            .Wrap = wdFindStop
-            .Format = False
-            .MatchCase = False
-            .MatchWholeWord = False
-            .MatchWildcards = False
-            .MatchSoundsLike = False
-            .MatchAllWordForms = False
-            
-            Do While .Execute(Replace:=wdReplaceOne)
-                replacementCount = replacementCount + 1
-                rng.Collapse wdCollapseEnd
-            Loop
-        End With
-    Next i
-    
-    ' Feature 13: Remove all manual line breaks (soft breaks); keep regular paragraph breaks
-    Set rng = doc.Range
-    
-    ' Remove manual line breaks (Shift+Enter) - Chr(11) or ^l
-    With rng.Find
-        .ClearFormatting
-        .Replacement.ClearFormatting
-        .text = "^l"  ' Manual line break
-        .Replacement.text = " "  ' Replace with space
-        .Forward = True
-        .Wrap = wdFindStop
-        .Format = False
-        .MatchCase = False
-        .MatchWholeWord = False
-        .MatchWildcards = False
-        .MatchSoundsLike = False
-        .MatchAllWordForms = False
-        
-        Do While .Execute(Replace:=wdReplaceOne)
-            replacementCount = replacementCount + 1
-            rng.Collapse wdCollapseEnd
-        Loop
-    End With
-    
-    ' Remove manual line breaks using character code (guarded)
-    On Error Resume Next
-    Set rng = doc.Range
-    With rng.Find
-        .ClearFormatting
-        .Replacement.ClearFormatting
-        .text = Chr(11)  ' Manual line break (VT)
-        .Replacement.text = " "  ' Replace with space
-        .Forward = True
-        .Wrap = wdFindStop
-        .Format = False
-        .MatchCase = False
-        .MatchWholeWord = False
-        .MatchWildcards = False
-        .MatchSoundsLike = False
-        .MatchAllWordForms = False
-        
-        Do While .Execute(Replace:=wdReplaceOne)
-            If Err.Number <> 0 Then Exit Do
-            replacementCount = replacementCount + 1
-            rng.Collapse wdCollapseEnd
-        Loop
-    End With
-    If Err.Number <> 0 Then
-        Err.Clear
-    End If
-    On Error GoTo ErrorHandler
-    
-    ' Remove Line Feed chars that aren't paragraph breaks
-    On Error Resume Next
-    Set rng = doc.Range
-    With rng.Find
-        .ClearFormatting
-        .Replacement.ClearFormatting
-        .text = Chr(10)  ' Line Feed (LF)
-        .Replacement.text = " "  ' Replace with space
-        .Forward = True
-        .Wrap = wdFindStop
-        .Format = False
-        .MatchCase = False
-        .MatchWholeWord = False
-        .MatchWildcards = False
-        .MatchSoundsLike = False
-        .MatchAllWordForms = False
-        
-        Do While .Execute(Replace:=wdReplaceOne)
-            If Err.Number <> 0 Then Exit Do
-            replacementCount = replacementCount + 1
-            rng.Collapse wdCollapseEnd
-        Loop
-    End With
-    If Err.Number <> 0 Then
-        Err.Clear
-    End If
-    On Error GoTo ErrorHandler
-    
-    ApplyTextReplacements = True
-    Exit Function
-
-ErrorHandler:
-    ApplyTextReplacements = False
-End Function
+'' ApplyTextReplacements moved to modFormatting
 
 '================================================================================
 ' APPLY SPECIFIC PARAGRAPH REPLACEMENTS
 '================================================================================
-Private Function ApplySpecificParagraphReplacements(doc As Document) As Boolean
-    On Error GoTo ErrorHandler
-    
-    Application.StatusBar = "Applying specific replacements (per-paragraph and global)..."
-    
-    Dim replacementCount As Long
-    Dim secondParaIndex As Long
-    Dim thirdParaIndex As Long
-    Dim para As Paragraph
-    Dim paraText As String
-    Dim i As Long
-    Dim actualParaIndex As Long
-    
-    replacementCount = 0
-    
-    ' Find the 2nd and 3rd paragraphs with content (skip empty ones)
-    actualParaIndex = 0
-    secondParaIndex = 0
-    thirdParaIndex = 0
-    
-    For i = 1 To doc.Paragraphs.count
-        Set para = doc.Paragraphs(i)
-        paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
-        
-    ' Count as an actual paragraph if it has content
-        If paraText <> "" Then
-            actualParaIndex = actualParaIndex + 1
-            
-            If actualParaIndex = 2 Then
-                secondParaIndex = i
-            ElseIf actualParaIndex = 3 Then
-                thirdParaIndex = i
-                Exit For ' Found both needed paragraphs
-            End If
-        End If
-        
-    ' Safety: protect against very large documents
-        If i > 50 Then Exit For
-    Next i
-    
-    ' REQUIREMENT 1: If the 2nd paragraph starts with "Sugiro " or "Sugere ", replace accordingly
-    If secondParaIndex > 0 And secondParaIndex <= doc.Paragraphs.count Then
-        Set para = doc.Paragraphs(secondParaIndex)
-        paraText = para.Range.text
-        
-        ' Skip leading spaces/tabs before checking the start token
-        Dim idxStart As Long
-        idxStart = 1
-        Do While idxStart <= Len(paraText) And (Mid$(paraText, idxStart, 1) = " " Or Mid$(paraText, idxStart, 1) = vbTab)
-            idxStart = idxStart + 1
-        Loop
-        
-        If Len(paraText) >= idxStart + 6 Then
-            Dim token As String
-            token = Mid$(paraText, idxStart, 7) ' includes trailing space
-            If token = "Sugiro " Then
-                Dim r1 As Range
-                Set r1 = para.Range.Duplicate
-                r1.SetRange r1.Start + (idxStart - 1), r1.Start + (idxStart - 1) + 7
-                r1.text = "Requeiro "
-                replacementCount = replacementCount + 1
-            ElseIf token = "Sugere " Then
-                Dim r2 As Range
-                Set r2 = para.Range.Duplicate
-                r2.SetRange r2.Start + (idxStart - 1), r2.Start + (idxStart - 1) + 7
-                r2.text = "Indica "
-                replacementCount = replacementCount + 1
-            End If
-        End If
-    End If
-    
-    ' REQUIREMENTS 2 and 3: Replacements in the 3rd paragraph
-    If thirdParaIndex > 0 And thirdParaIndex <= doc.Paragraphs.count Then
-        Set para = doc.Paragraphs(thirdParaIndex)
-        paraText = para.Range.text
-        Dim originalText As String
-        originalText = paraText
-        
-    ' REQUIREMENT 2: Replace " sugerir " with " indicar " anywhere
-        If InStr(paraText, " sugerir ") > 0 Then
-            paraText = Replace(paraText, " sugerir ", " indicar ")
-            replacementCount = replacementCount + 1
-        End If
-        
-    ' REQUIREMENT 3: Replace " Setor, " with " setor competente, "
-        If InStr(paraText, " Setor, ") > 0 Then
-            paraText = Replace(paraText, " Setor, ", " setor competente, ")
-            replacementCount = replacementCount + 1
-        End If
-        
-    ' Apply changes if replacements occurred
-        If paraText <> originalText Then
-            para.Range.text = paraText
-        End If
-    End If
-    
-    ' GLOBAL REQUIREMENTS: Replacements across the whole document
-    Dim rng As Range
-    Set rng = doc.Range
-    
-    ' GLOBAL 1: Replace specific uppercase institutional phrase
-    With rng.Find
-        .ClearFormatting
-        .Replacement.ClearFormatting
-        .text = " A C�MARA MUNICIPAL DE SANTA B�RBARA D'OESTE, ESTADO DE S�O PAULO "
-        .Replacement.text = " a C�mara Municipal de Santa B�rbara d'Oeste, estado de S�o Paulo, "
-        .Forward = True
-        .Wrap = wdFindContinue
-        .Format = False
-    .MatchCase = True  ' Case-sensitive for this specific replacement
-        .MatchWholeWord = False
-        .MatchWildcards = False
-        
-        Do While .Execute(Replace:=wdReplaceOne)
-            replacementCount = replacementCount + 1
-            rng.Collapse wdCollapseEnd
-        Loop
-    End With
-    
-    ' GLOBAL 2: Uppercase specific words
-    Dim wordsToUppercase() As String
-    Dim j As Long
-    
-    ' Define array with all word variations to be uppercased
-    ReDim wordsToUppercase(0 To 15)
-    wordsToUppercase(0) = "aplaude"
-    wordsToUppercase(1) = "Aplaude"
-    wordsToUppercase(2) = "aplauso"
-    wordsToUppercase(3) = "Aplauso"
-    wordsToUppercase(4) = "protesta"
-    wordsToUppercase(5) = "Protesta"
-    wordsToUppercase(6) = "protesto"
-    wordsToUppercase(7) = "Protesto"
-    wordsToUppercase(8) = "apela"
-    wordsToUppercase(9) = "Apela"
-    wordsToUppercase(10) = "apelo"
-    wordsToUppercase(11) = "Apelo"
-    wordsToUppercase(12) = "apoia"
-    wordsToUppercase(13) = "Apoia"
-    wordsToUppercase(14) = "apoio"
-    wordsToUppercase(15) = "Apoio"
-    
-    ' Apply uppercase conversion for each word
-    For j = 0 To UBound(wordsToUppercase)
-        Set rng = doc.Range
-        With rng.Find
-            .ClearFormatting
-            .Replacement.ClearFormatting
-            .text = wordsToUppercase(j)
-            .Replacement.text = UCase(wordsToUppercase(j))
-            .Forward = True
-            .Wrap = wdFindContinue
-            .Format = False
-            .MatchCase = True  ' Case-sensitive to detect the exact variation
-            .MatchWholeWord = True  ' Whole word only
-            .MatchWildcards = False
-            
-            Do While .Execute(Replace:=wdReplaceOne)
-                replacementCount = replacementCount + 1
-                If replacementCount <= 20 Then  ' Log only the first cases for performance
-                End If
-                rng.Collapse wdCollapseEnd
-            Loop
-        End With
-    Next j
-    
-    ApplySpecificParagraphReplacements = True
-    Exit Function
-
-ErrorHandler:
-    ApplySpecificParagraphReplacements = False
-End Function
+'' ApplySpecificParagraphReplacements moved to modFormatting
 
 '================================================================================
 ' VALIDATE CONTENT CONSISTENCY - VALIDA��O DE CONSIST�NCIA ENTRE EMENTA E TEOR
@@ -3299,174 +2756,21 @@ End Function
 '================================================================================
 ' FORMAT NUMBERED PARAGRAPHS
 '================================================================================
-Private Function FormatNumberedParagraphs(doc As Document) As Boolean
-    On Error GoTo ErrorHandler
-    
-    Dim para As Paragraph
-    Dim paraText As String
-    Dim i As Long
-    Dim formattedCount As Long
-    
-    ' Iterate all paragraphs of the document
-    For i = 1 To doc.Paragraphs.count
-        Set para = doc.Paragraphs(i)
-        
-    ' Skip paragraphs with visual content
-        If Not HasVisualContent(para) Then
-            paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
-            
-            ' Check if the paragraph starts with a number followed by ., ) or space
-            If IsNumberedParagraph(paraText) Then
-                ' Apply numbered list formatting
-                With para.Range.ListFormat
-                    ' Remove existing list formatting first
-                    .RemoveNumbers
-                    
-                    ' Aplica lista numerada
-                    .ApplyNumberDefault
-                End With
-                
-                ' Remove the manual number as the list will generate it
-                Dim cleanedText As String
-                cleanedText = RemoveManualNumber(paraText)
-                
-                ' Update the paragraph text
-                para.Range.text = cleanedText & vbCrLf
-                
-                formattedCount = formattedCount + 1
-            End If
-        End If
-    Next i
-    
-    FormatNumberedParagraphs = True
-    Exit Function
-
-ErrorHandler:
-    FormatNumberedParagraphs = False
-End Function
+'' FormatNumberedParagraphs moved to modFormatting
 
 '================================================================================
 ' HELPER FUNCTIONS FOR PATTERN DETECTION
 '================================================================================
  ' Removed: IsVereadorPattern
 
-Private Function IsAnexoPattern(text As String) As Boolean
-    Dim cleanText As String
-    cleanText = LCase(Trim(text))
-    IsAnexoPattern = (cleanText = "anexo" Or cleanText = "anexos")
-End Function
+'' IsAnexoPattern moved to modFormatting
 
-Private Function IsAnteOExpostoPattern(text As String) As Boolean
-    ' Check if the paragraph starts with "Ante o exposto" (case-insensitive)
-    Dim cleanText As String
-    cleanText = LCase(Trim(text))
-    
-    ' Check if empty
-    If Len(cleanText) = 0 Then
-        IsAnteOExpostoPattern = False
-        Exit Function
-    End If
-    
-    ' Check if starts with token
-    If Len(cleanText) >= 13 And Left(cleanText, 13) = "ante o exposto" Then
-        IsAnteOExpostoPattern = True
-    Else
-        IsAnteOExpostoPattern = False
-    End If
-End Function
+'' IsAnteOExpostoPattern moved to modFormatting
 
 '================================================================================
 ' HELPER FUNCTIONS FOR NUMBERED LISTS
 '================================================================================
-Private Function IsNumberedParagraph(text As String) As Boolean
-    ' Check if paragraph starts with a number followed by common separators
-    Dim cleanText As String
-    cleanText = Trim(text)
-    
-    ' Check if empty
-    If Len(cleanText) = 0 Then
-        IsNumberedParagraph = False
-        Exit Function
-    End If
-    
-    ' Extract first word/token
-    Dim firstToken As String
-    Dim spacePos As Long
-    spacePos = InStr(cleanText, " ")
-    
-    If spacePos > 0 Then
-        firstToken = Left(cleanText, spacePos - 1)
-    Else
-        firstToken = cleanText
-    End If
-    
-    ' Check different numbering patterns
-    ' Pattern 1: number followed by a dot (1., 2., ...)
-    If Len(firstToken) >= 2 And Right(firstToken, 1) = "." Then
-        Dim numberPart As String
-        numberPart = Left(firstToken, Len(firstToken) - 1)
-        If IsNumeric(numberPart) And val(numberPart) > 0 Then
-            ' Verify there is substantive text after the number and punctuation
-            If HasSubstantiveTextAfterNumber(cleanText, firstToken) Then
-                IsNumberedParagraph = True
-                Exit Function
-            End If
-        End If
-    End If
-    
-    ' Pattern 2: number followed by right parenthesis (1), 2), ...)
-    If Len(firstToken) >= 2 And Right(firstToken, 1) = ")" Then
-        numberPart = Left(firstToken, Len(firstToken) - 1)
-        If IsNumeric(numberPart) And val(numberPart) > 0 Then
-            ' Verify there is substantive text after the number and punctuation
-            If HasSubstantiveTextAfterNumber(cleanText, firstToken) Then
-                IsNumberedParagraph = True
-                Exit Function
-            End If
-        End If
-    End If
-    
-    ' Pattern 3: parenthesized number ((1), (2), ...)
-    If Len(firstToken) >= 3 And Left(firstToken, 1) = "(" And Right(firstToken, 1) = ")" Then
-        numberPart = Mid(firstToken, 2, Len(firstToken) - 2)
-        If IsNumeric(numberPart) And val(numberPart) > 0 Then
-            ' Verify there is substantive text after the number and punctuation
-            If HasSubstantiveTextAfterNumber(cleanText, firstToken) Then
-                IsNumberedParagraph = True
-                Exit Function
-            End If
-        End If
-    End If
-    
-    ' Pattern 4: just a number followed by space (1 text, 2 text, ...)
-    ' Stricter: must have space AND substantive text after the number
-    If IsNumeric(firstToken) And val(firstToken) > 0 And spacePos > 0 Then
-    ' Verify there is substantive text after the number and space
-        If HasSubstantiveTextAfterNumber(cleanText, firstToken) Then
-            IsNumberedParagraph = True
-            Exit Function
-        End If
-    End If
-    
-    ' Pattern 5: number followed by other common separators (-, :, ;)
-    If Len(firstToken) >= 2 Then
-        Dim lastChar As String
-        lastChar = Right(firstToken, 1)
-        
-        If lastChar = "-" Or lastChar = ":" Or lastChar = ";" Then
-            numberPart = Left(firstToken, Len(firstToken) - 1)
-            If IsNumeric(numberPart) And val(numberPart) > 0 Then
-                ' Verify there is substantive text after the number and punctuation
-                If HasSubstantiveTextAfterNumber(cleanText, firstToken) Then
-                    IsNumberedParagraph = True
-                    Exit Function
-                End If
-            End If
-        End If
-    End If
-    
-    IsNumberedParagraph = False
-End Function
+'' IsNumberedParagraph moved to modFormatting
 
 '================================================================================
 ' HAS SUBSTANTIVE TEXT AFTER NUMBER
@@ -3535,38 +2839,7 @@ Private Function ContainsLetters(text As String) As Boolean
     ContainsLetters = False
 End Function
 
-Private Function RemoveManualNumber(text As String) As String
-    ' Remove the manual number from the beginning of the paragraph
-    Dim cleanText As String
-    cleanText = Trim(text)
-    
-    If Len(cleanText) = 0 Then
-        RemoveManualNumber = text
-        Exit Function
-    End If
-    
-    ' Encontra a primeira palavra/token
-    Dim firstToken As String
-    Dim spacePos As Long
-    spacePos = InStr(cleanText, " ")
-    
-    If spacePos > 0 Then
-        firstToken = Left(cleanText, spacePos - 1)
-        
-        ' Remove the first token if it is a number with separators
-        If (Len(firstToken) >= 2 And (Right(firstToken, 1) = "." Or Right(firstToken, 1) = ")")) Or _
-           (Len(firstToken) >= 3 And Left(firstToken, 1) = "(" And Right(firstToken, 1) = ")") Or _
-           (IsNumeric(firstToken) And val(firstToken) > 0) Then
-            
-            ' Remove the first token and extra spaces
-            RemoveManualNumber = Trim(Mid(cleanText, spacePos + 1))
-        Else
-            RemoveManualNumber = cleanText
-        End If
-    Else
-        RemoveManualNumber = cleanText
-    End If
-End Function
+'' RemoveManualNumber moved to modFormatting
 
  
 
