@@ -1,6 +1,6 @@
 # CHAINSAW PROPOSITURAS
 
-## v1.0.0-Beta3
+## v1.0.0-beta3
 
 *An open source VBA solution for standardization and advanced automation of legislative documents in Microsoft Word, developed specifically for Municipal Chambers and institutional environments.*
 
@@ -11,31 +11,25 @@
 
 ## 📋 Table of Contents
 
-- [Version News](#-version-news-100-beta2)
-- [Main Features](#-main-features)
-- [Project Structure](#-project-structure)
-- [Installation](#-installation)
-- [Configuration](#%EF%B8%8F-configuration)
-- [Usage](#-usage)
-- [Security](#-security)
-- [Requirements](#-requirements)
-- [Configuration Reference](#%EF%B8%8F-configuration-reference)
-- [Architecture Overview](#-architecture-overview)
-- [Troubleshooting](#-troubleshooting)
-- [Roadmap](#-roadmap-planned)
-- [Recent Refactor Summary](#-recent-refactor-summary)
-- [Documentation](#-documentation)
-- [Contributing](#-contributing)
+- [Version News](#version-news)
+- [Main Features](#-main-features)  
+- [Project Structure](#-project-structure)  
+- [Installation](#-installation)  
+- [Configuration](#%EF%B8%8F-configuration)  
+- [Usage](#-usage)  
+- [Security](#-security)  
+- [Configuration Reference](#%EF%B8%8F-configuration-reference)  
+- [Documentation](#-documentation)  
+- [Contributing](#-contributing)  
 - [License](#-license)
 
-### Refactored Architecture (Beta2 Consolidation)
+### Version News
 
-**Beta3 highlights (post-simplification pass):**
+Latest (beta3):
 
-- Single public entry macro: `Chainsaw` (exposed inside `modPipeline`).
 - Single public entry macro: `Chainsaw` (in `modPipeline`).
-- Removed legacy stubs & monolith (`chainsaw.bas`, `chainsaw_old.bas`, snapshot file).
-- Centralized formatting logic (behavior preserved) in `modFormatting` + explicit 3rd/4th paragraph parity.
+- Removed legacy stubs & monolith (`chainsaw.bas`, `chainsaw_old.bas`).
+- Centralized formatting logic with explicit 3rd/4th paragraph parity routine.
 - Logging subsystem fully removed (no dormant flags or stubs).
 - Structural validation placeholder retained.
 - Self-test harness unchanged for regression confidence.
@@ -80,8 +74,6 @@ chainsaw/
 
 | Module | Responsibility | Example Procedure |
 |--------|----------------|-------------------|
-| Module | Responsibility | Example |
-|--------|----------------|---------|
 | modPipeline | Orchestrator + public macro | `RunChainsawPipeline` |
 | modFormatting | Formatting & special paragraphs | `FormatConsiderandoParagraphs` |
 | modReplacements | Text & semantic replacements | `ApplyTextReplacements` |
@@ -225,7 +217,7 @@ Project root files (selected):
 - `modSelfTest.bas` – Macro `ChainsawSelfTest` (regression sanity)
 - `modErrors.bas` – Minimal status/error centralization (no file writes in beta)
 - `CONTRIBUTORS.md` – Contributors list
-- `legacy_chainsaw_snapshot.bas` – Archived pre-refactor monolith (not loaded)
+  (Legacy snapshot removed in beta3 – formatting parity now implemented directly in modules)
 - `scripts/count-loc.ps1` – Utility to count active vs legacy LOC
 
 Historical/legacy example or docs folders referenced earlier have been consolidated; examples can be added in a future `examples/` directory as needed.
@@ -249,8 +241,6 @@ Note: Microsoft Word is proprietary software and requires its own license.
 ## 👨‍💻 Author
 
 Christian Martin dos Santos - [chrmsantos](https://github.com/chrmsantos)
-
----
 
 ---
 

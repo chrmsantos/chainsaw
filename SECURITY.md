@@ -15,8 +15,7 @@ Thank you for using chainsaw-proposituras. This project processes Microsoft Word
 
 ## Permissions and Scope
 
-
- File system access is limited to reading the active document and optional header image resources. Backup & logging writes were fully removed.
+File system access is limited to reading the active document and optional header image resources. Backup & logging writes were fully removed.
 Current beta (logging & backup disabled):
 
 - No backups are created.
