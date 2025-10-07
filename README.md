@@ -1,10 +1,10 @@
 # CHAINSAW PROPOSITURAS
 
-## v1.0.0-simplified
+## v1.0.1-simplified (2025-10-07)
 
 *An open source VBA solution for standardization and advanced automation of legislative documents in Microsoft Word, developed specifically for Municipal Chambers and institutional environments.*
 
-[![License](https://img.shields.io/badge/License-Apache%202.0%20Modified-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 ![Word Version](https://img.shields.io/badge/Word-2010+-green.svg)
 ![Language](https://img.shields.io/badge/Language-VBA-orange.svg)
 ![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)
@@ -28,10 +28,12 @@
 Latest (simplified):
 
 - Reverted intentionally to a single monolithic module (`chainsaw_0.bas`) for easier maintenance in Word's VBA editor.
-- All non-formatting subsystems removed: logging, backups, image/view protection, timing counters.
+- All non-formatting subsystems removed: logging, backups, image/view protection, timing counters (FINAL PURGE COMPLETE).
 - Configuration parser ignores deprecated sections (BACKUP / VISUAL_ELEMENTS / LOGGING).
 - Formatting semantics fully preserved (paragraph indentation, fonts, numbering, special tokens, header/footer, hyphenation, replacements).
 - Dead code and duplicate stubs pruned; image/view types eliminated.
+- Final removal of all residual LogMessage calls and legacy backup references.
+- Corrected error handler in first-paragraph formatting routine (previously referenced wrong function name on failure).
 
 ### Simplification Rationale
 
@@ -40,6 +42,14 @@ The previous multi-module architecture improved clarity but complicated distribu
 ### Performance Notes
 
 Core batching and safe font application routines remain; removed systems had negligible runtime contributions. Document processing speed should match or exceed earlier beta builds.
+
+### Licensing Change
+
+Project license switched to GNU GPL v3 (or later). Each source file may include an SPDX identifier:
+
+`' SPDX-License-Identifier: GPL-3.0-or-later`
+
+See `LICENSE` for the full text. Previous Modified Apache 2.0 terms no longer apply as of this version.
 
 ```text
 chainsaw/
@@ -140,7 +150,7 @@ Checklist:
 
 - ✅ Open and auditable source code
 - ✅ No internet connection required
-- ✅ Backup subsystem planned (disabled in this beta)
+- ✅ No hidden telemetry / logging (all logging system removed)
 - ✅ Robust error handling
 
 Para políticas corporativas, consulte [`SECURITY.md`](SECURITY.md).
@@ -205,7 +215,7 @@ See `CONTRIBUTORS.md` for details on the contribution process.
 
 ## 📄 License
 
-This project is licensed under the **Apache 2.0 Modified License (with clause 10)** - see [LICENSE](LICENSE) for details.
+This project is licensed under the **GNU General Public License v3.0 or later (GPL-3.0-or-later)** – see [LICENSE](LICENSE) for details.
 
 Note: Microsoft Word is proprietary software and requires its own license.
 
