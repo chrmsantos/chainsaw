@@ -7,7 +7,7 @@ Option Explicit
 
 ' NOTE: Centralized formatting implementation. Remaining formatting bodies migrated from chainsaw.bas.
 
-' Public visual content detector (wrapper around safe logic; avoids dependency on legacy modMain private helper)
+' Public visual content detector (wrapper around safe logic)
 Public Function HasVisualContent(para As Paragraph) As Boolean
 	On Error GoTo Fallback
 	HasVisualContent = (para.Range.InlineShapes.Count > 0 Or para.Range.ShapeRange.Count > 0)
@@ -516,7 +516,7 @@ ErrHandler:
 End Function
 
 '================================================================================
-' ADDITIONAL MIGRATED ROUTINES (extracted from modMain)
+' ADDITIONAL ROUTINES
 '================================================================================
 Public Function CleanDocumentStructure(doc As Document) As Boolean
 	On Error GoTo ErrHandler
@@ -583,7 +583,7 @@ ErrHandler:
 End Function
 
 '================================================================================
-' FINAL STRUCTURAL / CLEANUP ROUTINES (migrated from modMain)
+' FINAL STRUCTURAL / CLEANUP ROUTINES
 '================================================================================
 Public Function ApplyStdParagraphs(doc As Document) As Boolean
 	On Error GoTo ErrHandler
@@ -604,7 +604,7 @@ Public Function ApplyStdParagraphs(doc As Document) As Boolean
 				Loop
 				cleanText = Replace(cleanText, " " & vbCr, vbCr)
 				cleanText = Replace(cleanText, vbCr & " ", vbCr)
-				cleanText = Replace(cleanText, vbCr & " ", vbCr) ' duplicate intentional (legacy behavior)
+				cleanText = Replace(cleanText, vbCr & " ", vbCr)
 				cleanText = Replace(cleanText, vbTab, " ")
 				Do While InStr(cleanText, "  ") > 0
 					cleanText = Replace(cleanText, "  ", " ")

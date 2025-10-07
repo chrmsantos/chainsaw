@@ -4,8 +4,7 @@ Option Explicit
 ' MODULE: modUI
 ' PURPOSE: Centralized lightweight UI string helpers shared across modules.
 ' NOTES:
-'  - Consolidates previous duplicated Private implementations of NormalizeForUI and
-'    ReplacePlaceholders that existed in legacy main/stub modules.
+'  - Central utility functions NormalizeForUI / ReplacePlaceholders.
 '  - Public exposure ensures validation, pipeline, and error messaging modules can
 '    use consistent transformation logic.
 '  - ASCII normalization is controlled by a module constant; adjust if future

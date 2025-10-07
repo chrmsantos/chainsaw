@@ -10,7 +10,6 @@ Public Type ConfigSettings
     ' --- CORE EXECUTION MODES ---
     debugMode As Boolean
     performanceMode As Boolean
-    compatibilityMode As Boolean
     CheckWordVersion As Boolean
     ValidateDocumentIntegrity As Boolean
     ValidatePropositionType As Boolean
@@ -58,12 +57,7 @@ Public Type ConfigSettings
     showCompletionMessage As Boolean
     enableEmergencyRecovery As Boolean
     timeoutOperations As Boolean
-    supportWord2010 As Boolean
-    supportWord2013 As Boolean
-    supportWord2016 As Boolean
     useSafePropertyAccess As Boolean
-    fallbackMethods As Boolean
-    handleMissingFeatures As Boolean
     requireDocumentSaved As Boolean
     validateFilePermissions As Boolean
     checkDocumentProtection As Boolean
@@ -126,7 +120,7 @@ End Function
 
 Private Sub SetDefaultConfiguration()
     With Config
-        .debugMode = False: .performanceMode = True: .compatibilityMode = True
+    .debugMode = False: .performanceMode = True
         .CheckWordVersion = True: .ValidateDocumentIntegrity = True: .ValidatePropositionType = True: .ValidateContentConsistency = True: .CheckDiskSpace = True
         .minWordVersion = 14#: .maxDocumentSize = 500000
         .ApplyPageSetup = True: .applyStandardFont = True: .applyStandardParagraphs = True: .FormatFirstParagraph = True: .FormatSecondParagraph = True
@@ -141,7 +135,7 @@ Private Sub SetDefaultConfiguration()
         .disableScreenUpdating = True: .disableDisplayAlerts = True: .useBulkOperations = True: .optimizeFindReplace = True
         .showProgressMessages = True: .showStatusBarUpdates = True: .confirmCriticalOperations = True: .showCompletionMessage = True
         .enableEmergencyRecovery = True: .timeoutOperations = False
-        .supportWord2010 = True: .supportWord2013 = True: .supportWord2016 = True: .useSafePropertyAccess = True: .fallbackMethods = True: .handleMissingFeatures = True
+    .useSafePropertyAccess = True
     .requireDocumentSaved = True: .validateFilePermissions = True: .checkDocumentProtection = True
         .sanitizeInputs = True: .validateRanges = True
         .maxRetryAttempts = 3: .retryDelayMs = 250
@@ -179,7 +173,6 @@ Private Sub ApplyConfigurationKey(key As String, value As String)
     Select Case LCase(key)
         Case "debugmode": Config.debugMode = CBool(value)
         Case "performancemode": Config.performanceMode = CBool(value)
-        Case "compatibilitymode": Config.compatibilityMode = CBool(value)
         Case "checkwordversion": Config.CheckWordVersion = CBool(value)
         Case "validatedocumentintegrity": Config.ValidateDocumentIntegrity = CBool(value)
         Case "validatepropositiontype": Config.ValidatePropositionType = CBool(value)
@@ -226,12 +219,7 @@ Private Sub ApplyConfigurationKey(key As String, value As String)
         Case "showcompletionmessage": Config.showCompletionMessage = CBool(value)
         Case "enableemergencyrecovery": Config.enableEmergencyRecovery = CBool(value)
         Case "timeoutoperations": Config.timeoutOperations = CBool(value)
-        Case "supportword2010": Config.supportWord2010 = CBool(value)
-        Case "supportword2013": Config.supportWord2013 = CBool(value)
-        Case "supportword2016": Config.supportWord2016 = CBool(value)
         Case "usesafepropertyaccess": Config.useSafePropertyAccess = CBool(value)
-        Case "fallbackmethods": Config.fallbackMethods = CBool(value)
-        Case "handlemissingfeatures": Config.handleMissingFeatures = CBool(value)
         Case "requiredocumentsaved": Config.requireDocumentSaved = CBool(value)
         Case "validatefilepermissions": Config.validateFilePermissions = CBool(value)
         Case "checkdocumentprotection": Config.checkDocumentProtection = CBool(value)

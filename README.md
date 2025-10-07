@@ -30,11 +30,11 @@
 
 ### Refactored Architecture (Beta2 Consolidation)
 
-**Beta2 highlights:**
+**Beta2 highlights (updated after entrypoint consolidation):**
 
-- `chainsaw.bas` is now a pure stub (only `ChainsawProcess`).
-- Canonical pipeline lives in `modPipeline.RunChainsawPipeline`.
-- Legacy `modMain.bas` removed (pipeline fully migrated).
+- Single public entry macro: `Chainsaw` (exposed inside `modPipeline`).
+- Legacy stub `chainsaw.bas` and macro `ChainsawProcess` removed.
+- Legacy `modMain.bas` removed (pipeline fully migrated earlier).
 - All formatting / spacing / numbering / separation logic centralized in `modFormatting`.
 - Logging & backups remain disabled (stubs retained for compatibility; zero file writes).
 - Structural validation placeholder isolated for future enhancement.
@@ -65,7 +65,7 @@ chainsaw/
 │   └── Word Personalizações.exportedUI
 ├── scripts/                     # Utility scripts (e.g. count-loc.ps1)
 ├── src/                         # VBA source modules
-│   ├── chainsaw.bas             # Public entry stub (ChainsawProcess)
+│   ├── (removed) chainsaw.bas   # Former stub (ChainsawProcess) – deleted
 │   ├── modPipeline.bas          # Orchestrator pipeline
 │   ├── modFormatting.bas        # Formatting & layout routines
 │   ├── modReplacements.bas      # Text & semantic replacements
@@ -90,7 +90,7 @@ chainsaw/
 
 | Module | Responsibility | Example Procedure |
 |--------|----------------|-------------------|
-| chainsaw.bas | Public entry macro (stub only) | `ChainsawProcess` |
+| (removed) chainsaw.bas | (Removed) legacy stub | (n/a) |
 | modPipeline | Canonical pipeline orchestrator | `RunChainsawPipeline` |
 | modFormatting | Formatting & special paragraphs | `FormatConsiderandoParagraphs` |
 | modReplacements | Pattern / semantic replacements | `ApplyTextReplacements` |
@@ -142,7 +142,7 @@ The system loads settings from `chainsaw-config.ini` (placed alongside the docum
 [GENERAL]
 debug_mode = false
 performance_mode = true
-compatibility_mode = true
+
 
 [VALIDATIONS]
 validate_document_integrity = true
@@ -162,7 +162,7 @@ min_word_version = 14.0
 ### Basic Usage
 
 1. Open a document in Microsoft Word.
-2. Run the macro `ChainsawProcess` (or current orchestrator name in `chainsaw.bas`).
+2. Run the macro `Chainsaw` (defined in `modPipeline`).
 3. The system will process the document according to configuration.
 
 ### Key Shortcuts
@@ -216,7 +216,7 @@ validate_proposition_type = true
 [GENERAL]
 debug_mode = false
 performance_mode = true
-compatibility_mode = true
+
 ```
 
 Notes:

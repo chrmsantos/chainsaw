@@ -1,7 +1,7 @@
 Attribute VB_Name = "modPipeline"
 '================================================================================
-' MODULE: modPipeline (formerly modMain)
-' PURPOSE: Final canonical orchestrator for the Chainsaw pipeline. All domain
+' MODULE: modPipeline
+' PURPOSE: Canonical orchestrator for the Chainsaw pipeline. All domain
 '          logic (formatting, replacements, validation, safety, config, UI,
 '          constants, messages) lives in their dedicated modules. This module
 '          ONLY sequences calls, manages application state, and handles any
@@ -9,7 +9,18 @@ Attribute VB_Name = "modPipeline"
 '================================================================================
 Option Explicit
 
-' Public entrypoint (stable)
+' Public macro entry (single official entrypoint)
+Public Sub Chainsaw()
+    Dim ok As Boolean
+    ok = RunChainsawPipeline()
+    If ok Then
+        If Config.showStatusBarUpdates Then Application.StatusBar = "Chainsaw: processamento concluído"
+    Else
+        If Config.showStatusBarUpdates Then Application.StatusBar = "Chainsaw: falhou"
+    End If
+End Sub
+
+' Back-end function (returns success flag)
 Public Function RunChainsawPipeline() As Boolean
     Dim doc As Document
     Dim prevScreenUpdating As Boolean
@@ -65,7 +76,7 @@ Finalize:
 End Function
 
 '================================================================================
-' INTERNAL: PREVIOUS CHECKING (migrated from legacy modMain)
+' INTERNAL: PREVIOUS CHECKING
 '================================================================================
 Private Function Pipeline_PreviousChecking(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -92,7 +103,7 @@ Private Function Pipeline_PreviousChecking(doc As Document) As Boolean
     End If
     ' Structural validation placeholder (currently benign)
     If Not ValidateDocumentStructure(doc) Then
-        ' Intentionally ignoring result; legacy hook
+        ' Ignored placeholder
     End If
     Pipeline_PreviousChecking = True
     Exit Function

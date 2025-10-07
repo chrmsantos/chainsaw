@@ -42,7 +42,7 @@ ErrHandler:
 	ValidateContentConsistency = False
 End Function
 
-' Proposition type validation migrated from modMain.
+ ' Proposition type validation.
 Public Function ValidatePropositionType(doc As Document) As Boolean
 	On Error GoTo ErrHandler
 	Dim firstPara As Paragraph, paraText As String, i As Long, firstWord As String
