@@ -453,11 +453,14 @@ Public Function ApplyStdFont(doc As Document) As Boolean
 	Dim paraFont As Font
 	Dim paraText As String, cleanText As String
 	Dim isTitle As Boolean, isSpecial As Boolean, startsConsiderando As Boolean
-	Dim applied As Long, skipped As Long
+	Dim applied As Long, skipped As Long, charNormalized As Long
+
+	' Local helper: uniform attribute detection (returns True only if not wdUndefined and value equals target)
+	Dim boldUniform As Boolean, underlineUniform As Boolean
 
 	For i = doc.Paragraphs.Count To 1 Step -1
 		Set para = doc.Paragraphs(i)
-		hasInlineOrVisual = (para.Range.InlineShapes.Count > 0) Or HasVisualContent(para)
+	hasInlineOrVisual = (para.Range.InlineShapes.Count > 0) Or HasVisualContent(para)
 		Set paraFont = para.Range.Font
 
 		' Quick detection of title (legacy heuristic: early, centered, non-empty)
@@ -479,29 +482,65 @@ Public Function ApplyStdFont(doc As Document) As Boolean
 					Or cleanText = "anexo" Or cleanText = "anexos")
 		startsConsiderando = (Len(paraText) >= 12 And LCase$(Left$(paraText, 12)) = "considerando")
 
-		' Apply base font if fully safe (no inline/shape). If not, count as skipped.
+		' Apply base font:
+		'   - Paragraphs WITHOUT visual content: fast SafeSetFont.
+		'   - Paragraphs WITH images: character-level normalization preserving inline shapes.
 		If Not hasInlineOrVisual Then
 			If (paraFont.Name <> STANDARD_FONT) Or (paraFont.Size <> STANDARD_FONT_SIZE) Then
-				Call SafeSetFont(para.Range, STANDARD_FONT, STANDARD_FONT_SIZE)
-				applied = applied + 1
+				If SafeSetFont(para.Range, STANDARD_FONT, STANDARD_FONT_SIZE) Then
+					applied = applied + 1
+				End If
 			End If
 		Else
+			' Character-level normalization only touches characters not part of images
+			If (paraFont.Name <> STANDARD_FONT) Or (paraFont.Size <> STANDARD_FONT_SIZE) Then
+				charNormalized = charNormalized + NormalizeFontCharacterWise(para.Range, STANDARD_FONT, STANDARD_FONT_SIZE)
+			End If
 			skipped = skipped + 1
 		End If
 
-		' Normalize bold / underline only when the ENTIRE paragraph is bold/underlined
-		' (legacy semantics) and it's not a protected special/title paragraph.
+		' Determine uniform emphasis status AFTER potential font change
+		On Error Resume Next
+		boldUniform = (paraFont.Bold = True) ' Will be False if wdUndefined or False
+		If paraFont.Bold <> True Then boldUniform = False
+		underlineUniform = (paraFont.Underline <> wdUnderlineNone And paraFont.Underline <> -9999998)
+		' -9999998 (wdUndefined) guard to avoid stripping partial underline
+		On Error GoTo ErrHandler
+
+		' Only strip global bold/underline if:
+		'   * Paragraph is NOT a title/special/CONSIDERANDO
+		'   * Emphasis is uniform across entire paragraph (not wdUndefined)
 		If Not (isTitle Or isSpecial Or startsConsiderando) Then
-			On Error Resume Next ' Defensive – partial formatting returns wdUndefined
-			If paraFont.Bold = True Then paraFont.Bold = False
-			If paraFont.Underline <> wdUnderlineNone Then paraFont.Underline = wdUnderlineNone
-			On Error GoTo ErrHandler
+			If boldUniform Then paraFont.Bold = False
+			If underlineUniform And paraFont.Underline <> wdUnderlineNone Then paraFont.Underline = wdUnderlineNone
 		End If
 	Next i
 
 	ApplyStdFont = True: Exit Function
 ErrHandler:
 	ApplyStdFont = False
+End Function
+
+' Character-level font normalization preserving inline shapes and other visual elements.
+' Returns count of characters adjusted (best-effort, ignores inline shape placeholders).
+Private Function NormalizeFontCharacterWise(rng As Range, fontName As String, fontSize As Long) As Long
+	On Error GoTo ErrHandler
+	Dim total As Long, i As Long, ch As Range, countChars As Long
+	countChars = SafeGetCharacterCount(rng)
+	If countChars = 0 Then NormalizeFontCharacterWise = 0: Exit Function
+	For i = 1 To countChars
+		Set ch = rng.Characters(i)
+		If ch.InlineShapes.Count = 0 Then
+			If fontName <> "" Then ch.Font.Name = fontName
+			If fontSize > 0 Then ch.Font.Size = fontSize
+			total = total + 1
+		End If
+		If i Mod 400 = 0 Then DoEvents
+	Next i
+	NormalizeFontCharacterWise = total
+	Exit Function
+ErrHandler:
+	NormalizeFontCharacterWise = 0
 End Function
 
 Public Sub FormatCharacterByCharacter(para As Paragraph, fontName As String, fontSize As Long, fontColor As Long, removeUnderline As Boolean, removeBold As Boolean)
