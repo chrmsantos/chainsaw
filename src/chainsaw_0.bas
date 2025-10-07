@@ -1,4 +1,4 @@
-Attribute VB_Name = "chainsaw"
+Attribute VB_Name = "chainsaw_0"
 ' =============================================================================
 ' PROJECT: CHAINSAW PROPOSITURAS
 ' =============================================================================
@@ -344,8 +344,6 @@ Private Function LoadConfiguration() As Boolean
     
 ErrorHandler:
     LogMessage "Error loading configuration: " & Err.Description, LOG_LEVEL_ERROR
-    Private savedImages() As Variant ' placeholder (no use)
-    Private imageCount As Long ' placeholder (no use)
 End Function
 
 Private Function GetConfigurationFilePath() As String
@@ -5586,7 +5584,7 @@ End Function
 '================================================================================
 ' ENHANCED IMAGE PROTECTION - Improved protection during formatting
 '================================================================================
-"" ' (Removed ProtectImagesInRange stub – direct character-wise formatting used for image paragraphs)
+' ' (Removed ProtectImagesInRange stub – direct character-wise formatting used for image paragraphs)
 
 '================================================================================
 ' CLEANUP IMAGE PROTECTION - Cleanup image protection variables
@@ -5769,7 +5767,7 @@ Private Function GetParagraphNumber(doc As Document, position As Long) As Long
     GetParagraphNumber = 0 ' Not found
 End Function
 
-"" ' (Removed view settings protection system stubs – no longer used)
+' ' (Removed view settings protection system stubs – no longer used)
 
 
 
