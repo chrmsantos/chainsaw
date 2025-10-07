@@ -1,3 +1,4 @@
+Attribute VB_Name = "modMessages"
 Option Explicit
 '================================================================================
 ' MODULE: modMessages

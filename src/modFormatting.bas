@@ -1,3 +1,4 @@
+'Attribute VB_Name = "modFormatting"
 '================================================================================
 ' MODULE: modFormatting
 ' PURPOSE: Paragraph, font, title, numbering, and special token formatting routines.

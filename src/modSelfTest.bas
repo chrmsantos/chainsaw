@@ -1,3 +1,4 @@
+'Attribute VB_Name = "modSelfTest"
 '================================================================================
 ' MODULE: modSelfTest
 ' PURPOSE: Lightweight regression/self-test to validate core formatting invariants

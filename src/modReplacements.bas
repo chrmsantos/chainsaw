@@ -1,3 +1,4 @@
+'Attribute VB_Name = "modReplacements"
 '================================================================================
 ' MODULE: modReplacements
 ' PURPOSE: Text and specific paragraph replacement routines.

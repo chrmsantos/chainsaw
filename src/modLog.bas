@@ -1,3 +1,4 @@
+'Attribute VB_Name = "modLog"
 '================================================================================
 ' MODULE: modLog
 ' PURPOSE: Minimal no-op logging stubs to preserve call structure without overhead.

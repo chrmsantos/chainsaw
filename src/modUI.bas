@@ -1,3 +1,4 @@
+Attribute VB_Name = "modUI"
 Option Explicit
 '
 ' MODULE: modUI
