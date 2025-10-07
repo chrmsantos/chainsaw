@@ -7,6 +7,40 @@ Option Explicit
 
 ' NOTE: Centralized formatting implementation. Remaining formatting bodies migrated from chainsaw.bas.
 
+'================================================================================
+' SAFE UTILITY HELPERS (restored from legacy monolithic version for parity)
+'================================================================================
+' These helpers were referenced (SafeSetFont / SafeGetCharacterCount) but not
+' implemented in the modular refactor, causing silent loss of certain per‑char
+' formatting protections and paragraph font normalization behavior.
+'
+' SafeSetFont: Attempts a fast font assignment; on error returns False so caller
+' can choose a slower fallback.
+' SafeGetCharacterCount: Returns a defensive character count excluding the
+' terminal paragraph mark when appropriate.
+
+Private Function SafeSetFont(rng As Range, fontName As String, fontSize As Long) As Boolean
+	On Error GoTo ErrHandler
+	With rng.Font
+		If fontName <> "" Then .Name = fontName
+		If fontSize > 0 Then .Size = fontSize
+	End With
+	SafeSetFont = True: Exit Function
+ErrHandler:
+	SafeSetFont = False
+End Function
+
+Private Function SafeGetCharacterCount(rng As Range) As Long
+	On Error GoTo ErrHandler
+	Dim cnt As Long
+	cnt = rng.Characters.Count
+	' Word includes the paragraph mark. Keep behavior consistent with legacy:
+	If cnt > 0 Then SafeGetCharacterCount = cnt Else SafeGetCharacterCount = 0
+	Exit Function
+ErrHandler:
+	SafeGetCharacterCount = 0
+End Function
+
 ' Public visual content detector (wrapper around safe logic)
 Public Function HasVisualContent(para As Paragraph) As Boolean
 	On Error GoTo Fallback
@@ -405,27 +439,66 @@ ErrHandler:
 End Function
 
 Public Function ApplyStdFont(doc As Document) As Boolean
+	' Restored enriched logic from legacy version:
+	' 1. Apply standard font (Arial 12) to all paragraphs w/out images.
+	' 2. If a paragraph is fully bold and/or underlined but NOT a title,
+	'    NOT a Justificativa/Anexo marker, and NOT starting with CONSIDERANDO,
+	'    remove bold/underline to normalize body text.
+	' 3. Skip destructive normalization for paragraphs containing images or
+	'    other visual content (safety parity with legacy ProtectImages logic).
 	On Error GoTo ErrHandler
-	Dim para As Paragraph, i As Long, hasInlineImage As Boolean
-	Dim formattedCount As Long, skippedCount As Long
+
+	Dim i As Long, para As Paragraph
+	Dim hasInlineOrVisual As Boolean
+	Dim paraFont As Font
+	Dim paraText As String, cleanText As String
+	Dim isTitle As Boolean, isSpecial As Boolean, startsConsiderando As Boolean
+	Dim applied As Long, skipped As Long
+
 	For i = doc.Paragraphs.Count To 1 Step -1
 		Set para = doc.Paragraphs(i)
-		hasInlineImage = (para.Range.InlineShapes.Count > 0)
-		If Not hasInlineImage And Not HasVisualContent(para) Then
-			' Fast path if already correct
-			With para.Range.Font
-				If .Name = STANDARD_FONT And .Size = STANDARD_FONT_SIZE And .Color = wdColorAutomatic Then GoTo NextPara
-			End With
+		hasInlineOrVisual = (para.Range.InlineShapes.Count > 0) Or HasVisualContent(para)
+		Set paraFont = para.Range.Font
+
+		' Quick detection of title (legacy heuristic: early, centered, non-empty)
+		paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
+		If i <= 3 And para.Format.Alignment = wdAlignParagraphCenter And paraText <> "" Then
+			isTitle = True
+		Else
+			isTitle = False
 		End If
-		If Not hasInlineImage Then
-			If SafeSetFont(para.Range, STANDARD_FONT, STANDARD_FONT_SIZE) Then
-				formattedCount = formattedCount + 1
+
+		' Build cleanText to detect special paragraph markers (case-insensitive)
+		cleanText = paraText
+		Do While Len(cleanText) > 0 And (Right(cleanText, 1) = "." Or Right(cleanText, 1) = "," _
+			Or Right(cleanText, 1) = ":" Or Right(cleanText, 1) = ";")
+			cleanText = Left(cleanText, Len(cleanText) - 1)
+		Loop
+		cleanText = LCase$(Trim$(cleanText))
+		isSpecial = (cleanText = "justificativa" Or cleanText = "justificativa:" _
+					Or cleanText = "anexo" Or cleanText = "anexos")
+		startsConsiderando = (Len(paraText) >= 12 And LCase$(Left$(paraText, 12)) = "considerando")
+
+		' Apply base font if fully safe (no inline/shape). If not, count as skipped.
+		If Not hasInlineOrVisual Then
+			If (paraFont.Name <> STANDARD_FONT) Or (paraFont.Size <> STANDARD_FONT_SIZE) Then
+				Call SafeSetFont(para.Range, STANDARD_FONT, STANDARD_FONT_SIZE)
+				applied = applied + 1
 			End If
 		Else
-			formattedCount = formattedCount + 1 ' Conservatively count
+			skipped = skipped + 1
 		End If
-NextPara:
+
+		' Normalize bold / underline only when the ENTIRE paragraph is bold/underlined
+		' (legacy semantics) and it's not a protected special/title paragraph.
+		If Not (isTitle Or isSpecial Or startsConsiderando) Then
+			On Error Resume Next ' Defensive – partial formatting returns wdUndefined
+			If paraFont.Bold = True Then paraFont.Bold = False
+			If paraFont.Underline <> wdUnderlineNone Then paraFont.Underline = wdUnderlineNone
+			On Error GoTo ErrHandler
+		End If
 	Next i
+
 	ApplyStdFont = True: Exit Function
 ErrHandler:
 	ApplyStdFont = False
