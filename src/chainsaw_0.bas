@@ -253,29 +253,9 @@ End Type
 ' (Removed private duplicate to avoid divergence.)
  ' Config is now provided by modConfig module.
 
-'================================================================================
-' UNIT CONVERSION UTILITIES
-'================================================================================
-' Word uses points (1 point = 1/72 inch). 1 inch = 2.54 cm. So cm = points * 2.54 / 72.
-Private Function CmFromPoints(ByVal pts As Double) As Double
-    CmFromPoints = (pts * 2.54#) / 72#
-End Function
+'' Unit conversion utility moved to modUtils (CmFromPoints)
 
-'================================================================================
-' TIMING UTILITIES
-'================================================================================
-' Returns whole seconds elapsed since the stored processingStartTime.
-' Safe if called before initialization (returns 0). Placed after UDT per VBA ordering rules.
-Private Function ElapsedSeconds() As Long
-    If processingStartTime <= 0 Then
-        ElapsedSeconds = 0
-    Else
-        ElapsedSeconds = CLng(Timer - processingStartTime)
-        If ElapsedSeconds < 0 Then ' Timer wraps at midnight
-            ElapsedSeconds = ElapsedSeconds + 86400&
-        End If
-    End If
-End Function
+'' Timing helper moved to modUtils (ElapsedSeconds)
 
 ' Image & view protection systems fully removed in simplified build.
 
@@ -2765,79 +2745,18 @@ End Function
 '================================================================================
 ' LOG STRING NORMALIZATION - avoid encoding issues in log files
 '================================================================================
-Private Function NormalizeForLog(ByVal s As String) As String
-    On Error Resume Next
-    Dim i As Long, ch As String, code As Long
-    Dim out As String
-    out = ""
-    For i = 1 To Len(s)
-        ch = Mid$(s, i, 1)
-        code = AscW(ch)
-        ' Keep ASCII printable and common punctuation; replace others with '?'
-        If code >= 32 And code <= 126 Then
-            out = out & ch
-        ElseIf ch = vbCr Or ch = vbLf Or ch = vbTab Then
-            out = out & ch
-        Else
-            out = out & "?"
-        End If
-    Next i
-    NormalizeForLog = out
-End Function
+'' NormalizeForLog moved to modUtils
 
 '================================================================================
 ' UI STRING NORMALIZATION - produce ASCII-safe text for MsgBox dialogs
 '================================================================================
-Private Function NormalizeForUI(ByVal s As String) As String
-    On Error Resume Next
-    If Not dialogAsciiNormalizationEnabled Then
-        NormalizeForUI = s
-        Exit Function
-    End If
-    Dim i As Long, ch As String, code As Long
-    Dim out As String
-    out = ""
-    For i = 1 To Len(s)
-        ch = Mid$(s, i, 1)
-        code = AscW(ch)
-        Select Case code
-            Case 192 To 197, 224 To 229: out = out & "a"   ' ������������
-            Case 199: out = out & "C"                      ' �
-            Case 231: out = out & "c"                      ' �
-            Case 200 To 203, 232 To 235: out = out & "e"
-            Case 204 To 207, 236 To 239: out = out & "i"
-            Case 210 To 214, 242 To 246: out = out & "o"
-            Case 217 To 220, 249 To 252: out = out & "u"
-            Case 209: out = out & "N"                      ' �
-            Case 241: out = out & "n"                      ' �
-            Case 8211, 8212: out = out & "-"               ' en/em dash
-            Case 8216, 8217: out = out & "'"               ' curly apostrophes
-            Case 8220, 8221, 171, 187: out = out & """"    ' various quotes -> standard quote
-            Case 10, 13: out = out & ch                    ' CR/LF
-            Case 32 To 126: out = out & ch                 ' standard ASCII
-            Case Else: out = out & "?"
-        End Select
-    Next i
-    NormalizeForUI = out
-End Function
+'' NormalizeForUI moved to modUtils
 
 '--------------------------------------------------------------------------------
 ' ReplacePlaceholders - convenience wrapper for common {{KEY}} replacements
 ' Example: ReplacePlaceholders(MSG_ERR_VERSION, "MIN", 14, "CUR", Application.Version)
 '--------------------------------------------------------------------------------
-Private Function ReplacePlaceholders(ByVal template As String, ParamArray kv()) As String
-    On Error Resume Next
-    Dim i As Long, result As String, k As String, val As String
-    result = template
-    For i = LBound(kv) To UBound(kv) Step 2
-        If i + 1 <= UBound(kv) Then
-            k = CStr(kv(i))
-            val = CStr(kv(i + 1))
-            result = Replace(result, "{{" & k & "}}", val)
-        End If
-    Next i
-    ReplacePlaceholders = result
-End Function
+'' ReplacePlaceholders moved to modUtils
 
 '================================================================================
 ' APPLY TEXT REPLACEMENTS
