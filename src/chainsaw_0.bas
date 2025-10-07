@@ -12,7 +12,7 @@ Attribute VB_Name = "chainsaw"
 
 ' Windows API declarations
 Private Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
-'(Removed keybd_event and virtual key constants – obsolete after ChatGPT feature removal)
+'(Removed keybd_event and virtual key constants ï¿½ obsolete after ChatGPT feature removal)
 
 Option Explicit
 
@@ -98,20 +98,20 @@ Private Const TITLE_CRITICAL_SAVE_EXIT As String = "Critical Save Exit - " & SYS
 '   - TOTAL PROTECTION: Preserves rulers, display modes and original settings
 '   - Watermark removal and manual formatting cleanup
 '
-' • TEXT STANDARDIZATION SYSTEM:
+' ï¿½ TEXT STANDARDIZATION SYSTEM:
 '   - Automatic normalization of "d'Oeste" and its variants
 '' Removed: Standardization of "- Vereador -"
-'   - Smart replacement of isolated hyphens/dashes with em dash (—)
+'   - Smart replacement of isolated hyphens/dashes with em dash (ï¿½)
 '   - Complete removal of manual line breaks (preserves paragraph breaks)
 '   - Context and formatting preservation during replacements
 '
-' • LOGGING AND MONITORING SYSTEM:
+' ï¿½ LOGGING AND MONITORING SYSTEM:
 '   - Detailed operation logging
 '   - Error control with fallback
 '   - Status bar messages
 '   - Execution history
 '
-' • VIEW CONFIGURATION PROTECTION SYSTEM:
+' ï¿½ VIEW CONFIGURATION PROTECTION SYSTEM:
 '   - Automatic backup of all display settings
 '   - Preservation of rulers (horizontal and vertical)
 '   - Maintenance of original view mode
@@ -119,7 +119,7 @@ Private Const TITLE_CRITICAL_SAVE_EXIT As String = "Critical Save Exit - " & SYS
 '   - Complete restoration after processing (except zoom)
 '   - Compatibility with all Word display modes
 '
-' • OPTIMIZED PERFORMANCE:
+' ï¿½ OPTIMIZED PERFORMANCE:
 '   - Efficient processing for large documents
 '   - Temporary disabling of visual updates
 '   - Intelligent resource management
@@ -201,12 +201,8 @@ Private loggingEnabled As Boolean
 Private logFilePath As String
 Private formattingCancelled As Boolean
 Private backupFilePath As String
-Private logInfoCount As Long
-Private logWarnCount As Long
-Private logErrorCount As Long
-Private currentStepName As String
-Private currentStepStart As Double
-Private processingStartTime As Double ' Session start timestamp for total duration logging
+ ' Removed unused logging counters and timing variables after simplification
+Private processingStartTime As Double ' (retained if future timing needed)
 Private isConfigLoaded As Boolean     ' Tracks whether configuration defaults/file have been applied
 
 ' Configuration variables - loaded from chainsaw-config.ini
@@ -225,12 +221,7 @@ Private Type ConfigSettings
     minWordVersion As Double
     maxDocumentSize As Long
     
-    ' Backup
-    autoBackup As Boolean
-    backupBeforeProcessing As Boolean
-    maxBackupFiles As Long
-    backupCleanup As Boolean
-    backupRetryAttempts As Long
+    ' Backup (deprecated â€“ fields retained only if legacy INI still sets them; will be ignored)
     
     ' Formatting
     ApplyPageSetup As Boolean
@@ -268,18 +259,9 @@ Private Type ConfigSettings
     normalizeDosteVariants As Boolean
     ' Removed: normalizeVereadorVariants
     
-    ' Visual Elements
-    BackupAllImages As Boolean
-    RestoreAllImages As Boolean
-    ProtectImagesInRange As Boolean
-    BackupViewSettings As Boolean
-    RestoreViewSettings As Boolean
+    ' Visual Elements (deprecated â€“ image/view protection removed)
     
-    ' Logging
-    enableLogging As Boolean
-    logLevel As String      ' INFO|WARN|ERROR|DEBUG
-    logToFile As Boolean    ' retain only essential toggle
-    maxLogSizeMb As Long    ' size cap
+    ' Logging (deprecated â€“ no logging implementation present)
     
     ' Performance
     disableScreenUpdating As Boolean
@@ -308,7 +290,6 @@ Private Type ConfigSettings
     requireDocumentSaved As Boolean
     validateFilePermissions As Boolean
     checkDocumentProtection As Boolean
-    enableEmergencyBackup As Boolean
     sanitizeInputs As Boolean
     validateRanges As Boolean
     
@@ -321,51 +302,7 @@ End Type
 ' Active configuration instance
 Private Config As ConfigSettings
 
-' Image protection variables
-Private Type ImageInfo
-    paraIndex As Long
-    ImageIndex As Long
-    ImageType As String
-    ImageData As Variant
-    position As Long
-    WrapType As Long
-    Width As Single
-    Height As Single
-    LeftPosition As Single
-    TopPosition As Single
-    AnchorRange As Range
-End Type
-
-Private savedImages() As ImageInfo
-Private imageCount As Long
-
-' View settings backup variables
-Private Type ViewSettings
-    ViewType As Long
-    ShowVerticalRuler As Boolean
-    ShowHorizontalRuler As Boolean
-    ShowFieldCodes As Boolean
-    ShowBookmarks As Boolean
-    ShowParagraphMarks As Boolean
-    ShowSpaces As Boolean
-    ShowTabs As Boolean
-    ShowHiddenText As Boolean
-    ShowOptionalHyphens As Boolean
-    ShowAll As Boolean
-    ShowDrawings As Boolean
-    ShowObjectAnchors As Boolean
-    ShowTextBoundaries As Boolean
-    ShowHighlight As Boolean
-    ' ShowAnimation removida - compatibilidade
-    DraftFont As Boolean
-    WrapToWindow As Boolean
-    ShowPicturePlaceHolders As Boolean
-    ShowFieldShading As Long
-    TableGridlines As Boolean
-    ' EnlargeFontsLessThan removida - compatibilidade
-End Type
-
-Private originalViewSettings As ViewSettings
+' Image & view protection systems fully removed in simplified build.
 
 ' Dialog/UI normalization flag (controls ASCII folding for MsgBox text)
 Private dialogAsciiNormalizationEnabled As Boolean
@@ -407,8 +344,8 @@ Private Function LoadConfiguration() As Boolean
     
 ErrorHandler:
     LogMessage "Error loading configuration: " & Err.Description, LOG_LEVEL_ERROR
-    SetDefaultConfiguration
-    LoadConfiguration = True ' Continue with defaults
+    Private savedImages() As Variant ' placeholder (no use)
+    Private imageCount As Long ' placeholder (no use)
 End Function
 
 Private Function GetConfigurationFilePath() As String
@@ -468,7 +405,7 @@ Private Sub SetDefaultConfiguration()
         .applyStandardParagraphs = True
         .FormatFirstParagraph = True
         .FormatSecondParagraph = True
-        .FormatNumberedParagraphs = True
+        Private originalViewSettings As Variant
         .FormatConsiderandoParagraphs = True
         .formatJustificativaParagraphs = True
         .EnableHyphenation = True
@@ -499,11 +436,8 @@ Private Sub SetDefaultConfiguration()
     ' Removed: normalizeVereadorVariants
         
     ' Visual Elements (safety helpers)
-        .BackupAllImages = True
-        .RestoreAllImages = True
-        .ProtectImagesInRange = True
-        .BackupViewSettings = True
-        .RestoreViewSettings = True
+    .BackupAllImages = False
+    .RestoreAllImages = False
         
         ' Performance (always on)
     .enableLogging = True
@@ -537,7 +471,6 @@ Private Sub SetDefaultConfiguration()
         .requireDocumentSaved = True
         .validateFilePermissions = True
         .checkDocumentProtection = True
-        .enableEmergencyBackup = True
         .sanitizeInputs = True
         .validateRanges = True
         
@@ -609,7 +542,7 @@ Private Sub ProcessConfigLine(section As String, configLine As String)
             Case "VALIDACOES", "VALIDATIONS"
                 ProcessValidationConfig configKey, configValue
             Case "BACKUP"
-                ProcessBackupConfig configKey, configValue
+                ' Deprecated: backup settings ignored
             Case "FORMATACAO", "FORMATTING"
                 ProcessFormattingConfig configKey, configValue
             Case "LIMPEZA", "CLEANUP"
@@ -619,9 +552,9 @@ Private Sub ProcessConfigLine(section As String, configLine As String)
             Case "SUBSTITUICOES", "REPLACEMENTS"
                 ProcessReplacementConfig configKey, configValue
             Case "ELEMENTOS_VISUAIS", "VISUAL_ELEMENTS"
-                ProcessVisualElementsConfig configKey, configValue
+                ' Deprecated: visual element settings ignored
             Case "LOGGING"
-                ProcessLoggingConfig configKey, configValue
+                ' Deprecated: logging settings ignored
             Case "PERFORMANCE"
                 ProcessPerformanceConfig configKey, configValue
             Case "INTERFACE"
@@ -667,18 +600,7 @@ Private Sub ProcessValidationConfig(key As String, value As String)
 End Sub
 
 Private Sub ProcessBackupConfig(key As String, value As String)
-    Select Case key
-        Case "AUTO_BACKUP"
-            Config.autoBackup = (LCase(value) = "true")
-        Case "BACKUP_BEFORE_PROCESSING"
-            Config.backupBeforeProcessing = (LCase(value) = "true")
-        Case "MAX_BACKUP_FILES"
-            Config.maxBackupFiles = CLng(value)
-        Case "BACKUP_CLEANUP"
-            Config.backupCleanup = (LCase(value) = "true")
-        Case "BACKUP_RETRY_ATTEMPTS"
-            Config.backupRetryAttempts = CLng(value)
-    End Select
+    ' Deprecated: backup system removed â€“ keys ignored
 End Sub
 
 Private Sub ProcessFormattingConfig(key As String, value As String)
@@ -757,31 +679,11 @@ Private Sub ProcessReplacementConfig(key As String, value As String)
 End Sub
 
 Private Sub ProcessVisualElementsConfig(key As String, value As String)
-    Select Case key
-        Case "BACKUP_ALL_IMAGES"
-            Config.BackupAllImages = (LCase(value) = "true")
-        Case "RESTORE_ALL_IMAGES"
-            Config.RestoreAllImages = (LCase(value) = "true")
-        Case "PROTECT_IMAGES_IN_RANGE"
-            Config.ProtectImagesInRange = (LCase(value) = "true")
-        Case "BACKUP_VIEW_SETTINGS"
-            Config.BackupViewSettings = (LCase(value) = "true")
-        Case "RESTORE_VIEW_SETTINGS"
-            Config.RestoreViewSettings = (LCase(value) = "true")
-    End Select
+    ' Deprecated: image/view protection removed â€“ keys ignored
 End Sub
 
 Private Sub ProcessLoggingConfig(key As String, value As String)
-    Select Case key
-        Case "ENABLE_LOGGING"
-            Config.enableLogging = (LCase(value) = "true")
-        Case "LOG_LEVEL"
-            Config.logLevel = UCase(value)
-        Case "LOG_TO_FILE"
-            Config.logToFile = (LCase(value) = "true")
-        Case "MAX_LOG_SIZE_MB"
-            Config.maxLogSizeMb = CLng(value)
-    End Select
+    ' Deprecated: logging removed â€“ keys ignored
 End Sub
 
 Private Sub ProcessPerformanceConfig(key As String, value As String)
@@ -841,8 +743,6 @@ Private Sub ProcessSecurityConfig(key As String, value As String)
             Config.validateFilePermissions = (LCase(value) = "true")
         Case "CHECK_DOCUMENT_PROTECTION"
             Config.checkDocumentProtection = (LCase(value) = "true")
-        Case "ENABLE_EMERGENCY_BACKUP"
-            Config.enableEmergencyBackup = (LCase(value) = "true")
         Case "SANITIZE_INPUTS"
             Config.sanitizeInputs = (LCase(value) = "true")
         Case "VALIDATE_RANGES"
@@ -1258,25 +1158,8 @@ Public Sub StandardizeDocumentMain()
         End If
     End If
     
-    ' Backup creation with validation
-    If Not CreateDocumentBackup(doc) Then
-        LogMessage "Failed to create backup - continuing without backup", LOG_LEVEL_WARNING
-        Application.StatusBar = "Warning: Backup was not possible - processing without backup"
-        Dim backupResponse As VbMsgBoxResult
-    backupResponse = MsgBox(NormalizeForUI("It was not possible to create a backup of the document." & vbCrLf & _
-                  "Do you want to continue anyway?"), vbYesNo + vbExclamation, NormalizeForUI("Backup Failure - Chainsaw Proposituras"))
-        If backupResponse = vbNo Then
-            LogMessage "Operation cancelled by user due to backup failure", LOG_LEVEL_INFO
-            GoTo CleanUp
-        End If
-    Else
-        Application.StatusBar = "Backup created - formatting document..."
-    End If
-    
-    ' Backup original view settings
-    If Not BackupViewSettings(doc) Then
-        LogMessage "Warning: Failed to backup view settings", LOG_LEVEL_WARNING
-    End If
+    ' Backup system removed (no-op)
+    ' View settings backup removed (no-op)
 
     ' Visual elements cleanup step removed
     Application.StatusBar = "Processing document structure..."
@@ -1285,10 +1168,7 @@ Public Sub StandardizeDocumentMain()
         GoTo CleanUp
     End If
 
-    ' Restore original view settings (except zoom)
-    If Not RestoreViewSettings(doc) Then
-        LogMessage "Warning: Some view settings may not have been restored", LOG_LEVEL_WARNING
-    End If
+    ' View settings restore removed (no-op)
 
     If formattingCancelled Then
         GoTo CleanUp
@@ -1305,7 +1185,7 @@ CleanUp:
     
     SafeCleanup
     CleanupImageProtection ' Cleanup image protection variables
-    CleanupViewSettings    ' Cleanup view settings variables
+    ' (Removed) CleanupViewSettings
     
     If Not SetAppState(True, "Document standardized successfully!") Then
         LogMessage "Failed to restore application state", LOG_LEVEL_WARNING
@@ -1401,7 +1281,7 @@ Private Sub EmergencyRecovery()
     CleanupImageProtection
     
     ' Clear view-settings variables on error
-    CleanupViewSettings
+    ' (Removed) CleanupViewSettings
     
     LogMessage "Emergency recovery executed", LOG_LEVEL_ERROR
         undoGroupEnabled = False
@@ -1766,140 +1646,28 @@ End Sub
 ' LOGGING MANAGEMENT - APRIMORADO COM DETALHES
 '================================================================================
 Private Function InitializeLogging(doc As Document) As Boolean
-    On Error GoTo ErrorHandler
-    
-    If doc.Path <> "" Then
-        logFilePath = doc.Path & "\" & Format(Now, "yyyy-mm-dd") & "_" & _
-                     Replace(doc.Name, ".doc", "") & "_FormattingLog.txt"
-        logFilePath = Replace(logFilePath, ".docx", "") & "_FormattingLog.txt"
-        logFilePath = Replace(logFilePath, ".docm", "") & "_FormattingLog.txt"
-    Else
-        logFilePath = Environ("TEMP") & "\" & Format(Now, "yyyy-mm-dd") & "_DocumentFormattingLog.txt"
-    End If
-    
-    Open logFilePath For Output As #1
-    Print #1, "========================================================"
-    Print #1, "DOCUMENT FORMATTING LOG - LOGGING SYSTEM"
-    Print #1, "========================================================"
-    Print #1, "Session: " & Format(Now, "yyyy-mm-dd HH:MM:ss")
-    Print #1, "User: " & NormalizeForLog(Environ("USERNAME"))
-    Print #1, "Computer: " & NormalizeForLog(Environ("COMPUTERNAME"))
-    Print #1, "Word Version: " & NormalizeForLog(CStr(Application.version))
-    Print #1, "Document: " & NormalizeForLog(doc.Name)
-    Print #1, "Location: " & NormalizeForLog(IIf(doc.Path = "", "(Not saved)", doc.Path))
-    Print #1, "Protection: " & GetProtectionType(doc)
-    Print #1, "Size: " & GetDocumentSize(doc)
-    Print #1, "Paragraphs: " & doc.Paragraphs.count & " | Sections: " & doc.Sections.count
-    Print #1, "Log Level: " & Config.logLevel
-    Print #1, "========================================================"
-    Print #1, "Pipeline will run the following steps (simplified):"
-    Print #1, "- Page setup"
-    Print #1, "- Clean document structure (remove blank lines above title, leading spaces)"
-    Print #1, "- Proposition validation and title formatting"
-    Print #1, "- Standard fonts and paragraphs"
-    Print #1, "- CONSIDERANDO capitalization and specific replacements"
-    Print #1, "- Text replacements and numbered paragraphs normalization"
-    Print #1, "- Special headers/footers (header image + footer page numbers)"
-    Print #1, "- Spacing cleanup and paragraph separation"
-    Print #1, "========================================================"
-    Close #1
-    
-    loggingEnabled = True
-    InitializeLogging = True
-    
-    Exit Function
-    
-ErrorHandler:
+    ' Logging fully disabled for simplified build; keep signature for compatibility
     loggingEnabled = False
-    InitializeLogging = False
+    InitializeLogging = True
 End Function
 
 Private Sub LogMessage(message As String, Optional level As String = LOG_LEVEL_INFO)
-    On Error GoTo ErrorHandler
-    
-    If Not loggingEnabled Then Exit Sub
-    
-    Dim levelText As String
-    Dim levelIcon As String
-    
-    Select Case level
-        Case LOG_LEVEL_INFO
-            levelText = "INFO"
-            levelIcon = ""
-            logInfoCount = logInfoCount + 1
-        Case LOG_LEVEL_WARNING
-            levelText = "WARNING"
-            levelIcon = ""
-            logWarnCount = logWarnCount + 1
-        Case LOG_LEVEL_ERROR
-            levelText = "ERROR"
-            levelIcon = ""
-            logErrorCount = logErrorCount + 1
-        Case Else
-            levelText = "OTHER"
-            levelIcon = ""
-    End Select
-    
-    Dim formattedMessage As String
-    formattedMessage = Format(Now, "yyyy-mm-dd HH:MM:ss") & " [" & levelText & "] " & levelIcon & " " & NormalizeForLog(message)
-    
-    Open logFilePath For Append As #1
-    Print #1, formattedMessage
-    Close #1
-    
-    Debug.Print "LOG: " & formattedMessage
-    
-    Exit Sub
-    
-ErrorHandler:
-    Debug.Print "LOGGING FAILURE: " & message
+    ' No-op stub; messages intentionally ignored
 End Sub
 
 '================================================================================
 ' LOGGING HELPERS: STEP TIMING
 '================================================================================
 Private Sub LogStepStart(stepName As String)
-    On Error Resume Next
-    currentStepName = stepName
-    currentStepStart = Timer
-    LogMessage "START: " & stepName, LOG_LEVEL_INFO
+    ' No-op: timing/logging removed
 End Sub
 
 Private Sub LogStepEnd(Optional ByVal success As Boolean = True)
-    On Error Resume Next
-    If currentStepName <> "" Then
-        Dim dur As Double
-        dur = Timer - currentStepStart
-        LogMessage "END: " & currentStepName & _
-                   IIf(success, " (ok)", " (with warnings/errors)") & _
-                   " | " & Format(dur, "0.00") & "s", LOG_LEVEL_INFO
-    End If
-    currentStepName = ""
-    currentStepStart = 0
+    ' No-op: timing/logging removed
 End Sub
 
 Private Sub SafeFinalizeLogging()
-    On Error GoTo ErrorHandler
-    
-    If loggingEnabled Then
-        Open logFilePath For Append As #1
-        Print #1, "================================================"
-        Print #1, "END OF SESSION - " & Format(Now, "yyyy-mm-dd HH:MM:ss")
-        Print #1, "Duration: " & Format(Timer - processingStartTime, "0.00") & " seconds"
-        Print #1, "Errors: " & IIf(Err.Number = 0, "None", Err.Number & " - " & Err.Description)
-        Print #1, "Status: " & IIf(formattingCancelled, "CANCELLED", "COMPLETED")
-        Print #1, "Log counters -> INFO: " & logInfoCount & _
-                  ", WARNING: " & logWarnCount & ", ERROR: " & logErrorCount
-        Print #1, "================================================"
-        Close #1
-    End If
-    
-    loggingEnabled = False
-    
-    Exit Sub
-    
-ErrorHandler:
-    Debug.Print "Error finalizing logging: " & Err.Description
+    ' No-op: logging disabled
     loggingEnabled = False
 End Sub
 
@@ -2387,14 +2155,9 @@ Private Function ApplyStdFont(doc As Document) As Boolean
                     formattedCount = formattedCount + 1
                 End If
             Else
-                ' NEW: Protected formatting for paragraphs WITH images
-                If ProtectImagesInRange(para.Range) Then
-                    formattedCount = formattedCount + 1
-                Else
-                    ' Fallback: consolidated safe basic formatting
-                    Call FormatCharacterByCharacter(para, STANDARD_FONT, STANDARD_FONT_SIZE, wdColorAutomatic, False, False)
-                    formattedCount = formattedCount + 1
-                End If
+                ' Paragraph has inline image â€“ apply conservative character-wise formatting directly
+                Call FormatCharacterByCharacter(para, STANDARD_FONT, STANDARD_FONT_SIZE, wdColorAutomatic, False, False)
+                formattedCount = formattedCount + 1
             End If
         End If
         
@@ -3504,11 +3267,11 @@ Private Function ValidatePropositionType(doc As Document) As Boolean
     End If
     
     ' Check if it's one of the expected proposition types (Portuguese terms)
-    If firstWord = "indicação" Or firstWord = "requerimento" Or firstWord = "moção" Then
+    If firstWord = "indicaï¿½ï¿½o" Or firstWord = "requerimento" Or firstWord = "moï¿½ï¿½o" Then
         LogMessage "Proposition type validated: " & firstWord, LOG_LEVEL_INFO
         ValidatePropositionType = True
     Else
-        ' Not a standard proposition document — ask the user for confirmation
+        ' Not a standard proposition document ï¿½ ask the user for confirmation
         LogMessage "First word isn't a recognized standard proposition: " & firstWord, LOG_LEVEL_WARNING
         Application.StatusBar = "Waiting for user confirmation about document type..."
         
@@ -3582,7 +3345,7 @@ Private Function FormatDocumentTitle(doc As Document) As Boolean
     words = Split(paraText, " ")
     If UBound(words) >= 0 Then
         firstWord = LCase(Trim(words(0)))
-        If firstWord = "indicação" Or firstWord = "requerimento" Or firstWord = "moção" Then
+        If firstWord = "indicaï¿½ï¿½o" Or firstWord = "requerimento" Or firstWord = "moï¿½ï¿½o" Then
             isProposition = True
         End If
     End If
@@ -3742,15 +3505,15 @@ Private Function NormalizeForUI(ByVal s As String) As String
         ch = Mid$(s, i, 1)
         code = AscW(ch)
         Select Case code
-            Case 192 To 197, 224 To 229: out = out & "a"   ' ÀÁÂÃÄÅàáâãäå
-            Case 199: out = out & "C"                      ' Ç
-            Case 231: out = out & "c"                      ' ç
+            Case 192 To 197, 224 To 229: out = out & "a"   ' ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+            Case 199: out = out & "C"                      ' ï¿½
+            Case 231: out = out & "c"                      ' ï¿½
             Case 200 To 203, 232 To 235: out = out & "e"
             Case 204 To 207, 236 To 239: out = out & "i"
             Case 210 To 214, 242 To 246: out = out & "o"
             Case 217 To 220, 249 To 252: out = out & "u"
-            Case 209: out = out & "N"                      ' Ñ
-            Case 241: out = out & "n"                      ' ñ
+            Case 209: out = out & "N"                      ' ï¿½
+            Case 241: out = out & "n"                      ' ï¿½
             Case 8211, 8212: out = out & "-"               ' en/em dash
             Case 8216, 8217: out = out & "'"               ' curly apostrophes
             Case 8220, 8221, 171, 187: out = out & """"    ' various quotes -> standard quote
@@ -3798,19 +3561,19 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
     ' Define possible variants of the first 3 characters of "d'Oeste"
     ReDim dOesteVariants(0 To 15)
     dOesteVariants(0) = "d'O"   ' Original
-    dOesteVariants(1) = "d´O"   ' Acute accent
+    dOesteVariants(1) = "dï¿½O"   ' Acute accent
     dOesteVariants(2) = "d`O"   ' Grave accent
     dOesteVariants(3) = "d" & Chr(8220) & "O"   ' Left curly quote
     dOesteVariants(4) = "d'o"   ' Lowercase
-    dOesteVariants(5) = "d´o"
+    dOesteVariants(5) = "dï¿½o"
     dOesteVariants(6) = "d`o"
     dOesteVariants(7) = "d" & Chr(8220) & "o"
     dOesteVariants(8) = "D'O"   ' Uppercase D
-    dOesteVariants(9) = "D´O"
+    dOesteVariants(9) = "Dï¿½O"
     dOesteVariants(10) = "D`O"
     dOesteVariants(11) = "D" & Chr(8220) & "O"
     dOesteVariants(12) = "D'o"
-    dOesteVariants(13) = "D´o"
+    dOesteVariants(13) = "Dï¿½o"
     dOesteVariants(14) = "D`o"
     dOesteVariants(15) = "D" & Chr(8220) & "o"
     
@@ -3838,26 +3601,26 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
     
     ' Removed: vereador variants replacement
     
-    ' Feature 12: Replace isolated hyphens/en dashes with em dash (—)
-    ' Normalizes hyphens (-) and en dashes (–) surrounded by spaces into em dashes (—)
+    ' Feature 12: Replace isolated hyphens/en dashes with em dash (ï¿½)
+    ' Normalizes hyphens (-) and en dashes (ï¿½) surrounded by spaces into em dashes (ï¿½)
     Set rng = doc.Range
     Dim dashVariants() As String
     ReDim dashVariants(0 To 2)
     
     ' Define dash types to replace when surrounded by spaces
     dashVariants(0) = " - "     ' Hyphen
-    dashVariants(1) = " – "     ' En dash
-    dashVariants(2) = " — "     ' Em dash (normalize)
+    dashVariants(1) = " ï¿½ "     ' En dash
+    dashVariants(2) = " ï¿½ "     ' Em dash (normalize)
     
     ' Replace all types with em dash
     For i = 0 To UBound(dashVariants)
     ' Only if not already an em dash
-        If dashVariants(i) <> " — " Then
+        If dashVariants(i) <> " ï¿½ " Then
             With rng.Find
                 .ClearFormatting
                 .Replacement.ClearFormatting
                 .text = dashVariants(i)
-                .Replacement.text = " — "    ' Em dash (travessão) com espaços
+                .Replacement.text = " ï¿½ "    ' Em dash (travessï¿½o) com espaï¿½os
                 .Forward = True
                 .Wrap = wdFindStop
                 .Format = False
@@ -3881,14 +3644,14 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
     ReDim lineStartDashVariants(0 To 1)
     
     lineStartDashVariants(0) = "^p- "   ' Hyphen at line start
-    lineStartDashVariants(1) = "^p– "   ' En dash at line start
+    lineStartDashVariants(1) = "^pï¿½ "   ' En dash at line start
     
     For i = 0 To UBound(lineStartDashVariants)
         With rng.Find
             .ClearFormatting
             .Replacement.ClearFormatting
             .text = lineStartDashVariants(i)
-            .Replacement.text = "^p— "    ' Em dash at line start
+            .Replacement.text = "^pï¿½ "    ' Em dash at line start
             .Forward = True
             .Wrap = wdFindStop
             .Format = False
@@ -3911,14 +3674,14 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
     ReDim lineEndDashVariants(0 To 1)
     
     lineEndDashVariants(0) = " -^p"   ' Hyphen at line end
-    lineEndDashVariants(1) = " –^p"   ' En dash at line end
+    lineEndDashVariants(1) = " ï¿½^p"   ' En dash at line end
     
     For i = 0 To UBound(lineEndDashVariants)
         With rng.Find
             .ClearFormatting
             .Replacement.ClearFormatting
             .text = lineEndDashVariants(i)
-            .Replacement.text = " —^p"    ' Em dash at line end
+            .Replacement.text = " ï¿½^p"    ' Em dash at line end
             .Forward = True
             .Wrap = wdFindStop
             .Format = False
@@ -4137,8 +3900,8 @@ Private Function ApplySpecificParagraphReplacements(doc As Document) As Boolean
     With rng.Find
         .ClearFormatting
         .Replacement.ClearFormatting
-        .text = " A CÂMARA MUNICIPAL DE SANTA BÁRBARA D'OESTE, ESTADO DE SÃO PAULO "
-        .Replacement.text = " a Câmara Municipal de Santa Bárbara d'Oeste, estado de São Paulo, "
+        .text = " A Cï¿½MARA MUNICIPAL DE SANTA Bï¿½RBARA D'OESTE, ESTADO DE Sï¿½O PAULO "
+        .Replacement.text = " a Cï¿½mara Municipal de Santa Bï¿½rbara d'Oeste, estado de Sï¿½o Paulo, "
         .Forward = True
         .Wrap = wdFindContinue
         .Format = False
@@ -4148,7 +3911,7 @@ Private Function ApplySpecificParagraphReplacements(doc As Document) As Boolean
         
         Do While .Execute(Replace:=wdReplaceOne)
             replacementCount = replacementCount + 1
-            LogMessage "Global replacement: 'A CÂMARA MUNICIPAL...' ? 'a Câmara Municipal...'", LOG_LEVEL_INFO
+            LogMessage "Global replacement: 'A Cï¿½MARA MUNICIPAL...' ? 'a Cï¿½mara Municipal...'", LOG_LEVEL_INFO
             rng.Collapse wdCollapseEnd
         Loop
     End With
@@ -4211,7 +3974,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' VALIDATE CONTENT CONSISTENCY - VALIDAÇÃO DE CONSISTÊNCIA ENTRE EMENTA E TEOR
+' VALIDATE CONTENT CONSISTENCY - VALIDAï¿½ï¿½O DE CONSISTï¿½NCIA ENTRE EMENTA E TEOR
 '================================================================================
 Private Function ValidateContentConsistency(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -4368,7 +4131,7 @@ End Function
 
 
 '================================================================================
-' CLEAN TEXT FOR COMPARISON - LIMPA TEXTO PARA COMPARAÇÃO
+' CLEAN TEXT FOR COMPARISON - LIMPA TEXTO PARA COMPARAï¿½ï¿½O
 '================================================================================
 Private Function CleanTextForComparison(text As String) As String
     Dim cleanedText As String
@@ -4403,7 +4166,7 @@ Private Function CleanTextForComparison(text As String) As String
 End Function
 
 '================================================================================
-' IS COMMON WORD - VERIFICA SE É PALAVRA MUITO COMUM
+' IS COMMON WORD - VERIFICA SE ï¿½ PALAVRA MUITO COMUM
 '================================================================================
 Private Function IsCommonWord(word As String) As Boolean
     ' List of very common Portuguese words to ignore in comparison
@@ -4430,24 +4193,24 @@ Private Function IsCommonWord(word As String) As Boolean
     commonWords(16) = "muito"
     commonWords(17) = "entre"
     commonWords(18) = "sobre"
-    commonWords(19) = "após"
+    commonWords(19) = "apï¿½s"
     commonWords(20) = "antes"
     commonWords(21) = "durante"
-    commonWords(22) = "através"
+    commonWords(22) = "atravï¿½s"
     commonWords(23) = "mediante"
     commonWords(24) = "junto"
     commonWords(25) = "desde"
-    commonWords(26) = "até"
+    commonWords(26) = "atï¿½"
     commonWords(27) = "contra"
     commonWords(28) = "favor"
     commonWords(29) = "deve"
     commonWords(30) = "devem"
     commonWords(31) = "pode"
     commonWords(32) = "podem"
-    commonWords(33) = "será"
-    commonWords(34) = "serão"
-    commonWords(35) = "está"
-    commonWords(36) = "estão"
+    commonWords(33) = "serï¿½"
+    commonWords(34) = "serï¿½o"
+    commonWords(35) = "estï¿½"
+    commonWords(36) = "estï¿½o"
     commonWords(37) = "foram"
     commonWords(38) = "sendo"
     commonWords(39) = "tendo"
@@ -4457,9 +4220,9 @@ Private Function IsCommonWord(word As String) As Boolean
     commonWords(43) = "porque"
     commonWords(44) = "portanto"
     commonWords(45) = "assim"
-    commonWords(46) = "então"
+    commonWords(46) = "entï¿½o"
     commonWords(47) = "ainda"
-    commonWords(48) = "também"
+    commonWords(48) = "tambï¿½m"
     commonWords(49) = "apenas"
     
     word = LCase(Trim(word))
@@ -5635,15 +5398,15 @@ Public Sub SaveAndExit()
     Dim docList As String
     
     For i = 1 To unsavedDocs.count
-        docList = docList & "• " & unsavedDocs(i) & vbCrLf
+        docList = docList & "ï¿½ " & unsavedDocs(i) & vbCrLf
     Next i
     
     message = "ATTENTION: There are " & unsavedDocs.count & " document(s) with unsaved changes:" & vbCrLf & vbCrLf
     message = message & docList & vbCrLf
     message = message & "Do you want to save all documents before exiting?" & vbCrLf & vbCrLf
-    message = message & "• YES: Save all and close Word" & vbCrLf
-    message = message & "• NO: Close without saving (you will LOSE changes)" & vbCrLf
-    message = message & "• CANCEL: Cancel the operation"
+    message = message & "ï¿½ YES: Save all and close Word" & vbCrLf
+    message = message & "ï¿½ NO: Close without saving (you will LOSE changes)" & vbCrLf
+    message = message & "ï¿½ CANCEL: Cancel the operation"
     
     ' Present options to the user
     Application.StatusBar = "Waiting for user decision about unsaved documents..."
@@ -5793,189 +5556,14 @@ ErrorHandler:
     SalvarTodosDocumentos = False
 End Function
 
-'================================================================================
-' IMAGE PROTECTION SYSTEM
-'================================================================================
-
-'================================================================================
-' BACKUP ALL IMAGES - Backup critical image properties
-'================================================================================
 Private Function BackupAllImages(doc As Document) As Boolean
-    On Error GoTo ErrorHandler
-    
-    Application.StatusBar = "Backing up image properties..."
-    
-    imageCount = 0
-    ReDim savedImages(0)
-    
-    Dim para As Paragraph
-    Dim i As Long
-    Dim j As Long
-    Dim shape As InlineShape
-    Dim tempImageInfo As ImageInfo
-    
-    ' Count all images first
-    Dim totalImages As Long
-    For i = 1 To doc.Paragraphs.count
-        Set para = doc.Paragraphs(i)
-        totalImages = totalImages + para.Range.InlineShapes.count
-    Next i
-    
-    ' Add floating shapes
-    totalImages = totalImages + doc.Shapes.count
-    
-    ' Resize array if needed
-    If totalImages > 0 Then
-        ReDim savedImages(totalImages - 1)
-        
-    ' Backup inline images - only critical properties
-        For i = 1 To doc.Paragraphs.count
-            Set para = doc.Paragraphs(i)
-            
-            For j = 1 To para.Range.InlineShapes.count
-                Set shape = para.Range.InlineShapes(j)
-                
-                ' Save essential properties only for protection
-                With tempImageInfo
-                    .paraIndex = i
-                    .ImageIndex = j
-                    .ImageType = "Inline"
-                    .position = shape.Range.Start
-                    .Width = shape.Width
-                    .Height = shape.Height
-                    Set .AnchorRange = shape.Range.Duplicate
-                    .ImageData = "InlineShape_Protected"
-                End With
-                
-                savedImages(imageCount) = tempImageInfo
-                imageCount = imageCount + 1
-                
-                ' Avoid overflow
-                If imageCount >= UBound(savedImages) + 1 Then Exit For
-            Next j
-            
-            ' Avoid overflow
-            If imageCount >= UBound(savedImages) + 1 Then Exit For
-        Next i
-        
-    ' Backup floating shapes - only critical properties
-        Dim floatingShape As shape
-        For i = 1 To doc.Shapes.count
-            Set floatingShape = doc.Shapes(i)
-            
-            If floatingShape.Type = msoPicture Then
-                ' Resize array if necessary
-                If imageCount >= UBound(savedImages) + 1 Then
-                    ReDim Preserve savedImages(imageCount)
-                End If
-                
-                With tempImageInfo
-                    .paraIndex = -1 ' Indicates it's floating
-                    .ImageIndex = i
-                    .ImageType = "Floating"
-                    .WrapType = floatingShape.WrapFormat.Type
-                    .Width = floatingShape.Width
-                    .Height = floatingShape.Height
-                    .LeftPosition = floatingShape.Left
-                    .TopPosition = floatingShape.Top
-                    .ImageData = "FloatingShape_Protected"
-                End With
-                
-                savedImages(imageCount) = tempImageInfo
-                imageCount = imageCount + 1
-            End If
-        Next i
-    End If
-    
-    LogMessage "Image properties backup completed: " & imageCount & " image(s) catalogued"
+    ' Stub retained for legacy call sites â€“ image backup removed
     BackupAllImages = True
-    Exit Function
-
-ErrorHandler:
-    LogMessage "Error backing up image properties: " & Err.Description, LOG_LEVEL_WARNING
-    BackupAllImages = False
 End Function
 
-'================================================================================
-' RESTORE ALL IMAGES - Verify and correct image properties
-'================================================================================
 Private Function RestoreAllImages(doc As Document) As Boolean
-    On Error GoTo ErrorHandler
-    
-    If imageCount = 0 Then
-        RestoreAllImages = True
-        Exit Function
-    End If
-    
-    Application.StatusBar = "Verifying image integrity..."
-    
-    Dim i As Long
-    Dim verifiedCount As Long
-    Dim correctedCount As Long
-    
-    For i = 0 To imageCount - 1
-        On Error Resume Next
-        
-        With savedImages(i)
-            If .ImageType = "Inline" Then
-                ' Check if the inline image still exists at expected position
-                If .paraIndex <= doc.Paragraphs.count Then
-                    Dim para As Paragraph
-                    Set para = doc.Paragraphs(.paraIndex)
-                    
-                    ' If there are still inline images in the paragraph, consider it verified
-                    If para.Range.InlineShapes.count > 0 Then
-                        verifiedCount = verifiedCount + 1
-                    End If
-                End If
-                
-            ElseIf .ImageType = "Floating" Then
-                ' Verify and correct properties of floating shapes if they still exist
-                If .ImageIndex <= doc.Shapes.count Then
-                    Dim targetShape As shape
-                    Set targetShape = doc.Shapes(.ImageIndex)
-                    
-                    ' Check if properties have changed and correct if necessary
-                    Dim needsCorrection As Boolean
-                    needsCorrection = False
-                    
-                    If Abs(targetShape.Width - .Width) > 1 Then needsCorrection = True
-                    If Abs(targetShape.Height - .Height) > 1 Then needsCorrection = True
-                    If Abs(targetShape.Left - .LeftPosition) > 1 Then needsCorrection = True
-                    If Abs(targetShape.Top - .TopPosition) > 1 Then needsCorrection = True
-                    
-                    If needsCorrection Then
-                        ' Restore original properties
-                        With targetShape
-                            .Width = savedImages(i).Width
-                            .Height = savedImages(i).Height
-                            .Left = savedImages(i).LeftPosition
-                            .Top = savedImages(i).TopPosition
-                            .WrapFormat.Type = savedImages(i).WrapType
-                        End With
-                        correctedCount = correctedCount + 1
-                    End If
-                    
-                    verifiedCount = verifiedCount + 1
-                End If
-            End If
-        End With
-        
-        On Error GoTo ErrorHandler
-    Next i
-    
-    If correctedCount > 0 Then
-        LogMessage "Image verification completed: " & verifiedCount & " verified, " & correctedCount & " corrected"
-    Else
-        LogMessage "Image verification completed: " & verifiedCount & " images intact"
-    End If
-    
+    ' Stub retained for legacy call sites â€“ image restore removed
     RestoreAllImages = True
-    Exit Function
-
-ErrorHandler:
-    LogMessage "Error verifying images: " & Err.Description, LOG_LEVEL_WARNING
-    RestoreAllImages = False
 End Function
 
 '================================================================================
@@ -5984,6 +5572,7 @@ End Function
 Private Function GetClipboardData() As Variant
     On Error GoTo ErrorHandler
     
+                ' (Removed duplicate nested stub RestoreAllImages during cleanup)
     ' Placeholder for clipboard data
     ' In a complete implementation, Windows APIs or advanced methods would be needed
     ' to capture binary data
@@ -5997,65 +5586,13 @@ End Function
 '================================================================================
 ' ENHANCED IMAGE PROTECTION - Improved protection during formatting
 '================================================================================
-Private Function ProtectImagesInRange(targetRange As Range) As Boolean
-    On Error GoTo ErrorHandler
-    
-    ' Check if there are images in the range before applying formatting
-    If targetRange.InlineShapes.count > 0 Then
-    ' OPTIMIZED: Apply formatting character by character, protecting images
-        Dim i As Long
-        Dim charRange As Range
-        Dim charCount As Long
-        charCount = SafeGetCharacterCount(targetRange) ' Cache da contagem segura
-        
-        If charCount > 0 Then ' Safety check
-            For i = 1 To charCount
-                Set charRange = targetRange.Characters(i)
-                ' Only format characters that are not part of images
-                If charRange.InlineShapes.count = 0 Then
-                    With charRange.Font
-                        .Name = STANDARD_FONT
-                        .size = STANDARD_FONT_SIZE
-                        .Color = wdColorAutomatic
-                    End With
-                End If
-            Next i
-        End If
-    Else
-        ' Range without images - full normal formatting
-        With targetRange.Font
-            .Name = STANDARD_FONT
-            .size = STANDARD_FONT_SIZE
-            .Color = wdColorAutomatic
-        End With
-    End If
-    
-    ProtectImagesInRange = True
-    Exit Function
-
-ErrorHandler:
-    LogMessage "Error in image protection: " & Err.Description, LOG_LEVEL_WARNING
-    ProtectImagesInRange = False
-End Function
+"" ' (Removed ProtectImagesInRange stub â€“ direct character-wise formatting used for image paragraphs)
 
 '================================================================================
 ' CLEANUP IMAGE PROTECTION - Cleanup image protection variables
 '================================================================================
 Private Sub CleanupImageProtection()
-    On Error Resume Next
-    
-    ' Clear image arrays
-    If imageCount > 0 Then
-        Dim i As Long
-        For i = 0 To imageCount - 1
-            Set savedImages(i).AnchorRange = Nothing
-        Next i
-    End If
-    
-    imageCount = 0
-    ReDim savedImages(0)
-    
-    LogMessage "Image protection variables cleaned"
+    ' Stub: nothing to cleanup
 End Sub
 
 '================================================================================
@@ -6232,142 +5769,7 @@ Private Function GetParagraphNumber(doc As Document, position As Long) As Long
     GetParagraphNumber = 0 ' Not found
 End Function
 
-'================================================================================
-' VIEW SETTINGS PROTECTION SYSTEM
-'================================================================================
-
-'================================================================================
-' BACKUP VIEW SETTINGS - Save original view settings
-'================================================================================
-Private Function BackupViewSettings(doc As Document) As Boolean
-    On Error GoTo ErrorHandler
-    
-    Application.StatusBar = "Backing up view settings..."
-    
-    Dim docWindow As Window
-    Set docWindow = doc.ActiveWindow
-    
-    ' Backup view settings
-    With originalViewSettings
-        .ViewType = docWindow.View.Type
-    ' Rulers are controlled by Window, not by View
-        On Error Resume Next
-        .ShowHorizontalRuler = docWindow.DisplayRulers
-        .ShowVerticalRuler = docWindow.DisplayVerticalRuler
-        On Error GoTo ErrorHandler
-        .ShowFieldCodes = docWindow.View.ShowFieldCodes
-        .ShowBookmarks = docWindow.View.ShowBookmarks
-        .ShowParagraphMarks = docWindow.View.ShowParagraphs
-        .ShowSpaces = docWindow.View.ShowSpaces
-        .ShowTabs = docWindow.View.ShowTabs
-        .ShowHiddenText = docWindow.View.ShowHiddenText
-        .ShowAll = docWindow.View.ShowAll
-        .ShowDrawings = docWindow.View.ShowDrawings
-        .ShowObjectAnchors = docWindow.View.ShowObjectAnchors
-        .ShowTextBoundaries = docWindow.View.ShowTextBoundaries
-        .ShowHighlight = docWindow.View.ShowHighlight
-    ' .ShowAnimation removed - may not exist in all versions
-        .DraftFont = docWindow.View.Draft
-        .WrapToWindow = docWindow.View.WrapToWindow
-        .ShowPicturePlaceHolders = docWindow.View.ShowPicturePlaceHolders
-        .ShowFieldShading = docWindow.View.FieldShading
-        .TableGridlines = docWindow.View.TableGridlines
-    ' .EnlargeFontsLessThan removed - may not exist in all versions
-    End With
-    
-    LogMessage "Backup of view settings completed"
-    BackupViewSettings = True
-    Exit Function
-
-ErrorHandler:
-    LogMessage "Error backing up view settings: " & Err.Description, LOG_LEVEL_WARNING
-    BackupViewSettings = False
-End Function
-
-'================================================================================
-' RESTORE VIEW SETTINGS - Restore original view settings
-'================================================================================
-Private Function RestoreViewSettings(doc As Document) As Boolean
-    On Error GoTo ErrorHandler
-    
-    Application.StatusBar = "Restoring original view settings..."
-    
-    Dim docWindow As Window
-    Set docWindow = doc.ActiveWindow
-    
-    ' Restore all original settings, EXCEPT the zoom
-    With docWindow.View
-        .Type = originalViewSettings.ViewType
-        .ShowFieldCodes = originalViewSettings.ShowFieldCodes
-        .ShowBookmarks = originalViewSettings.ShowBookmarks
-        .ShowParagraphs = originalViewSettings.ShowParagraphMarks
-        .ShowSpaces = originalViewSettings.ShowSpaces
-        .ShowTabs = originalViewSettings.ShowTabs
-        .ShowHiddenText = originalViewSettings.ShowHiddenText
-        .ShowAll = originalViewSettings.ShowAll
-        .ShowDrawings = originalViewSettings.ShowDrawings
-        .ShowObjectAnchors = originalViewSettings.ShowObjectAnchors
-        .ShowTextBoundaries = originalViewSettings.ShowTextBoundaries
-        .ShowHighlight = originalViewSettings.ShowHighlight
-    ' .ShowAnimation removed for compatibility
-        .Draft = originalViewSettings.DraftFont
-        .WrapToWindow = originalViewSettings.WrapToWindow
-        .ShowPicturePlaceHolders = originalViewSettings.ShowPicturePlaceHolders
-        .FieldShading = originalViewSettings.ShowFieldShading
-        .TableGridlines = originalViewSettings.TableGridlines
-    ' .EnlargeFontsLessThan removed for compatibility
-        
-    ' ZOOM kept at 110% - the only setting that remains changed
-        .Zoom.Percentage = 110
-    End With
-    
-    ' Window-specific settings (for rulers)
-    docWindow.DisplayRulers = originalViewSettings.ShowHorizontalRuler
-    docWindow.DisplayVerticalRuler = originalViewSettings.ShowVerticalRuler
-    
-    LogMessage "Original view settings restored (zoom kept at 110%)"
-    RestoreViewSettings = True
-    Exit Function
-
-ErrorHandler:
-    LogMessage "Error restoring view settings: " & Err.Description, LOG_LEVEL_WARNING
-    RestoreViewSettings = False
-End Function
-
-'================================================================================
-' CLEANUP VIEW SETTINGS - Reset stored view settings variables
-'================================================================================
-Private Sub CleanupViewSettings()
-    On Error Resume Next
-    
-    ' Reset the settings structure
-    With originalViewSettings
-        .ViewType = 0
-        .ShowVerticalRuler = False
-        .ShowHorizontalRuler = False
-        .ShowFieldCodes = False
-        .ShowBookmarks = False
-        .ShowParagraphMarks = False
-        .ShowSpaces = False
-        .ShowTabs = False
-        .ShowHiddenText = False
-        .ShowOptionalHyphens = False
-        .ShowAll = False
-        .ShowDrawings = False
-        .ShowObjectAnchors = False
-        .ShowTextBoundaries = False
-        .ShowHighlight = False
-    ' .ShowAnimation removed for compatibility
-        .DraftFont = False
-        .WrapToWindow = False
-        .ShowPicturePlaceHolders = False
-        .ShowFieldShading = 0
-        .TableGridlines = False
-    ' .EnlargeFontsLessThan removed for compatibility
-    End With
-    
-    LogMessage "View settings variables cleaned"
-End Sub
+"" ' (Removed view settings protection system stubs â€“ no longer used)
 
 
 
