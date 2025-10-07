@@ -494,6 +494,56 @@ ErrHandler:
 	FormatSecondParagraph = False
 End Function
 
+'================================================================================
+' NEW: Explicit formatting for 3rd and 4th content paragraphs (legacy parity)
+' In legacy chainsaw_old.bas the 2nd, 3rd and 4th paragraphs with substantive
+' text received a 9 cm left indent, no first line indent, justified alignment.
+' The consolidated ApplyStdParagraphs logic may not always enforce this for the
+' 3rd and 4th paragraphs (depending on detected existing indents). This routine
+' restores that deterministic rule without altering previously verified logic
+' for other paragraphs.
+'================================================================================
+Public Function FormatThirdAndFourthParagraphs(doc As Document) As Boolean
+	On Error GoTo ErrHandler
+	Dim para As Paragraph, paraText As String
+	Dim i As Long, actualIndex As Long
+	Dim thirdIdx As Long, fourthIdx As Long
+
+	thirdIdx = 0: fourthIdx = 0: actualIndex = 0
+	For i = 1 To doc.Paragraphs.Count
+		Set para = doc.Paragraphs(i)
+		paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
+		If paraText <> "" Then
+			actualIndex = actualIndex + 1
+			If actualIndex = 3 Then thirdIdx = i
+			If actualIndex = 4 Then fourthIdx = i: Exit For
+		End If
+		If i > 40 Then Exit For ' safety cap
+	Next i
+
+	If thirdIdx > 0 And thirdIdx <= doc.Paragraphs.Count Then
+		Set para = doc.Paragraphs(thirdIdx)
+		With para.Format
+			.LeftIndent = CentimetersToPoints(9)
+			.FirstLineIndent = 0
+			.RightIndent = 0
+			.Alignment = wdAlignParagraphJustify
+		End With
+	End If
+	If fourthIdx > 0 And fourthIdx <= doc.Paragraphs.Count Then
+		Set para = doc.Paragraphs(fourthIdx)
+		With para.Format
+			.LeftIndent = CentimetersToPoints(9)
+			.FirstLineIndent = 0
+			.RightIndent = 0
+			.Alignment = wdAlignParagraphJustify
+		End With
+	End If
+	FormatThirdAndFourthParagraphs = True: Exit Function
+ErrHandler:
+	FormatThirdAndFourthParagraphs = False
+End Function
+
 Public Function CentimetersToPoints(ByVal cm As Double) As Single
 	On Error Resume Next
 	CentimetersToPoints = Application.CentimetersToPoints(cm)

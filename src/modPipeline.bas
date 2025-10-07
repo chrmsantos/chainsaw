@@ -172,6 +172,8 @@ Private Function Pipeline_PreviousFormatting(doc As Document) As Boolean
     ' First / Second paragraphs
     Call FormatFirstParagraph(doc)
     Call FormatSecondParagraph(doc)
+    ' Legacy parity: enforce formatting of 3rd and 4th content paragraphs
+    Call FormatThirdAndFourthParagraphs(doc)
     ' CONSIDERANDO emphasis
     If Not FormatConsiderandoParagraphs(doc) Then GoTo FailSoft
     ' Text replacements (generic + specific)
