@@ -643,14 +643,21 @@ Public Function CleanMultipleSpaces(doc As Document) As Boolean
 	Dim rng As Range, spacesRemoved As Long, totalOps As Long
 	Set rng = doc.Range
 	With rng.Find
-		.ClearFormatting: .Replacement.ClearFormatting
-		.Forward = True: .Wrap = wdFindContinue
-		.Format = False: .MatchWildcards = False
+		.ClearFormatting
+		.Replacement.ClearFormatting
+		.Forward = True
+		.Wrap = wdFindContinue
+		.Format = False
+		.MatchWildcards = False
 		Do
-			.Text = "  ": .Replacement.Text = " "
-			Dim cnt As Long: cnt = 0
+			.Text = "  "
+			.Replacement.Text = " "
+			Dim cnt As Long
+			cnt = 0
 			Do While .Execute(Replace:=wdReplaceOne)
-				cnt = cnt + 1: spacesRemoved = spacesRemoved + 1: rng.Collapse wdCollapseEnd
+				cnt = cnt + 1
+				spacesRemoved = spacesRemoved + 1
+				rng.Collapse wdCollapseEnd
 				If cnt Mod 200 = 0 Then DoEvents
 				If spacesRemoved > 2000 Then Exit Do
 			Loop
@@ -661,10 +668,24 @@ Public Function CleanMultipleSpaces(doc As Document) As Boolean
 	' Tabs & residual doubles
 	Set rng = doc.Range
 	With rng.Find
-		.ClearFormatting: .Replacement.ClearFormatting
-		.MatchWildcards = False: .Forward = True: .Wrap = wdFindContinue
-		.Text = "^t^t": .Replacement.Text = "^t": Do While .Execute(Replace:=wdReplaceOne): spacesRemoved = spacesRemoved + 1: rng.Collapse wdCollapseEnd: If spacesRemoved > 2000 Then Exit Do: Loop
-		.Text = "^t": .Replacement.Text = " ": Do While .Execute(Replace:=wdReplaceOne): spacesRemoved = spacesRemoved + 1: If spacesRemoved > 2000 Then Exit Do: Loop
+		.ClearFormatting
+		.Replacement.ClearFormatting
+		.MatchWildcards = False
+		.Forward = True
+		.Wrap = wdFindContinue
+		.Text = "^t^t"
+		.Replacement.Text = "^t"
+		Do While .Execute(Replace:=wdReplaceOne)
+			spacesRemoved = spacesRemoved + 1
+			rng.Collapse wdCollapseEnd
+			If spacesRemoved > 2000 Then Exit Do
+		Loop
+		.Text = "^t"
+		.Replacement.Text = " "
+		Do While .Execute(Replace:=wdReplaceOne)
+			spacesRemoved = spacesRemoved + 1
+			If spacesRemoved > 2000 Then Exit Do
+		Loop
 	End With
 	CleanMultipleSpaces = True: Exit Function
 ErrHandler:
