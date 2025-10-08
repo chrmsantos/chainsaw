@@ -36,6 +36,10 @@
 .PARAMETER ClipboardSetDelayMs
     Delay (milliseconds) between each Set-Clipboard call. Increase (e.g., 200+) if some entries are missing in history.
 
+.PARAMETER AllowElevated
+    Override the guard that prevents running the script while elevated. By default the script aborts if it detects an
+    elevated (Administrator) context because Windows hides the "Pin to taskbar" verb for elevated processes.
+
 .EXAMPLE
     PS> PowerShell -ExecutionPolicy Bypass -File .\pin-taskbar-chainsaw.ps1
     Ensures shortcut exists, pins it if needed, attempts to load default clipboard-snippets.txt if present.
@@ -64,6 +68,7 @@
     0  Success (already pinned or newly pinned; clipboard seeding best-effort)
     1  Word executable not found
     2  Pin verb unavailable (manual pinning required)
+    10 Script is elevated (admin) and -AllowElevated was not specified
     99 Unexpected error
 
 .NOTES
@@ -91,6 +96,9 @@ param(
     [switch]$PreserveClipboard,
     # Delay (ms) between clipboard sets when seeding history (tune if entries missing in history)
     [int]$ClipboardSetDelayMs = 120
+    ,
+    # Allow running while elevated (not recommended because pin verb is usually hidden)
+    [switch]$AllowElevated
 )
 
 $ErrorActionPreference = 'Stop'
@@ -157,11 +165,8 @@ function New-OrUpdateShortcut {
 
     # Set AppUserModelID via Shell Property Store (needs pin consistency)
     try {
-        $bytes = [System.Text.Encoding]::Unicode.GetBytes($AppUserModelID + [char]0)
-        $propStoreGuid = [Guid]'9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3' # AppUserModelID
-        $PSObject = ([Activator]::CreateInstance([type]::GetTypeFromProgID('Shell.Application'))).Name | Out-Null
-        # Directly writing property store of .lnk is non-trivial in pure PowerShell without C#.
-        # Skipping deep COM property write; pin detection will rely on name / target heuristics.
+            # (Informational) Setting AppUserModelID programmatically would require extended COM interop.
+            # Left intentionally unimplemented to avoid complexity / unsigned code steps.
     } catch {
         Write-Warn 'Could not set AppUserModelID (non-fatal).'
     }
@@ -208,6 +213,15 @@ function Invoke-PinToTaskbar {
 # Region: Main Flow
 try {
     Write-Info "Preparing taskbar pin for '$ShortcutName'"
+
+    # Guard against elevation (pin verb normally suppressed when elevated)
+    try {
+        $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    } catch { $isAdmin = $false }
+    if ($isAdmin -and -not $AllowElevated) {
+        Write-Err 'Script is running elevated. Please re-run in a normal (non-Administrator) PowerShell window or pass -AllowElevated to override.'
+        exit 10
+    }
 
     # Auto-detect default clipboard list file if not explicitly provided.
     if (-not $NoClipboardLoad) {
