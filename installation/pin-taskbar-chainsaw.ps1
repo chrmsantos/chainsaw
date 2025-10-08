@@ -22,7 +22,15 @@ param(
     # Working directory for the launcher (where config & modules live)
     [string]$ChainsawRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path,
     # If specified, force re-pin (remove then pin again)
-    [switch]$Force
+    [switch]$Force,
+    # Auto clipboard history loader: path to list of lines to seed into clipboard history (one per line). If empty, a default file is searched.
+    [string]$ClipboardListPath = '',
+    # Disable auto clipboard load even if a file exists.
+    [switch]$NoClipboardLoad,
+    # Preserve (restore) the original clipboard content after seeding history.
+    [switch]$PreserveClipboard,
+    # Delay (ms) between clipboard sets when seeding history (tune if entries missing in history)
+    [int]$ClipboardSetDelayMs = 120
 )
 
 $ErrorActionPreference = 'Stop'
@@ -30,6 +38,36 @@ $ErrorActionPreference = 'Stop'
 function Write-Info($msg) { Write-Host "[INFO] $msg" -ForegroundColor Cyan }
 function Write-Warn($msg) { Write-Host "[WARN] $msg" -ForegroundColor Yellow }
 function Write-Err($msg) { Write-Host "[ERROR] $msg" -ForegroundColor Red }
+
+# Region: Clipboard Loader
+function Invoke-ClipboardBatchLoad {
+    param(
+        [string]$ListPath,
+        [switch]$Preserve,
+        [int]$DelayMs = 120
+    )
+    if (-not (Test-Path -LiteralPath $ListPath)) { Write-Warn "Clipboard list '$ListPath' not found."; return }
+    $lines = Get-Content -LiteralPath $ListPath -ErrorAction SilentlyContinue | ForEach-Object { $_.TrimEnd() } | Where-Object { $_ -ne '' }
+    if (-not $lines) { Write-Warn "Clipboard list file '$ListPath' has no non-empty lines."; return }
+    $original = $null
+    if ($Preserve) {
+        try { $original = Get-Clipboard -Raw -ErrorAction SilentlyContinue } catch { }
+    }
+    $count = 0
+    foreach ($l in $lines) {
+        try {
+            Set-Clipboard -Value $l -ErrorAction Stop
+            Start-Sleep -Milliseconds $DelayMs
+            $count++
+        } catch {
+            Write-Warn "Failed to set clipboard item #$($count+1): $($_.Exception.Message)"
+        }
+    }
+    if ($Preserve -and $null -ne $original) {
+        try { Set-Clipboard -Value $original } catch { Write-Warn 'Could not restore original clipboard content.' }
+    }
+    Write-Info "Loaded $count clipboard history entrie(s) from '$ListPath'."
+}
 
 # Region: Constants & Paths
 $AppID = 'com.chainsaw.proposituras'
@@ -110,6 +148,22 @@ function Invoke-PinToTaskbar {
 # Region: Main Flow
 try {
     Write-Info "Preparing taskbar pin for '$ShortcutName'"
+
+    # Auto-detect default clipboard list file if not explicitly provided.
+    if (-not $NoClipboardLoad) {
+        if (-not $ClipboardListPath) {
+            $defaultList = Join-Path $PSScriptRoot 'clipboard-snippets.txt'
+            if (Test-Path -LiteralPath $defaultList) { $ClipboardListPath = $defaultList }
+        }
+        if ($ClipboardListPath) {
+            Write-Info "Seeding clipboard history from '$ClipboardListPath' (delay ${ClipboardSetDelayMs}ms, preserve=$PreserveClipboard)"
+            Invoke-ClipboardBatchLoad -ListPath $ClipboardListPath -Preserve:$PreserveClipboard -DelayMs $ClipboardSetDelayMs
+        } else {
+            Write-Info 'No clipboard snippets file detected; skipping clipboard history load.'
+        }
+    } else {
+        Write-Info 'Clipboard history auto-load disabled by parameter.'
+    }
 
     if (-not (Get-Command $WordExecutable -ErrorAction SilentlyContinue)) {
         Write-Err "Word executable '$WordExecutable' not found in PATH. Provide -WordExecutable full path."
