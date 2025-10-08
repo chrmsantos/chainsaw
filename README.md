@@ -97,41 +97,6 @@ Project intentionally uses a monolith for this simplified line—legacy modular 
 
 Manual steps depend on your Word setup. If you need an installer, we can add one later in `scripts/`.
 
-### Optional: Automatic Taskbar Button
-
-You can automatically ensure a taskbar button (pinned shortcut) for Chainsaw using the idempotent script `installation/pin-taskbar-chainsaw.ps1`.
-
-It will:
-
-- Create (or update) a Start Menu shortcut named "Chainsaw Proposituras".
-- Detect if a matching taskbar pin already exists (no duplicate pins).
-- Attempt to pin the shortcut using the Windows Shell verb (supports Portuguese and English locales).
-- Exit codes:
-  - 0 = Success (already pinned or newly pinned)
-  - 2 = Pin verb unavailable (manual action required)
-  - 1 = Word executable not found
-  - 99 = Unexpected error
-
-Run from a normal (non-elevated) PowerShell window (pin verbs are hidden when elevated):
-
-```powershell
-PowerShell -ExecutionPolicy Bypass -File .\installation\pin-taskbar-chainsaw.ps1
-```
-
-Parameters (all optional):
-
-- `-ShortcutName "Custom Name"` Override display name
-- `-WordExecutable "C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE"` Explicit Word path
-- `-StartupDocument "C:\\path\\to\\ChainsawBootstrap.dotm"` Open a template/document when launching
-- `-Force` Recreate the shortcut and attempt re-pin
-
-Example with a startup template:
-
-```powershell
-PowerShell -ExecutionPolicy Bypass -File .\installation\pin-taskbar-chainsaw.ps1 -StartupDocument "C:\\Users\\<user>\\Documents\\chainsaw.dotm"
-```
-
-If automated pinning fails (policy or OS restrictions), the script tells you how to pin manually (right‑click Start Menu shortcut → Pin to taskbar).
 
 ## ⚙️ Configuration
 
