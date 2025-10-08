@@ -6,6 +6,66 @@
     - Detects whether a shortcut with a specific AppUserModelID is already pinned.
     - If not pinned, attempts to pin using supported COM / shell verbs fallback strategies.
     - Requires running in a normal user context (not elevated) because pin verbs are hidden when elevated.
+    - Optionally seeds Windows clipboard history with predefined text snippets (one per line) to speed up drafting.
+
+.PARAMETER ShortcutName
+    Display name for the Start Menu / Taskbar shortcut (".lnk" file). Default: 'Chainsaw Proposituras'.
+
+.PARAMETER WordExecutable
+    Path or filename of Microsoft Word (winword.exe). If just 'winword.exe', it must be resolvable via PATH / registry.
+
+.PARAMETER StartupDocument
+    Optional .docx/.dotm/.docm opened when the shortcut launches Word (e.g., a macro-enabled bootstrap template).
+
+.PARAMETER ChainsawRoot
+    Working directory set on the shortcut (used for relative assets). Defaults to project root (parent folder of script).
+
+.PARAMETER Force
+    If provided, removes an existing shortcut before recreating it and attempts to pin again (cannot guarantee unpin first).
+
+.PARAMETER ClipboardListPath
+    Path to a UTF-8 text file containing one clipboard entry per non-empty line. If omitted, the script looks for
+    'clipboard-snippets.txt' in the same folder as the script. Each line is sequentially copied, building clipboard history.
+
+.PARAMETER NoClipboardLoad
+    Skip clipboard history seeding even if a snippets file exists.
+
+.PARAMETER PreserveClipboard
+    After seeding history, restore the original clipboard content that was present before the script ran.
+
+.PARAMETER ClipboardSetDelayMs
+    Delay (milliseconds) between each Set-Clipboard call. Increase (e.g., 200+) if some entries are missing in history.
+
+.EXAMPLE
+    PS> PowerShell -ExecutionPolicy Bypass -File .\pin-taskbar-chainsaw.ps1
+    Ensures shortcut exists, pins it if needed, attempts to load default clipboard-snippets.txt if present.
+
+.EXAMPLE
+    PS> PowerShell -ExecutionPolicy Bypass -File .\pin-taskbar-chainsaw.ps1 -ClipboardListPath C:\Snips\legis.txt -PreserveClipboard
+    Pins shortcut and seeds clipboard history from a custom file, then restores original clipboard content.
+
+.EXAMPLE
+    PS> PowerShell -ExecutionPolicy Bypass -File .\pin-taskbar-chainsaw.ps1 -StartupDocument C:\Templates\chainsaw.dotm -Force
+    Forces recreation of shortcut, sets it to open a template, and attempts re-pin.
+
+.EXAMPLE
+    PS> PowerShell -ExecutionPolicy Bypass -File .\pin-taskbar-chainsaw.ps1 -NoClipboardLoad
+    Runs pin logic only; skips clipboard seeding.
+
+.OUTPUTS
+    Writes informational status lines. Exit codes describe final state (see below).
+
+.NOTES
+    Clipboard history seeding leverages sequential Set-Clipboard calls. Windows 10/11 keeps a chronological history (Win+V)
+    that should reflect inserted entries after the user first enables the Windows clipboard history feature.
+    The script does not attempt to enable clipboard history for you.
+
+.EXIT CODES
+    0  Success (already pinned or newly pinned; clipboard seeding best-effort)
+    1  Word executable not found
+    2  Pin verb unavailable (manual pinning required)
+    99 Unexpected error
+
 .NOTES
     Tested on Windows 10/11. Pinning is an unsupported automation area; this script uses best-effort heuristics.
     If direct pinning fails, user is prompted with a manual fallback message.
