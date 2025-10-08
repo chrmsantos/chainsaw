@@ -68,7 +68,9 @@
     [switch]$PreserveClipboard,
     [int]$ClipboardSetDelayMs = 120,
     [switch]$AllowElevated,
-    [switch]$DryRun
+    [switch]$DryRun,
+    # Dump verb list and attempt multiple localized patterns / canonical verb names
+    [switch]$PinDebug
 )
 
 $ErrorActionPreference = 'Stop'
@@ -140,15 +142,36 @@ function Test-TaskbarPinned {
 } trap { if($_.Exception.Message -eq 'PINNED'){ return $true } else { continue } }
 
 # --- Pin (best-effort) ---
-function Invoke-PinToTaskbar { param([string]$Path,[switch]$Dry)
+function Invoke-PinToTaskbar { param([string]$Path,[switch]$Dry,[switch]$Debug)
     if($Dry){ Write-Info "[DRY] Would attempt pin of $Path"; return $true }
     $file = Get-Item -LiteralPath $Path -EA Stop
     $shell = New-Object -ComObject Shell.Application
     $dir = $shell.Namespace($file.DirectoryName)
     $item = $dir.ParseName($file.Name)
     if(-not $item){ throw 'Shell item not found.' }
-    $verb = $item.Verbs() | Where-Object { $_.Name -match 'Pin to taskbar|Fixar na barra de tarefas' }
-    if($verb){ $verb.DoIt(); Start-Sleep -Milliseconds 500; return $true }
+    $allVerbs = @(); try { $allVerbs = @($item.Verbs()) } catch {}
+    if($Debug){
+        Write-Info 'Available verbs:'
+        $allVerbs | ForEach-Object { Write-Host ('  - ' + $_.Name) }
+    }
+    # Localized / variant patterns
+    $patterns = @(
+        'Pin to taskbar','Fixar na barra de tarefas','Fixar .*barra de tarefas','Anclar a la barra de tareas',
+        'Anheften an Taskleiste','Aggiungi.*barra delle applicazioni','Adicionar.*barra de tarefas'
+    )
+    foreach($p in $patterns){
+        $verb = $allVerbs | Where-Object { $_.Name -match $p }
+        if($verb){
+            Write-Info "Using verb pattern match: '$($verb.Name)'"
+            $verb.DoIt(); Start-Sleep -Milliseconds 500; return $true
+        }
+    }
+    # Attempt canonical hidden verb invocation (may not appear in enumeration)
+    $canonAttempts = 'taskbarpin','TaskbarPin'
+    foreach($c in $canonAttempts){
+        try { $item.InvokeVerb($c); Start-Sleep -Milliseconds 500; Write-Info "Attempted canonical verb '$c'"; return $true } catch { }
+    }
+    if($Debug){ Write-Warn 'No matching verb found after all attempts.' }
     return $false
 }
 
@@ -177,7 +200,7 @@ try {
     if($Force -and $alreadyPinned){ Write-Info 'Force specified: attempting re-pin (unpin not automated).' }
 
     Write-Info 'Attempting pin...'
-    $pinOk = Invoke-PinToTaskbar -Path $shortcutPath -Dry:$DryRun
+    $pinOk = Invoke-PinToTaskbar -Path $shortcutPath -Dry:$DryRun -Debug:$PinDebug
     if($DryRun){ Write-Info '[DRY] Pin attempt simulated.'; exit 11 }
     if($pinOk){ Write-Success "Taskbar pin ensured for '$ShortcutName'"; exit 0 }
     else { Write-Warn 'Pin verb unavailable; pin manually via Start Menu context menu.'; exit 2 }
