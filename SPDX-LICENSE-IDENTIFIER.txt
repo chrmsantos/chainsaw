@@ -1,8 +1,0 @@
-SPDX-License-Identifier: GPL-3.0-or-later
-
-This auxiliary file records the SPDX license identifier adopted across the project.
-Add the following single-line comment near the top of each source file when practical:
-
-' SPDX-License-Identifier: GPL-3.0-or-later
-
-For non-code assets (documents, images), this identifier is not required.

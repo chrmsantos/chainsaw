@@ -3,9 +3,7 @@
 ' PROJECT: CHAINSAW PROPOSITURAS
 ' =============================================================================
 '
-' Automated system for standardizing legislative documents in Microsoft Word
-'
-' Copyright (C) 2025 Christian Martin dos Santos
+' Automated system for standardizing legislative proposers in Microsoft Word
 '
 ' This program is free software: you can redistribute it and/or modify
 ' it under the terms of the GNU General Public License as published by
@@ -20,25 +18,23 @@
 ' You should have received a copy of the GNU General Public License
 ' along with this program.  If not, see <https://www.gnu.org/licenses/>.
 '
-' Version: 1.0.0-Beta1 | Date: 2025-09-27
+' Version: 1.0.0-Beta3 | Date: 2025-10-10
 ' Repository: github.com/chrmsantos/chainsaw-proposituras
 ' Author: Christian Martin dos Santos <chrmsantos@gmail.com>
 
 Option Explicit
-Option Private Module
 
 '================================================================================
-' CONSTANTS AND CONFIGURATION
+' CONSTANTS
 '================================================================================
 
 ' System constants
-Private Const version As String = "v1.0.0-Beta1"
+Private Const version As String = "v1.0.0-Beta3"
 Private Const SYSTEM_NAME As String = "CHAINSAW PROPOSITURAS"
 
 '================================================================================
 ' CENTRALIZED USER-FACING MESSAGES & TITLES
 '================================================================================
- ' Removed: configuration loading error message (configuration system purged)
 Private Const MSG_ERR_VERSION As String = "This tool requires Microsoft Word {{MIN}} or higher." & vbCrLf & _
     "Current version: {{CUR}}" & vbCrLf & _
     "Minimum version: {{MIN}}"
@@ -150,8 +146,6 @@ Private Const HEADER_IMAGE_HEIGHT_RATIO As Double = 0.19
 Private Const OPTIMIZATION_THRESHOLD As Long = 400
 Private Const MAX_PARAGRAPH_BATCH_SIZE As Long = 120
 
- ' Removed: configuration file constants (configuration system purged)
-
 ' Fixed application constants (replacing dynamic configuration)
 Private Const MIN_WORD_VERSION As Double = 14#
 Private Const HEADER_IMAGE_RELATIVE_PATH As String = "assets\stamp.png"
@@ -162,8 +156,6 @@ Private Const HEADER_IMAGE_RELATIVE_PATH As String = "assets\stamp.png"
 Private undoGroupEnabled As Boolean
 Private formattingCancelled As Boolean
 Private processingStartTime As Single ' Stores Timer() value at start of processing
-
- ' Removed: configuration structures and variables (configuration system purged)
 
 '================================================================================
 ' UNIT CONVERSION UTILITIES
@@ -188,8 +180,6 @@ Private Function ElapsedSeconds() As Long
         End If
     End If
 End Function
-
- ' Removed: entire configuration system (load/parse/process). Fixed defaults are used instead.
 
 '================================================================================
 ' PERFORMANCE OPTIMIZATION SYSTEM
@@ -393,8 +383,6 @@ Private Function StandardProcessParagraphs(processingFunction As String) As Bool
                 Call FormatParagraph(para)
             Case "CLEAN"
                 Call CleanParagraph(para)
-            Case "VALIDATE"
-                Call ValidateParagraph(para)
         End Select
     Next para
     
@@ -425,8 +413,6 @@ Private Function ProcessParagraphBatch(startIndex As Long, endIndex As Long, pro
                     Call FormatParagraph(para)
                 Case "CLEAN"
                     Call CleanParagraph(para)
-                Case "VALIDATE"
-                    Call ValidateParagraph(para)
             End Select
         End If
     Next i
@@ -487,25 +473,7 @@ Private Sub CleanParagraph(para As Paragraph)
     End If
 End Sub
 
-Private Sub ValidateParagraph(para As Paragraph)
-    On Error Resume Next
-    ' Minimal heuristic: ensure paragraph does not start with unintended leading punctuation
-    If para Is Nothing Then Exit Sub
-    Dim txt As String
-    txt = para.Range.Text
-    If Len(txt) < 2 Then Exit Sub
-    Dim firstChar As String
-    firstChar = Left$(txt, 1)
-    Select Case firstChar
-        Case ",", ";", ".", ":"
-            ' Remove accidental leading punctuation (keep rest + paragraph mark)
-            Dim body As String
-            body = Mid$(txt, 2, Len(txt) - 2)
-            If Len(body) > 0 Then
-                para.Range.Text = Trim$(body) & vbCr
-            End If
-    End Select
-End Sub
+
 
 Private Sub ForceGarbageCollection()
     On Error Resume Next
@@ -527,7 +495,7 @@ Public Sub StandardizeDocumentMain()
     processingStartTime = Timer
     formattingCancelled = False
     
-    ' Configuration system removed: proceed with fixed defaults
+    
     
     ' ========================================
     ' PRELIMINARY VALIDATIONS BASED ON CONFIGURATION
@@ -543,9 +511,7 @@ Public Sub StandardizeDocumentMain()
         MsgBox NormalizeForUI(verMsg), vbCritical, NormalizeForUI(TITLE_VERSION_ERROR)
         Exit Sub
     End If
-    
-    ' Compilation check step removed (CompileVBAProject deprecated)
-    
+        
     ' Active document validation
     Dim doc As Document
     Set doc = Nothing
@@ -576,9 +542,7 @@ Public Sub StandardizeDocumentMain()
     If Not InitializePerformanceOptimization() Then
         ' Continue execution even if optimizations fail
     End If
-    
-    ' Logging removed
-    
+        
     ' Configure undo group
     StartUndoGroup "Document Standardization - " & doc.Name
     
@@ -600,15 +564,14 @@ Public Sub StandardizeDocumentMain()
         End If
     End If
     
-
-    ' Visual elements cleanup step removed
+    
     Application.StatusBar = "Processing document structure..."
 
     If Not PreviousFormatting(doc) Then
         GoTo CleanUp
     End If
 
-    ' View settings restore removed (no-op)
+    
 
     If formattingCancelled Then
         GoTo CleanUp
@@ -624,7 +587,7 @@ CleanUp:
     
     SafeCleanup
     CleanupImageProtection ' Cleanup image protection variables
-    ' (Removed) CleanupViewSettings
+    
     
     If Not SetAppState(True, "Document standardized successfully!") Then
         ' Ignore failure
@@ -834,7 +797,7 @@ FallbackMethod:
     Exit Function
     
 ErrorHandler:
-          ' Removed stray duplicated MsgBox (already handled in main flow)
+          
 End Function
 
 Private Function SafeSetFont(targetRange As Range, fontName As String, fontSize As Long) As Boolean
@@ -847,7 +810,7 @@ Private Function SafeSetFont(targetRange As Range, fontName As String, fontSize 
         .Color = wdColorAutomatic
     End With
     
-                ' Removed stray duplicated version requirement MsgBox (handled earlier)
+                
 ErrorHandler:
     SafeSetFont = False
 End Function
@@ -1002,7 +965,7 @@ ErrorHandler:
     undoGroupEnabled = False
 End Sub
 
- ' (logging system removed)
+ 
 
 '================================================================================
 ' UTILITY: GET PROTECTION TYPE
@@ -1234,7 +1197,7 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     ' Configure view (keeps user zoom)
     Call ConfigureDocumentView(doc)
     
-    ' Clipboard pane visibility enforcement removed per request
+    
     
     PreviousFormatting = True
     Exit Function
@@ -1356,7 +1319,7 @@ Private Function ApplyStdFont(doc As Document) As Boolean
                 isSpecialParagraph = True
             End If
             
-            ' Removed vereador-adjacent formatting logic
+            
             If i < doc.Paragraphs.count Then
                 Dim nextPara As Paragraph
                 Set nextPara = doc.Paragraphs(i + 1)
@@ -1371,7 +1334,7 @@ Private Function ApplyStdFont(doc As Document) As Boolean
                     Loop
                     nextCleanText = Trim(LCase(nextCleanText))
                     
-                    ' Removed vereador detection in next paragraph
+                    
                 End If
             End If
         End If
@@ -2016,7 +1979,7 @@ Private Function RemoveWatermark(doc As Document) As Boolean
 
     If removedCount > 0 Then
     End If
-    ' (removed legacy log: no watermark)
+    
     
     RemoveWatermark = True
     Exit Function
@@ -2149,7 +2112,7 @@ Private Function InsertFooterstamp(doc As Document) As Boolean
         End If
     Next sec
 
-    ' (removed legacy detailed log)
+    
     InsertFooterstamp = True
     Exit Function
 
@@ -2231,7 +2194,7 @@ Private Function SaveDocumentFirst(doc As Document) As Boolean
     On Error GoTo ErrorHandler
 
     Application.StatusBar = "Waiting for document to be saved..."
-    ' (removed legacy start log)
+    
     
     Dim saveDialog As Object
     Set saveDialog = Application.Dialogs(wdDialogFileSaveAs)
@@ -2262,7 +2225,7 @@ Private Function SaveDocumentFirst(doc As Document) As Boolean
     Application.StatusBar = "Save failed - operation cancelled"
         SaveDocumentFirst = False
     Else
-    ' (removed legacy success log)
+    
     Application.StatusBar = "Document saved successfully"
         SaveDocumentFirst = True
     End If
@@ -2277,7 +2240,7 @@ End Function
 '================================================================================
 ' CLEAR ALL FORMATTING - INITIAL FULL CLEANUP
 '================================================================================
- ' Removed: ClearAllFormatting
+ 
 
 '================================================================================
 ' CLEAN DOCUMENT STRUCTURE - FEATURES 2, 6, 7
@@ -2769,7 +2732,7 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
         End With
     Next i
     
-    ' Removed: vereador variants replacement
+    
     
     ' Feature 12: Replace isolated hyphens/en dashes with em dash (�)
     ' Normalizes hyphens (-) and en dashes (�) surrounded by spaces into em dashes (�)
@@ -3440,7 +3403,7 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
                 
                 formattedCount = formattedCount + 1
                 
-            ' Removed vereador branch
+            
                 
             ' Format variations of "Anexo" or "Anexos"
             ElseIf IsAnexoPattern(cleanText) Then
@@ -3544,7 +3507,7 @@ End Function
 '================================================================================
 ' HELPER FUNCTIONS FOR PATTERN DETECTION
 '================================================================================
- ' Removed: IsVereadorPattern
+ 
 
 Private Function IsAnexoPattern(text As String) As Boolean
     Dim cleanText As String
@@ -4072,7 +4035,7 @@ Private Function LimitSequentialEmptyLines(doc As Document) As Boolean
                     para.Range.Delete
                     fallbackRemoved = fallbackRemoved + 1
                     linesRemoved = linesRemoved + 1
-                    ' Do not increment i because we removed a paragraph
+                    
                 Else
                     i = i + 1
                 End If
@@ -4400,7 +4363,7 @@ End Function
 Private Function GetClipboardData() As Variant
     On Error GoTo ErrorHandler
     
-                ' (Removed duplicate nested stub RestoreAllImages during cleanup)
+                
     ' Placeholder for clipboard data
     ' In a complete implementation, Windows APIs or advanced methods would be needed
     ' to capture binary data
@@ -4414,7 +4377,7 @@ End Function
 '================================================================================
 ' ENHANCED IMAGE PROTECTION - Improved protection during formatting
 '================================================================================
-' ' (Removed ProtectImagesInRange stub – direct character-wise formatting used for image paragraphs)
+ 
 
 '================================================================================
 ' CLEANUP IMAGE PROTECTION - Cleanup image protection variables
@@ -4426,10 +4389,10 @@ End Sub
 '================================================================================
 ' SAFE CLEANUP (stub)
 '================================================================================
-' Ensures any transient state is cleared without relying on removed subsystems.
+ 
 Private Sub SafeCleanup()
     On Error Resume Next
-    ' No-op: logging, backup, image/view protection removed.
+    
 End Sub
 
 '================================================================================
@@ -4595,7 +4558,7 @@ Private Function GetParagraphNumber(doc As Document, position As Long) As Long
     GetParagraphNumber = 0 ' Not found
 End Function
 
-' ' (Removed view settings protection system stubs – no longer used)
+ 
 
 
 
