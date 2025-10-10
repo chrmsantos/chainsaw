@@ -38,8 +38,7 @@ Private Const SYSTEM_NAME As String = "CHAINSAW PROPOSITURAS"
 '================================================================================
 ' CENTRALIZED USER-FACING MESSAGES & TITLES
 '================================================================================
-Private Const MSG_ERR_CONFIG_LOAD As String = "Critical error loading system configuration." & vbCrLf & _
-    "Execution was aborted to prevent issues."
+ ' Removed: configuration loading error message (configuration system purged)
 Private Const MSG_ERR_VERSION As String = "This tool requires Microsoft Word {{MIN}} or higher." & vbCrLf & _
     "Current version: {{CUR}}" & vbCrLf & _
     "Minimum version: {{MIN}}"
@@ -151,106 +150,20 @@ Private Const HEADER_IMAGE_HEIGHT_RATIO As Double = 0.19
 Private Const OPTIMIZATION_THRESHOLD As Long = 400
 Private Const MAX_PARAGRAPH_BATCH_SIZE As Long = 120
 
-' Configuration file constants
-Private Const CONFIG_FILE_NAME As String = "chainsaw-config.ini"
-Private Const CONFIG_FILE_PATH As String = "\chainsaw\"
+ ' Removed: configuration file constants (configuration system purged)
+
+' Fixed application constants (replacing dynamic configuration)
+Private Const MIN_WORD_VERSION As Double = 14#
+Private Const HEADER_IMAGE_RELATIVE_PATH As String = "assets\stamp.png"
 
 '================================================================================
 ' GLOBAL VARIABLES
 '================================================================================
 Private undoGroupEnabled As Boolean
 Private formattingCancelled As Boolean
-Private isConfigLoaded As Boolean     ' Tracks whether configuration defaults/file have been applied
 Private processingStartTime As Single ' Stores Timer() value at start of processing
-Private dialogAsciiNormalizationEnabled As Boolean ' Controls ASCII folding for MsgBox text (must be before first procedure)
 
-' Configuration variables - loaded from chainsaw-config.ini (UDT must stay at top-level before any executable code)
-Private Type ConfigSettings
-    ' General
-    debugMode As Boolean
-    performanceMode As Boolean
-    compatibilityMode As Boolean
-    
-    ' Validations
-    CheckWordVersion As Boolean
-    ValidateDocumentIntegrity As Boolean
-    ValidatePropositionType As Boolean
-    ValidateContentConsistency As Boolean
-    CheckDiskSpace As Boolean
-    minWordVersion As Double
-    maxDocumentSize As Long
-    
-    
-    ' Formatting
-    ApplyPageSetup As Boolean
-    applyStandardFont As Boolean
-    applyStandardParagraphs As Boolean
-    FormatFirstParagraph As Boolean
-    FormatSecondParagraph As Boolean
-    FormatNumberedParagraphs As Boolean
-    FormatConsiderandoParagraphs As Boolean
-    formatJustificativaParagraphs As Boolean
-    EnableHyphenation As Boolean
-    
-    ' Cleaning
-    CleanDocumentStructure As Boolean
-    CleanMultipleSpaces As Boolean
-    LimitSequentialEmptyLines As Boolean
-    EnsureParagraphSeparation As Boolean
-    cleanVisualElements As Boolean
-    deleteHiddenElements As Boolean
-    deleteVisualElementsFirstFourParagraphs As Boolean
-    
-    ' Header/Footer
-    InsertHeaderstamp As Boolean
-    InsertFooterstamp As Boolean
-    RemoveWatermark As Boolean
-    headerImagePath As String
-    
-    ' Text Replacements
-    ApplyTextReplacements As Boolean
-    ApplySpecificParagraphReplacements As Boolean
-    replaceHyphensWithEmDash As Boolean
-    removeManualLineBreaks As Boolean
-    normalizeDosteVariants As Boolean
-    
-    ' Performance
-    disableScreenUpdating As Boolean
-    disableDisplayAlerts As Boolean
-    useBulkOperations As Boolean
-    optimizeFindReplace As Boolean
-    
-    ' Interface
-    showProgressMessages As Boolean
-    showStatusBarUpdates As Boolean
-    confirmCriticalOperations As Boolean
-    showCompletionMessage As Boolean
-    enableEmergencyRecovery As Boolean
-    timeoutOperations As Boolean
-    
-    ' Compatibility
-    supportWord2010 As Boolean
-    supportWord2013 As Boolean
-    supportWord2016 As Boolean
-    useSafePropertyAccess As Boolean
-    fallbackMethods As Boolean
-    handleMissingFeatures As Boolean
-    
-    ' Security
-    requireDocumentSaved As Boolean
-    validateFilePermissions As Boolean
-    checkDocumentProtection As Boolean
-    sanitizeInputs As Boolean
-    validateRanges As Boolean
-    
-    ' Advanced
-    maxRetryAttempts As Long
-    retryDelayMs As Long
-    ' Removed: compilationCheck, vbaAccessRequired, autoCleanup, forceGcCollection
-End Type
-
-' Active configuration instance
-Private Config As ConfigSettings
+ ' Removed: configuration structures and variables (configuration system purged)
 
 '================================================================================
 ' UNIT CONVERSION UTILITIES
@@ -276,443 +189,7 @@ Private Function ElapsedSeconds() As Long
     End If
 End Function
 
-' Image & view protection systems fully removed in simplified build.
-
-'================================================================================
-' CONFIGURATION SYSTEM
-'================================================================================
-
-Private Function LoadConfiguration() As Boolean
-    On Error GoTo ErrorHandler
-    
-    LoadConfiguration = False
-    
-    ' Define default values first
-    SetDefaultConfiguration
-    dialogAsciiNormalizationEnabled = True ' default on for safe ASCII dialogs
-    
-    ' Try to load from configuration file
-    Dim configPath As String
-    configPath = GetConfigurationFilePath()
-    
-    If Len(configPath) = 0 Or Dir(configPath) = "" Then
-    
-    LoadConfiguration = True ' Use defaults
-        Exit Function
-    End If
-    
-    ' Load settings from file
-    If ParseConfigurationFile(configPath) Then
-        
-        LoadConfiguration = True
-    Else
-    
-        SetDefaultConfiguration
-        LoadConfiguration = True ' Patterns used as fallback
-    End If
-    
-    Exit Function
-    
-ErrorHandler:
-    
-End Function
-
-Private Function GetConfigurationFilePath() As String
-    On Error GoTo ErrorHandler
-    
-    Dim doc As Document
-    Dim basePath As String
-    
-    ' Try to get current document folder
-    Set doc = Nothing
-    On Error Resume Next
-    Set doc = ActiveDocument
-    If Not doc Is Nothing And doc.Path <> "" Then
-        basePath = doc.Path
-    Else
-        ' Fallback to user folder
-        basePath = Environ("USERPROFILE") & "\Documents"
-    End If
-    On Error GoTo ErrorHandler
-    
-    ' Build configuration file path
-            GetConfigurationFilePath = basePath & CONFIG_FILE_PATH & CONFIG_FILE_NAME
-    
-    Exit Function
-    
-ErrorHandler:
-    GetConfigurationFilePath = ""
-End Function
-
-Private Sub SetDefaultConfiguration()
-    ' Set default values for all configurations
-    With Config
-        ' General
-        .debugMode = False
-        .performanceMode = True
-        .compatibilityMode = True
-        
-        ' Validations
-        .CheckWordVersion = True
-        .ValidateDocumentIntegrity = True
-        .ValidatePropositionType = True
-        .ValidateContentConsistency = True
-        .CheckDiskSpace = True
-        .minWordVersion = 14#
-        .maxDocumentSize = 500000
-        
-        
-        ' Formatting
-        .ApplyPageSetup = True
-        .applyStandardFont = True
-        .applyStandardParagraphs = True
-        .FormatFirstParagraph = True
-        .FormatSecondParagraph = True
-        .FormatNumberedParagraphs = True
-        .FormatConsiderandoParagraphs = True
-        .formatJustificativaParagraphs = True
-        .EnableHyphenation = True
-        
-        ' Cleaning
-    ' Removed: clearAllFormatting default
-        .CleanDocumentStructure = True
-        .CleanMultipleSpaces = True
-        .LimitSequentialEmptyLines = True
-        .EnsureParagraphSeparation = True
-        .cleanVisualElements = True
-        .deleteHiddenElements = True
-        .deleteVisualElementsFirstFourParagraphs = True
-        
-        ' Header/Footer
-        .InsertHeaderstamp = True
-        .InsertFooterstamp = True
-        .RemoveWatermark = True
-        .headerImagePath = "assets\stamp.png"
-    ' Width/height are controlled by module constants
-        
-    ' Text Replacements (always on)
-        .ApplyTextReplacements = True
-        .ApplySpecificParagraphReplacements = True
-        .replaceHyphensWithEmDash = True
-        .removeManualLineBreaks = True
-        .normalizeDosteVariants = True
-    ' Removed: normalizeVereadorVariants
-        
-    ' Visual Elements (deprecated – removed)
-        
-        ' Performance (always on)
-    ' Logging (deprecated – removed)
-        
-        ' Performance
-        .disableScreenUpdating = True
-        .disableDisplayAlerts = True
-    .useBulkOperations = True
-    .optimizeFindReplace = True
-    .showCompletionMessage = True
-    .enableEmergencyRecovery = True
-    .timeoutOperations = True
-        
-        ' Advanced (retry policy)
-        .maxRetryAttempts = 3
-        .retryDelayMs = 1000
-        .timeoutOperations = True
-        
-        ' Compatibility
-        .supportWord2010 = True
-        .supportWord2013 = True
-        .supportWord2016 = True
-        .useSafePropertyAccess = True
-        .fallbackMethods = True
-        .handleMissingFeatures = True
-        
-        ' Security
-        .requireDocumentSaved = True
-        .validateFilePermissions = True
-        .checkDocumentProtection = True
-        .sanitizeInputs = True
-        .validateRanges = True
-        
-        ' Advanced
-        .maxRetryAttempts = 3
-        .retryDelayMs = 1000
-    End With
-End Sub
-
-Private Function ParseConfigurationFile(configPath As String) As Boolean
-    On Error GoTo ErrorHandler
-    
-    ParseConfigurationFile = False
-    
-    Dim fileNum As Integer
-    Dim fileLine As String
-    Dim currentSection As String
-    
-    fileNum = FreeFile
-    Open configPath For Input As #fileNum
-    
-    Do Until EOF(fileNum)
-        Line Input #fileNum, fileLine
-        fileLine = Trim(fileLine)
-        
-    ' Ignore empty lines and comments
-        If Len(fileLine) > 0 And Left(fileLine, 1) <> "#" Then
-            ' Check if this is a section header
-            If Left(fileLine, 1) = "[" And Right(fileLine, 1) = "]" Then
-                currentSection = UCase(Mid(fileLine, 2, Len(fileLine) - 2))
-            ElseIf InStr(fileLine, "=") > 0 Then
-                ' Process configuration line
-                ProcessConfigLine currentSection, fileLine
-            End If
-        End If
-    Loop
-    
-    Close #fileNum
-    ParseConfigurationFile = True
-    
-    Exit Function
-    
-ErrorHandler:
-    If fileNum > 0 Then Close #fileNum
-    ParseConfigurationFile = False
-End Function
-
-Private Sub ProcessConfigLine(section As String, configLine As String)
-    On Error Resume Next
-    
-    Dim equalPos As Integer
-    Dim configKey As String
-    Dim configValue As String
-    
-    equalPos = InStr(configLine, "=")
-    If equalPos > 0 Then
-        configKey = UCase(Trim(Left(configLine, equalPos - 1)))
-        configValue = Trim(Mid(configLine, equalPos + 1))
-        
-        ' Remove aspas se presentes
-        If Left(configValue, 1) = """" And Right(configValue, 1) = """" Then
-            configValue = Mid(configValue, 2, Len(configValue) - 2)
-        End If
-        
-        ' Apply configuration based on section (accept PT and EN)
-        Select Case section
-            Case "GERAL", "GENERAL"
-                ProcessGeneralConfig configKey, configValue
-            Case "VALIDACOES", "VALIDATIONS"
-                ProcessValidationConfig configKey, configValue
-            Case "FORMATACAO", "FORMATTING"
-                ProcessFormattingConfig configKey, configValue
-            Case "LIMPEZA", "CLEANUP"
-                ProcessCleaningConfig configKey, configValue
-            Case "CABECALHO_RODAPE", "HEADER_FOOTER"
-                ProcessHeaderFooterConfig configKey, configValue
-            Case "SUBSTITUICOES", "REPLACEMENTS"
-                ProcessReplacementConfig configKey, configValue
-            Case "ELEMENTOS_VISUAIS", "VISUAL_ELEMENTS"
-                ' Deprecated: visual element settings ignored
-            Case "LOGGING"
-                ' Deprecated: logging settings ignored
-            Case "PERFORMANCE"
-                ProcessPerformanceConfig configKey, configValue
-            Case "INTERFACE"
-                ProcessInterfaceConfig configKey, configValue
-            Case "COMPATIBILIDADE", "COMPATIBILITY"
-                ProcessCompatibilityConfig configKey, configValue
-            Case "SEGURANCA", "SECURITY"
-                ProcessSecurityConfig configKey, configValue
-            Case "AVANCADO", "ADVANCED"
-                ProcessAdvancedConfig configKey, configValue
-        End Select
-    End If
-End Sub
-
-Private Sub ProcessGeneralConfig(key As String, value As String)
-    Select Case key
-        Case "DEBUG_MODE"
-            Config.debugMode = (LCase(value) = "true")
-        Case "PERFORMANCE_MODE"
-            Config.performanceMode = (LCase(value) = "true")
-        Case "COMPATIBILITY_MODE"
-            Config.compatibilityMode = (LCase(value) = "true")
-    End Select
-End Sub
-
-Private Sub ProcessValidationConfig(key As String, value As String)
-    Select Case key
-        Case "CHECK_WORD_VERSION"
-            Config.CheckWordVersion = (LCase(value) = "true")
-        Case "VALIDATE_DOCUMENT_INTEGRITY"
-            Config.ValidateDocumentIntegrity = (LCase(value) = "true")
-        Case "VALIDATE_PROPOSITION_TYPE"
-            Config.ValidatePropositionType = (LCase(value) = "true")
-        Case "VALIDATE_CONTENT_CONSISTENCY"
-            Config.ValidateContentConsistency = (LCase(value) = "true")
-        Case "CHECK_DISK_SPACE"
-            Config.CheckDiskSpace = (LCase(value) = "true")
-        Case "MIN_WORD_VERSION"
-            Config.minWordVersion = CDbl(value)
-        Case "MAX_DOCUMENT_SIZE"
-            Config.maxDocumentSize = CLng(value)
-    End Select
-End Sub
-
-
-Private Sub ProcessFormattingConfig(key As String, value As String)
-    Select Case key
-        Case "APPLY_PAGE_SETUP"
-            Config.ApplyPageSetup = (LCase(value) = "true")
-        Case "APPLY_STANDARD_FONT"
-            Config.applyStandardFont = (LCase(value) = "true")
-        Case "APPLY_STANDARD_PARAGRAPHS"
-            Config.applyStandardParagraphs = (LCase(value) = "true")
-        Case "FORMAT_FIRST_PARAGRAPH"
-            Config.FormatFirstParagraph = (LCase(value) = "true")
-        Case "FORMAT_SECOND_PARAGRAPH"
-            Config.FormatSecondParagraph = (LCase(value) = "true")
-        Case "FORMAT_NUMBERED_PARAGRAPHS"
-            Config.FormatNumberedParagraphs = (LCase(value) = "true")
-        Case "FORMAT_CONSIDERANDO_PARAGRAPHS"
-            Config.FormatConsiderandoParagraphs = (LCase(value) = "true")
-        Case "FORMAT_JUSTIFICATIVA_PARAGRAPHS"
-            Config.formatJustificativaParagraphs = (LCase(value) = "true")
-        Case "ENABLE_HYPHENATION"
-            Config.EnableHyphenation = (LCase(value) = "true")
-    End Select
-End Sub
-
-Private Sub ProcessCleaningConfig(key As String, value As String)
-    Select Case key
-        Case "CLEAR_ALL_FORMATTING"
-            ' Removed feature; ignored
-        Case "CLEAN_DOCUMENT_STRUCTURE"
-            Config.CleanDocumentStructure = (LCase(value) = "true")
-        Case "CLEAN_MULTIPLE_SPACES"
-            Config.CleanMultipleSpaces = (LCase(value) = "true")
-        Case "LIMIT_SEQUENTIAL_EMPTY_LINES"
-            Config.LimitSequentialEmptyLines = (LCase(value) = "true")
-        Case "ENSURE_PARAGRAPH_SEPARATION"
-            Config.EnsureParagraphSeparation = (LCase(value) = "true")
-        Case "CLEAN_VISUAL_ELEMENTS"
-            Config.cleanVisualElements = (LCase(value) = "true")
-        Case "DELETE_HIDDEN_ELEMENTS"
-            Config.deleteHiddenElements = (LCase(value) = "true")
-        Case "DELETE_VISUAL_ELEMENTS_FIRST_FOUR_PARAGRAPHS"
-            Config.deleteVisualElementsFirstFourParagraphs = (LCase(value) = "true")
-    End Select
-End Sub
-
-Private Sub ProcessHeaderFooterConfig(key As String, value As String)
-    Select Case key
-        Case "INSERT_HEADER_STAMP"
-            Config.InsertHeaderstamp = (LCase(value) = "true")
-        Case "INSERT_FOOTER_STAMP"
-            Config.InsertFooterstamp = (LCase(value) = "true")
-        Case "REMOVE_WATERMARK"
-            Config.RemoveWatermark = (LCase(value) = "true")
-        Case "HEADER_IMAGE_PATH"
-            Config.headerImagePath = value
-        Case "HEADER_IMAGE_MAX_WIDTH", "HEADER_IMAGE_HEIGHT_RATIO"
-            ' Removed keys; module constants are used instead
-    End Select
-End Sub
-
-Private Sub ProcessReplacementConfig(key As String, value As String)
-    Select Case key
-        Case "APPLY_TEXT_REPLACEMENTS"
-            Config.ApplyTextReplacements = (LCase(value) = "true")
-        Case "APPLY_SPECIFIC_PARAGRAPH_REPLACEMENTS"
-            Config.ApplySpecificParagraphReplacements = (LCase(value) = "true")
-        Case "REPLACE_HYPHENS_WITH_EM_DASH"
-            Config.replaceHyphensWithEmDash = (LCase(value) = "true")
-        Case "REMOVE_MANUAL_LINE_BREAKS"
-            Config.removeManualLineBreaks = (LCase(value) = "true")
-        Case "NORMALIZE_DOESTE_VARIANTS"
-            Config.normalizeDosteVariants = (LCase(value) = "true")
-        ' Removed: NORMALIZE_VEREADOR_VARIANTS (feature deleted)
-    End Select
-End Sub
-
-Private Sub ProcessVisualElementsConfig(key As String, value As String)
-    ' Deprecated: image/view protection removed – keys ignored
-End Sub
-
-Private Sub ProcessLoggingConfig(key As String, value As String)
-    ' Deprecated: logging removed – keys ignored
-End Sub
-
-Private Sub ProcessPerformanceConfig(key As String, value As String)
-    Select Case key
-        Case "DISABLE_SCREEN_UPDATING"
-            Config.disableScreenUpdating = (LCase(value) = "true")
-        Case "DISABLE_DISPLAY_ALERTS"
-            Config.disableDisplayAlerts = (LCase(value) = "true")
-        Case "USE_BULK_OPERATIONS"
-            Config.useBulkOperations = (LCase(value) = "true")
-        Case "OPTIMIZE_FIND_REPLACE"
-            Config.optimizeFindReplace = (LCase(value) = "true")
-    End Select
-End Sub
-
-Private Sub ProcessInterfaceConfig(key As String, value As String)
-    Select Case key
-        Case "SHOW_PROGRESS_MESSAGES"
-            Config.showProgressMessages = (LCase(value) = "true")
-        Case "SHOW_STATUS_BAR_UPDATES"
-            Config.showStatusBarUpdates = (LCase(value) = "true")
-        Case "CONFIRM_CRITICAL_OPERATIONS"
-            Config.confirmCriticalOperations = (LCase(value) = "true")
-        Case "SHOW_COMPLETION_MESSAGE"
-            Config.showCompletionMessage = (LCase(value) = "true")
-        Case "ENABLE_EMERGENCY_RECOVERY"
-            Config.enableEmergencyRecovery = (LCase(value) = "true")
-        Case "TIMEOUT_OPERATIONS"
-            Config.timeoutOperations = (LCase(value) = "true")
-        Case "DIALOG_ASCII_NORMALIZATION", "DIALOG_ASCII_NORMALIZE", "ASCII_DIALOGS"
-            dialogAsciiNormalizationEnabled = (LCase(value) <> "false" And LCase(value) <> "0")
-    End Select
-End Sub
-
-Private Sub ProcessCompatibilityConfig(key As String, value As String)
-    Select Case key
-        Case "SUPPORT_WORD_2010"
-            Config.supportWord2010 = (LCase(value) = "true")
-        Case "SUPPORT_WORD_2013"
-            Config.supportWord2013 = (LCase(value) = "true")
-        Case "SUPPORT_WORD_2016"
-            Config.supportWord2016 = (LCase(value) = "true")
-        Case "USE_SAFE_PROPERTY_ACCESS"
-            Config.useSafePropertyAccess = (LCase(value) = "true")
-        Case "FALLBACK_METHODS"
-            Config.fallbackMethods = (LCase(value) = "true")
-        Case "HANDLE_MISSING_FEATURES"
-            Config.handleMissingFeatures = (LCase(value) = "true")
-    End Select
-End Sub
-
-Private Sub ProcessSecurityConfig(key As String, value As String)
-    Select Case key
-        Case "REQUIRE_DOCUMENT_SAVED"
-            Config.requireDocumentSaved = (LCase(value) = "true")
-        Case "VALIDATE_FILE_PERMISSIONS"
-            Config.validateFilePermissions = (LCase(value) = "true")
-        Case "CHECK_DOCUMENT_PROTECTION"
-            Config.checkDocumentProtection = (LCase(value) = "true")
-        Case "SANITIZE_INPUTS"
-            Config.sanitizeInputs = (LCase(value) = "true")
-        Case "VALIDATE_RANGES"
-            Config.validateRanges = (LCase(value) = "true")
-    End Select
-End Sub
-
-Private Sub ProcessAdvancedConfig(key As String, value As String)
-    Select Case key
-        Case "MAX_RETRY_ATTEMPTS"
-            Config.maxRetryAttempts = CLng(value)
-        Case "RETRY_DELAY_MS"
-            Config.retryDelayMs = CLng(value)
-        Case "COMPILATION_CHECK", "VBA_ACCESS_REQUIRED", "AUTO_CLEANUP", "FORCE_GC_COLLECTION"
-            ' Ignored
-    End Select
-End Sub
+ ' Removed: entire configuration system (load/parse/process). Fixed defaults are used instead.
 
 '================================================================================
 ' PERFORMANCE OPTIMIZATION SYSTEM
@@ -1050,15 +527,7 @@ Public Sub StandardizeDocumentMain()
     processingStartTime = Timer
     formattingCancelled = False
     
-    ' Load system configuration
-    If Not isConfigLoaded Then
-        If Not LoadConfiguration() Then
-         MsgBox NormalizeForUI("Critical error loading system configuration." & vbCrLf & _
-             "Execution was aborted to prevent issues."), vbCritical, NormalizeForUI("Configuration Error - " & SYSTEM_NAME)
-            Exit Sub
-        End If
-    isConfigLoaded = True
-    End If
+    ' Configuration system removed: proceed with fixed defaults
     
     ' ========================================
     ' PRELIMINARY VALIDATIONS BASED ON CONFIGURATION
@@ -1066,10 +535,10 @@ Public Sub StandardizeDocumentMain()
     
     ' Word version validation (always on)
     If Not CheckWordVersion() Then
-        Application.StatusBar = "Error: Word version not supported (minimum: Word " & Config.minWordVersion & ")"
+        Application.StatusBar = "Error: Word version not supported (minimum: Word " & MIN_WORD_VERSION & ")"
         Dim verMsg As String
         verMsg = ReplacePlaceholders(MSG_ERR_VERSION, _
-                    "MIN", CStr(Config.minWordVersion), _
+                    "MIN", CStr(MIN_WORD_VERSION), _
                     "CUR", CStr(Application.version))
         MsgBox NormalizeForUI(verMsg), vbCritical, NormalizeForUI(TITLE_VERSION_ERROR)
         Exit Sub
@@ -1184,18 +653,12 @@ Private Function CheckWordVersion() As Boolean
     On Error GoTo ErrorHandler
     CheckWordVersion = False
 
-    ' If config flag is off, treat as success
-    If Not Config.CheckWordVersion Then
-        CheckWordVersion = True
-        Exit Function
-    End If
-
     ' Obtain current Word version (Application.Version returns a string like "16.0")
     Dim curVer As Double
     curVer = CDbl(Val(Application.Version))
 
-    ' Compare against minimum configured version
-    If curVer < Config.minWordVersion Then
+    ' Compare against minimum supported version
+    If curVer < MIN_WORD_VERSION Then
         CheckWordVersion = False
     Else
         CheckWordVersion = True
@@ -2579,7 +2042,7 @@ Private Function InsertHeaderstamp(doc As Document) As Boolean
     Dim sectionsProcessed As Long
 
     ' Resolve image file path using configuration if provided
-    imgFile = Trim(Config.headerImagePath)
+    imgFile = HEADER_IMAGE_RELATIVE_PATH
     If Len(imgFile) = 0 Then
         ' No configured path; try common locations relative to document or repo folder
         Dim baseFolder As String
@@ -3223,10 +2686,6 @@ End Function
 '================================================================================
 Private Function NormalizeForUI(ByVal s As String) As String
     On Error Resume Next
-    If Not dialogAsciiNormalizationEnabled Then
-        NormalizeForUI = s
-        Exit Function
-    End If
     Dim i As Long, ch As String, code As Long
     Dim out As String
     out = ""
