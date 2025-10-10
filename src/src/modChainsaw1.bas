@@ -2041,33 +2041,15 @@ Private Function InsertHeaderstamp(doc As Document) As Boolean
     Dim imgFound As Boolean
     Dim sectionsProcessed As Long
 
-    ' Resolve image file path using configuration if provided
+    ' Resolve image file path (no extra fallbacks): use fixed relative path; if relative, resolve from document folder
     imgFile = HEADER_IMAGE_RELATIVE_PATH
-    If Len(imgFile) = 0 Then
-        ' No configured path; try common locations relative to document or repo folder
+    If InStr(1, imgFile, ":", vbTextCompare) = 0 And Left(imgFile, 2) <> "\\" Then
         Dim baseFolder As String
         On Error Resume Next
-        baseFolder = IIf(doc.Path <> "", doc.Path, Environ("USERPROFILE") & "\Documents")
+        baseFolder = IIf(doc.Path <> "", doc.Path, CurDir$)
         On Error GoTo ErrorHandler
         If Right(baseFolder, 1) <> "\" Then baseFolder = baseFolder & "\"
-        If Dir(baseFolder & "assets\stamp.png") <> "" Then
-            imgFile = baseFolder & "assets\stamp.png"
-        ElseIf Dir(Environ("USERPROFILE") & "\Documents\chainsaw\assets\stamp.png") <> "" Then
-            imgFile = Environ("USERPROFILE") & "\Documents\chainsaw\assets\stamp.png"
-        End If
-    Else
-        ' If relative path (no drive letter), try resolve from current document folder and repo root
-        If InStr(1, imgFile, ":", vbTextCompare) = 0 And Left(imgFile, 2) <> "\\" Then
-            On Error Resume Next
-            baseFolder = IIf(doc.Path <> "", doc.Path, Environ("USERPROFILE") & "\Documents")
-            On Error GoTo ErrorHandler
-            If Right(baseFolder, 1) <> "\" Then baseFolder = baseFolder & "\"
-            If Dir(baseFolder & imgFile) <> "" Then
-                imgFile = baseFolder & imgFile
-            ElseIf Dir(Environ("USERPROFILE") & "\Documents\chainsaw\" & imgFile) <> "" Then
-                imgFile = Environ("USERPROFILE") & "\Documents\chainsaw\" & imgFile
-            End If
-        End If
+        imgFile = baseFolder & imgFile
     End If
 
     If Dir(imgFile) = "" Then
