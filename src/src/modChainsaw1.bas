@@ -242,187 +242,12 @@ ErrorHandler:
     RestorePerformanceSettings = False
 End Function
 
-Private Function OptimizedFindReplace(findText As String, replaceText As String, Optional searchRange As Range = Nothing) As Long
-    On Error GoTo ErrorHandler
-    
-    OptimizedFindReplace = 0
-    
-    ' Always use optimized bulk replace
-    OptimizedFindReplace = BulkFindReplace(findText, replaceText, searchRange)
-    
-    Exit Function
-    
-ErrorHandler:
-    OptimizedFindReplace = 0
-End Function
-
-Private Function BulkFindReplace(findText As String, replaceText As String, Optional searchRange As Range = Nothing) As Long
-    On Error GoTo ErrorHandler
-    
-    BulkFindReplace = 0
-    
-    Dim targetRange As Range
-    Set targetRange = IIf(searchRange Is Nothing, ActiveDocument.Content, searchRange)
-    
-    ' Optimization: use Word's native bulk operation method
-    With targetRange.Find
-        .ClearFormatting
-        .Replacement.ClearFormatting
-    .Text = findText
-    .Replacement.Text = replaceText
-        .Forward = True
-        .Wrap = wdFindStop
-        .Format = False
-        .MatchCase = False
-        .MatchWholeWord = False
-        .MatchWildcards = False
-        .MatchSoundsLike = False
-        .MatchAllWordForms = False
-        
-    ' Execute all replacements at once
-        BulkFindReplace = .Execute(Replace:=wdReplaceAll)
-    End With
-    
-    Exit Function
-    
-ErrorHandler:
-    BulkFindReplace = 0
-End Function
-
-Private Function StandardFindReplace(findText As String, replaceText As String, Optional searchRange As Range = Nothing) As Long
-    On Error GoTo ErrorHandler
-    
-    StandardFindReplace = 0
-    
-    Dim targetRange As Range
-    Set targetRange = IIf(searchRange Is Nothing, ActiveDocument.Content, searchRange)
-    
-    ' Standard compatible implementation
-    With targetRange.Find
-        .ClearFormatting
-        .Replacement.ClearFormatting
-    .Text = findText
-    .Replacement.Text = replaceText
-        .Forward = True
-        .Wrap = wdFindStop
-        
-        StandardFindReplace = .Execute(Replace:=wdReplaceAll)
-    End With
-    
-    Exit Function
-    
-ErrorHandler:
-    StandardFindReplace = 0
-End Function
-
-Private Function OptimizedParagraphProcessing(processingFunction As String) As Boolean
-    On Error GoTo ErrorHandler
-    
-    OptimizedParagraphProcessing = False
-    
-    ' Always use batch paragraph processing
-    OptimizedParagraphProcessing = BatchProcessParagraphs(processingFunction)
-    
-    Exit Function
-    
-ErrorHandler:
-    OptimizedParagraphProcessing = False
-End Function
-
-Private Function BatchProcessParagraphs(processingFunction As String) As Boolean
-    On Error GoTo ErrorHandler
-    
-    BatchProcessParagraphs = False
-    
-    Dim doc As Document
-    Set doc = ActiveDocument
-    
-    Dim paragraphCount As Long
-    paragraphCount = doc.Paragraphs.Count
-    
-    Dim batchSize As Long
-    batchSize = IIf(paragraphCount > OPTIMIZATION_THRESHOLD, MAX_PARAGRAPH_BATCH_SIZE, paragraphCount)
-    
-    
-    Dim i As Long
-    For i = 1 To paragraphCount Step batchSize
-        Dim endIndex As Long
-        endIndex = IIf(i + batchSize - 1 > paragraphCount, paragraphCount, i + batchSize - 1)
-        
-        ' Process paragraph batch
-        If Not ProcessParagraphBatch(i, endIndex, processingFunction) Then
-            ' Batch error
-            Exit Function
-        End If
-        
-        ' Optionally yield to UI during long batches
-        If i Mod (batchSize * 5) = 0 Then DoEvents
-    Next i
-    
-    BatchProcessParagraphs = True
-    Exit Function
-    
-ErrorHandler:
-    BatchProcessParagraphs = False
-End Function
-
-Private Function StandardProcessParagraphs(processingFunction As String) As Boolean
-    On Error GoTo ErrorHandler
-    
-    StandardProcessParagraphs = False
-    
-    ' Standard implementation - process paragraph by paragraph
-    Dim doc As Document
-    Set doc = ActiveDocument
-    
-    Dim para As Paragraph
-    For Each para In doc.Paragraphs
-    ' Apply specific processing function
-        Select Case processingFunction
-            Case "FORMAT"
-                Call FormatParagraph(para)
-            Case "CLEAN"
-                Call CleanParagraph(para)
-        End Select
-    Next para
-    
-    StandardProcessParagraphs = True
-    Exit Function
-    
-ErrorHandler:
-    StandardProcessParagraphs = False
-End Function
-
-Private Function ProcessParagraphBatch(startIndex As Long, endIndex As Long, processingFunction As String) As Boolean
-    On Error GoTo ErrorHandler
-    
-    ProcessParagraphBatch = False
-    
-    Dim doc As Document
-    Set doc = ActiveDocument
-    
-    Dim i As Long
-    For i = startIndex To endIndex
-    If i <= doc.Paragraphs.Count Then
-            Dim para As Paragraph
-            Set para = doc.Paragraphs(i)
-            
-            ' Apply specific processing function
-            Select Case processingFunction
-                Case "FORMAT"
-                    Call FormatParagraph(para)
-                Case "CLEAN"
-                    Call CleanParagraph(para)
-            End Select
-        End If
-    Next i
-    
-    ProcessParagraphBatch = True
-    Exit Function
-    
-ErrorHandler:
-    ProcessParagraphBatch = False
-End Function
+ ' Removed unused: OptimizedFindReplace, BulkFindReplace, StandardFindReplace,
+ ' OptimizedParagraphProcessing, BatchProcessParagraphs, StandardProcessParagraphs,
+ ' and ProcessParagraphBatch (legacy optimization helpers no longer referenced).
+ 
+ 
+ 
 
 Private Sub FormatParagraph(para As Paragraph)
     On Error Resume Next
@@ -475,12 +300,10 @@ End Sub
 
 
 
-Private Sub ForceGarbageCollection()
-    On Error Resume Next
-    
-    ' Yield to UI to keep Word responsive during long operations
-    DoEvents
-End Sub
+ ' Removed unused: ForceGarbageCollection (no longer referenced).
+ 
+ 
+ 
 
 '================================================================================
 ' MAIN ENTRY POINT
@@ -816,20 +639,10 @@ ErrorHandler:
     SafeSetFont = False
 End Function
 
-Private Function SafeSetParagraphFormat(para As Paragraph, alignment As Long, leftIndent As Single, firstLineIndent As Single) As Boolean
-    On Error GoTo ErrorHandler
-    
-    With para.Format
-        If alignment >= 0 Then .Alignment = alignment
-        If leftIndent >= 0 Then .LeftIndent = leftIndent
-        If firstLineIndent >= 0 Then .FirstLineIndent = firstLineIndent
-    End With
-    SafeSetParagraphFormat = True
-    Exit Function
-    
-ErrorHandler:
-    SafeSetParagraphFormat = False
-End Function
+ ' Removed unused: SafeSetParagraphFormat (direct formatting is used instead).
+ 
+ 
+ 
 
 Private Function SafeHasVisualContent(para As Paragraph) As Boolean
     On Error GoTo SafeMode
@@ -868,43 +681,10 @@ End Function
 '================================================================================
 ' SAFE FIND/REPLACE OPERATIONS - Compatibility with all versions
 '================================================================================
-Private Function SafeFindReplace(doc As Document, findText As String, replaceText As String, Optional useWildcards As Boolean = False) As Long
-    On Error GoTo ErrorHandler
-    
-    Dim findCount As Long
-    findCount = 0
-    
-    ' Safe Find/Replace configuration
-    With doc.Range.Find
-        .ClearFormatting
-        .Replacement.ClearFormatting
-    .Text = findText
-    .Replacement.Text = replaceText
-        .Forward = True
-        .Wrap = wdFindContinue
-        .Format = False
-        .MatchCase = False
-        .MatchWholeWord = False
-    .MatchWildcards = useWildcards  ' Controlled parameter
-        .MatchSoundsLike = False
-        .MatchAllWordForms = False
-        
-    ' Execute replacement and count occurrences
-        Do While .Execute(Replace:=True)
-            findCount = findCount + 1
-            ' Safety limit to avoid infinite loops
-            If findCount > 10000 Then
-                Exit Do
-            End If
-        Loop
-    End With
-    
-    SafeFindReplace = findCount
-    Exit Function
-    
-ErrorHandler:
-    SafeFindReplace = 0
-End Function
+ ' Removed unused: SafeFindReplace (not referenced by the simplified pipeline).
+ 
+ 
+ 
 
 '================================================================================
 ' SAFE CHARACTER ACCESS FUNCTIONS - Compatibilidade total
@@ -986,20 +766,10 @@ End Function
 '================================================================================
 ' UTILITY: GET DOCUMENT SIZE
 '================================================================================
-Private Function GetDocumentSize(doc As Document) As String
-    On Error Resume Next
-    
-    Dim size As Long
-    size = doc.BuiltInDocumentProperties("Number of Characters").value * 2
-    
-    If size < 1024 Then
-        GetDocumentSize = size & " bytes"
-    ElseIf size < 1048576 Then
-        GetDocumentSize = Format(size / 1024, "0.0") & " KB"
-    Else
-        GetDocumentSize = Format(size / 1048576, "0.0") & " MB"
-    End If
-End Function
+ ' Removed unused: GetDocumentSize (not used by current UI logic).
+ 
+ 
+ 
 
 '================================================================================
 ' APPLICATION STATE HANDLER
@@ -2134,43 +1904,10 @@ End Function
 '================================================================================
 ' UTILITY: SAFE USERNAME
 '================================================================================
-Private Function GetSafeUserName() As String
-    On Error GoTo ErrorHandler
-    
-    Dim rawName As String
-    Dim safeName As String
-    Dim i As Integer
-    Dim c As String
-    
-    rawName = Environ("USERNAME")
-    If rawName = "" Then rawName = Environ("USER")
-    If rawName = "" Then
-        On Error Resume Next
-    rawName = CreateObject("WScript.Network").username
-        On Error GoTo 0
-    End If
-    
-    If rawName = "" Then
-    rawName = "UnknownUser"
-    End If
-    
-    For i = 1 To Len(rawName)
-        c = Mid(rawName, i, 1)
-        If c Like "[A-Za-z0-9_\-]" Then
-            safeName = safeName & c
-        ElseIf c = " " Then
-            safeName = safeName & "_"
-        End If
-    Next i
-    
-    If safeName = "" Then safeName = "User"
-    
-    GetSafeUserName = safeName
-    Exit Function
-    
-ErrorHandler:
-    GetSafeUserName = "User"
-End Function
+ ' Removed unused: GetSafeUserName (no longer used).
+ 
+ 
+ 
 
 '================================================================================
 ' VALIDATE DOCUMENT STRUCTURE
@@ -2606,25 +2343,10 @@ End Function
 '================================================================================
 ' LOG STRING NORMALIZATION - avoid encoding issues in log files
 '================================================================================
-Private Function NormalizeForLog(ByVal s As String) As String
-    On Error Resume Next
-    Dim i As Long, ch As String, code As Long
-    Dim out As String
-    out = ""
-    For i = 1 To Len(s)
-        ch = Mid$(s, i, 1)
-        code = AscW(ch)
-        ' Keep ASCII printable and common punctuation; replace others with '?'
-        If code >= 32 And code <= 126 Then
-            out = out & ch
-        ElseIf ch = vbCr Or ch = vbLf Or ch = vbTab Then
-            out = out & ch
-        Else
-            out = out & "?"
-        End If
-    Next i
-    NormalizeForLog = out
-End Function
+ ' Removed unused: NormalizeForLog (logging system was removed).
+ 
+ 
+ 
 
 '================================================================================
 ' UI STRING NORMALIZATION - produce ASCII-safe text for MsgBox dialogs
@@ -4364,22 +4086,13 @@ End Function
 '================================================================================
 ' GET CLIPBOARD DATA - Get data from the clipboard
 '================================================================================
-Private Function GetClipboardData() As Variant
-    On Error GoTo ErrorHandler
-    
-                
-    ' Placeholder for clipboard data
-    ' In a complete implementation, Windows APIs or advanced methods would be needed
-    ' to capture binary data
-    GetClipboardData = "ImageDataPlaceholder"
-    Exit Function
-
-ErrorHandler:
-    GetClipboardData = Empty
-End Function
+ ' Removed unused: GetClipboardData (stub no longer needed).
 
 '================================================================================
 ' ENHANCED IMAGE PROTECTION - Improved protection during formatting
+ 
+ 
+ 
 '================================================================================
  
 
@@ -4392,6 +4105,12 @@ End Sub
 
 '================================================================================
 ' SAFE CLEANUP (stub)
+ 
+ 
+ 
+ 
+ 
+ 
 '================================================================================
  
 Private Sub SafeCleanup()
@@ -4401,166 +4120,40 @@ End Sub
 
 '================================================================================
 ' VISUAL ELEMENTS CLEANUP SYSTEM
+ 
+ 
+ 
 '================================================================================
 
 '================================================================================
 ' DELETE HIDDEN VISUAL ELEMENTS - Remove all hidden visual elements
+ 
+ 
+ 
 '================================================================================
-Private Function DeleteHiddenVisualElements(doc As Document) As Boolean
-    On Error GoTo ErrorHandler
-    
-    Application.StatusBar = "Removing hidden visual elements..."
-    
-    Dim deletedCount As Long
-    deletedCount = 0
-    
-    ' Remove hidden shapes (floating)
-    Dim i As Long
-    For i = doc.Shapes.Count To 1 Step -1
-    Dim shp As Shape
-        Set shp = doc.Shapes(i)
-        
-    ' Check if the shape is hidden (multiple criteria)
-        Dim isHidden As Boolean
-        isHidden = False
-        
-    ' Shape marked as not visible
-        If Not shp.Visible Then isHidden = True
-        
-    ' Shape with total transparency
-        On Error Resume Next
-        If shp.Fill.Transparency >= 0.99 Then isHidden = True
-        On Error GoTo ErrorHandler
-        
-    ' Shape with zero or nearly zero size
-        If shp.Width <= 1 Or shp.Height <= 1 Then isHidden = True
-        
-    ' Shape positioned outside the visible page (very negative coordinates)
-        If shp.Left < -1000 Or shp.Top < -1000 Then isHidden = True
-        
-        If isHidden Then
-            shp.Delete
-            deletedCount = deletedCount + 1
-        End If
-    Next i
-    
-    ' Remove hidden inline objects
-    For i = doc.InlineShapes.Count To 1 Step -1
-        Dim inlineShp As InlineShape
-        Set inlineShp = doc.InlineShapes(i)
-        
-        Dim isInlineHidden As Boolean
-        isInlineHidden = False
-        
-    ' Inline object in hidden text
-        If inlineShp.Range.Font.Hidden Then isInlineHidden = True
-        
-    ' Inline object in paragraph with zero spacing (likely hidden)
-        If inlineShp.Range.ParagraphFormat.LineSpacing = 0 Then isInlineHidden = True
-        
-    ' Inline object with zero size
-        If inlineShp.Width <= 1 Or inlineShp.Height <= 1 Then isInlineHidden = True
-        
-        If isInlineHidden Then
-            inlineShp.Delete
-            deletedCount = deletedCount + 1
-        End If
-    Next i
-    
-    DeleteHiddenVisualElements = True
-    Exit Function
-
-ErrorHandler:
-    DeleteHiddenVisualElements = False
-End Function
+ ' Removed unused: DeleteHiddenVisualElements (not part of simplified flow).
+ 
+ 
+ 
 
 '================================================================================
 ' DELETE VISUAL ELEMENTS IN RANGE - Remove visual elements between paragraphs 1-4
+ 
+ 
+ 
 '================================================================================
-Private Function DeleteVisualElementsInFirstFourParagraphs(doc As Document) As Boolean
-    On Error GoTo ErrorHandler
-    
-    Application.StatusBar = "Removing visual elements between paragraphs 1-4..."
-    
-    If doc.Paragraphs.Count < 1 Then
-        DeleteVisualElementsInFirstFourParagraphs = True
-        Exit Function
-    End If
-    
-    If doc.Paragraphs.Count < 4 Then
-    End If
-    
-    Dim deletedCount As Long
-    deletedCount = 0
-    
-    ' Define the range of the first 4 paragraphs (or less if the document is shorter)
-    Dim maxParagraphs As Long
-    If doc.Paragraphs.Count < 4 Then
-    maxParagraphs = doc.Paragraphs.Count
-    Else
-        maxParagraphs = 4
-    End If
-    
-    Dim startRange As Long
-    Dim endRange As Long
-    startRange = doc.Paragraphs(1).Range.Start
-    endRange = doc.Paragraphs(maxParagraphs).Range.End
-    
-    
-    ' Remove floating shapes anchored within the first 4 paragraphs' range
-    Dim i As Long
-    For i = doc.Shapes.Count To 1 Step -1
-    Dim shp As Shape
-        Set shp = doc.Shapes(i)
-        
-    ' Check if the shape is anchored within the first 4 paragraphs' range
-        On Error Resume Next
-        Dim anchorPosition As Long
-        anchorPosition = shp.Anchor.Start
-        On Error GoTo ErrorHandler
-        
-        If anchorPosition >= startRange And anchorPosition <= endRange Then
-            Dim paragraphNum As Long
-            paragraphNum = GetParagraphNumber(doc, anchorPosition)
-            shp.Delete
-            deletedCount = deletedCount + 1
-        End If
-    Next i
-    
-    ' Remove inline objects in the first 4 paragraphs
-    For i = doc.InlineShapes.Count To 1 Step -1
-        Dim inlineShp As InlineShape
-        Set inlineShp = doc.InlineShapes(i)
-        
-    ' Check if the inline object is within the first 4 paragraphs
-        If inlineShp.Range.Start >= startRange And inlineShp.Range.Start <= endRange Then
-            Dim inlineParagraphNum As Long
-            inlineParagraphNum = GetParagraphNumber(doc, inlineShp.Range.Start)
-            inlineShp.Delete
-            deletedCount = deletedCount + 1
-        End If
-    Next i
-    
-    DeleteVisualElementsInFirstFourParagraphs = True
-    Exit Function
-
-ErrorHandler:
-    DeleteVisualElementsInFirstFourParagraphs = False
-End Function
+ ' Removed unused: DeleteVisualElementsInFirstFourParagraphs (not referenced).
+ 
+ 
+ 
 
 '================================================================================
 ' GET PARAGRAPH NUMBER - Helper to determine paragraph number
 '================================================================================
-Private Function GetParagraphNumber(doc As Document, position As Long) As Long
-    Dim i As Long
-    For i = 1 To doc.Paragraphs.Count
-        If position >= doc.Paragraphs(i).Range.Start And position <= doc.Paragraphs(i).Range.End Then
-            GetParagraphNumber = i
-            Exit Function
-        End If
-    Next i
-    GetParagraphNumber = 0 ' Not found
-End Function
+ ' Removed unused: GetParagraphNumber (only used by removed helper).
+ 
+ 
+ 
 
  
 

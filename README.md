@@ -12,13 +12,13 @@
 ## 📋 Table of Contents
 
 - [Version News](#version-news)
-- [Main Features](#-main-features)  
-- [Project Structure](#-project-structure)  
-- [Installation](#-installation)  
-- [Usage](#-usage)  
-- [Security](#-security)  
-- [Documentation](#-documentation)  
-- [Contributing](#-contributing)  
+- [Main Features](#-main-features)
+- [Project Structure](#-project-structure)
+- [Installation](#-installation)
+- [Usage](#-usage)
+- [Security](#-security)
+- [Documentation](#-documentation)
+- [Contributing](#-contributing)
 - [License](#-license)
 
 ### Version News
@@ -103,7 +103,7 @@ No runtime configuration is required (or loaded). This simplified build runs wit
 - Page numbers: added to the footer automatically
 
 If `assets\stamp.png` is not found next to the document, the header image step is skipped safely.
- 
+
 ## 📖 Usage
 
 ### Basic Usage
@@ -114,8 +114,6 @@ If `assets\stamp.png` is not found next to the document, the header image step i
 4. The system applies all formatting steps sequentially.
 
 Note on header stamp:
-
-- Place an image at `assets\stamp.png` in the same folder as your .docx. If it's missing, the header image step is skipped automatically.
 
 - Place an image at `assets\stamp.png` in the same folder as your .docx. If it's missing, the header image step is skipped automatically.
 
