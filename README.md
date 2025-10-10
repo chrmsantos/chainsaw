@@ -1,6 +1,6 @@
 # CHAINSAW PROPOSITURAS
 
-## v1.0.1-simplified (2025-10-07)
+## v1.0.0-Beta3 (2025-10-10)
 
 *An open source VBA solution for standardization and advanced automation of legislative documents in Microsoft Word, developed specifically for Municipal Chambers and institutional environments.*
 
@@ -15,24 +15,22 @@
 - [Main Features](#-main-features)  
 - [Project Structure](#-project-structure)  
 - [Installation](#-installation)  
-- [Configuration](#%EF%B8%8F-configuration)  
 - [Usage](#-usage)  
 - [Security](#-security)  
-- [Configuration Reference](#%EF%B8%8F-configuration-reference)  
 - [Documentation](#-documentation)  
 - [Contributing](#-contributing)  
 - [License](#-license)
 
 ### Version News
 
-Latest (simplified):
+Latest:
 
-- Reverted intentionally to a single monolithic module (`chainsaw_0.bas`) for easier maintenance in Word's VBA editor.
-- All non-formatting subsystems removed: logging, backups, image/view protection, timing counters (FINAL PURGE COMPLETE).
-- Configuration parser ignores deprecated sections (BACKUP / VISUAL_ELEMENTS / LOGGING).
-- Formatting semantics fully preserved (paragraph indentation, fonts, numbering, special tokens, header/footer, hyphenation, replacements).
-- Dead code and duplicate stubs pruned; image/view types eliminated.
-- Final removal of all residual LogMessage calls and legacy backup references.
+- Kept a single monolithic module (`chainsaw_0.bas`) for easy import and maintenance in Word's VBA editor.
+- Removed configuration control entirely: behavior now uses fixed, safe defaults (no INI parsing; no optional toggles).
+- Header image is now resolved only from a fixed relative path to the active document folder: `assets\stamp.png`.
+- Removed the deprecated ValidateParagraph routine and all dispatch branches that referenced it.
+- Purged comments referring to removed/deprecated features to reduce noise; standardized key property casing.
+- Minor safety fixes in helper functions (return values and alert handling) without changing semantics.
 - Corrected error handler in first-paragraph formatting routine (previously referenced wrong function name on failure).
 
 ### Simplification Rationale
@@ -53,19 +51,17 @@ See `LICENSE` for the full text. Previous Modified Apache 2.0 terms no longer ap
 
 ```text
 chainsaw/
-├── configurations/
-│   ├── chainsaw-config.ini      # Runtime configuration (deprecated sections ignored)
-│   └── stamp.png                # Header stamp asset
-├── installation/                # Installer script & guidance
-│   ├── install-chainsaw.ps1
-│   └── install-config.ini
-├── source/
-│   ├── vba-modules/
-│   │   └── chainsaw_0.bas       # Monolithic VBA module (all formatting logic)
-│   └── testing-props/           # Sample documents
+├── assets/
+│   └── stamp.png                # Header stamp asset used in the document header
+├── config/
+│   ├── Normal.dotm             # Optional Word template
+│   └── Word Personalizações.exportedUI  # Optional ribbon customizations
+├── src/
+│   └── chainsaw_0.bas          # Monolithic VBA module (all formatting logic)
 ├── README.md
+├── CHANGELOG.md
 ├── LICENSE
-└── SECURITY.md
+└── SPDX-LICENSE-IDENTIFIER.txt
 ```
 
 ### Module Responsibilities
@@ -99,28 +95,14 @@ Manual steps depend on your Word setup. If you need an installer, we can add one
 
 ## ⚙️ Configuration
 
-The system loads settings from `chainsaw-config.ini` (placed alongside the document or in the expected configuration path). If the file is missing, safe defaults are applied.
+No runtime configuration is required (or loaded). This simplified build runs with fixed, safe defaults:
 
-### Quick Configuration
+- Minimum Word version: 2010+
+- Standard font: Arial 12 pt; line spacing and margins as per module constants
+- Header image: resolved from `assets\stamp.png` relative to the active document’s folder
+- Page numbers: added to the footer automatically
 
-```ini
-[GENERAL]
-debug_mode = false
-performance_mode = true
-
-
-[VALIDATIONS]
-validate_document_integrity = true
-validate_proposition_type = true
-check_word_version = true
-min_word_version = 14.0
-```
-
-### File Locations
-
-- Logs / backups: removed (no writes performed).
-- Assets: `assets/` (header image, etc.).
-- Word UI customizations: `config/Word Personalizações.exportedUI`.
+If `assets\stamp.png` is not found next to the document, the header image step is skipped safely.
  
 ## 📖 Usage
 
@@ -128,8 +110,14 @@ min_word_version = 14.0
 
 1. Open a document in Microsoft Word.
 2. Import `chainsaw_0.bas` if not already present (VBA Editor → File → Import File...).
-3. Run the macro `Chainsaw`.
+3. Run the macro `StandardizeDocumentMain`.
 4. The system applies all formatting steps sequentially.
+
+Note on header stamp:
+
+- Place an image at `assets\stamp.png` in the same folder as your .docx. If it's missing, the header image step is skipped automatically.
+
+- Place an image at `assets\stamp.png` in the same folder as your .docx. If it's missing, the header image step is skipped automatically.
 
 ### Key Shortcuts
 
@@ -167,33 +155,9 @@ Para políticas corporativas, consulte [`SECURITY.md`](SECURITY.md).
 - RAM: 4GB or higher
 - CPU: Intel/AMD 64-bit
 
-## ⚙️ Configuration Reference
+## 📝 Notes on Dialog Text
 
-Below are selected, stable keys you can place in `chainsaw-config.ini` (section names accept Portuguese or English equivalents):
-
-```ini
-[INTERFACE]
-dialog_ascii_normalization = true    ; true/false — fold accents & special chars in MsgBox text
-
-[VALIDATIONS]
-check_word_version = true            ; disable only for legacy environments
-validate_proposition_type = true
-
-[GENERAL]
-debug_mode = false
-performance_mode = true
-
-```
-
-Notes:
-
-- Key names are case-insensitive; values: true/false/1/0.
-- Portuguese section names also work (e.g., `[INTERFACE]` or `[INTERFACE]`, `[VALIDACOES]`).
-- If a key is omitted, its safe default is used.
-
-### Dialog ASCII Normalization
-
-When enabled (`dialog_ascii_normalization = true`), all user-facing dialog strings are converted to an ASCII-safe form (accents replaced, smart quotes normalized) to avoid encoding issues on restricted systems. Set to `false` to retain original accents.
+User-facing dialog strings are normalized to ASCII at runtime via a helper to avoid encoding issues on older Word builds. This does not affect document content.
 
 ## 📚 Documentation
 
@@ -267,7 +231,7 @@ Usage example inside code:
 
 ```vb
 Dim msg As String
-msg = ReplacePlaceholders(MSG_ERR_VERSION, "MIN", Config.minWordVersion, "CUR", Application.Version)
+msg = ReplacePlaceholders(MSG_ERR_VERSION, "MIN", CStr(14), "CUR", Application.Version)
 MsgBox NormalizeForUI(msg), vbCritical, NormalizeForUI(TITLE_VERSION_ERROR)
 ```
 

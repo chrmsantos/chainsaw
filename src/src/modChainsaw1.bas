@@ -192,7 +192,7 @@ Private Function InitializePerformanceOptimization() As Boolean
     
     ' Apply standard performance optimizations (always on)
     Application.ScreenUpdating = False
-    Application.DisplayAlerts = False
+    Application.DisplayAlerts = wdAlertsNone
     
     ' Word-specific optimizations
     Call OptimizeWordSettings
@@ -233,7 +233,7 @@ Private Function RestorePerformanceSettings() As Boolean
     
     ' Restore original settings
     Application.ScreenUpdating = True
-    Application.DisplayAlerts = True
+    Application.DisplayAlerts = wdAlertsAll
     
     RestorePerformanceSettings = True
     Exit Function
@@ -268,8 +268,8 @@ Private Function BulkFindReplace(findText As String, replaceText As String, Opti
     With targetRange.Find
         .ClearFormatting
         .Replacement.ClearFormatting
-        .text = findText
-        .Replacement.text = replaceText
+    .Text = findText
+    .Replacement.Text = replaceText
         .Forward = True
         .Wrap = wdFindStop
         .Format = False
@@ -301,8 +301,8 @@ Private Function StandardFindReplace(findText As String, replaceText As String, 
     With targetRange.Find
         .ClearFormatting
         .Replacement.ClearFormatting
-        .text = findText
-        .Replacement.text = replaceText
+    .Text = findText
+    .Replacement.Text = replaceText
         .Forward = True
         .Wrap = wdFindStop
         
@@ -507,7 +507,7 @@ Public Sub StandardizeDocumentMain()
         Dim verMsg As String
         verMsg = ReplacePlaceholders(MSG_ERR_VERSION, _
                     "MIN", CStr(MIN_WORD_VERSION), _
-                    "CUR", CStr(Application.version))
+                    "CUR", CStr(Application.Version))
         MsgBox NormalizeForUI(verMsg), vbCritical, NormalizeForUI(TITLE_VERSION_ERROR)
         Exit Sub
     End If
@@ -716,7 +716,7 @@ Private Function ValidateDocumentIntegrity(doc As Document) As Boolean
     ' Document protection check
     On Error Resume Next
     Dim isProtected As Boolean
-    isProtected = (doc.protectionType <> wdNoProtection)
+    isProtected = (doc.ProtectionType <> wdNoProtection)
     If Err.Number <> 0 Then
         On Error GoTo ErrorHandler
         isProtected = False
@@ -793,7 +793,7 @@ Private Function SafeGetCharacterCount(targetRange As Range) As Long
 FallbackMethod:
     On Error GoTo ErrorHandler
     ' Alternative method for versions with issues in .Characters.Count
-    SafeGetCharacterCount = Len(targetRange.text)
+    SafeGetCharacterCount = Len(targetRange.Text)
     Exit Function
     
 ErrorHandler:
@@ -806,11 +806,12 @@ Private Function SafeSetFont(targetRange As Range, fontName As String, fontSize 
     ' Apply font formatting safely
     With targetRange.Font
         If fontName <> "" Then .Name = fontName
-        If fontSize > 0 Then .size = fontSize
+        If fontSize > 0 Then .Size = fontSize
         .Color = wdColorAutomatic
     End With
     
-                
+    SafeSetFont = True
+    Exit Function
 ErrorHandler:
     SafeSetFont = False
 End Function
@@ -819,12 +820,11 @@ Private Function SafeSetParagraphFormat(para As Paragraph, alignment As Long, le
     On Error GoTo ErrorHandler
     
     With para.Format
-        If alignment >= 0 Then .alignment = alignment
-        If leftIndent >= 0 Then .leftIndent = leftIndent
-        If firstLineIndent >= 0 Then .firstLineIndent = firstLineIndent
+        If alignment >= 0 Then .Alignment = alignment
+        If leftIndent >= 0 Then .LeftIndent = leftIndent
+        If firstLineIndent >= 0 Then .FirstLineIndent = firstLineIndent
     End With
-            MsgBox NormalizeForUI("No document is open or accessible." & vbCrLf & _
-                 "Open a document before running the standardization."), vbExclamation, NormalizeForUI("Document Not Found - Chainsaw Proposituras")
+    SafeSetParagraphFormat = True
     Exit Function
     
 ErrorHandler:
@@ -844,7 +844,7 @@ Private Function SafeHasVisualContent(para As Paragraph) As Boolean
     ' Safely check floating shapes
     hasShapes = False
     If Not hasImages Then
-        Dim shp As shape
+        Dim shp As Shape
         For Each shp In para.Range.ShapeRange
             hasShapes = True
             Exit For
@@ -878,8 +878,8 @@ Private Function SafeFindReplace(doc As Document, findText As String, replaceTex
     With doc.Range.Find
         .ClearFormatting
         .Replacement.ClearFormatting
-        .text = findText
-        .Replacement.text = replaceText
+    .Text = findText
+    .Replacement.Text = replaceText
         .Forward = True
         .Wrap = wdFindContinue
         .Format = False
@@ -916,7 +916,7 @@ Private Function SafeGetLastCharacter(rng As Range) As String
     charCount = SafeGetCharacterCount(rng)
     
     If charCount > 0 Then
-        SafeGetLastCharacter = rng.Characters(charCount).text
+    SafeGetLastCharacter = rng.Characters(charCount).Text
     Else
         SafeGetLastCharacter = ""
     End If
@@ -925,7 +925,7 @@ Private Function SafeGetLastCharacter(rng As Range) As String
 ErrorHandler:
     ' Alternative method using Right()
     On Error GoTo FinalFallback
-    SafeGetLastCharacter = Right(rng.text, 1)
+    SafeGetLastCharacter = Right(rng.Text, 1)
     Exit Function
     
 FinalFallback:
@@ -973,13 +973,13 @@ End Sub
 Private Function GetProtectionType(doc As Document) As String
     On Error Resume Next
     
-    Select Case doc.protectionType
+    Select Case doc.ProtectionType
         Case wdNoProtection: GetProtectionType = "No protection"
         Case 1: GetProtectionType = "Tracked changes protection"
         Case 2: GetProtectionType = "Comments protection"
         Case 3: GetProtectionType = "Forms protection"
         Case 4: GetProtectionType = "Read-only protection"
-        Case Else: GetProtectionType = "Unknown type (" & doc.protectionType & ")"
+    Case Else: GetProtectionType = "Unknown type (" & doc.ProtectionType & ")"
     End Select
 End Function
 
@@ -1064,7 +1064,7 @@ Private Function PreviousChecking(doc As Document) As Boolean
         Exit Function
     End If
 
-    If doc.protectionType <> wdNoProtection Then
+    If doc.ProtectionType <> wdNoProtection Then
         Dim protectionType As String
         protectionType = GetProtectionType(doc)
         Application.StatusBar = "Error: Document is protected (" & protectionType & ")"
@@ -1260,8 +1260,8 @@ Private Function ApplyStdFont(doc As Document) As Boolean
         Dim paraFont As Font
         Set paraFont = para.Range.Font
         Dim needsFontFormatting As Boolean
-        needsFontFormatting = (paraFont.Name <> STANDARD_FONT) Or _
-                             (paraFont.size <> STANDARD_FONT_SIZE) Or _
+    needsFontFormatting = (paraFont.Name <> STANDARD_FONT) Or _
+                 (paraFont.Size <> STANDARD_FONT_SIZE) Or _
                              (paraFont.Color <> wdColorAutomatic)
         
     ' Cache of special formatting checks
@@ -1299,10 +1299,10 @@ Private Function ApplyStdFont(doc As Document) As Boolean
         
     ' Only check text when special formatting decisions are needed
         If needsUnderlineRemoval Or needsBoldRemoval Then
-            paraFullText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+            paraFullText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
             
             ' Check if it is the first paragraph with text (title) - optimized
-            If i <= 3 And para.Format.alignment = wdAlignParagraphCenter And paraFullText <> "" Then
+            If i <= 3 And para.Format.Alignment = wdAlignParagraphCenter And paraFullText <> "" Then
                 isTitle = True
             End If
                      
@@ -1325,7 +1325,7 @@ Private Function ApplyStdFont(doc As Document) As Boolean
                 Set nextPara = doc.Paragraphs(i + 1)
                 If Not HasVisualContent(nextPara) Then
                     Dim nextParaText As String
-                    nextParaText = Trim(Replace(Replace(nextPara.Range.text, vbCr, ""), vbLf, ""))
+                    nextParaText = Trim(Replace(Replace(nextPara.Range.Text, vbCr, ""), vbLf, ""))
                     ' Remove ending punctuation for analysis
                     Dim nextCleanText As String
                     nextCleanText = nextParaText
@@ -1349,7 +1349,7 @@ Private Function ApplyStdFont(doc As Document) As Boolean
                     ' Fallback to traditional method in case of error
                     With paraFont
                         .Name = STANDARD_FONT
-                        .size = STANDARD_FONT_SIZE
+                        .Size = STANDARD_FONT_SIZE
                         .Color = wdColorAutomatic
                     End With
                     formattedCount = formattedCount + 1
@@ -1417,7 +1417,7 @@ Private Sub FormatCharacterByCharacter(para As Paragraph, fontName As String, fo
                 With charRange.Font
                     ' Apply font formatting if specified
                     If fontName <> "" Then .Name = fontName
-                    If fontSize > 0 Then .size = fontSize
+                    If fontSize > 0 Then .Size = fontSize
                     If fontColor >= 0 Then .Color = fontColor
                     
                     ' Remove special formats if requested
@@ -1468,7 +1468,7 @@ Private Function ApplyStdParagraphs(doc As Document) As Boolean
         
     ' Robust cleanup of multiple spaces - ALWAYS applied
         Dim cleanText As String
-        cleanText = para.Range.text
+    cleanText = para.Range.Text
         
     ' OPTIMIZED: Combine multiple cleanup operations in one block
         If InStr(cleanText, "  ") > 0 Or InStr(cleanText, vbTab) > 0 Then
@@ -1496,11 +1496,11 @@ Private Function ApplyStdParagraphs(doc As Document) As Boolean
         End If
         
     ' Apply cleaned text ONLY if there are no images (protection)
-        If cleanText <> para.Range.text And Not hasInlineImage Then
-            para.Range.text = cleanText
+        If cleanText <> para.Range.Text And Not hasInlineImage Then
+            para.Range.Text = cleanText
         End If
 
-        paraText = Trim(LCase(Replace(Replace(Replace(para.Range.text, ".", ""), ",", ""), ";", "")))
+    paraText = Trim(LCase(Replace(Replace(Replace(para.Range.Text, ".", ""), ",", ""), ";", "")))
         paraText = Replace(paraText, vbCr, "")
         paraText = Replace(paraText, vbLf, "")
         paraText = Replace(paraText, " ", "")
@@ -1513,23 +1513,23 @@ Private Function ApplyStdParagraphs(doc As Document) As Boolean
             .SpaceBefore = 0
             .SpaceAfter = 0
 
-            If para.alignment = wdAlignParagraphCenter Then
-                .leftIndent = 0
-                .firstLineIndent = 0
+            If para.Alignment = wdAlignParagraphCenter Then
+                .LeftIndent = 0
+                .FirstLineIndent = 0
             Else
-                firstIndent = .firstLineIndent
-                paragraphIndent = .leftIndent
+                firstIndent = .FirstLineIndent
+                paragraphIndent = .LeftIndent
                 If paragraphIndent >= CentimetersToPoints(5) Then
-                    .leftIndent = CentimetersToPoints(9.5)
+                    .LeftIndent = CentimetersToPoints(9.5)
                 ElseIf firstIndent < CentimetersToPoints(5) Then
-                    .leftIndent = CentimetersToPoints(0)
-                    .firstLineIndent = CentimetersToPoints(1.5)
+                    .LeftIndent = CentimetersToPoints(0)
+                    .FirstLineIndent = CentimetersToPoints(1.5)
                 End If
             End If
         End With
 
-        If para.alignment = wdAlignParagraphLeft Then
-            para.alignment = wdAlignParagraphJustify
+        If para.Alignment = wdAlignParagraphLeft Then
+            para.Alignment = wdAlignParagraphJustify
         End If
         
         formattedCount = formattedCount + 1
@@ -1565,7 +1565,7 @@ Private Function FormatSecondParagraph(doc As Document) As Boolean
     ' Find the 2nd paragraph with content (skip empty)
     For i = 1 To doc.Paragraphs.count
         Set para = doc.Paragraphs(i)
-        paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+    paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
         
     ' If the paragraph has text or visual content, count as valid paragraph
         If paraText <> "" Or HasVisualContent(para) Then
@@ -1611,10 +1611,10 @@ Private Function FormatSecondParagraph(doc As Document) As Boolean
         
     ' MAIN FORMATTING: Always apply formatting, protecting only images
         With para.Format
-            .leftIndent = CentimetersToPoints(9)      ' 9 cm left indent
-            .firstLineIndent = 0                      ' No first-line indent
+            .LeftIndent = CentimetersToPoints(9)      ' 9 cm left indent
+            .FirstLineIndent = 0                      ' No first-line indent
             .RightIndent = 0                          ' No right indent
-            .alignment = wdAlignParagraphJustify      ' Justified
+            .Alignment = wdAlignParagraphJustify      ' Justified
         End With
         
     ' SECOND: Add 2 blank lines AFTER the 2nd paragraph
@@ -1668,7 +1668,7 @@ Private Function CountBlankLinesBefore(doc As Document, paraIndex As Long) As Lo
         If i <= 0 Then Exit For
         
         Set para = doc.Paragraphs(i)
-        paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+    paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
         
     ' If the paragraph is empty, count as a blank line
         If paraText = "" And Not HasVisualContent(para) Then
@@ -1704,7 +1704,7 @@ Private Function CountBlankLinesAfter(doc As Document, paraIndex As Long) As Lon
         If i > doc.Paragraphs.count Then Exit For
         
         Set para = doc.Paragraphs(i)
-        paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+    paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
         
     ' If the paragraph is empty, count as a blank line
         If paraText = "" And Not HasVisualContent(para) Then
@@ -1741,7 +1741,7 @@ Private Function GetSecondParagraphIndex(doc As Document) As Long
     ' Find the 2nd paragraph with content (skip empty)
     For i = 1 To doc.Paragraphs.count
         Set para = doc.Paragraphs(i)
-        paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+    paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
         
     ' If the paragraph has text or visual content, count as a valid paragraph
         If paraText <> "" Or HasVisualContent(para) Then
@@ -1867,7 +1867,7 @@ Private Function FormatFirstParagraph(doc As Document) As Boolean
     ' Find the 1st paragraph with content (skip empty)
     For i = 1 To doc.Paragraphs.count
         Set para = doc.Paragraphs(i)
-        paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+    paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
         
     ' If the paragraph has text or visual content, count as a valid paragraph
         If paraText <> "" Or HasVisualContent(para) Then
@@ -1920,9 +1920,9 @@ Private Function FormatFirstParagraph(doc As Document) As Boolean
         
     ' Also apply paragraph formatting - ALWAYS
         With para.Format
-            .alignment = wdAlignParagraphCenter       ' Centered
-            .leftIndent = 0                           ' No left indent
-            .firstLineIndent = 0                      ' No first-line indent
+            .Alignment = wdAlignParagraphCenter       ' Centered
+            .LeftIndent = 0                           ' No left indent
+            .FirstLineIndent = 0                      ' No first-line indent
             .RightIndent = 0                          ' No right indent
         End With
     End If
@@ -1939,9 +1939,9 @@ End Function
 Private Function RemoveWatermark(doc As Document) As Boolean
     On Error GoTo ErrorHandler
 
-    Dim sec As section
+    Dim sec As Section
     Dim header As HeaderFooter
-    Dim shp As shape
+    Dim shp As Shape
     Dim i As Long
     Dim removedCount As Long
 
@@ -1994,13 +1994,13 @@ End Function
 Private Function InsertHeaderstamp(doc As Document) As Boolean
     On Error GoTo ErrorHandler
 
-    Dim sec As section
+    Dim sec As Section
     Dim header As HeaderFooter
     Dim imgFile As String
     Dim username As String
     Dim imgWidth As Single
     Dim imgHeight As Single
-    Dim shp As shape
+    Dim shp As Shape
     Dim imgFound As Boolean
     Dim sectionsProcessed As Long
 
@@ -2075,7 +2075,7 @@ End Function
 Private Function InsertFooterstamp(doc As Document) As Boolean
     On Error GoTo ErrorHandler
 
-    Dim sec As section
+    Dim sec As Section
     Dim footer As HeaderFooter
     Dim rng As Range
     Dim sectionsProcessed As Long
@@ -2095,7 +2095,7 @@ Private Function InsertFooterstamp(doc As Document) As Boolean
             
             Set rng = footer.Range
             rng.Collapse Direction:=wdCollapseEnd
-            rng.text = "-"
+            rng.Text = "-"
             
             Set rng = footer.Range
             rng.Collapse Direction:=wdCollapseEnd
@@ -2103,8 +2103,8 @@ Private Function InsertFooterstamp(doc As Document) As Boolean
             
             With footer.Range
                 .Font.Name = STANDARD_FONT
-                .Font.size = FOOTER_FONT_SIZE
-                .ParagraphFormat.alignment = wdAlignParagraphCenter
+                .Font.Size = FOOTER_FONT_SIZE
+                .ParagraphFormat.Alignment = wdAlignParagraphCenter
                 .Fields.Update
             End With
             
@@ -2266,7 +2266,7 @@ Private Function CleanDocumentStructure(doc As Document) As Boolean
         
         Set para = doc.Paragraphs(i)
         Dim paraTextCheck As String
-        paraTextCheck = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+    paraTextCheck = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
         
     ' Find the first paragraph with real text
         If paraTextCheck <> "" Then
@@ -2286,7 +2286,7 @@ Private Function CleanDocumentStructure(doc As Document) As Boolean
             
             Set para = doc.Paragraphs(i)
             Dim paraTextEmpty As String
-            paraTextEmpty = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+            paraTextEmpty = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
             
             ' OPTIMIZED: Visual check only if necessary
             If paraTextEmpty = "" Then
@@ -2315,8 +2315,8 @@ Private Function CleanDocumentStructure(doc As Document) As Boolean
         .MatchWildcards = False
         
     ' Remove spaces/tabs at the start of lines using simple Find/Replace
-    .text = "^p "  ' Paragraph break followed by space
-        .Replacement.text = "^p"
+    .Text = "^p "  ' Paragraph break followed by space
+        .Replacement.Text = "^p"
         
         Do While .Execute(Replace:=True)
             leadingSpacesRemoved = leadingSpacesRemoved + 1
@@ -2325,8 +2325,8 @@ Private Function CleanDocumentStructure(doc As Document) As Boolean
         Loop
         
     ' Remove tabs at the start of lines
-    .text = "^p^t"  ' Paragraph break followed by tab
-        .Replacement.text = "^p"
+    .Text = "^p^t"  ' Paragraph break followed by tab
+        .Replacement.Text = "^p"
         
         Do While .Execute(Replace:=True)
             leadingSpacesRemoved = leadingSpacesRemoved + 1
@@ -2349,7 +2349,7 @@ Private Function CleanDocumentStructure(doc As Document) As Boolean
         rng.End = 1
         
     ' Remove spaces/tabs at the absolute start of the document
-        If rng.text = " " Or rng.text = vbTab Then
+    If rng.Text = " " Or rng.Text = vbTab Then
             ' Expand the range to capture all leading spaces using safe method
             Do While rng.End <= doc.Range.End And (SafeGetLastCharacter(rng) = " " Or SafeGetLastCharacter(rng) = vbTab)
                 rng.End = rng.End + 1
@@ -2397,7 +2397,7 @@ Private Function ValidatePropositionType(doc As Document) As Boolean
     ' Find the first non-empty paragraph
     For i = 1 To doc.Paragraphs.count
         Set firstPara = doc.Paragraphs(i)
-        paraText = Trim(Replace(Replace(firstPara.Range.text, vbCr, ""), vbLf, ""))
+    paraText = Trim(Replace(Replace(firstPara.Range.Text, vbCr, ""), vbLf, ""))
         If paraText <> "" Then
             Exit For
         End If
@@ -2465,7 +2465,7 @@ Private Function FormatDocumentTitle(doc As Document) As Boolean
     ' Find the first non-empty paragraph (after skipping blank lines)
     For i = 1 To doc.Paragraphs.count
         Set firstPara = doc.Paragraphs(i)
-        paraText = Trim(Replace(Replace(firstPara.Range.text, vbCr, ""), vbLf, ""))
+        paraText = Trim(Replace(Replace(firstPara.Range.Text, vbCr, ""), vbLf, ""))
         If paraText <> "" Then
             Exit For
         End If
@@ -2511,7 +2511,7 @@ Private Function FormatDocumentTitle(doc As Document) As Boolean
     End If
     
     ' Always apply title formatting: uppercase, bold, underline
-    firstPara.Range.text = UCase(newText) & vbCrLf
+    firstPara.Range.Text = UCase(newText) & vbCrLf
     
     ' Full title formatting (first line)
     With firstPara.Range.Font
@@ -2520,9 +2520,9 @@ Private Function FormatDocumentTitle(doc As Document) As Boolean
     End With
     
     With firstPara.Format
-        .alignment = wdAlignParagraphCenter
-        .leftIndent = 0
-        .firstLineIndent = 0
+        .Alignment = wdAlignParagraphCenter
+        .LeftIndent = 0
+        .FirstLineIndent = 0
         .RightIndent = 0
         .SpaceBefore = 0
         .SpaceAfter = 6  ' Small space after the title
@@ -2563,7 +2563,7 @@ Private Function FormatConsiderandoParagraphs(doc As Document) As Boolean
     
     For i = 1 To doc.Paragraphs.count
         Set para = doc.Paragraphs(i)
-        rawText = para.Range.text
+    rawText = para.Range.Text
         textNoCrLf = Replace(Replace(rawText, vbCr, ""), vbLf, "")
         
         If Len(textNoCrLf) >= 12 Then
@@ -2584,7 +2584,7 @@ Private Function FormatConsiderandoParagraphs(doc As Document) As Boolean
                     rng.SetRange rng.Start + (startIdx - 1), rng.Start + (startIdx - 1) + 12
                     
                     ' Replace token and apply bold preserving following spacing/punctuation
-                    rng.text = "CONSIDERANDO"
+                    rng.Text = "CONSIDERANDO"
                     rng.Font.Bold = True
                     totalFormatted = totalFormatted + 1
                 End If
@@ -2714,8 +2714,8 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
         With rng.Find
             .ClearFormatting
             .Replacement.ClearFormatting
-            .text = dOesteVariants(i) & "este"
-            .Replacement.text = "d'Oeste"
+            .Text = dOesteVariants(i) & "este"
+            .Replacement.Text = "d'Oeste"
             .Forward = True
             .Wrap = wdFindStop
             .Format = False
@@ -2752,8 +2752,8 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
             With rng.Find
                 .ClearFormatting
                 .Replacement.ClearFormatting
-                .text = dashVariants(i)
-                .Replacement.text = " � "    ' Em dash (travess�o) com espa�os
+                .Text = dashVariants(i)
+                .Replacement.Text = " � "    ' Em dash (travess�o) com espa�os
                 .Forward = True
                 .Wrap = wdFindStop
                 .Format = False
@@ -2783,8 +2783,8 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
         With rng.Find
             .ClearFormatting
             .Replacement.ClearFormatting
-            .text = lineStartDashVariants(i)
-            .Replacement.text = "^p� "    ' Em dash at line start
+            .Text = lineStartDashVariants(i)
+            .Replacement.Text = "^p� "    ' Em dash at line start
             .Forward = True
             .Wrap = wdFindStop
             .Format = False
@@ -2813,8 +2813,8 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
         With rng.Find
             .ClearFormatting
             .Replacement.ClearFormatting
-            .text = lineEndDashVariants(i)
-            .Replacement.text = " �^p"    ' Em dash at line end
+            .Text = lineEndDashVariants(i)
+            .Replacement.Text = " �^p"    ' Em dash at line end
             .Forward = True
             .Wrap = wdFindStop
             .Format = False
@@ -2838,8 +2838,8 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
     With rng.Find
         .ClearFormatting
         .Replacement.ClearFormatting
-        .text = "^l"  ' Manual line break
-        .Replacement.text = " "  ' Replace with space
+    .Text = "^l"  ' Manual line break
+    .Replacement.Text = " "  ' Replace with space
         .Forward = True
         .Wrap = wdFindStop
         .Format = False
@@ -2861,8 +2861,8 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
     With rng.Find
         .ClearFormatting
         .Replacement.ClearFormatting
-        .text = Chr(11)  ' Manual line break (VT)
-        .Replacement.text = " "  ' Replace with space
+    .Text = Chr(11)  ' Manual line break (VT)
+    .Replacement.Text = " "  ' Replace with space
         .Forward = True
         .Wrap = wdFindStop
         .Format = False
@@ -2889,8 +2889,8 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
     With rng.Find
         .ClearFormatting
         .Replacement.ClearFormatting
-        .text = Chr(10)  ' Line Feed (LF)
-        .Replacement.text = " "  ' Replace with space
+    .Text = Chr(10)  ' Line Feed (LF)
+    .Replacement.Text = " "  ' Replace with space
         .Forward = True
         .Wrap = wdFindStop
         .Format = False
@@ -2943,7 +2943,7 @@ Private Function ApplySpecificParagraphReplacements(doc As Document) As Boolean
     
     For i = 1 To doc.Paragraphs.count
         Set para = doc.Paragraphs(i)
-        paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+    paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
         
     ' Count as an actual paragraph if it has content
         If paraText <> "" Then
@@ -2964,7 +2964,7 @@ Private Function ApplySpecificParagraphReplacements(doc As Document) As Boolean
     ' REQUIREMENT 1: If the 2nd paragraph starts with "Sugiro " or "Sugere ", replace accordingly
     If secondParaIndex > 0 And secondParaIndex <= doc.Paragraphs.count Then
         Set para = doc.Paragraphs(secondParaIndex)
-        paraText = para.Range.text
+    paraText = para.Range.Text
         
         ' Skip leading spaces/tabs before checking the start token
         Dim idxStart As Long
@@ -2980,13 +2980,13 @@ Private Function ApplySpecificParagraphReplacements(doc As Document) As Boolean
                 Dim r1 As Range
                 Set r1 = para.Range.Duplicate
                 r1.SetRange r1.Start + (idxStart - 1), r1.Start + (idxStart - 1) + 7
-                r1.text = "Requeiro "
+                r1.Text = "Requeiro "
                 replacementCount = replacementCount + 1
             ElseIf token = "Sugere " Then
                 Dim r2 As Range
                 Set r2 = para.Range.Duplicate
                 r2.SetRange r2.Start + (idxStart - 1), r2.Start + (idxStart - 1) + 7
-                r2.text = "Indica "
+                r2.Text = "Indica "
                 replacementCount = replacementCount + 1
             End If
         End If
@@ -2995,7 +2995,7 @@ Private Function ApplySpecificParagraphReplacements(doc As Document) As Boolean
     ' REQUIREMENTS 2 and 3: Replacements in the 3rd paragraph
     If thirdParaIndex > 0 And thirdParaIndex <= doc.Paragraphs.count Then
         Set para = doc.Paragraphs(thirdParaIndex)
-        paraText = para.Range.text
+    paraText = para.Range.Text
         Dim originalText As String
         originalText = paraText
         
@@ -3013,7 +3013,7 @@ Private Function ApplySpecificParagraphReplacements(doc As Document) As Boolean
         
     ' Apply changes if replacements occurred
         If paraText <> originalText Then
-            para.Range.text = paraText
+            para.Range.Text = paraText
         End If
     End If
     
@@ -3025,8 +3025,8 @@ Private Function ApplySpecificParagraphReplacements(doc As Document) As Boolean
     With rng.Find
         .ClearFormatting
         .Replacement.ClearFormatting
-        .text = " A C�MARA MUNICIPAL DE SANTA B�RBARA D'OESTE, ESTADO DE S�O PAULO "
-        .Replacement.text = " a C�mara Municipal de Santa B�rbara d'Oeste, estado de S�o Paulo, "
+    .Text = " A C�MARA MUNICIPAL DE SANTA B�RBARA D'OESTE, ESTADO DE S�O PAULO "
+    .Replacement.Text = " a C�mara Municipal de Santa B�rbara d'Oeste, estado de S�o Paulo, "
         .Forward = True
         .Wrap = wdFindContinue
         .Format = False
@@ -3069,8 +3069,8 @@ Private Function ApplySpecificParagraphReplacements(doc As Document) As Boolean
         With rng.Find
             .ClearFormatting
             .Replacement.ClearFormatting
-            .text = wordsToUppercase(j)
-            .Replacement.text = UCase(wordsToUppercase(j))
+            .Text = wordsToUppercase(j)
+            .Replacement.Text = UCase(wordsToUppercase(j))
             .Forward = True
             .Wrap = wdFindContinue
             .Format = False
@@ -3116,7 +3116,7 @@ Private Function ValidateContentConsistency(doc As Document) As Boolean
     
     For i = 1 To doc.Paragraphs.count
         Set para = doc.Paragraphs(i)
-        paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+    paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
         
     ' Count as a real paragraph if it has content
         If paraText <> "" Then
@@ -3145,7 +3145,8 @@ Private Function ValidateContentConsistency(doc As Document) As Boolean
     
     For i = 1 To doc.Paragraphs.count
         Set para = doc.Paragraphs(i)
-        paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+    paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
+        paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
         
         If paraText <> "" Then
             actualParaIndex = actualParaIndex + 1
@@ -3369,7 +3370,7 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
         
     ' Don't process paragraphs with visual content
         If Not HasVisualContent(para) Then
-            paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+            paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
             
             ' Remove trailing punctuation for better analysis
             cleanText = paraText
@@ -3383,9 +3384,9 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
             If cleanText = "Justificativa" Then
                 ' Apply specific formatting for "Justificativa"
                 With para.Format
-                    .leftIndent = 0
-                    .firstLineIndent = 0
-                    .alignment = wdAlignParagraphCenter
+                    .LeftIndent = 0
+                    .FirstLineIndent = 0
+                    .Alignment = wdAlignParagraphCenter
                 End With
 
                 With para.Range.Font
@@ -3399,7 +3400,7 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
                 If Len(paraText) > Len(cleanText) Then
                     originalEnd = Right(paraText, Len(paraText) - Len(cleanText))
                 End If
-                para.Range.text = "Justificativa" & originalEnd & vbCrLf
+                para.Range.Text = "Justificativa" & originalEnd & vbCrLf
                 
                 formattedCount = formattedCount + 1
                 
@@ -3409,10 +3410,10 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
             ElseIf IsAnexoPattern(cleanText) Then
                 ' Apply specific formatting for Anexo/Anexos
                 With para.Format
-                    .leftIndent = 0
-                    .firstLineIndent = 0
+                    .LeftIndent = 0
+                    .FirstLineIndent = 0
                     .RightIndent = 0
-                    .alignment = wdAlignParagraphLeft
+                    .Alignment = wdAlignParagraphLeft
                 End With
 
                 With para.Range.Font
@@ -3432,7 +3433,7 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
                 Else
                     anexoText = "Anexos"
                 End If
-                para.Range.text = anexoText & anexoEnd & vbCrLf
+                para.Range.Text = anexoText & anexoEnd & vbCrLf
                 
                 formattedCount = formattedCount + 1
                 
@@ -3472,7 +3473,7 @@ Private Function FormatNumberedParagraphs(doc As Document) As Boolean
         
     ' Skip paragraphs with visual content
         If Not HasVisualContent(para) Then
-            paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+            paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
             
             ' Check if the paragraph starts with a number followed by ., ) or space
             If IsNumberedParagraph(paraText) Then
@@ -3490,7 +3491,7 @@ Private Function FormatNumberedParagraphs(doc As Document) As Boolean
                 cleanedText = RemoveManualNumber(paraText)
                 
                 ' Update the paragraph text
-                para.Range.text = cleanedText & vbCrLf
+                para.Range.Text = cleanedText & vbCrLf
                 
                 formattedCount = formattedCount + 1
             End If
@@ -3759,8 +3760,8 @@ Private Function CleanMultipleSpaces(doc As Document) As Boolean
     ' OPTIMIZATION 1: Remove multiple spaces (2 or more) in one operation
     ' Uses an optimized loop that progressively reduces spaces
         Do
-            .text = "  "  ' Two spaces
-            .Replacement.text = " "  ' One space
+            .Text = "  "  ' Two spaces
+            .Replacement.Text = " "  ' One space
             
             Dim currentReplaceCount As Long
             currentReplaceCount = 0
@@ -3794,8 +3795,8 @@ Private Function CleanMultipleSpaces(doc As Document) As Boolean
     .MatchWildcards = False  ' Use simple Find/Replace for compatibility
         
     ' Remove multiple spaces before breaks - iterative method
-    .text = "  ^p"  ' 2 spaces followed by paragraph break
-    .Replacement.text = " ^p"  ' 1 space followed by paragraph break
+    .Text = "  ^p"  ' 2 spaces followed by paragraph break
+    .Replacement.Text = " ^p"  ' 1 space followed by paragraph break
         Do While .Execute(Replace:=wdReplaceOne)
             spacesRemoved = spacesRemoved + 1
             rng.Collapse wdCollapseEnd
@@ -3803,8 +3804,8 @@ Private Function CleanMultipleSpaces(doc As Document) As Boolean
         Loop
         
     ' Second pass to ensure complete cleanup
-    .text = " ^p"  ' Space before break
-        .Replacement.text = "^p"
+    .Text = " ^p"  ' Space before break
+        .Replacement.Text = "^p"
         Do While .Execute(Replace:=wdReplaceOne)
             spacesRemoved = spacesRemoved + 1
             rng.Collapse wdCollapseEnd
@@ -3812,8 +3813,8 @@ Private Function CleanMultipleSpaces(doc As Document) As Boolean
         Loop
         
     ' Remove multiple spaces after breaks - iterative method
-    .text = "^p  "  ' Break followed by 2 spaces
-    .Replacement.text = "^p "  ' Break followed by 1 space
+    .Text = "^p  "  ' Break followed by 2 spaces
+    .Replacement.Text = "^p "  ' Break followed by 1 space
         Do While .Execute(Replace:=wdReplaceOne)
             spacesRemoved = spacesRemoved + 1
             rng.Collapse wdCollapseEnd
@@ -3829,8 +3830,8 @@ Private Function CleanMultipleSpaces(doc As Document) As Boolean
     .MatchWildcards = False  ' Use simple Find/Replace
         
     ' Remove multiple tabs iteratively
-    .text = "^t^t"  ' 2 tabs
-    .Replacement.text = "^t"  ' 1 tab
+    .Text = "^t^t"  ' 2 tabs
+    .Replacement.Text = "^t"  ' 1 tab
         Do While .Execute(Replace:=wdReplaceOne)
             spacesRemoved = spacesRemoved + 1
             rng.Collapse wdCollapseEnd
@@ -3838,8 +3839,8 @@ Private Function CleanMultipleSpaces(doc As Document) As Boolean
         Loop
         
     ' Convert tabs to spaces
-        .text = "^t"
-        .Replacement.text = " "
+    .Text = "^t"
+    .Replacement.Text = " "
         Do While .Execute(Replace:=True)
             spacesRemoved = spacesRemoved + 1
             If spacesRemoved > 2000 Then Exit Do
@@ -3849,8 +3850,8 @@ Private Function CleanMultipleSpaces(doc As Document) As Boolean
     ' OPTIMIZATION 4: Final ultra-fast check for remaining double spaces
     Set rng = doc.Range
     With rng.Find
-        .text = "  "
-        .Replacement.text = " "
+    .Text = "  "
+    .Replacement.Text = " "
         .MatchWildcards = False
         .Forward = True
     .Wrap = wdFindStop  ' Faster than wdFindContinue
@@ -3874,32 +3875,32 @@ Private Function CleanMultipleSpaces(doc As Document) As Boolean
         .MatchWildcards = False
         
     ' Fix CONSIDERANDO stuck to the next word
-        .text = "CONSIDERANDOa"
-        .Replacement.text = "CONSIDERANDO a"
+    .Text = "CONSIDERANDOa"
+    .Replacement.Text = "CONSIDERANDO a"
         Do While .Execute(Replace:=wdReplaceOne)
             spacesRemoved = spacesRemoved + 1
             rng.Collapse wdCollapseEnd
             If spacesRemoved > 2100 Then Exit Do
         Loop
         
-        .text = "CONSIDERANDOe"
-        .Replacement.text = "CONSIDERANDO e"
+    .Text = "CONSIDERANDOe"
+    .Replacement.Text = "CONSIDERANDO e"
         Do While .Execute(Replace:=wdReplaceOne)
             spacesRemoved = spacesRemoved + 1
             rng.Collapse wdCollapseEnd
             If spacesRemoved > 2100 Then Exit Do
         Loop
         
-        .text = "CONSIDERANDOo"
-        .Replacement.text = "CONSIDERANDO o"
+    .Text = "CONSIDERANDOo"
+    .Replacement.Text = "CONSIDERANDO o"
         Do While .Execute(Replace:=wdReplaceOne)
             spacesRemoved = spacesRemoved + 1
             rng.Collapse wdCollapseEnd
             If spacesRemoved > 2100 Then Exit Do
         Loop
         
-        .text = "CONSIDERANDOq"
-        .Replacement.text = "CONSIDERANDO q"
+    .Text = "CONSIDERANDOq"
+    .Replacement.Text = "CONSIDERANDO q"
         Do While .Execute(Replace:=wdReplaceOne)
             spacesRemoved = spacesRemoved + 1
             rng.Collapse wdCollapseEnd
@@ -3946,8 +3947,8 @@ Private Function LimitSequentialEmptyLines(doc As Document) As Boolean
     .MatchWildcards = False  ' Use simple Find/Replace for compatibility
         
     ' Remove multiple consecutive breaks iteratively
-    .text = "^p^p^p^p"  ' 4 breaks
-    .Replacement.text = "^p^p"  ' 2 breaks
+    .Text = "^p^p^p^p"  ' 4 breaks
+    .Replacement.Text = "^p^p"  ' 2 breaks
         
         Do While .Execute(Replace:=True)
             linesRemoved = linesRemoved + 1
@@ -3957,8 +3958,8 @@ Private Function LimitSequentialEmptyLines(doc As Document) As Boolean
         Loop
         
     ' Convert 3 breaks -> 2 breaks
-    .text = "^p^p^p"  ' 3 breaks
-    .Replacement.text = "^p^p"  ' 2 breaks
+    .Text = "^p^p^p"  ' 3 breaks
+    .Replacement.Text = "^p^p"  ' 2 breaks
         
         Do While .Execute(Replace:=True)
             linesRemoved = linesRemoved + 1
@@ -3980,8 +3981,8 @@ Private Function LimitSequentialEmptyLines(doc As Document) As Boolean
         .Wrap = wdFindContinue
         
     ' Convert triple breaks to double
-    .text = "^p^p^p"  ' 3 breaks
-    .Replacement.text = "^p^p"  ' 2 breaks
+    .Text = "^p^p^p"  ' 3 breaks
+    .Replacement.Text = "^p^p"  ' 2 breaks
         
         Dim secondPassCount As Long
         Do While .Execute(Replace:=True) And secondPassCount < 200
@@ -3996,8 +3997,8 @@ Private Function LimitSequentialEmptyLines(doc As Document) As Boolean
     ' Hybrid method: Find/Replace for simple cases + loop only if necessary
     Set rng = doc.Range
     With rng.Find
-    .text = "^p^p^p"  ' 3 breaks (2 blank lines + content)
-    .Replacement.text = "^p^p"  ' 2 breaks (1 blank line + content)
+    .Text = "^p^p^p"  ' 3 breaks (2 blank lines + content)
+    .Replacement.Text = "^p^p"  ' 2 breaks (1 blank line + content)
         .MatchWildcards = False
         
         Dim finalPassCount As Long
@@ -4024,7 +4025,8 @@ Private Function LimitSequentialEmptyLines(doc As Document) As Boolean
         
         Do While i <= doc.Paragraphs.count And fallbackRemoved < 50
             Set para = doc.Paragraphs(i)
-            paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+            paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
+            paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
             
             ' Check if the paragraph is empty
             If paraText = "" And Not HasVisualContent(para) Then
@@ -4083,8 +4085,10 @@ Private Function EnsureParagraphSeparation(doc As Document) As Boolean
         Dim paraText As String
         Dim nextParaText As String
         
-        paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
-        nextParaText = Trim(Replace(Replace(nextPara.Range.text, vbCr, ""), vbLf, ""))
+    paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
+        paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
+    nextParaText = Trim(Replace(Replace(nextPara.Range.Text, vbCr, ""), vbLf, ""))
+        nextParaText = Trim(Replace(Replace(nextPara.Range.Text, vbCr, ""), vbLf, ""))
         
     ' Check if both paragraphs contain text (not blank lines)
         If paraText <> "" And nextParaText <> "" Then
@@ -4103,7 +4107,7 @@ Private Function EnsureParagraphSeparation(doc As Document) As Boolean
                 ' Insert a blank line between the paragraphs
                 Dim insertRange As Range
                 Set insertRange = doc.Range(currentParaEnd - 1, currentParaEnd - 1)
-                insertRange.text = vbCrLf
+                insertRange.Text = vbCrLf
                 
                 insertedCount = insertedCount + 1
                 
@@ -4413,7 +4417,7 @@ Private Function DeleteHiddenVisualElements(doc As Document) As Boolean
     ' Remove hidden shapes (floating)
     Dim i As Long
     For i = doc.Shapes.count To 1 Step -1
-        Dim shp As shape
+    Dim shp As Shape
         Set shp = doc.Shapes(i)
         
     ' Check if the shape is hidden (multiple criteria)
@@ -4506,7 +4510,7 @@ Private Function DeleteVisualElementsInFirstFourParagraphs(doc As Document) As B
     ' Remove floating shapes anchored within the first 4 paragraphs' range
     Dim i As Long
     For i = doc.Shapes.count To 1 Step -1
-        Dim shp As shape
+    Dim shp As Shape
         Set shp = doc.Shapes(i)
         
     ' Check if the shape is anchored within the first 4 paragraphs' range
@@ -4655,7 +4659,4 @@ End Function
     FailHard:
         MsgBox "Self-test error: " & Err.Description, vbCritical, SYSTEM_NAME & " - Self-Test"
     End Sub
-
-
-
 
