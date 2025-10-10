@@ -175,7 +175,7 @@ Historical/legacy example or docs folders referenced earlier have been consolida
 4. Push para a branch (`git push origin feature/AmazingFeature`)
 5. Abra um Pull Request
 
-See `CONTRIBUTORS.md` for details on the contribution process.
+See [CONTRIBUTORS.md](CONTRIBUTORS.md) for details on the contribution process.
 
 ## 📄 License
 

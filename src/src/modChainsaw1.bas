@@ -338,7 +338,7 @@ Private Function BatchProcessParagraphs(processingFunction As String) As Boolean
     Set doc = ActiveDocument
     
     Dim paragraphCount As Long
-    paragraphCount = doc.Paragraphs.count
+    paragraphCount = doc.Paragraphs.Count
     
     Dim batchSize As Long
     batchSize = IIf(paragraphCount > OPTIMIZATION_THRESHOLD, MAX_PARAGRAPH_BATCH_SIZE, paragraphCount)
@@ -403,7 +403,7 @@ Private Function ProcessParagraphBatch(startIndex As Long, endIndex As Long, pro
     
     Dim i As Long
     For i = startIndex To endIndex
-        If i <= doc.Paragraphs.count Then
+    If i <= doc.Paragraphs.Count Then
             Dim para As Paragraph
             Set para = doc.Paragraphs(i)
             
@@ -732,7 +732,7 @@ Private Function ValidateDocumentIntegrity(doc As Document) As Boolean
     End If
     
     ' Minimum content check
-    If doc.Paragraphs.count < 1 Then
+    If doc.Paragraphs.Count < 1 Then
         MsgBox NormalizeForUI(MSG_EMPTY_DOC), vbExclamation, NormalizeForUI(TITLE_EMPTY_DOC)
         Exit Function
     End If
@@ -740,7 +740,7 @@ Private Function ValidateDocumentIntegrity(doc As Document) As Boolean
     ' Document size check
     Dim docSize As Long
     On Error Resume Next
-    docSize = doc.Range.Characters.count
+    docSize = doc.Range.Characters.Count
     If Err.Number <> 0 Then
         docSize = 0
     End If
@@ -787,7 +787,7 @@ Private Function SafeGetCharacterCount(targetRange As Range) As Long
     On Error GoTo FallbackMethod
     
     ' Preferred method - faster
-    SafeGetCharacterCount = targetRange.Characters.count
+    SafeGetCharacterCount = targetRange.Characters.Count
     Exit Function
     
 FallbackMethod:
@@ -839,7 +839,7 @@ Private Function SafeHasVisualContent(para As Paragraph) As Boolean
     Dim hasShapes As Boolean
     
     ' Safely check inline images
-    hasImages = (para.Range.InlineShapes.count > 0)
+    hasImages = (para.Range.InlineShapes.Count > 0)
     
     ' Safely check floating shapes
     hasShapes = False
@@ -857,7 +857,7 @@ Private Function SafeHasVisualContent(para As Paragraph) As Boolean
 SafeMode:
     On Error GoTo ErrorHandler
     ' Simpler alternative method
-    SafeHasVisualContent = (para.Range.InlineShapes.count > 0)
+    SafeHasVisualContent = (para.Range.InlineShapes.Count > 0)
     Exit Function
     
 ErrorHandler:
@@ -1248,7 +1248,7 @@ Private Function ApplyStdFont(doc As Document) As Boolean
     Dim needsUnderlineRemoval As Boolean
     Dim needsBoldRemoval As Boolean
 
-    For i = doc.Paragraphs.count To 1 Step -1
+    For i = doc.Paragraphs.Count To 1 Step -1
         Set para = doc.Paragraphs(i)
         hasInlineImage = False
         isTitle = False
@@ -1270,7 +1270,7 @@ Private Function ApplyStdFont(doc As Document) As Boolean
         
     ' Cache of InlineShapes count to avoid multiple calls
         Dim inlineShapesCount As Long
-        inlineShapesCount = para.Range.InlineShapes.count
+    inlineShapesCount = para.Range.InlineShapes.Count
         
     ' MAX OPTIMIZATION: If no formatting needed, skip immediately
         If Not needsFontFormatting And Not needsUnderlineRemoval And Not needsBoldRemoval And inlineShapesCount = 0 Then
@@ -1320,7 +1320,7 @@ Private Function ApplyStdFont(doc As Document) As Boolean
             End If
             
             
-            If i < doc.Paragraphs.count Then
+            If i < doc.Paragraphs.Count Then
                 Dim nextPara As Paragraph
                 Set nextPara = doc.Paragraphs(i + 1)
                 If Not HasVisualContent(nextPara) Then
@@ -1413,7 +1413,7 @@ Private Sub FormatCharacterByCharacter(para As Paragraph, fontName As String, fo
     If charCount > 0 Then ' Safety check
         For j = 1 To charCount
             Set charRange = para.Range.Characters(j)
-            If charRange.InlineShapes.count = 0 Then
+            If charRange.InlineShapes.Count = 0 Then
                 With charRange.Font
                     ' Apply font formatting if specified
                     If fontName <> "" Then .Name = fontName
@@ -1448,11 +1448,11 @@ Private Function ApplyStdParagraphs(doc As Document) As Boolean
 
     rightMarginPoints = 0
 
-    For i = doc.Paragraphs.count To 1 Step -1
+    For i = doc.Paragraphs.Count To 1 Step -1
         Set para = doc.Paragraphs(i)
         hasInlineImage = False
 
-        If para.Range.InlineShapes.count > 0 Then
+    If para.Range.InlineShapes.Count > 0 Then
             hasInlineImage = True
             skippedCount = skippedCount + 1
         End If
@@ -1563,7 +1563,7 @@ Private Function FormatSecondParagraph(doc As Document) As Boolean
     secondParaIndex = 0
     
     ' Find the 2nd paragraph with content (skip empty)
-    For i = 1 To doc.Paragraphs.count
+    For i = 1 To doc.Paragraphs.Count
         Set para = doc.Paragraphs(i)
     paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
         
@@ -1583,7 +1583,7 @@ Private Function FormatSecondParagraph(doc As Document) As Boolean
     Next i
     
     ' Apply specific formatting only to the 2nd paragraph
-    If secondParaIndex > 0 And secondParaIndex <= doc.Paragraphs.count Then
+    If secondParaIndex > 0 And secondParaIndex <= doc.Paragraphs.Count Then
         Set para = doc.Paragraphs(secondParaIndex)
         
     ' FIRST: Add 2 blank lines BEFORE the 2nd paragraph
@@ -1700,8 +1700,8 @@ Private Function CountBlankLinesAfter(doc As Document, paraIndex As Long) As Lon
     count = 0
     
     ' Check following paragraphs (maximum 5 for performance)
-    For i = paraIndex + 1 To doc.Paragraphs.count
-        If i > doc.Paragraphs.count Then Exit For
+    For i = paraIndex + 1 To doc.Paragraphs.Count
+    If i > doc.Paragraphs.Count Then Exit For
         
         Set para = doc.Paragraphs(i)
     paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
@@ -1739,7 +1739,7 @@ Private Function GetSecondParagraphIndex(doc As Document) As Long
     actualParaIndex = 0
     
     ' Find the 2nd paragraph with content (skip empty)
-    For i = 1 To doc.Paragraphs.count
+    For i = 1 To doc.Paragraphs.Count
         Set para = doc.Paragraphs(i)
     paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
         
@@ -1779,7 +1779,7 @@ Private Function EnsureSecondParagraphBlankLines(doc As Document) As Boolean
     linesToAdd = 0
     linesToAddAfter = 0
     
-    If secondParaIndex > 0 And secondParaIndex <= doc.Paragraphs.count Then
+    If secondParaIndex > 0 And secondParaIndex <= doc.Paragraphs.Count Then
         Dim para As Paragraph
         Set para = doc.Paragraphs(secondParaIndex)
         
@@ -1865,7 +1865,7 @@ Private Function FormatFirstParagraph(doc As Document) As Boolean
     firstParaIndex = 0
     
     ' Find the 1st paragraph with content (skip empty)
-    For i = 1 To doc.Paragraphs.count
+    For i = 1 To doc.Paragraphs.Count
         Set para = doc.Paragraphs(i)
     paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
         
@@ -1885,7 +1885,7 @@ Private Function FormatFirstParagraph(doc As Document) As Boolean
     Next i
     
     ' Apply specific formatting only to the 1st paragraph
-    If firstParaIndex > 0 And firstParaIndex <= doc.Paragraphs.count Then
+    If firstParaIndex > 0 And firstParaIndex <= doc.Paragraphs.Count Then
         Set para = doc.Paragraphs(firstParaIndex)
         
     ' NEW: Always apply formatting, protecting only images
@@ -1900,7 +1900,7 @@ Private Function FormatFirstParagraph(doc As Document) As Boolean
                 For n = 1 To charCount4
                     Dim charRange3 As Range
                     Set charRange3 = para.Range.Characters(n)
-                    If charRange3.InlineShapes.count = 0 Then
+                    If charRange3.InlineShapes.Count = 0 Then
                         With charRange3.Font
                             .AllCaps = True           ' Uppercase
                             .Bold = True              ' Bold
@@ -1947,8 +1947,8 @@ Private Function RemoveWatermark(doc As Document) As Boolean
 
     For Each sec In doc.Sections
         For Each header In sec.Headers
-            If header.Exists And header.Shapes.count > 0 Then
-                For i = header.Shapes.count To 1 Step -1
+            If header.Exists And header.Shapes.Count > 0 Then
+                For i = header.Shapes.Count To 1 Step -1
                     Set shp = header.Shapes(i)
                     If shp.Type = msoPicture Or shp.Type = msoTextEffect Then
                         If InStr(1, shp.Name, "Watermark", vbTextCompare) > 0 Or _
@@ -1962,8 +1962,8 @@ Private Function RemoveWatermark(doc As Document) As Boolean
         Next header
         
         For Each header In sec.Footers
-            If header.Exists And header.Shapes.count > 0 Then
-                For i = header.Shapes.count To 1 Step -1
+            If header.Exists And header.Shapes.Count > 0 Then
+                For i = header.Shapes.Count To 1 Step -1
                     Set shp = header.Shapes(i)
                     If shp.Type = msoPicture Or shp.Type = msoTextEffect Then
                         If InStr(1, shp.Name, "Watermark", vbTextCompare) > 0 Or _
@@ -2179,7 +2179,7 @@ Private Function ValidateDocumentStructure(doc As Document) As Boolean
     On Error Resume Next
     
     ' Basic and fast verification
-    If doc.Range.End > 0 And doc.Sections.count > 0 Then
+    If doc.Range.End > 0 And doc.Sections.Count > 0 Then
         ValidateDocumentStructure = True
     Else
         ValidateDocumentStructure = False
@@ -2256,13 +2256,13 @@ Private Function CleanDocumentStructure(doc As Document) As Boolean
     Dim paraCount As Long
     
     ' Cache the total paragraph count
-    paraCount = doc.Paragraphs.count
+    paraCount = doc.Paragraphs.Count
     
     ' OPTIMIZED: Feature 2 - Remove blank lines above the title
     ' Optimized search for the first paragraph with text
     firstTextParaIndex = -1
     For i = 1 To paraCount
-    If i > doc.Paragraphs.count Then Exit For ' Dynamic protection
+    If i > doc.Paragraphs.Count Then Exit For ' Dynamic protection
         
         Set para = doc.Paragraphs(i)
         Dim paraTextCheck As String
@@ -2282,7 +2282,7 @@ Private Function CleanDocumentStructure(doc As Document) As Boolean
     If firstTextParaIndex > 1 Then
     ' Process backwards to avoid index issues
         For i = firstTextParaIndex - 1 To 1 Step -1
-            If i > doc.Paragraphs.count Or i < 1 Then Exit For ' Dynamic protection
+            If i > doc.Paragraphs.Count Or i < 1 Then Exit For ' Dynamic protection
             
             Set para = doc.Paragraphs(i)
             Dim paraTextEmpty As String
@@ -2395,7 +2395,7 @@ Private Function ValidatePropositionType(doc As Document) As Boolean
     Dim userResponse As VbMsgBoxResult
     
     ' Find the first non-empty paragraph
-    For i = 1 To doc.Paragraphs.count
+    For i = 1 To doc.Paragraphs.Count
         Set firstPara = doc.Paragraphs(i)
     paraText = Trim(Replace(Replace(firstPara.Range.Text, vbCr, ""), vbLf, ""))
         If paraText <> "" Then
@@ -2463,7 +2463,7 @@ Private Function FormatDocumentTitle(doc As Document) As Boolean
     Dim newText As String
     
     ' Find the first non-empty paragraph (after skipping blank lines)
-    For i = 1 To doc.Paragraphs.count
+    For i = 1 To doc.Paragraphs.Count
         Set firstPara = doc.Paragraphs(i)
         paraText = Trim(Replace(Replace(firstPara.Range.Text, vbCr, ""), vbLf, ""))
         If paraText <> "" Then
@@ -2561,7 +2561,7 @@ Private Function FormatConsiderandoParagraphs(doc As Document) As Boolean
     ' Note: we keep allowedPrefix defined above for readability, but detection relies on code-point checks here
     allowedPrefix = " " ' (kept for documentation only)
     
-    For i = 1 To doc.Paragraphs.count
+    For i = 1 To doc.Paragraphs.Count
         Set para = doc.Paragraphs(i)
     rawText = para.Range.Text
         textNoCrLf = Replace(Replace(rawText, vbCr, ""), vbLf, "")
@@ -2941,7 +2941,7 @@ Private Function ApplySpecificParagraphReplacements(doc As Document) As Boolean
     secondParaIndex = 0
     thirdParaIndex = 0
     
-    For i = 1 To doc.Paragraphs.count
+    For i = 1 To doc.Paragraphs.Count
         Set para = doc.Paragraphs(i)
     paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
         
@@ -2962,7 +2962,7 @@ Private Function ApplySpecificParagraphReplacements(doc As Document) As Boolean
     Next i
     
     ' REQUIREMENT 1: If the 2nd paragraph starts with "Sugiro " or "Sugere ", replace accordingly
-    If secondParaIndex > 0 And secondParaIndex <= doc.Paragraphs.count Then
+    If secondParaIndex > 0 And secondParaIndex <= doc.Paragraphs.Count Then
         Set para = doc.Paragraphs(secondParaIndex)
     paraText = para.Range.Text
         
@@ -2993,7 +2993,7 @@ Private Function ApplySpecificParagraphReplacements(doc As Document) As Boolean
     End If
     
     ' REQUIREMENTS 2 and 3: Replacements in the 3rd paragraph
-    If thirdParaIndex > 0 And thirdParaIndex <= doc.Paragraphs.count Then
+    If thirdParaIndex > 0 And thirdParaIndex <= doc.Paragraphs.Count Then
         Set para = doc.Paragraphs(thirdParaIndex)
     paraText = para.Range.Text
         Dim originalText As String
@@ -3114,7 +3114,7 @@ Private Function ValidateContentConsistency(doc As Document) As Boolean
     actualParaIndex = 0
     secondParaIndex = 0
     
-    For i = 1 To doc.Paragraphs.count
+    For i = 1 To doc.Paragraphs.Count
         Set para = doc.Paragraphs(i)
     paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
         
@@ -3143,7 +3143,7 @@ Private Function ValidateContentConsistency(doc As Document) As Boolean
     restOfDocumentText = ""
     actualParaIndex = 0
     
-    For i = 1 To doc.Paragraphs.count
+    For i = 1 To doc.Paragraphs.Count
         Set para = doc.Paragraphs(i)
     paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
         paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
@@ -3365,7 +3365,7 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
     Dim formattedCount As Long
     
     ' Iterate all document paragraphs
-    For i = 1 To doc.Paragraphs.count
+    For i = 1 To doc.Paragraphs.Count
         Set para = doc.Paragraphs(i)
         
     ' Don't process paragraphs with visual content
@@ -3468,7 +3468,7 @@ Private Function FormatNumberedParagraphs(doc As Document) As Boolean
     Dim formattedCount As Long
     
     ' Iterate all paragraphs of the document
-    For i = 1 To doc.Paragraphs.count
+    For i = 1 To doc.Paragraphs.Count
         Set para = doc.Paragraphs(i)
         
     ' Skip paragraphs with visual content
@@ -4023,7 +4023,7 @@ Private Function LimitSequentialEmptyLines(doc As Document) As Boolean
     i = 1
         emptyLineCount = 0
         
-        Do While i <= doc.Paragraphs.count And fallbackRemoved < 50
+    Do While i <= doc.Paragraphs.Count And fallbackRemoved < 50
             Set para = doc.Paragraphs(i)
             paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
             paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
@@ -4075,9 +4075,9 @@ Private Function EnsureParagraphSeparation(doc As Document) As Boolean
     Dim totalChecked As Long
     
     ' Iterate all paragraphs ensuring at least one blank line between non-empty ones
-    For i = 1 To doc.Paragraphs.count - 1 ' -1 because we check the next paragraph
+    For i = 1 To doc.Paragraphs.Count - 1 ' -1 because we check the next paragraph
         Set para = doc.Paragraphs(i)
-        Set nextPara = doc.Paragraphs(i + 1)
+    Set nextPara = doc.Paragraphs(i + 1)
         
         totalChecked = totalChecked + 1
         
@@ -4181,7 +4181,7 @@ Public Sub SaveAndExit()
     Application.StatusBar = "Checking open documents..."
     
     ' Check if there are open documents
-    If Application.Documents.count = 0 Then
+    If Application.Documents.Count = 0 Then
     Application.StatusBar = "No documents open - closing Word"
         Application.Quit SaveChanges:=wdDoNotSaveChanges
         Exit Sub
@@ -4195,7 +4195,7 @@ Public Sub SaveAndExit()
     Dim i As Long
     
     ' Check each open document
-    For i = 1 To Application.Documents.count
+    For i = 1 To Application.Documents.Count
         Set doc = Application.Documents(i)
         
         On Error Resume Next
@@ -4207,7 +4207,7 @@ Public Sub SaveAndExit()
     Next i
     
     ' If no unsaved documents, close directly
-    If unsavedDocs.count = 0 Then
+    If unsavedDocs.Count = 0 Then
     Application.StatusBar = "All documents saved - closing Word"
         Application.Quit SaveChanges:=wdDoNotSaveChanges
         Exit Sub
@@ -4217,11 +4217,11 @@ Public Sub SaveAndExit()
     Dim message As String
     Dim docList As String
     
-    For i = 1 To unsavedDocs.count
+    For i = 1 To unsavedDocs.Count
         docList = docList & "� " & unsavedDocs(i) & vbCrLf
     Next i
     
-    message = "ATTENTION: There are " & unsavedDocs.count & " document(s) with unsaved changes:" & vbCrLf & vbCrLf
+    message = "ATTENTION: There are " & unsavedDocs.Count & " document(s) with unsaved changes:" & vbCrLf & vbCrLf
     message = message & docList & vbCrLf
     message = message & "Do you want to save all documents before exiting?" & vbCrLf & vbCrLf
     message = message & "� YES: Save all and close Word" & vbCrLf
@@ -4233,7 +4233,7 @@ Public Sub SaveAndExit()
     
     Dim userChoice As VbMsgBoxResult
     userChoice = MsgBox(NormalizeForUI(message), vbYesNoCancel + vbExclamation + vbDefaultButton1, _
-                        NormalizeForUI(SYSTEM_NAME & " - Save and Exit (" & unsavedDocs.count & " unsaved document(s))"))
+                        NormalizeForUI(SYSTEM_NAME & " - Save and Exit (" & unsavedDocs.Count & " unsaved document(s))"))
     
     Select Case userChoice
         Case vbYes
@@ -4253,7 +4253,7 @@ Public Sub SaveAndExit()
             ' User chose not to save
             Dim confirmMessage As String
             confirmMessage = "FINAL CONFIRMATION:" & vbCrLf & vbCrLf & _
-                "You are about to CLOSE WORD WITHOUT SAVING " & unsavedDocs.count & " document(s)." & vbCrLf & vbCrLf & _
+                "You are about to CLOSE WORD WITHOUT SAVING " & unsavedDocs.Count & " document(s)." & vbCrLf & vbCrLf & _
                 "ALL UNSAVED CHANGES WILL BE LOST!" & vbCrLf & vbCrLf & _
                 "Are you absolutely sure?"
             
@@ -4304,7 +4304,7 @@ Private Function SalvarTodosDocumentos() As Boolean
     Dim errorCount As Long
     Dim totalDocs As Long
     
-    totalDocs = Application.Documents.count
+    totalDocs = Application.Documents.Count
     
     ' Save each document individually
     For i = 1 To totalDocs
@@ -4416,7 +4416,7 @@ Private Function DeleteHiddenVisualElements(doc As Document) As Boolean
     
     ' Remove hidden shapes (floating)
     Dim i As Long
-    For i = doc.Shapes.count To 1 Step -1
+    For i = doc.Shapes.Count To 1 Step -1
     Dim shp As Shape
         Set shp = doc.Shapes(i)
         
@@ -4445,7 +4445,7 @@ Private Function DeleteHiddenVisualElements(doc As Document) As Boolean
     Next i
     
     ' Remove hidden inline objects
-    For i = doc.InlineShapes.count To 1 Step -1
+    For i = doc.InlineShapes.Count To 1 Step -1
         Dim inlineShp As InlineShape
         Set inlineShp = doc.InlineShapes(i)
         
@@ -4482,12 +4482,12 @@ Private Function DeleteVisualElementsInFirstFourParagraphs(doc As Document) As B
     
     Application.StatusBar = "Removing visual elements between paragraphs 1-4..."
     
-    If doc.Paragraphs.count < 1 Then
+    If doc.Paragraphs.Count < 1 Then
         DeleteVisualElementsInFirstFourParagraphs = True
         Exit Function
     End If
     
-    If doc.Paragraphs.count < 4 Then
+    If doc.Paragraphs.Count < 4 Then
     End If
     
     Dim deletedCount As Long
@@ -4495,8 +4495,8 @@ Private Function DeleteVisualElementsInFirstFourParagraphs(doc As Document) As B
     
     ' Define the range of the first 4 paragraphs (or less if the document is shorter)
     Dim maxParagraphs As Long
-    If doc.Paragraphs.count < 4 Then
-        maxParagraphs = doc.Paragraphs.count
+    If doc.Paragraphs.Count < 4 Then
+    maxParagraphs = doc.Paragraphs.Count
     Else
         maxParagraphs = 4
     End If
@@ -4509,7 +4509,7 @@ Private Function DeleteVisualElementsInFirstFourParagraphs(doc As Document) As B
     
     ' Remove floating shapes anchored within the first 4 paragraphs' range
     Dim i As Long
-    For i = doc.Shapes.count To 1 Step -1
+    For i = doc.Shapes.Count To 1 Step -1
     Dim shp As Shape
         Set shp = doc.Shapes(i)
         
@@ -4528,7 +4528,7 @@ Private Function DeleteVisualElementsInFirstFourParagraphs(doc As Document) As B
     Next i
     
     ' Remove inline objects in the first 4 paragraphs
-    For i = doc.InlineShapes.count To 1 Step -1
+    For i = doc.InlineShapes.Count To 1 Step -1
         Dim inlineShp As InlineShape
         Set inlineShp = doc.InlineShapes(i)
         
@@ -4553,7 +4553,7 @@ End Function
 '================================================================================
 Private Function GetParagraphNumber(doc As Document, position As Long) As Long
     Dim i As Long
-    For i = 1 To doc.Paragraphs.count
+    For i = 1 To doc.Paragraphs.Count
         If position >= doc.Paragraphs(i).Range.Start And position <= doc.Paragraphs(i).Range.End Then
             GetParagraphNumber = i
             Exit Function
@@ -4638,8 +4638,8 @@ End Function
 
         ' 5. Footer page numbering
         Dim hasPageField As Boolean: hasPageField = False
-        Dim f As Field
-        For Each f In doc.Sections(1).Footers(wdHeaderFooterPrimary).Range.Fields
+    Dim f As Field
+    For Each f In doc.Sections(1).Footers(wdHeaderFooterPrimary).Range.Fields
             If f.Type = wdFieldPage Then hasPageField = True: Exit For
         Next f
         If Not hasPageField Then issues.Add "Primary footer missing page number field"
