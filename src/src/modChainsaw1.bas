@@ -1076,10 +1076,18 @@ Private Function LoadConfiguration() As ChainsawConfig
     If Dir(configPath) <> "" Then
         Dim fso As Object, configFile As Object
         Set fso = CreateObject("Scripting.FileSystemObject")
+        On Error Resume Next
         Set configFile = fso.OpenTextFile(configPath, 1) ' ForReading
+        If Err.Number <> 0 Then
+            Err.Clear
+            On Error GoTo 0
+            GoTo EndLoadConfig
+        End If
+        On Error GoTo 0
         
         ' Parse key=value format
         Dim line As String
+        On Error Resume Next
         While Not configFile.AtEndOfStream
             line = configFile.ReadLine
             If InStr(line, "=") > 0 And Left(line, 1) <> "#" Then
@@ -1107,7 +1115,10 @@ Private Function LoadConfiguration() As ChainsawConfig
                 End If
             End If
         Wend
+        On Error GoTo 0
         configFile.Close
+        
+        EndLoadConfig:
         
         LogEvent "LoadConfiguration", "INFO", "Configuration loaded from " & configPath, , "Settings loaded"
     Else
