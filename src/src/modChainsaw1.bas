@@ -395,6 +395,7 @@ Private Sub FormatParagraph(para As Paragraph)
         body = Trim$(body)
         para.Range.text = body & vbCr
     End If
+    On Error GoTo 0
 End Sub
 
 Private Sub CleanParagraph(para As Paragraph)
@@ -427,6 +428,7 @@ Private Sub CleanParagraph(para As Paragraph)
         Next i
         r.text = tmp
     End If
+    On Error GoTo 0
 End Sub
 
 '================================================================================
