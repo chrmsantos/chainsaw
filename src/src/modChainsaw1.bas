@@ -1595,6 +1595,7 @@ Private Sub EmergencyRecovery()
     Application.ScreenUpdating = True
     Application.DisplayAlerts = wdAlertsAll
     ' Optionally could add a forced document save attempt here if desired.
+    On Error GoTo 0
 End Sub
 Private Function ValidateDocumentIntegrity(doc As Document) As Boolean
     On Error GoTo ErrorHandler
