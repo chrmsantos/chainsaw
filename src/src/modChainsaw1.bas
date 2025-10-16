@@ -1880,14 +1880,35 @@ Private Function CheckDiskSpace(doc As Document) As Boolean
     ' Simplified verification - assume sufficient space if cannot verify
     Dim fso As Object
     Dim drive As Object
+    Dim drivePath As String
     
     Set fso = CreateObject("Scripting.FileSystemObject")
     
+    On Error Resume Next
     If doc.Path <> "" Then
-        Set drive = fso.GetDrive(Left(doc.Path, 3))
+        drivePath = Left(doc.Path, 3)
     Else
-        Set drive = fso.GetDrive(Left(Environ("TEMP"), 3))
+        drivePath = Left(Environ("TEMP"), 3)
     End If
+    
+    If drivePath = "" Or Len(drivePath) < 2 Then
+        drivePath = "C:\"
+    End If
+    
+    Set drive = fso.GetDrive(drivePath)
+    If Err.Number <> 0 Then
+        Err.Clear
+        ' If cannot get drive, try default
+        Set drive = fso.GetDrive("C:\")
+        If Err.Number <> 0 Then
+            Err.Clear
+            CheckDiskSpace = True ' Assume sufficient space
+            On Error GoTo 0
+            Set fso = Nothing
+            Exit Function
+        End If
+    End If
+    On Error GoTo ErrorHandler
     
     ' Basic verification - 10MB minimum
     If drive.AvailableSpace < 10485760 Then ' 10MB in bytes
