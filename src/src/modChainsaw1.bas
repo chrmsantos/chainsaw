@@ -2289,6 +2289,7 @@ Private Sub FormatCharacterByCharacter(para As Paragraph, fontName As String, fo
             End If
         Next j
     End If
+    On Error GoTo 0
 End Sub
 
 '================================================================================
@@ -3250,6 +3251,7 @@ Private Sub CleanOldBackups(backupFolder As String, docBaseName As String)
     
     Set folder = Nothing
     Set fso = Nothing
+    On Error GoTo 0
 End Sub
 
 '================================================================================

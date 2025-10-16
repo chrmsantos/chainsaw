@@ -1150,6 +1150,7 @@ Private Sub FormatCharacterByCharacter(para As Paragraph, fontName As String, fo
             End If
         Next j
     End If
+    On Error GoTo 0
 End Sub
 
 '================================================================================
