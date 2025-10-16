@@ -920,6 +920,9 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     Call EnsureSecondParagraphBlankLines(doc)
     Call FormatJustificativaAnexoParagraphs(doc)
     
+    ' Replace session stamp with standardized format (final format routine)
+    Call ReplaceSessionStampParagraph()
+    
     ' Configure view (keeps user zoom)
     Call ConfigureDocumentView(doc)
     
@@ -4160,6 +4163,39 @@ Private Function IsParagraphEffectivelyBlank(targetPara As Paragraph) As Boolean
     
 ErrorHandler:
     IsParagraphEffectivelyBlank = True
+End Function
+
+Private Function ReplaceSessionStampParagraph() As Boolean
+    ' Replace the located session stamp paragraph with standardized format
+    ' Text: "Plenário Dr. Tancredo Neves, $DATAATUALEXTENSO$."
+    
+    On Error GoTo ErrorHandler
+    
+    ' Only proceed if we found a session stamp
+    If ParagraphStampLocation Is Nothing Then
+        ReplaceSessionStampParagraph = False
+        Exit Function
+    End If
+    
+    ' Replace paragraph content with exact standardized string
+    Dim replacementText As String
+    replacementText = "Plenário Dr. Tancredo Neves, $DATAATUALEXTENSO$."
+    
+    ' Clear existing content and set new text
+    ParagraphStampLocation.Range.text = replacementText & vbCr
+    
+    ' Preserve paragraph formatting (alignment, spacing)
+    With ParagraphStampLocation
+        .Alignment = wdAlignParagraphCenter
+        .SpaceAfter = 0
+        .SpaceBefore = 0
+    End With
+    
+    ReplaceSessionStampParagraph = True
+    Exit Function
+    
+ErrorHandler:
+    ReplaceSessionStampParagraph = False
 End Function
 
     '================================================================================
