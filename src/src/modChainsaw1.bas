@@ -597,8 +597,17 @@ End Function
 Private Function GetCachedParagraph(index As Long) As CachedParagraph
     On Error Resume Next
     
-    If cacheValid And index > 0 And index <= paraCache.count Then
-        GetCachedParagraph = paraCache.Item(index)
+    ' SAFETY: Atomic read - check cacheValid first, then verify collection exists
+    ' before checking count to prevent race condition with InvalidateParagraphCache
+    If cacheValid Then
+        If Not (paraCache Is Nothing) Then
+            If index > 0 And index <= paraCache.count Then
+                GetCachedParagraph = paraCache.Item(index)
+            End If
+        Else
+            ' Cache marked valid but collection is Nothing - mark as invalid
+            cacheValid = False
+        End If
     End If
 End Function
 
@@ -1733,8 +1742,12 @@ End Function
 Private Sub StartUndoGroup(groupName As String)
     On Error GoTo ErrorHandler
     
+    ' STABILITY: If undo group already active, properly close it first
     If undoGroupEnabled Then
-        EndUndoGroup
+        On Error Resume Next
+        Application.UndoRecord.EndCustomRecord
+        undoGroupEnabled = False
+        On Error GoTo ErrorHandler
     End If
     
     Application.UndoRecord.StartCustomRecord groupName
@@ -1744,20 +1757,23 @@ Private Sub StartUndoGroup(groupName As String)
     
 ErrorHandler:
     undoGroupEnabled = False
+    LogEvent "StartUndoGroup", "ERROR", "Failed to start undo group: " & groupName, Err.Number, Err.Description
 End Sub
 
 Private Sub EndUndoGroup()
     On Error GoTo ErrorHandler
     
     If undoGroupEnabled Then
-        Application.UndoRecord.EndCustomRecord
+        ' STABILITY: Mark as disabled before actual EndCustomRecord to prevent double-end
         undoGroupEnabled = False
+        Application.UndoRecord.EndCustomRecord
     End If
     
     Exit Sub
     
 ErrorHandler:
     undoGroupEnabled = False
+    LogEvent "EndUndoGroup", "ERROR", "Failed to end undo group", Err.Number, Err.Description
 End Sub
 
 '================================================================================
