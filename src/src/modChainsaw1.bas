@@ -1140,6 +1140,13 @@ Private Function LoadConfiguration() As ChainsawConfig
         Call SaveConfiguration(config)
     End If
     
+    ' Ensure file is closed even if error occurred
+    If Not configFile Is Nothing Then
+        On Error Resume Next
+        configFile.Close
+        On Error GoTo 0
+    End If
+    
     Set fso = Nothing
     Set configFile = Nothing
     LoadConfiguration = config
