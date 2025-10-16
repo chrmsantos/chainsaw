@@ -1862,10 +1862,14 @@ Private Function CheckDiskSpace(doc As Document) As Boolean
         CheckDiskSpace = True
     End If
     
+    Set drive = Nothing
+    Set fso = Nothing
     Exit Function
     
 ErrorHandler:
     ' If cannot verify, assume there is sufficient space
+    Set drive = Nothing
+    Set fso = Nothing
     CheckDiskSpace = True
 End Function
 
@@ -3100,6 +3104,9 @@ Private Function CreateDocumentBackup(doc As Document) As Boolean
     
     LogEvent "CreateDocumentBackup", "INFO", "Backup criado: " & backupFileName, 0, "Backup successful"
     CreateDocumentBackup = True
+    On Error Resume Next
+    Set fso = Nothing
+    On Error GoTo 0
     Exit Function
 
 ErrorHandler:
@@ -3107,6 +3114,7 @@ ErrorHandler:
     CreateDocumentBackup = False
     On Error Resume Next
     Set fso = Nothing
+    On Error GoTo 0
 End Function
 
 '================================================================================
@@ -3127,6 +3135,9 @@ Private Sub CleanOldBackups(backupFolder As String, docBaseName As String)
     If filesCount > 10 Then
         LogEvent "CleanOldBackups", "WARNING", "Muitos backups na pasta (" & filesCount & " arquivos)", 0, "Consider manual cleanup"
     End If
+    
+    Set folder = Nothing
+    Set fso = Nothing
 End Sub
 
 '================================================================================
@@ -3150,11 +3161,13 @@ Public Sub AbrirPastaBackups()
         backupFolder = fso.GetParentFolderName(doc.path) & BACKUP_FOLDER_NAME
     Else
         Application.StatusBar = "Nenhum documento salvo ativo"
+        Set fso = Nothing
         Exit Sub
     End If
     
     If Not fso.FolderExists(backupFolder) Then
         LogEvent "AbrirPastaBackups", "WARNING", "Pasta de backups não encontrada", 0, "No backups yet"
+        Set fso = Nothing
         Exit Sub
     End If
     
@@ -3163,11 +3176,13 @@ Public Sub AbrirPastaBackups()
     Application.StatusBar = "Pasta de backups aberta"
     LogEvent "AbrirPastaBackups", "INFO", "Pasta de backups aberta", 0, "Backup folder accessed"
     
+    Set fso = Nothing
     Exit Sub
     
 ErrorHandler:
     Application.StatusBar = "Erro ao abrir pasta de backups"
     LogEvent "AbrirPastaBackups", "ERROR", "Erro ao abrir pasta: " & Err.Description, 0, "Error at line " & Erl
+    Set fso = Nothing
 End Sub
 
 '================================================================================
