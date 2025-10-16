@@ -473,7 +473,10 @@ Private Sub LogEvent(functionName As String, level As String, message As String,
         .ErrorNumber = errorNum
         .ErrorSource = Err.Source
         .Context = context
-        .ElapsedMs = CLng((Timer - processingStartTime) * 1000)
+        Dim elapsedTime As Double
+        elapsedTime = Timer - processingStartTime
+        If elapsedTime < 0 Then elapsedTime = elapsedTime + 86400
+        .ElapsedMs = CLng(elapsedTime * 1000)
     End With
     
     ' Write to file
