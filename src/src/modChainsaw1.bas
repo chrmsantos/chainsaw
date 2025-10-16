@@ -292,7 +292,11 @@ Private ParagraphStampLocation As Paragraph ' Locates session stamp with fuzzy m
 '================================================================================
 ' Word uses points (1 point = 1/72 inch). 1 inch = 2.54 cm. So cm = points * 2.54 / 72.
 Private Function CmFromPoints(ByVal pts As Double) As Double
+    On Error GoTo ErrorHandler
     CmFromPoints = (pts * 2.54) / 72#
+    Exit Function
+ErrorHandler:
+    CmFromPoints = 0
 End Function
 
 '================================================================================
@@ -301,6 +305,7 @@ End Function
 ' Returns whole seconds elapsed since the stored processingStartTime.
 ' Safe if called before initialization (returns 0). Placed after UDT per VBA ordering rules.
 Private Function ElapsedSeconds() As Long
+    On Error GoTo ErrorHandler
     If processingStartTime <= 0 Then
         ElapsedSeconds = 0
     Else
@@ -309,6 +314,9 @@ Private Function ElapsedSeconds() As Long
             ElapsedSeconds = ElapsedSeconds + 86400
         End If
     End If
+    Exit Function
+ErrorHandler:
+    ElapsedSeconds = 0
 End Function
 
 '================================================================================
@@ -715,6 +723,7 @@ Private Sub UpdateProgressBar(Optional incrementBy As Long = 1)
 End Sub
 
 Private Function FormatSeconds(seconds As Long) As String
+    On Error GoTo ErrorHandler
     Dim mins As Long, secs As Long
     mins = seconds \ 60
     secs = seconds Mod 60
@@ -726,6 +735,9 @@ Private Function FormatSeconds(seconds As Long) As String
     Else
         FormatSeconds = secs & "s"
     End If
+    Exit Function
+ErrorHandler:
+    FormatSeconds = "0s"
 End Function
 
 '================================================================================
