@@ -512,7 +512,8 @@ End Function
 
 Public Sub ViewLog()
     On Error Resume Next
-    Shell "notepad.exe " & LOG_FILE_PATH
+    ' SAFETY: Quote the path to handle spaces in file paths
+    Shell "notepad.exe """ & LOG_FILE_PATH & """"
     On Error GoTo 0
 End Sub
 
@@ -1063,7 +1064,12 @@ End Function
 Private Function LoadConfiguration() As ChainsawConfig
     On Error GoTo ErrorHandler
     
-    configPath = ThisDocument.Path & "\chainsaw.config"
+    ' SAFETY: Check if document path is valid before using it
+    If ThisDocument.Path = "" Then
+        configPath = ""
+    Else
+        configPath = ThisDocument.Path & "\chainsaw.config"
+    End If
     
     Dim config As ChainsawConfig
     
