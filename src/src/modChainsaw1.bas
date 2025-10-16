@@ -3154,6 +3154,12 @@ Private Function CreateDocumentBackup(doc As Document) As Boolean
     End If
     On Error GoTo ErrorHandler
     
+    ' Validação adicional: FullName deve estar preenchido
+    If doc.FullName = "" Then
+        LogEvent "CreateDocumentBackup", "ERROR", "Caminho completo do documento está vazio", 0, "FullName is empty"
+        Exit Function
+    End If
+    
     ' Cria uma cópia do arquivo com retry
     For retryCount = 1 To MAX_RETRY_ATTEMPTS
         On Error Resume Next
