@@ -2930,6 +2930,18 @@ ErrorHandler:
     NormalizeForUI = ""
 End Function
 
+' Helper: IsAnexoPattern - Detect if text matches "anexo" pattern
+' Input: cleanParaText (already lowercased, punctuation removed)
+' Returns: True if text matches anexo variants (e.g., "anexo", "anexos")
+Private Function IsAnexoPattern(cleanParaText As String) As Boolean
+    On Error GoTo ErrorHandler
+    ' Check for exact match "anexo" or "anexos" (plural)
+    IsAnexoPattern = (cleanParaText = "anexo" Or cleanParaText = "anexos")
+    Exit Function
+ErrorHandler:
+    IsAnexoPattern = False
+End Function
+
 ' Helper: ReplacePlaceholders - Replace placeholder text with values
 ' Pattern: ReplacePlaceholders(template_string, "KEY1", value1, "KEY2", value2, ...)
 Private Function ReplacePlaceholders(template As String, ParamArray keyValuePairs()) As String
