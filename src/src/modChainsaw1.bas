@@ -3928,6 +3928,7 @@ ErrorHandler:
     Else
         Application.StatusBar = "Não foi possível abrir pasta de logs"
     End If
+    On Error GoTo 0
 End Sub
 
 '================================================================================
