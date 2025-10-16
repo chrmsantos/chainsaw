@@ -156,6 +156,7 @@ Private Const HEADER_IMAGE_RELATIVE_PATH As String = "assets\stamp.png"
 Private undoGroupEnabled As Boolean
 Private formattingCancelled As Boolean
 Private processingStartTime As Single ' Stores Timer() value at start of processing
+Private ParagraphStampLocation As Paragraph ' Locates session stamp with fuzzy matching
 
 '================================================================================
 ' UNIT CONVERSION UTILITIES
@@ -871,6 +872,9 @@ Private Function PreviousFormatting(doc As Document) As Boolean
         PreviousFormatting = False
         Exit Function
     End If
+    
+    ' Locate session stamp with fuzzy matching (stores result in module-level variable)
+    Set ParagraphStampLocation = FindSessionStampParagraph(doc)
     
     ' Title formatting (uppercased, bold, underlined, centered)
     Call FormatDocumentTitle(doc)
@@ -3896,9 +3900,271 @@ ErrorHandler:
     SalvarTodosDocumentos = False
 End Function
 
+'================================================================================
+' SESSION STAMP LOCATOR WITH FUZZY MATCHING
+'================================================================================
+' Robustly finds the session stamp line (e.g., 'Plenário "Dr. Tancredo Neves", 10 de outubro de 2025')
+' using fuzzy keyword matching, date pattern detection, and blank padding validation.
+
+Private Function FindSessionStampParagraph(doc As Document) As Paragraph
+    On Error GoTo ErrorHandler
+    
+    Dim para As Paragraph
+    Dim normalizedLine As String
+    Dim i As Long
+    
+    ' Iterate through paragraphs looking for session stamp pattern
+    For i = 1 To doc.Paragraphs.count
+        Set para = doc.Paragraphs(i)
+        
+        ' Skip if paragraph is blank
+        If Not IsParagraphEffectivelyBlank(para) Then
+            normalizedLine = NormalizeForMatching(ParagraphTextWithoutBreaks(para))
+            
+            ' Check if this paragraph looks like a session stamp
+            If IsLikelySessionStamp(normalizedLine, para.Range.text) Then
+                ' Verify blank padding (blank or near-blank paragraphs around it)
+                If HasBlankPadding(para) Then
+                    Set FindSessionStampParagraph = para
+                    Exit Function
+                End If
+            End If
+        End If
+    Next i
+    
+    ' No match found
+    Set FindSessionStampParagraph = Nothing
+    Exit Function
+    
+ErrorHandler:
+    Set FindSessionStampParagraph = Nothing
+End Function
+
+Private Function ParagraphTextWithoutBreaks(para As Paragraph) As String
+    ' Extract text, replacing manual line breaks with spaces
+    ParagraphTextWithoutBreaks = Replace(para.Range.text, vbCr, " ")
+End Function
+
+Private Function CountWordsForStamp(textLine As String) As Long
+    ' Count words by splitting on spaces (handles multiple spaces)
+    Dim words() As String
+    Dim count As Long
+    
+    words = Split(textLine, " ")
+    For count = 0 To UBound(words)
+        If Trim$(words(count)) = "" Then count = count - 1
+    Next count
+    
+    CountWordsForStamp = count + 1
+End Function
+
+Private Function NormalizeForMatching(inputText As String) As String
+    ' Remove diacritics, convert to lowercase, trim
+    Dim result As String
+    result = LCase$(Trim$(inputText))
+    ' Basic diacritic removal (common Portuguese chars)
+    result = Replace(result, "á", "a")
+    result = Replace(result, "à", "a")
+    result = Replace(result, "â", "a")
+    result = Replace(result, "ã", "a")
+    result = Replace(result, "é", "e")
+    result = Replace(result, "ê", "e")
+    result = Replace(result, "í", "i")
+    result = Replace(result, "ó", "o")
+    result = Replace(result, "ô", "o")
+    result = Replace(result, "õ", "o")
+    result = Replace(result, "ú", "u")
+    result = Replace(result, "ü", "u")
+    result = Replace(result, "ç", "c")
+    NormalizeForMatching = result
+End Function
+
+Private Function IsLikelySessionStamp(normalizedLine As String, originalLine As String) As Boolean
+    On Error GoTo ErrorHandler
+    
+    ' Must contain required keywords with fuzzy tolerance
+    If Not (ContainsApproxWord(normalizedLine, "plenario", 2) Or _
+            ContainsApproxWord(normalizedLine, "plenária", 2) Or _
+            ContainsApproxWord(normalizedLine, "sessao", 2)) Then
+        IsLikelySessionStamp = False
+        Exit Function
+    End If
+    
+    ' Must have at least one of the location keywords (fuzzy match)
+    If Not (ContainsApproxWord(normalizedLine, "tancredo", 2) Or _
+            ContainsApproxWord(normalizedLine, "neves", 2)) Then
+        IsLikelySessionStamp = False
+        Exit Function
+    End If
+    
+    ' Must contain a date pattern
+    If Not ContainsDatePattern(normalizedLine) Then
+        IsLikelySessionStamp = False
+        Exit Function
+    End If
+    
+    ' Word count sanity check (session stamps are typically 10-17 words)
+    If CountWordsForStamp(normalizedLine) > MAX_SESSION_STAMP_WORDS Then
+        IsLikelySessionStamp = False
+        Exit Function
+    End If
+    
+    IsLikelySessionStamp = True
+    Exit Function
+    
+ErrorHandler:
+    IsLikelySessionStamp = False
+End Function
+
+Private Function ContainsApproxWord(textLine As String, pattern As String, maxDistance As Long) As Boolean
+    ' Check if textLine contains a word approximately matching pattern
+    ' using Levenshtein distance within maxDistance tolerance
+    
+    On Error GoTo ErrorHandler
+    
+    Dim words() As String
+    Dim i As Long
+    Dim distance As Long
+    
+    words = Split(textLine, " ")
+    For i = 0 To UBound(words)
+        Dim word As String
+        word = Trim$(words(i))
+        If word <> "" Then
+            distance = LevenshteinDistance(word, pattern)
+            If distance <= maxDistance Then
+                ContainsApproxWord = True
+                Exit Function
+            End If
+        End If
+    Next i
+    
+    ContainsApproxWord = False
+    Exit Function
+    
+ErrorHandler:
+    ContainsApproxWord = False
+End Function
+
+Private Function ContainsDatePattern(normalizedLine As String) As Boolean
+    ' Detect Portuguese date pattern: \d{1,2} de [month] de \d{4}
+    ' e.g., "10 de outubro de 2025"
+    
+    Dim months As String
+    months = "janeiro|fevereiro|marco|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro"
+    
+    ' Simplified check: look for "de" separators and month names
+    Dim hasMonth As Boolean
+    Dim i As Long
+    Dim pos As Long
+    
+    ' Check for month presence
+    Dim monthList() As String
+    monthList = Split(months, "|")
+    
+    For i = 0 To UBound(monthList)
+        If InStr(normalizedLine, monthList(i)) > 0 Then
+            hasMonth = True
+            Exit For
+        End If
+    Next i
+    
+    ' Check for "de" separators (Portuguese date format)
+    If hasMonth And InStr(normalizedLine, " de ") > 0 Then
+        ContainsDatePattern = True
+    Else
+        ContainsDatePattern = False
+    End If
+End Function
+
+Private Function LevenshteinDistance(s As String, t As String) As Long
+    ' Compute edit distance between strings s and t
+    Dim i As Long, j As Long
+    Dim lenS As Long, lenT As Long
+    Dim distance() As Long
+    
+    lenS = Len(s)
+    lenT = Len(t)
+    
+    ReDim distance(0 To lenS, 0 To lenT)
+    
+    ' Initialize first row and column
+    For i = 0 To lenS
+        distance(i, 0) = i
+    Next i
+    For j = 0 To lenT
+        distance(0, j) = j
+    Next j
+    
+    ' Compute distances
+    For i = 1 To lenS
+        For j = 1 To lenT
+            Dim cost As Long
+            cost = IIf(Mid$(s, i, 1) = Mid$(t, j, 1), 0, 1)
+            distance(i, j) = Min3(distance(i - 1, j) + 1, _
+                                   distance(i, j - 1) + 1, _
+                                   distance(i - 1, j - 1) + cost)
+        Next j
+    Next i
+    
+    LevenshteinDistance = distance(lenS, lenT)
+End Function
+
+Private Function Min3(a As Long, b As Long, c As Long) As Long
+    If a <= b And a <= c Then
+        Min3 = a
+    ElseIf b <= c Then
+        Min3 = b
+    Else
+        Min3 = c
+    End If
+End Function
+
+Private Function HasBlankPadding(para As Paragraph) As Boolean
+    ' Verify blank/near-blank paragraphs before and after target
+    On Error GoTo ErrorHandler
+    
+    Dim hasBlankBefore As Boolean
+    Dim hasBlankAfter As Boolean
+    
+    ' Check paragraph before
+    If para.Range.ParagraphNumber > 1 Then
+        hasBlankBefore = IsParagraphEffectivelyBlank(doc.Paragraphs(para.Range.ParagraphNumber - 1))
+    Else
+        hasBlankBefore = True ' First paragraph is implicitly padded
+    End If
+    
+    ' Check paragraph after
+    If para.Range.ParagraphNumber < doc.Paragraphs.count Then
+        hasBlankAfter = IsParagraphEffectivelyBlank(doc.Paragraphs(para.Range.ParagraphNumber + 1))
+    Else
+        hasBlankAfter = True ' Last paragraph is implicitly padded
+    End If
+    
+    HasBlankPadding = hasBlankBefore And hasBlankAfter
+    Exit Function
+    
+ErrorHandler:
+    HasBlankPadding = False
+End Function
+
+Private Function IsParagraphEffectivelyBlank(targetPara As Paragraph) As Boolean
+    ' Check if paragraph is empty or contains only whitespace
+    On Error GoTo ErrorHandler
+    
+    Dim cleanText As String
+    cleanText = Trim$(Replace(targetPara.Range.text, vbCr, ""))
+    
+    IsParagraphEffectivelyBlank = (cleanText = "" Or cleanText = vbCr)
+    Exit Function
+    
+ErrorHandler:
+    IsParagraphEffectivelyBlank = True
+End Function
+
     '================================================================================
     ' SELF-TEST / QUICK VALIDATION MACRO
-    '================================================================================
+    '================================================================================'
     ' ChainsawSelfTest runs a minimal in-document validation after formatting to ensure
     ' that critical invariants hold. It does NOT modify substantive content; it only
     ' reports findings via MsgBox. This helps detect regressions if future edits are made.
