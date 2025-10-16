@@ -691,7 +691,10 @@ Private Sub UpdateProgressBar(Optional incrementBy As Long = 1)
         End If
         
         ' Update UI only every 0.5 seconds to avoid excessive calls
-        If (Timer - .LastUpdateTime) < 0.5 And .ProcessedItems < .TotalItems Then
+        Dim timeSinceUpdate As Double
+        timeSinceUpdate = Timer - .LastUpdateTime
+        If timeSinceUpdate < 0 Then timeSinceUpdate = timeSinceUpdate + 86400 ' Handle midnight wrap
+        If timeSinceUpdate < 0.5 And .ProcessedItems < .TotalItems Then
             Exit Sub
         End If
         
@@ -700,6 +703,7 @@ Private Sub UpdateProgressBar(Optional incrementBy As Long = 1)
         ' Calculate estimate
         Dim elapsedSec As Long
         elapsedSec = CLng(Timer - .StartTime)
+        If elapsedSec < 0 Then elapsedSec = elapsedSec + 86400 ' Handle midnight wrap
         
         If .ProcessedItems > 0 And elapsedSec > 0 Then
             Dim ratePerSec As Double
