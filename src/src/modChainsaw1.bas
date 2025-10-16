@@ -3378,6 +3378,612 @@ ErrorHandler:
 End Function
 
 '================================================================================
+' PHASE 2: CONFIGURATION SYSTEM & PUBLIC UI (Parse INI, AbrirPastaLogs, SalvarESair)
+'================================================================================
+
+Private Function ParseConfigurationFile(configPath As String) As Boolean
+    On Error GoTo ErrorHandler
+    
+    ParseConfigurationFile = False
+    
+    Dim fileNum As Integer
+    Dim fileLine As String
+    Dim currentSection As String
+    
+    fileNum = FreeFile
+    Open configPath For Input As #fileNum
+    
+    Do Until EOF(fileNum)
+        Line Input #fileNum, fileLine
+        fileLine = Trim(fileLine)
+        
+        ' Ignora linhas vazias e comentários
+        If Len(fileLine) > 0 And Left(fileLine, 1) <> "#" Then
+            ' Verifica se é uma seção
+            If Left(fileLine, 1) = "[" And Right(fileLine, 1) = "]" Then
+                currentSection = UCase(Mid(fileLine, 2, Len(fileLine) - 2))
+            ElseIf InStr(fileLine, "=") > 0 Then
+                ' Processa linha de configuração
+                ProcessConfigLine currentSection, fileLine
+            End If
+        End If
+    Loop
+    
+    Close #fileNum
+    ParseConfigurationFile = True
+    
+    Exit Function
+    
+ErrorHandler:
+    If fileNum > 0 Then Close #fileNum
+    ParseConfigurationFile = False
+End Function
+
+Private Sub ProcessConfigLine(section As String, configLine As String)
+    On Error Resume Next
+    
+    Dim equalPos As Integer
+    Dim configKey As String
+    Dim configValue As String
+    
+    equalPos = InStr(configLine, "=")
+    If equalPos > 0 Then
+        configKey = UCase(Trim(Left(configLine, equalPos - 1)))
+        configValue = Trim(Mid(configLine, equalPos + 1))
+        
+        ' Remove aspas se presentes
+        If Left(configValue, 1) = """" And Right(configValue, 1) = """" Then
+            configValue = Mid(configValue, 2, Len(configValue) - 2)
+        End If
+        
+        ' Aplica configuração baseada na seção
+        Select Case section
+            Case "GERAL"
+                ProcessGeneralConfig configKey, configValue
+            Case "VALIDACOES"
+                ProcessValidationConfig configKey, configValue
+            Case "BACKUP"
+                ProcessBackupConfig configKey, configValue
+            Case "FORMATACAO"
+                ProcessFormattingConfig configKey, configValue
+            Case "LIMPEZA"
+                ProcessCleaningConfig configKey, configValue
+            Case "CABECALHO_RODAPE"
+                ProcessHeaderFooterConfig configKey, configValue
+            Case "SUBSTITUICOES"
+                ProcessReplacementConfig configKey, configValue
+            Case "ELEMENTOS_VISUAIS"
+                ProcessVisualElementsConfig configKey, configValue
+            Case "LOGGING"
+                ProcessLoggingConfig configKey, configValue
+            Case "PERFORMANCE"
+                ProcessPerformanceConfig configKey, configValue
+            Case "INTERFACE"
+                ProcessInterfaceConfig configKey, configValue
+            Case "COMPATIBILIDADE"
+                ProcessCompatibilityConfig configKey, configValue
+            Case "SEGURANCA"
+                ProcessSecurityConfig configKey, configValue
+            Case "AVANCADO"
+                ProcessAdvancedConfig configKey, configValue
+        End Select
+    End If
+End Sub
+
+Private Sub ProcessGeneralConfig(key As String, value As String)
+    Select Case key
+        Case "DEBUG_MODE"
+            Config.debugMode = (LCase(value) = "true")
+        Case "PERFORMANCE_MODE"
+            Config.performanceMode = (LCase(value) = "true")
+        Case "COMPATIBILITY_MODE"
+            Config.compatibilityMode = (LCase(value) = "true")
+    End Select
+End Sub
+
+Private Sub ProcessValidationConfig(key As String, value As String)
+    Select Case key
+        Case "CHECK_WORD_VERSION"
+            Config.checkWordVersion = (LCase(value) = "true")
+        Case "VALIDATE_DOCUMENT_INTEGRITY"
+            Config.validateDocumentIntegrity = (LCase(value) = "true")
+        Case "VALIDATE_PROPOSITION_TYPE"
+            Config.validatePropositionType = (LCase(value) = "true")
+        Case "VALIDATE_CONTENT_CONSISTENCY"
+            Config.validateContentConsistency = (LCase(value) = "true")
+        Case "CHECK_DISK_SPACE"
+            Config.checkDiskSpace = (LCase(value) = "true")
+        Case "MIN_WORD_VERSION"
+            Config.minWordVersion = CDbl(value)
+        Case "MAX_DOCUMENT_SIZE"
+            Config.maxDocumentSize = CLng(value)
+    End Select
+End Sub
+
+Private Sub ProcessBackupConfig(key As String, value As String)
+    Select Case key
+        Case "AUTO_BACKUP"
+            Config.autoBackup = (LCase(value) = "true")
+        Case "BACKUP_BEFORE_PROCESSING"
+            Config.backupBeforeProcessing = (LCase(value) = "true")
+        Case "MAX_BACKUP_FILES"
+            Config.maxBackupFiles = CLng(value)
+        Case "BACKUP_CLEANUP"
+            Config.backupCleanup = (LCase(value) = "true")
+        Case "BACKUP_RETRY_ATTEMPTS"
+            Config.backupRetryAttempts = CLng(value)
+    End Select
+End Sub
+
+Private Sub ProcessFormattingConfig(key As String, value As String)
+    Select Case key
+        Case "APPLY_PAGE_SETUP"
+            Config.applyPageSetup = (LCase(value) = "true")
+        Case "APPLY_STANDARD_FONT"
+            Config.applyStandardFont = (LCase(value) = "true")
+        Case "APPLY_STANDARD_PARAGRAPHS"
+            Config.applyStandardParagraphs = (LCase(value) = "true")
+        Case "FORMAT_FIRST_PARAGRAPH"
+            Config.formatFirstParagraph = (LCase(value) = "true")
+        Case "FORMAT_SECOND_PARAGRAPH"
+            Config.formatSecondParagraph = (LCase(value) = "true")
+        Case "FORMAT_NUMBERED_PARAGRAPHS"
+            Config.formatNumberedParagraphs = (LCase(value) = "true")
+        Case "FORMAT_CONSIDERANDO_PARAGRAPHS"
+            Config.formatConsiderandoParagraphs = (LCase(value) = "true")
+        Case "FORMAT_JUSTIFICATIVA_PARAGRAPHS"
+            Config.formatJustificativaParagraphs = (LCase(value) = "true")
+        Case "ENABLE_HYPHENATION"
+            Config.enableHyphenation = (LCase(value) = "true")
+    End Select
+End Sub
+
+Private Sub ProcessCleaningConfig(key As String, value As String)
+    Select Case key
+        Case "CLEAR_ALL_FORMATTING"
+            Config.clearAllFormatting = (LCase(value) = "true")
+        Case "CLEAN_DOCUMENT_STRUCTURE"
+            Config.cleanDocumentStructure = (LCase(value) = "true")
+        Case "CLEAN_MULTIPLE_SPACES"
+            Config.cleanMultipleSpaces = (LCase(value) = "true")
+        Case "LIMIT_SEQUENTIAL_EMPTY_LINES"
+            Config.limitSequentialEmptyLines = (LCase(value) = "true")
+        Case "ENSURE_PARAGRAPH_SEPARATION"
+            Config.ensureParagraphSeparation = (LCase(value) = "true")
+        Case "CLEAN_VISUAL_ELEMENTS"
+            Config.cleanVisualElements = (LCase(value) = "true")
+        Case "DELETE_HIDDEN_ELEMENTS"
+            Config.deleteHiddenElements = (LCase(value) = "true")
+        Case "DELETE_VISUAL_ELEMENTS_FIRST_FOUR_PARAGRAPHS"
+            Config.deleteVisualElementsFirstFourParagraphs = (LCase(value) = "true")
+    End Select
+End Sub
+
+Private Sub ProcessHeaderFooterConfig(key As String, value As String)
+    Select Case key
+        Case "INSERT_HEADER_stamp"
+            Config.insertHeaderstamp = (LCase(value) = "true")
+        Case "INSERT_FOOTER_stamp"
+            Config.insertFooterstamp = (LCase(value) = "true")
+        Case "REMOVE_WATERMARK"
+            Config.removeWatermark = (LCase(value) = "true")
+        Case "HEADER_IMAGE_PATH"
+            Config.headerImagePath = value
+        Case "HEADER_IMAGE_MAX_WIDTH"
+            Config.headerImageMaxWidth = CDbl(value)
+        Case "HEADER_IMAGE_HEIGHT_RATIO"
+            Config.headerImageHeightRatio = CDbl(value)
+    End Select
+End Sub
+
+Private Sub ProcessReplacementConfig(key As String, value As String)
+    Select Case key
+        Case "APPLY_TEXT_REPLACEMENTS"
+            Config.applyTextReplacements = (LCase(value) = "true")
+        Case "APPLY_SPECIFIC_PARAGRAPH_REPLACEMENTS"
+            Config.applySpecificParagraphReplacements = (LCase(value) = "true")
+        Case "REPLACE_HYPHENS_WITH_EM_DASH"
+            Config.replaceHyphensWithEmDash = (LCase(value) = "true")
+        Case "REMOVE_MANUAL_LINE_BREAKS"
+            Config.removeManualLineBreaks = (LCase(value) = "true")
+        Case "NORMALIZE_DOESTE_VARIANTS"
+            Config.normalizeDosteVariants = (LCase(value) = "true")
+        Case "NORMALIZE_VEREADOR_VARIANTS"
+            Config.normalizeVereadorVariants = (LCase(value) = "true")
+    End Select
+End Sub
+
+Private Sub ProcessVisualElementsConfig(key As String, value As String)
+    Select Case key
+        Case "BACKUP_ALL_IMAGES"
+            Config.backupAllImages = (LCase(value) = "true")
+        Case "RESTORE_ALL_IMAGES"
+            Config.restoreAllImages = (LCase(value) = "true")
+        Case "PROTECT_IMAGES_IN_RANGE"
+            Config.protectImagesInRange = (LCase(value) = "true")
+        Case "BACKUP_VIEW_SETTINGS"
+            Config.backupViewSettings = (LCase(value) = "true")
+        Case "RESTORE_VIEW_SETTINGS"
+            Config.restoreViewSettings = (LCase(value) = "true")
+    End Select
+End Sub
+
+Private Sub ProcessLoggingConfig(key As String, value As String)
+    Select Case key
+        Case "ENABLE_LOGGING"
+            Config.enableLogging = (LCase(value) = "true")
+        Case "LOG_LEVEL"
+            Config.logLevel = UCase(value)
+        Case "LOG_TO_FILE"
+            Config.logToFile = (LCase(value) = "true")
+        Case "LOG_DETAILED_OPERATIONS"
+            Config.logDetailedOperations = (LCase(value) = "true")
+        Case "LOG_WARNINGS"
+            Config.logWarnings = (LCase(value) = "true")
+        Case "LOG_ERRORS"
+            Config.logErrors = (LCase(value) = "true")
+        Case "MAX_LOG_SIZE_MB"
+            Config.maxLogSizeMb = CLng(value)
+    End Select
+End Sub
+
+Private Sub ProcessPerformanceConfig(key As String, value As String)
+    Select Case key
+        Case "DISABLE_SCREEN_UPDATING"
+            Config.disableScreenUpdating = (LCase(value) = "true")
+        Case "DISABLE_DISPLAY_ALERTS"
+            Config.disableDisplayAlerts = (LCase(value) = "true")
+        Case "USE_BULK_OPERATIONS"
+            Config.useBulkOperations = (LCase(value) = "true")
+        Case "OPTIMIZE_FIND_REPLACE"
+            Config.optimizeFindReplace = (LCase(value) = "true")
+        Case "MINIMIZE_OBJECT_CREATION"
+            Config.minimizeObjectCreation = (LCase(value) = "true")
+        Case "CACHE_FREQUENTLY_USED_OBJECTS"
+            Config.cacheFrequentlyUsedObjects = (LCase(value) = "true")
+        Case "USE_EFFICIENT_LOOPS"
+            Config.useEfficientLoops = (LCase(value) = "true")
+        Case "BATCH_PARAGRAPH_OPERATIONS"
+            Config.batchParagraphOperations = (LCase(value) = "true")
+    End Select
+End Sub
+
+Private Sub ProcessInterfaceConfig(key As String, value As String)
+    Select Case key
+        Case "SHOW_PROGRESS_MESSAGES"
+            Config.showProgressMessages = (LCase(value) = "true")
+        Case "SHOW_STATUS_BAR_UPDATES"
+            Config.showStatusBarUpdates = (LCase(value) = "true")
+        Case "CONFIRM_CRITICAL_OPERATIONS"
+            Config.confirmCriticalOperations = (LCase(value) = "true")
+        Case "SHOW_COMPLETION_MESSAGE"
+            Config.showCompletionMessage = (LCase(value) = "true")
+        Case "ENABLE_EMERGENCY_RECOVERY"
+            Config.enableEmergencyRecovery = (LCase(value) = "true")
+        Case "TIMEOUT_OPERATIONS"
+            Config.timeoutOperations = (LCase(value) = "true")
+    End Select
+End Sub
+
+Private Sub ProcessCompatibilityConfig(key As String, value As String)
+    Select Case key
+        Case "SUPPORT_WORD_2010"
+            Config.supportWord2010 = (LCase(value) = "true")
+        Case "SUPPORT_WORD_2013"
+            Config.supportWord2013 = (LCase(value) = "true")
+        Case "SUPPORT_WORD_2016"
+            Config.supportWord2016 = (LCase(value) = "true")
+        Case "USE_SAFE_PROPERTY_ACCESS"
+            Config.useSafePropertyAccess = (LCase(value) = "true")
+        Case "FALLBACK_METHODS"
+            Config.fallbackMethods = (LCase(value) = "true")
+        Case "HANDLE_MISSING_FEATURES"
+            Config.handleMissingFeatures = (LCase(value) = "true")
+    End Select
+End Sub
+
+Private Sub ProcessSecurityConfig(key As String, value As String)
+    Select Case key
+        Case "REQUIRE_DOCUMENT_SAVED"
+            Config.requireDocumentSaved = (LCase(value) = "true")
+        Case "VALIDATE_FILE_PERMISSIONS"
+            Config.validateFilePermissions = (LCase(value) = "true")
+        Case "CHECK_DOCUMENT_PROTECTION"
+            Config.checkDocumentProtection = (LCase(value) = "true")
+        Case "ENABLE_EMERGENCY_BACKUP"
+            Config.enableEmergencyBackup = (LCase(value) = "true")
+        Case "SANITIZE_INPUTS"
+            Config.sanitizeInputs = (LCase(value) = "true")
+        Case "VALIDATE_RANGES"
+            Config.validateRanges = (LCase(value) = "true")
+    End Select
+End Sub
+
+Private Sub ProcessAdvancedConfig(key As String, value As String)
+    Select Case key
+        Case "MAX_RETRY_ATTEMPTS"
+            Config.maxRetryAttempts = CLng(value)
+        Case "RETRY_DELAY_MS"
+            Config.retryDelayMs = CLng(value)
+        Case "COMPILATION_CHECK"
+            Config.compilationCheck = (LCase(value) = "true")
+        Case "VBA_ACCESS_REQUIRED"
+            Config.vbaAccessRequired = (LCase(value) = "true")
+        Case "AUTO_CLEANUP"
+            Config.autoCleanup = (LCase(value) = "true")
+        Case "FORCE_GC_COLLECTION"
+            Config.forceGcCollection = (LCase(value) = "true")
+    End Select
+End Sub
+
+'================================================================================
+' PUBLIC: ABRIR PASTA DE LOGS
+'================================================================================
+Public Sub AbrirPastaLogs()
+    On Error GoTo ErrorHandler
+    
+    Dim doc As Document
+    Dim logsFolder As String
+    Dim defaultLogsFolder As String
+    
+    ' Tenta obter documento ativo
+    Set doc = Nothing
+    On Error Resume Next
+    Set doc = ActiveDocument
+    On Error GoTo ErrorHandler
+    
+    ' Define pasta de logs baseada no documento atual ou temp
+    If Not doc Is Nothing And doc.path <> "" Then
+        logsFolder = doc.path
+    Else
+        logsFolder = Environ("TEMP")
+    End If
+    
+    ' Verifica se a pasta existe
+    If Dir(logsFolder, vbDirectory) = "" Then
+        logsFolder = Environ("TEMP")
+    End If
+    
+    ' Abre a pasta no Windows Explorer
+    Shell "explorer.exe """ & logsFolder & """", vbNormalFocus
+    
+    Application.StatusBar = "Pasta de logs aberta: " & logsFolder
+    
+    ' Log da operação se sistema de log estiver ativo
+    If loggingEnabled Then
+        LogEvent "AbrirPastaLogs", "INFO", "Pasta de logs aberta pelo usuário: " & logsFolder, 0, ""
+    End If
+    
+    Exit Sub
+    
+ErrorHandler:
+    Application.StatusBar = "Erro ao abrir pasta de logs"
+    
+    ' Fallback: tenta abrir pasta temporária
+    On Error Resume Next
+    Shell "explorer.exe """ & Environ("TEMP") & """", vbNormalFocus
+    If Err.Number = 0 Then
+        Application.StatusBar = "Pasta temporária aberta como alternativa"
+    Else
+        Application.StatusBar = "Não foi possível abrir pasta de logs"
+    End If
+End Sub
+
+'================================================================================
+' PUBLIC: SALVAR E SAIR - Orquestrador profissional
+'================================================================================
+Public Sub SalvarESair()
+    On Error GoTo CriticalErrorHandler
+    
+    Dim startTime As Date
+    startTime = Now
+    
+    Application.StatusBar = "Verificando documentos abertos..."
+    LogEvent "SalvarESair", "INFO", "Iniciando processo de salvar e sair - verificação de documentos", 0, ""
+    
+    ' Verifica se há documentos abertos
+    If Application.Documents.Count = 0 Then
+        Application.StatusBar = "Nenhum documento aberto - encerrando Word"
+        LogEvent "SalvarESair", "INFO", "Nenhum documento aberto - encerrando aplicação", 0, ""
+        Application.Quit SaveChanges:=wdDoNotSaveChanges
+        Exit Sub
+    End If
+    
+    ' Coleta informações sobre documentos não salvos
+    Dim unsavedDocs As Collection
+    Set unsavedDocs = New Collection
+    
+    Dim doc As Document
+    Dim i As Long
+    
+    ' Verifica cada documento aberto
+    For i = 1 To Application.Documents.Count
+        Set doc = Application.Documents(i)
+        
+        On Error Resume Next
+        ' Verifica se o documento tem alterações não salvas
+        If doc.Saved = False Or doc.path = "" Then
+            unsavedDocs.Add doc.Name
+            LogEvent "SalvarESair", "INFO", "Documento não salvo detectado: " & doc.Name, 0, ""
+        End If
+        On Error GoTo CriticalErrorHandler
+    Next i
+    
+    ' Se não há documentos não salvos, encerra diretamente
+    If unsavedDocs.Count = 0 Then
+        Application.StatusBar = "Todos os documentos salvos - encerrando Word"
+        LogEvent "SalvarESair", "INFO", "Todos os documentos estão salvos - encerrando aplicação", 0, ""
+        Application.Quit SaveChanges:=wdDoNotSaveChanges
+        Exit Sub
+    End If
+    
+    ' Constrói mensagem detalhada sobre documentos não salvos
+    Dim message As String
+    Dim docList As String
+    
+    For i = 1 To unsavedDocs.Count
+        docList = docList & "• " & unsavedDocs(i) & vbCrLf
+    Next i
+    
+    message = "ATENÇÃO: Há " & unsavedDocs.Count & " documento(s) com alterações não salvas:" & vbCrLf & vbCrLf
+    message = message & docList & vbCrLf
+    message = message & "Deseja salvar todos os documentos antes de sair?" & vbCrLf & vbCrLf
+    message = message & "• SIM: Salva todos e fecha o Word" & vbCrLf
+    message = message & "• NÃO: Fecha sem salvar (PERDE as alterações)" & vbCrLf
+    message = message & "• CANCELAR: Cancela a operação"
+    
+    ' Apresenta opções ao usuário
+    Application.StatusBar = "Aguardando decisão do usuário sobre documentos não salvos..."
+    
+    Dim userChoice As VbMsgBoxResult
+    userChoice = MsgBox(message, vbYesNoCancel + vbExclamation + vbDefaultButton1, _
+                        "Chainsaw - Salvar e Sair (" & unsavedDocs.Count & " documentos não salvos)")
+    
+    Select Case userChoice
+        Case vbYes
+            ' Usuário escolheu salvar todos
+            Application.StatusBar = "Salvando todos os documentos..."
+            LogEvent "SalvarESair", "INFO", "Usuário optou por salvar todos os documentos antes de sair", 0, ""
+            
+            If SalvarTodosDocumentos() Then
+                Application.StatusBar = "Documentos salvos com sucesso - encerrando Word"
+                LogEvent "SalvarESair", "INFO", "Todos os documentos salvos com sucesso - encerrando aplicação", 0, ""
+                Application.Quit SaveChanges:=wdDoNotSaveChanges
+            Else
+                Application.StatusBar = "Erro ao salvar documentos - operação cancelada"
+                LogEvent "SalvarESair", "ERROR", "Falha ao salvar alguns documentos - operação de sair cancelada", 0, ""
+                MsgBox "Erro ao salvar um ou mais documentos." & vbCrLf & _
+                       "A operação foi cancelada por segurança." & vbCrLf & vbCrLf & _
+                       "Verifique os documentos e tente novamente.", _
+                       vbCritical, "Chainsaw - Erro ao Salvar"
+            End If
+            
+        Case vbNo
+            ' Usuário escolheu não salvar
+            Dim confirmMessage As String
+            confirmMessage = "CONFIRMAÇÃO FINAL:" & vbCrLf & vbCrLf
+            confirmMessage = confirmMessage & "Você está prestes a FECHAR O WORD SEM SALVAR " & unsavedDocs.Count & " documento(s)." & vbCrLf & vbCrLf
+            confirmMessage = confirmMessage & "TODAS AS ALTERAÇÕES NÃO SALVAS SERÃO PERDIDAS!" & vbCrLf & vbCrLf
+            confirmMessage = confirmMessage & "Tem certeza absoluta?"
+            
+            Dim finalConfirm As VbMsgBoxResult
+            finalConfirm = MsgBox(confirmMessage, vbYesNo + vbCritical + vbDefaultButton2, _
+                                  "Chainsaw - CONFIRMAÇÃO FINAL")
+            
+            If finalConfirm = vbYes Then
+                Application.StatusBar = "Fechando Word sem salvar alterações..."
+                LogEvent "SalvarESair", "WARNING", "Usuário confirmou fechamento sem salvar - encerrando aplicação", 0, ""
+                Application.Quit SaveChanges:=wdDoNotSaveChanges
+            Else
+                Application.StatusBar = "Operação cancelada pelo usuário"
+                LogEvent "SalvarESair", "INFO", "Usuário cancelou fechamento sem salvar", 0, ""
+                MsgBox "Operação cancelada." & vbCrLf & "Os documentos permanecem abertos.", _
+                       vbInformation, "Chainsaw - Operação Cancelada"
+            End If
+            
+        Case vbCancel
+            ' Usuário cancelou
+            Application.StatusBar = "Operação de sair cancelada pelo usuário"
+            LogEvent "SalvarESair", "INFO", "Usuário cancelou operação de salvar e sair", 0, ""
+            MsgBox "Operação cancelada." & vbCrLf & "Os documentos permanecem abertos.", _
+                   vbInformation, "Chainsaw - Operação Cancelada"
+    End Select
+    
+    Application.StatusBar = False
+    LogEvent "SalvarESair", "INFO", "Processo de salvar e sair concluído em " & Format(Now - startTime, "hh:mm:ss"), 0, ""
+    Exit Sub
+
+CriticalErrorHandler:
+    Dim errDesc As String
+    errDesc = "ERRO CRÍTICO na operação Salvar e Sair #" & Err.Number & ": " & Err.Description
+    
+    LogEvent "SalvarESair", "ERROR", errDesc, 0, ""
+    Application.StatusBar = "Erro crítico - operação cancelada"
+    
+    MsgBox "Erro crítico durante a operação Salvar e Sair:" & vbCrLf & vbCrLf & _
+           Err.Description & vbCrLf & vbCrLf & _
+           "A operação foi cancelada por segurança." & vbCrLf & _
+           "Salve manualmente os documentos importantes.", _
+           vbCritical, "Chainsaw - Erro Crítico"
+End Sub
+
+'================================================================================
+' SALVAR TODOS DOCUMENTOS - AUXILIAR
+'================================================================================
+Private Function SalvarTodosDocumentos() As Boolean
+    On Error GoTo ErrorHandler
+    
+    Dim doc As Document
+    Dim i As Long
+    Dim savedCount As Long
+    Dim errorCount As Long
+    Dim totalDocs As Long
+    
+    totalDocs = Application.Documents.Count
+    
+    ' Salva cada documento individualmente
+    For i = 1 To totalDocs
+        Set doc = Application.Documents(i)
+        
+        Application.StatusBar = "Salvando documento " & i & " de " & totalDocs & ": " & doc.Name
+        
+        On Error Resume Next
+        
+        ' Se o documento nunca foi salvo (sem caminho), abre dialog
+        If doc.path = "" Then
+            Dim saveDialog As Object
+            Set saveDialog = Application.FileDialog(msoFileDialogSaveAs)
+            
+            With saveDialog
+                .Title = "Salvar documento: " & doc.Name
+                .InitialFileName = doc.Name
+                
+                If .Show = -1 Then
+                    doc.SaveAs2 .SelectedItems(1)
+                    If Err.Number = 0 Then
+                        savedCount = savedCount + 1
+                        LogEvent "SalvarTodosDocumentos", "INFO", "Documento salvo como novo arquivo: " & doc.Name, 0, ""
+                    Else
+                        errorCount = errorCount + 1
+                        LogEvent "SalvarTodosDocumentos", "ERROR", "Erro ao salvar documento como novo: " & doc.Name & " - " & Err.Description, 0, ""
+                    End If
+                Else
+                    errorCount = errorCount + 1
+                    LogEvent "SalvarTodosDocumentos", "WARNING", "Salvamento cancelado pelo usuário: " & doc.Name, 0, ""
+                End If
+            End With
+        Else
+            ' Documento já tem caminho, apenas salva
+            doc.Save
+            If Err.Number = 0 Then
+                savedCount = savedCount + 1
+                LogEvent "SalvarTodosDocumentos", "INFO", "Documento salvo: " & doc.Name, 0, ""
+            Else
+                errorCount = errorCount + 1
+                LogEvent "SalvarTodosDocumentos", "ERROR", "Erro ao salvar documento: " & doc.Name & " - " & Err.Description, 0, ""
+            End If
+        End If
+        
+        On Error GoTo ErrorHandler
+    Next i
+    
+    ' Verifica resultado
+    If errorCount = 0 Then
+        LogEvent "SalvarTodosDocumentos", "INFO", "Todos os documentos salvos com sucesso: " & savedCount & " de " & totalDocs, 0, ""
+        SalvarTodosDocumentos = True
+    Else
+        LogEvent "SalvarTodosDocumentos", "WARNING", "Falha parcial no salvamento: " & savedCount & " salvos, " & errorCount & " erros", 0, ""
+        SalvarTodosDocumentos = False
+    End If
+    
+    Exit Function
+
+ErrorHandler:
+    LogEvent "SalvarTodosDocumentos", "ERROR", "Erro crítico ao salvar documentos: " & Err.Description, 0, ""
+    SalvarTodosDocumentos = False
+End Function
+
+'================================================================================
 ' STANDARD FIND REPLACE
 '================================================================================
 Private Function StandardFindReplace(findText As String, replaceText As String, Optional searchRange As Range = Nothing) As Long
