@@ -3516,7 +3516,10 @@ Private Function ParseConfigurationFile(configPath As String) As Boolean
         If Len(fileLine) > 0 And Left(fileLine, 1) <> "#" Then
             ' Verifica se é uma seção
             If Left(fileLine, 1) = "[" And Right(fileLine, 1) = "]" Then
-                currentSection = UCase(Mid(fileLine, 2, Len(fileLine) - 2))
+                ' SAFETY: Ensure section header has at least 3 chars (e.g., "[]")
+                If Len(fileLine) >= 3 Then
+                    currentSection = UCase(Mid(fileLine, 2, Len(fileLine) - 2))
+                End If
             ElseIf InStr(fileLine, "=") > 0 Then
                 ' Processa linha de configuração
                 ProcessConfigLine currentSection, fileLine
@@ -3547,7 +3550,7 @@ Private Sub ProcessConfigLine(section As String, configLine As String)
         configValue = Trim(Mid(configLine, equalPos + 1))
         
         ' Remove aspas se presentes
-        If Left(configValue, 1) = """" And Right(configValue, 1) = """" Then
+        If Len(configValue) >= 2 And Left(configValue, 1) = """" And Right(configValue, 1) = """" Then
             configValue = Mid(configValue, 2, Len(configValue) - 2)
         End If
         
