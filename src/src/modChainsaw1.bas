@@ -483,9 +483,15 @@ Private Sub LogEvent(functionName As String, level As String, message As String,
     Dim fileNum As Integer
     fileNum = FreeFile
     
+    On Error Resume Next
     Open LOG_FILE_PATH For Append As fileNum
-    Print #fileNum, FormatLogEntry(entry)
-    Close fileNum
+    If Err.Number = 0 Then
+        Print #fileNum, FormatLogEntry(entry)
+        Close fileNum
+    Else
+        ' Silently fail if file cannot be written (don't cascade logging errors)
+        Err.Clear
+    End If
     
     On Error GoTo 0
 End Sub
