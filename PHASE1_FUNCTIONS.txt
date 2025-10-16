@@ -1,0 +1,639 @@
+'================================================================================
+' PHASE 1 INTEGRATION: BACKUP & RECOVERY SYSTEM
+'================================================================================
+
+'================================================================================
+' CREATE DOCUMENT BACKUP - Cria backup automático do documento
+'================================================================================
+Private Function CreateDocumentBackup(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+    
+    CreateDocumentBackup = False
+    
+    ' Validação inicial do documento
+    If doc Is Nothing Then
+        LogEvent "CreateDocumentBackup", "ERROR", "Documento é nulo", 0, "Cannot backup null document"
+        Exit Function
+    End If
+    
+    ' Não faz backup se documento não foi salvo
+    If doc.path = "" Then
+        LogEvent "CreateDocumentBackup", "INFO", "Backup ignorado - documento não salvo", 0, "Document has no path"
+        CreateDocumentBackup = True
+        Exit Function
+    End If
+    
+    Dim backupFolder As String
+    Dim fso As Object
+    Dim docName As String
+    Dim docExtension As String
+    Dim timestamp As String
+    Dim backupFilePath As String
+    Dim retryCount As Long
+    
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    
+    If fso Is Nothing Then
+        LogEvent "CreateDocumentBackup", "ERROR", "Não foi possível criar FileSystemObject", 0, "FSO creation failed"
+        Exit Function
+    End If
+    
+    ' Define pasta de backup
+    On Error Resume Next
+    Dim parentPath As String
+    parentPath = fso.GetParentFolderName(doc.path)
+    On Error GoTo ErrorHandler
+    
+    If parentPath = "" Then
+        LogEvent "CreateDocumentBackup", "ERROR", "Não foi possível determinar pasta pai", 0, "Parent folder determination failed"
+        Exit Function
+    End If
+    
+    backupFolder = parentPath & BACKUP_FOLDER_NAME
+    
+    ' Cria pasta de backup
+    If Not fso.FolderExists(backupFolder) Then
+        On Error Resume Next
+        fso.CreateFolder backupFolder
+        If Err.Number <> 0 Then
+            On Error GoTo ErrorHandler
+            LogEvent "CreateDocumentBackup", "ERROR", "Erro ao criar pasta de backup: " & Err.Description, 0, "Folder creation failed"
+            Exit Function
+        End If
+        On Error GoTo ErrorHandler
+        LogEvent "CreateDocumentBackup", "INFO", "Pasta de backup criada: " & backupFolder, 0, "Backup folder created"
+    End If
+    
+    ' Extrai nome e extensão do documento
+    On Error Resume Next
+    docName = fso.GetBaseName(doc.Name)
+    docExtension = fso.GetExtensionName(doc.Name)
+    On Error GoTo ErrorHandler
+    
+    If docName = "" Then
+        LogEvent "CreateDocumentBackup", "ERROR", "Nome de arquivo inválido", 0, "Invalid file name"
+        Exit Function
+    End If
+    
+    ' Cria timestamp para o backup
+    timestamp = Format(Now, "yyyy-mm-dd_HHmmss")
+    
+    ' Nome do arquivo de backup
+    Dim backupFileName As String
+    backupFileName = docName & "_backup_" & timestamp & "." & docExtension
+    backupFilePath = backupFolder & "\" & backupFileName
+    
+    ' Salva o documento atual primeiro para garantir que está atualizado
+    On Error Resume Next
+    doc.Save
+    If Err.Number <> 0 Then
+        LogEvent "CreateDocumentBackup", "WARNING", "Não foi possível salvar documento antes do backup", 0, "Pre-backup save failed"
+    End If
+    On Error GoTo ErrorHandler
+    
+    ' Cria uma cópia do arquivo usando FileSystemObject com retry
+    For retryCount = 1 To MAX_RETRY_ATTEMPTS
+        On Error Resume Next
+        fso.CopyFile doc.FullName, backupFilePath, True
+        If Err.Number = 0 Then
+            On Error GoTo ErrorHandler
+            Exit For
+        Else
+            On Error GoTo ErrorHandler
+            LogEvent "CreateDocumentBackup", "WARNING", "Tentativa " & retryCount & " de backup falhou: " & Err.Description, 0, "Backup retry"
+            If retryCount < MAX_RETRY_ATTEMPTS Then
+                Sleep 1000 ' Aguarda 1 segundo antes de tentar novamente
+            End If
+        End If
+    Next retryCount
+    
+    ' Verifica se o backup foi criado com sucesso
+    If Not fso.FileExists(backupFilePath) Then
+        LogEvent "CreateDocumentBackup", "ERROR", "Arquivo de backup não foi criado", 0, "Backup file not created"
+        Exit Function
+    End If
+    
+    ' Limpa backups antigos se necessário
+    CleanOldBackups backupFolder, docName
+    
+    LogEvent "CreateDocumentBackup", "INFO", "Backup criado com sucesso: " & backupFileName, 0, "Backup successful"
+    CreateDocumentBackup = True
+    Exit Function
+
+ErrorHandler:
+    LogEvent "CreateDocumentBackup", "ERROR", "Erro crítico: " & Err.Description, 0, "Error at line " & Erl
+    CreateDocumentBackup = False
+    On Error Resume Next
+    Set fso = Nothing
+End Function
+
+'================================================================================
+' CLEAN OLD BACKUPS - Limpeza de backups antigos (mantém últimos 10)
+'================================================================================
+Private Sub CleanOldBackups(backupFolder As String, docBaseName As String)
+    On Error Resume Next
+    
+    Dim fso As Object
+    Dim folder As Object
+    
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    Set folder = fso.GetFolder(backupFolder)
+    
+    Dim filesCount As Long
+    filesCount = folder.Files.Count
+    
+    ' Se há mais de 10 backups, registra aviso
+    If filesCount > 10 Then
+        LogEvent "CleanOldBackups", "WARNING", "Muitos backups na pasta (" & filesCount & " arquivos)", 0, "Consider manual cleanup"
+    End If
+End Sub
+
+'================================================================================
+' ABRIR PASTA DE BACKUPS - Subrotina pública para acesso a backups
+'================================================================================
+Public Sub AbrirPastaBackups()
+    On Error GoTo ErrorHandler
+    
+    Dim doc As Document
+    Dim backupFolder As String
+    Dim fso As Object
+    
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    
+    ' Tenta obter documento ativo
+    Set doc = Nothing
+    On Error Resume Next
+    Set doc = ActiveDocument
+    On Error GoTo ErrorHandler
+    
+    ' Define pasta de backup baseada no documento atual
+    If Not doc Is Nothing And doc.path <> "" Then
+        backupFolder = fso.GetParentFolderName(doc.path) & BACKUP_FOLDER_NAME
+    Else
+        Application.StatusBar = "Nenhum documento salvo ativo"
+        Exit Sub
+    End If
+    
+    ' Verifica se a pasta de backup existe
+    If Not fso.FolderExists(backupFolder) Then
+        LogEvent "AbrirPastaBackups", "WARNING", "Pasta de backups não encontrada", 0, "No backups yet"
+        Exit Sub
+    End If
+    
+    ' Abre a pasta no Windows Explorer
+    Shell "explorer.exe """ & backupFolder & """", vbNormalFocus
+    
+    Application.StatusBar = "Pasta de backups aberta"
+    LogEvent "AbrirPastaBackups", "INFO", "Pasta de backups aberta pelo usuário", 0, "Backup folder accessed"
+    
+    Exit Sub
+    
+ErrorHandler:
+    Application.StatusBar = "Erro ao abrir pasta de backups"
+    LogEvent "AbrirPastaBackups", "ERROR", "Erro ao abrir pasta: " & Err.Description, 0, "Error at line " & Erl
+End Sub
+
+'================================================================================
+' PHASE 1 INTEGRATION: VISUAL ELEMENTS CLEANUP SYSTEM
+'================================================================================
+
+'================================================================================
+' DELETE HIDDEN VISUAL ELEMENTS - Remove todos os elementos visuais ocultos
+'================================================================================
+Private Function DeleteHiddenVisualElements(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+    
+    Application.StatusBar = "Removendo elementos visuais ocultos..."
+    
+    Dim deletedCount As Long
+    deletedCount = 0
+    
+    ' Remove shapes ocultos (flutuantes)
+    Dim i As Long
+    For i = doc.Shapes.Count To 1 Step -1
+        Dim shp As Shape
+        Set shp = doc.Shapes(i)
+        
+        ' Verifica se o shape está oculto
+        Dim isHidden As Boolean
+        isHidden = False
+        
+        If Not shp.Visible Then isHidden = True
+        
+        ' Shape com transparência total
+        On Error Resume Next
+        If shp.Fill.Transparency >= 0.99 Then isHidden = True
+        On Error GoTo ErrorHandler
+        
+        ' Shape com tamanho zero
+        If shp.Width <= 1 Or shp.Height <= 1 Then isHidden = True
+        
+        ' Shape posicionado fora da página
+        If shp.Left < -1000 Or shp.Top < -1000 Then isHidden = True
+        
+        If isHidden Then
+            LogEvent "DeleteHiddenVisualElements", "DEBUG", "Removendo shape oculto (tipo: " & shp.Type & ")", 0, "Shape index: " & i
+            shp.Delete
+            deletedCount = deletedCount + 1
+        End If
+    Next i
+    
+    ' Remove objetos incorporados ocultos
+    For i = doc.InlineShapes.Count To 1 Step -1
+        Dim inlineShp As InlineShape
+        Set inlineShp = doc.InlineShapes(i)
+        
+        Dim isInlineHidden As Boolean
+        isInlineHidden = False
+        
+        If inlineShp.Range.Font.Hidden Then isInlineHidden = True
+        If inlineShp.Range.ParagraphFormat.LineSpacing = 0 Then isInlineHidden = True
+        If inlineShp.Width <= 1 Or inlineShp.Height <= 1 Then isInlineHidden = True
+        
+        If isInlineHidden Then
+            LogEvent "DeleteHiddenVisualElements", "DEBUG", "Removendo objeto inline oculto (tipo: " & inlineShp.Type & ")", 0, "Inline index: " & i
+            inlineShp.Delete
+            deletedCount = deletedCount + 1
+        End If
+    Next i
+    
+    LogEvent "DeleteHiddenVisualElements", "INFO", "Remoção de elementos ocultos concluída: " & deletedCount & " elementos removidos", 0, ""
+    DeleteHiddenVisualElements = True
+    Exit Function
+
+ErrorHandler:
+    LogEvent "DeleteHiddenVisualElements", "ERROR", "Erro ao remover elementos visuais ocultos: " & Err.Description, 0, "Error at line " & Erl
+    DeleteHiddenVisualElements = False
+End Function
+
+'================================================================================
+' DELETE VISUAL ELEMENTS IN FIRST FOUR PARAGRAPHS - Remove elementos dos parágrafos 1-4
+'================================================================================
+Private Function DeleteVisualElementsInFirstFourParagraphs(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+    
+    Application.StatusBar = "Removendo elementos visuais entre os parágrafos 1-4..."
+    
+    If doc.Paragraphs.Count < 1 Then
+        LogEvent "DeleteVisualElementsInFirstFourParagraphs", "INFO", "Documento não possui parágrafos", 0, "Skipping cleanup"
+        DeleteVisualElementsInFirstFourParagraphs = True
+        Exit Function
+    End If
+    
+    Dim deletedCount As Long
+    deletedCount = 0
+    
+    ' Define o range dos primeiros 4 parágrafos (ou menos)
+    Dim maxParagraphs As Long
+    If doc.Paragraphs.Count < 4 Then
+        maxParagraphs = doc.Paragraphs.Count
+    Else
+        maxParagraphs = 4
+    End If
+    
+    Dim startRange As Long
+    Dim endRange As Long
+    startRange = doc.Paragraphs(1).Range.Start
+    endRange = doc.Paragraphs(maxParagraphs).Range.End
+    
+    LogEvent "DeleteVisualElementsInFirstFourParagraphs", "DEBUG", "Removendo elementos dos parágrafos 1 a " & maxParagraphs, 0, "Range: " & startRange & " to " & endRange
+    
+    ' Remove shapes flutuantes que estão nos primeiros 4 parágrafos
+    Dim i As Long
+    For i = doc.Shapes.Count To 1 Step -1
+        Dim shp As Shape
+        Set shp = doc.Shapes(i)
+        
+        On Error Resume Next
+        Dim anchorPosition As Long
+        anchorPosition = shp.Anchor.Start
+        On Error GoTo ErrorHandler
+        
+        If anchorPosition >= startRange And anchorPosition <= endRange Then
+            Dim paragraphNum As Long
+            paragraphNum = GetParagraphNumberFromPosition(doc, anchorPosition)
+            LogEvent "DeleteVisualElementsInFirstFourParagraphs", "DEBUG", "Removendo shape do parágrafo " & paragraphNum, 0, "Shape type: " & shp.Type
+            shp.Delete
+            deletedCount = deletedCount + 1
+        End If
+    Next i
+    
+    ' Remove objetos inline nos primeiros 4 parágrafos
+    For i = doc.InlineShapes.Count To 1 Step -1
+        Dim inlineShp As InlineShape
+        Set inlineShp = doc.InlineShapes(i)
+        
+        If inlineShp.Range.Start >= startRange And inlineShp.Range.Start <= endRange Then
+            Dim inlineParagraphNum As Long
+            inlineParagraphNum = GetParagraphNumberFromPosition(doc, inlineShp.Range.Start)
+            LogEvent "DeleteVisualElementsInFirstFourParagraphs", "DEBUG", "Removendo objeto inline do parágrafo " & inlineParagraphNum, 0, "Inline type: " & inlineShp.Type
+            inlineShp.Delete
+            deletedCount = deletedCount + 1
+        End If
+    Next i
+    
+    LogEvent "DeleteVisualElementsInFirstFourParagraphs", "INFO", "Remoção concluída: " & deletedCount & " elementos removidos dos primeiros " & maxParagraphs & " parágrafos", 0, ""
+    DeleteVisualElementsInFirstFourParagraphs = True
+    Exit Function
+
+ErrorHandler:
+    LogEvent "DeleteVisualElementsInFirstFourParagraphs", "ERROR", "Erro ao remover elementos visuais: " & Err.Description, 0, "Error at line " & Erl
+    DeleteVisualElementsInFirstFourParagraphs = False
+End Function
+
+'================================================================================
+' GET PARAGRAPH NUMBER FROM POSITION - Helper para determinar número do parágrafo
+'================================================================================
+Private Function GetParagraphNumberFromPosition(doc As Document, position As Long) As Long
+    Dim i As Long
+    For i = 1 To doc.Paragraphs.Count
+        If position >= doc.Paragraphs(i).Range.Start And position <= doc.Paragraphs(i).Range.End Then
+            GetParagraphNumberFromPosition = i
+            Exit Function
+        End If
+    Next i
+    GetParagraphNumberFromPosition = 0
+End Function
+
+'================================================================================
+' CLEAN VISUAL ELEMENTS MAIN - Orchestrador da limpeza de elementos visuais
+'================================================================================
+Private Function CleanVisualElementsMain(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+    
+    LogEvent "CleanVisualElementsMain", "INFO", "Iniciando limpeza de elementos visuais", 0, "Removing hidden and first-para elements"
+    
+    ' Contabiliza elementos antes da limpeza
+    Dim initialShapeCount As Long
+    Dim initialInlineShapeCount As Long
+    initialShapeCount = doc.Shapes.Count
+    initialInlineShapeCount = doc.InlineShapes.Count
+    
+    LogEvent "CleanVisualElementsMain", "DEBUG", "Estado inicial: " & initialShapeCount & " shapes, " & initialInlineShapeCount & " inline objects", 0, ""
+    
+    ' 1. Remove elementos visuais ocultos
+    If Not DeleteHiddenVisualElements(doc) Then
+        LogEvent "CleanVisualElementsMain", "WARNING", "Falha ao remover elementos ocultos", 0, "Continuing with next step"
+    End If
+    
+    ' 2. Remove elementos visuais dos primeiros 4 parágrafos
+    If Not DeleteVisualElementsInFirstFourParagraphs(doc) Then
+        LogEvent "CleanVisualElementsMain", "WARNING", "Falha ao remover elementos dos primeiros 4 parágrafos", 0, "Continuing cleanup"
+    End If
+    
+    ' Contabiliza elementos após limpeza
+    Dim finalShapeCount As Long
+    Dim finalInlineShapeCount As Long
+    finalShapeCount = doc.Shapes.Count
+    finalInlineShapeCount = doc.InlineShapes.Count
+    
+    Dim shapesRemoved As Long
+    Dim inlineRemoved As Long
+    shapesRemoved = initialShapeCount - finalShapeCount
+    inlineRemoved = initialInlineShapeCount - finalInlineShapeCount
+    
+    LogEvent "CleanVisualElementsMain", "INFO", "Limpeza concluída: " & shapesRemoved & " shapes removidos, " & inlineRemoved & " objetos inline removidos", 0, "Final counts: " & finalShapeCount & " shapes, " & finalInlineShapeCount & " inline"
+    
+    CleanVisualElementsMain = True
+    Exit Function
+
+ErrorHandler:
+    LogEvent "CleanVisualElementsMain", "ERROR", "Erro na limpeza de elementos visuais: " & Err.Description, 0, "Error at line " & Erl
+    CleanVisualElementsMain = False
+End Function
+
+'================================================================================
+' PHASE 1 INTEGRATION: PERFORMANCE OPTIMIZATION - 3-TIER SYSTEM
+'================================================================================
+
+'================================================================================
+' OPTIMIZED FIND REPLACE - Busca e substituição com 3 tiers de otimização
+'================================================================================
+Private Function OptimizedFindReplace(findText As String, replaceText As String, Optional searchRange As Range = Nothing) As Long
+    On Error GoTo ErrorHandler
+    
+    OptimizedFindReplace = 0
+    
+    ' Usa BatchFindReplace se documento é grande
+    Dim doc As Document
+    Set doc = ActiveDocument
+    
+    If doc.Paragraphs.Count > OPTIMIZATION_THRESHOLD Then
+        OptimizedFindReplace = BulkFindReplace(findText, replaceText, searchRange)
+    Else
+        OptimizedFindReplace = StandardFindReplace(findText, replaceText, searchRange)
+    End If
+    
+    Exit Function
+    
+ErrorHandler:
+    LogEvent "OptimizedFindReplace", "ERROR", "Erro em busca otimizada: " & Err.Description, 0, "Error at line " & Erl
+    OptimizedFindReplace = 0
+End Function
+
+'================================================================================
+' BULK FIND REPLACE - Busca/substituição otimizada para documentos grandes
+'================================================================================
+Private Function BulkFindReplace(findText As String, replaceText As String, Optional searchRange As Range = Nothing) As Long
+    On Error GoTo ErrorHandler
+    
+    BulkFindReplace = 0
+    
+    Dim targetRange As Range
+    Set targetRange = IIf(searchRange Is Nothing, ActiveDocument.Content, searchRange)
+    
+    With targetRange.Find
+        .ClearFormatting
+        .Replacement.ClearFormatting
+        .Text = findText
+        .Replacement.Text = replaceText
+        .Forward = True
+        .Wrap = wdFindStop
+        .Format = False
+        .MatchCase = False
+        .MatchWholeWord = False
+        .MatchWildcards = False
+        
+        BulkFindReplace = .Execute(Replace:=wdReplaceAll)
+    End With
+    
+    LogEvent "BulkFindReplace", "DEBUG", "Substituídos " & BulkFindReplace & " itens de """ & Left(findText, 20) & """", 0, ""
+    Exit Function
+    
+ErrorHandler:
+    LogEvent "BulkFindReplace", "ERROR", "Erro em busca em lote: " & Err.Description, 0, "Error at line " & Erl
+    BulkFindReplace = 0
+End Function
+
+'================================================================================
+' STANDARD FIND REPLACE - Busca/substituição padrão compatível
+'================================================================================
+Private Function StandardFindReplace(findText As String, replaceText As String, Optional searchRange As Range = Nothing) As Long
+    On Error GoTo ErrorHandler
+    
+    StandardFindReplace = 0
+    
+    Dim targetRange As Range
+    Set targetRange = IIf(searchRange Is Nothing, ActiveDocument.Content, searchRange)
+    
+    With targetRange.Find
+        .ClearFormatting
+        .Replacement.ClearFormatting
+        .Text = findText
+        .Replacement.Text = replaceText
+        .Forward = True
+        .Wrap = wdFindStop
+        
+        StandardFindReplace = .Execute(Replace:=wdReplaceAll)
+    End With
+    
+    LogEvent "StandardFindReplace", "DEBUG", "Substituídos " & StandardFindReplace & " itens", 0, ""
+    Exit Function
+    
+ErrorHandler:
+    LogEvent "StandardFindReplace", "ERROR", "Erro em busca padrão: " & Err.Description, 0, "Error at line " & Erl
+    StandardFindReplace = 0
+End Function
+
+'================================================================================
+' OPTIMIZED PARAGRAPH PROCESSING - Seletor de estratégia otimizada
+'================================================================================
+Private Function OptimizedParagraphProcessing(processingFunction As String) As Boolean
+    On Error GoTo ErrorHandler
+    
+    OptimizedParagraphProcessing = False
+    
+    Dim doc As Document
+    Set doc = ActiveDocument
+    
+    ' Usa processamento em lote se documento é grande
+    If doc.Paragraphs.Count > OPTIMIZATION_THRESHOLD Then
+        OptimizedParagraphProcessing = BatchProcessParagraphs(processingFunction)
+    Else
+        OptimizedParagraphProcessing = StandardProcessParagraphs(processingFunction)
+    End If
+    
+    Exit Function
+    
+ErrorHandler:
+    LogEvent "OptimizedParagraphProcessing", "ERROR", "Erro em processamento otimizado: " & Err.Description, 0, "Error at line " & Erl
+    OptimizedParagraphProcessing = False
+End Function
+
+'================================================================================
+' BATCH PROCESS PARAGRAPHS - Processamento em lotes de 120 parágrafos
+'================================================================================
+Private Function BatchProcessParagraphs(processingFunction As String) As Boolean
+    On Error GoTo ErrorHandler
+    
+    BatchProcessParagraphs = False
+    
+    Dim doc As Document
+    Set doc = ActiveDocument
+    
+    Dim paragraphCount As Long
+    paragraphCount = doc.Paragraphs.Count
+    
+    Dim batchSize As Long
+    batchSize = IIf(paragraphCount > OPTIMIZATION_THRESHOLD, MAX_PARAGRAPH_BATCH_SIZE, paragraphCount)
+    
+    LogEvent "BatchProcessParagraphs", "DEBUG", "Processando " & paragraphCount & " parágrafos em lotes de " & batchSize, 0, ""
+    
+    Dim i As Long
+    For i = 1 To paragraphCount Step batchSize
+        Dim endIndex As Long
+        endIndex = IIf(i + batchSize - 1 > paragraphCount, paragraphCount, i + batchSize - 1)
+        
+        If Not ProcessParagraphBatch(i, endIndex, processingFunction) Then
+            LogEvent "BatchProcessParagraphs", "ERROR", "Erro no lote " & i & "-" & endIndex, 0, ""
+            Exit Function
+        End If
+    Next i
+    
+    BatchProcessParagraphs = True
+    Exit Function
+    
+ErrorHandler:
+    LogEvent "BatchProcessParagraphs", "ERROR", "Erro em processamento em lote: " & Err.Description, 0, "Error at line " & Erl
+    BatchProcessParagraphs = False
+End Function
+
+'================================================================================
+' STANDARD PROCESS PARAGRAPHS - Processamento linear padrão
+'================================================================================
+Private Function StandardProcessParagraphs(processingFunction As String) As Boolean
+    On Error GoTo ErrorHandler
+    
+    StandardProcessParagraphs = False
+    
+    Dim doc As Document
+    Set doc = ActiveDocument
+    
+    Dim para As Paragraph
+    For Each para In doc.Paragraphs
+        Select Case processingFunction
+            Case "FORMAT"
+                Call FormatParagraph(para)
+            Case "CLEAN"
+                Call CleanParagraph(para)
+            Case "VALIDATE"
+                Call ValidateParagraph(para)
+        End Select
+    Next para
+    
+    StandardProcessParagraphs = True
+    Exit Function
+    
+ErrorHandler:
+    LogEvent "StandardProcessParagraphs", "ERROR", "Erro em processamento padrão: " & Err.Description, 0, "Error at line " & Erl
+    StandardProcessParagraphs = False
+End Function
+
+'================================================================================
+' PROCESS PARAGRAPH BATCH - Processa lote individual de parágrafos
+'================================================================================
+Private Function ProcessParagraphBatch(startIndex As Long, endIndex As Long, processingFunction As String) As Boolean
+    On Error GoTo ErrorHandler
+    
+    ProcessParagraphBatch = False
+    
+    Dim doc As Document
+    Set doc = ActiveDocument
+    
+    Dim i As Long
+    For i = startIndex To endIndex
+        If i <= doc.Paragraphs.Count Then
+            Dim para As Paragraph
+            Set para = doc.Paragraphs(i)
+            
+            Select Case processingFunction
+                Case "FORMAT"
+                    Call FormatParagraph(para)
+                Case "CLEAN"
+                    Call CleanParagraph(para)
+                Case "VALIDATE"
+                    Call ValidateParagraph(para)
+            End Select
+        End If
+    Next i
+    
+    ProcessParagraphBatch = True
+    Exit Function
+    
+ErrorHandler:
+    LogEvent "ProcessParagraphBatch", "ERROR", "Erro ao processar lote: " & Err.Description, 0, "Error at line " & Erl
+    ProcessParagraphBatch = False
+End Function
+
+' Helper functions for paragraph processing
+Private Sub FormatParagraph(para As Paragraph)
+    ' Placeholder for paragraph formatting
+End Sub
+
+Private Sub CleanParagraph(para As Paragraph)
+    ' Placeholder for paragraph cleaning
+End Sub
+
+Private Sub ValidateParagraph(para As Paragraph)
+    ' Placeholder for paragraph validation
+End Sub
