@@ -1087,9 +1087,13 @@ Private Function LoadConfiguration() As ChainsawConfig
                         Case "standardfont"
                             config.StandardFont = value
                         Case "standardfontsize"
+                            On Error Resume Next
                             config.StandardFontSize = CLng(value)
+                            On Error GoTo 0
                         Case "topmargin"
+                            On Error Resume Next
                             config.TopMarginCm = CDbl(value)
+                            On Error GoTo 0
                         Case "enablelogging"
                             config.EnableLogging = (LCase(value) = "true")
                     End Select
