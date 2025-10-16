@@ -2072,7 +2072,7 @@ Private Function ApplyStdFont(doc As Document) As Boolean
             End If
             
             
-            If i < doc.Paragraphs.count Then
+            If i + 1 <= doc.Paragraphs.count Then
                 Dim nextPara As Paragraph
                 Set nextPara = doc.Paragraphs(i + 1)
                 If Not HasVisualContent(nextPara) Then
