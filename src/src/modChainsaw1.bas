@@ -1167,8 +1167,20 @@ Private Sub SaveConfiguration(config As ChainsawConfig)
     On Error Resume Next
     
     Dim fso As Object, configFile As Object
+    On Error Resume Next
     Set fso = CreateObject("Scripting.FileSystemObject")
+    If Err.Number <> 0 Then
+        On Error GoTo 0
+        Exit Sub
+    End If
+    
     Set configFile = fso.CreateTextFile(configPath, True) ' ForWriting, overwrite
+    If Err.Number <> 0 Then
+        On Error GoTo 0
+        Set fso = Nothing
+        Exit Sub
+    End If
+    On Error GoTo 0
     
     With config
         configFile.WriteLine "# CHAINSAW PROPOSITURAS - CONFIGURATION FILE"
@@ -1185,10 +1197,11 @@ Private Sub SaveConfiguration(config As ChainsawConfig)
         configFile.WriteLine "EnableProgressBar=" & IIf(.EnableProgressBar, "true", "false")
     End With
     
+    On Error Resume Next
     configFile.Close
+    On Error GoTo 0
     Set configFile = Nothing
     Set fso = Nothing
-    On Error GoTo 0
 End Sub
 
 '================================================================================
