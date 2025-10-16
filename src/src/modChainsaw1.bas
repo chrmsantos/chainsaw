@@ -1718,19 +1718,11 @@ Private Function InsertHeaderstamp(doc As Document) As Boolean
     Dim imgFound As Boolean
     Dim sectionsProcessed As Long
 
-    ' Resolve image file path (no extra fallbacks): use fixed relative path; if relative, resolve from document folder
-    imgFile = HEADER_IMAGE_RELATIVE_PATH
-    If InStr(1, imgFile, ":", vbTextCompare) = 0 And Left(imgFile, 2) <> "\\" Then
-        Dim baseFolder As String
-        On Error Resume Next
-        baseFolder = IIf(doc.Path <> "", doc.Path, CurDir$)
-        On Error GoTo ErrorHandler
-        If Right(baseFolder, 1) <> "\" Then baseFolder = baseFolder & "\"
-        imgFile = baseFolder & imgFile
-    End If
-
-    If Dir(imgFile) = "" Then
-        Application.StatusBar = "Warning: Header image not found"
+    ' Resolve image file path using multiple search strategies
+    imgFile = ResolveImagePath(HEADER_IMAGE_RELATIVE_PATH, doc)
+    
+    If imgFile = "" Or Dir(imgFile) = "" Then
+        Application.StatusBar = "Warning: Header image not found at: " & HEADER_IMAGE_RELATIVE_PATH
         InsertHeaderstamp = False
         Exit Function
     End If
@@ -1781,6 +1773,70 @@ Private Function InsertHeaderstamp(doc As Document) As Boolean
 
 ErrorHandler:
     InsertHeaderstamp = False
+End Function
+
+Private Function ResolveImagePath(relativePath As String, doc As Document) As String
+    ' Attempt to resolve image path using multiple strategies:
+    ' 1. Relative to document folder
+    ' 2. Relative to current working directory
+    ' 3. Relative to project structure (up directories)
+    ' 4. Search upward from document folder
+    
+    On Error Resume Next
+    
+    Dim resolvedPath As String
+    Dim baseFolder As String
+    Dim projectPath As String
+    
+    ' Strategy 1: Relative to document folder
+    If doc.Path <> "" Then
+        baseFolder = doc.Path
+        If Right(baseFolder, 1) <> "\" Then baseFolder = baseFolder & "\"
+        resolvedPath = baseFolder & relativePath
+        If Dir(resolvedPath) <> "" Then
+            ResolveImagePath = resolvedPath
+            Exit Function
+        End If
+    End If
+    
+    ' Strategy 2: Relative to current working directory
+    resolvedPath = CurDir$ & "\" & relativePath
+    If Dir(resolvedPath) <> "" Then
+        ResolveImagePath = resolvedPath
+        Exit Function
+    End If
+    
+    ' Strategy 3: Look in parent directories (common project structure)
+    projectPath = CurDir$
+    If InStr(projectPath, "\src\src") > 0 Then
+        ' We're likely in a chainsaw project structure
+        projectPath = Replace(projectPath, "\src\src", "")
+        resolvedPath = projectPath & "\" & relativePath
+        If Dir(resolvedPath) <> "" Then
+            ResolveImagePath = resolvedPath
+            Exit Function
+        End If
+    End If
+    
+    ' Strategy 4: Search from document's parent directory upward (max 5 levels)
+    If doc.Path <> "" Then
+        baseFolder = doc.Path
+        Dim levels As Long
+        For levels = 1 To 5
+            If Right(baseFolder, 1) <> "\" Then baseFolder = baseFolder & "\"
+            resolvedPath = baseFolder & relativePath
+            If Dir(resolvedPath) <> "" Then
+                ResolveImagePath = resolvedPath
+                Exit Function
+            End If
+            ' Go up one level
+            baseFolder = Left(baseFolder, InStrRev(baseFolder, "\") - 1)
+            If baseFolder = "" Or InStr(baseFolder, "\") = 0 Then Exit For
+        Next levels
+    End If
+    
+    ' Not found
+    ResolveImagePath = ""
 End Function
 
 '================================================================================
