@@ -1614,7 +1614,7 @@ FallbackMethod:
     Exit Function
     
 ErrorHandler:
-          
+    SafeGetCharacterCount = 0
 End Function
 
 Private Function SafeSetFont(targetRange As Range, fontName As String, fontSize As Long) As Boolean
@@ -2931,14 +2931,31 @@ ErrorHandler:
 End Function
 
 ' Helper: ReplacePlaceholders - Replace placeholder text with values
-Private Function ReplacePlaceholders(doc As Document, placeholders As Collection) As Boolean
+' Pattern: ReplacePlaceholders(template_string, "KEY1", value1, "KEY2", value2, ...)
+Private Function ReplacePlaceholders(template As String, ParamArray keyValuePairs()) As String
     On Error GoTo ErrorHandler
-    If doc Is Nothing Then ReplacePlaceholders = False: Exit Function
-    ' Placeholder replacement logic would go here
-    ReplacePlaceholders = True
+    
+    Dim result As String
+    result = template
+    
+    Dim i As Long
+    ' Process pairs: i is key, i+1 is value
+    For i = LBound(keyValuePairs) To UBound(keyValuePairs) - 1 Step 2
+        If i + 1 <= UBound(keyValuePairs) Then
+            Dim placeholder As String
+            Dim keyName As String
+            Dim keyValue As String
+            keyName = CStr(keyValuePairs(i))
+            keyValue = CStr(keyValuePairs(i + 1))
+            placeholder = "{{" & keyName & "}}"
+            result = Replace(result, placeholder, keyValue)
+        End If
+    Next i
+    
+    ReplacePlaceholders = result
     Exit Function
 ErrorHandler:
-    ReplacePlaceholders = False
+    ReplacePlaceholders = template
 End Function
 
 ' Helper: FormatFirstParagraph - Format first paragraph
