@@ -1,4 +1,86 @@
-# CHAINSAW PROPOSITURAS
+# Chainsaw Proposituras
+
+## Overview
+
+Chainsaw Proposituras disponibiliza um único módulo VBA que padroniza documentos legislativos municipais no Microsoft Word. O macro garante tipografia, espaçamento e numeração consistentes sem depender de serviços externos ou arquivos de configuração em tempo de execução.
+
+## Feature Highlights
+
+- Valida a estrutura do documento antes de aplicar qualquer transformação.
+- Normaliza títulos, CONSIDERANDO, justificativas, anexos e parágrafos numerados.
+- Limpa espaços em branco redundantes e restabelece separação segura entre parágrafos.
+- Injeta carimbo de cabeçalho a partir de `assets\stamp.png` quando disponível e garante numeração de páginas no rodapé.
+- Mantém diálogos com o usuário seguros em ASCII por meio de helpers compartilhados.
+
+## Repository Layout
+
+```text
+chainsaw/
+├── assets/
+│   └── stamp.png
+├── config/
+│   ├── Normal.dotm
+│   └── Word Personalizações.exportedUI
+├── src/
+│   └── chainsaw_0.bas
+├── README.md
+├── CONTRIBUTORS.md
+├── SECURITY.md
+├── LICENSE
+└── SPDX-LICENSE-IDENTIFIER.txt
+```
+
+## Requirements
+
+- Windows com Microsoft Word 2010 ou superior.
+- Macros habilitadas no Trust Center ("Desabilitar todas as macros com notificação").
+- Imagem opcional de cabeçalho em `assets\stamp.png`, armazenada ao lado do documento ativo.
+
+## Setup
+
+1. Baixe ou faça clone do repositório em uma pasta confiável.
+2. Abra o documento alvo no Word.
+3. Importe `chainsaw_0.bas` pelo Editor VBA (`Alt+F11` → `File` → `Import File`).
+4. (Opcional) Importe `config/Word Personalizações.exportedUI` para adicionar atalhos na faixa de opções.
+
+## Usage
+
+1. Pressione `Alt+F8` e execute `StandardizeDocumentMain`.
+2. Aguarde a conclusão da rotina; o macro aplica todas as etapas em sequência.
+3. Caso `assets\stamp.png` esteja ausente, a etapa de carimbo é ignorada de forma segura.
+
+## Behavior Defaults
+
+- Fonte principal: Arial 12 pt, com margens e espaçamentos definidos pelas constantes do módulo.
+- A limpeza de espaçamento remove linhas em branco repetidas e comprime espaços duplicados.
+- Rotinas de cabeçalho/rodapé aplicam carimbo e numeração sempre que os recursos estiverem disponíveis.
+- Nenhum arquivo de configuração externo é lido nesta edição.
+
+## Security Notes
+
+- O módulo executa localmente sem telemetria ou requisições de rede.
+- Armazene o projeto em um Local Confiável e mantenha o modo de notificação antes da execução de macros.
+- Consulte `SECURITY.md` para orientações de reporte e política de divulgação.
+
+## Message Templates
+
+Mensagens de interface usam placeholders `{{KEY}}`. `ReplacePlaceholders` substitui pares chave/valor e `NormalizeForUI` garante ASCII quando necessário.
+
+## ASCII Hardening
+
+Constantes de texto permanecem compatíveis com ASCII por padrão: acentos são suavizados, marcadores viram hifens e símbolos ordinais voltam para formas alfabéticas. Quando o ambiente permite, `NormalizeForUI` pode restaurar acentuação antes de mostrar um diálogo.
+
+## Contributing
+
+Consulte `CONTRIBUTORS.md` para conhecer fluxo de contribuição, estilo de código e expectativas de revisão.
+
+## License
+
+Distribuído sob GPL-3.0-or-later. Consulte `LICENSE` para os termos completos.
+
+## Maintainer
+
+Christian Martin dos Santos — <chrmsantos@gmail.com>
 
 ## v1.0.0-Beta3 (2025-10-10)
 

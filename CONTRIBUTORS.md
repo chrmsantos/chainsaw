@@ -1,67 +1,41 @@
-# Contributors Guide
+# Contribution Guide
 
-Thank you for considering a contribution to CHAINSAW PROPOSITURAS! This guide explains how to propose changes and what we expect to keep the project healthy and maintainable.
+## Scope
 
-## Ways to Contribute
+- Foque na padronização de documentos do Microsoft Word escrita em VBA.
+- Mantenha a abordagem de módulo único salvo quando a manutenção exigir divisão.
+- Evite novas dependências, telemetria ou recursos que não envolvam automação do Word.
 
-- Report bugs and suggest improvements via GitHub Issues
-- Improve documentation (README, comments in code, examples)
-- Optimize VBA routines, fix edge cases, or improve compatibility with older Word versions
-- Add small, well-scoped features aligned with the project goals (see below)
+## Quality Principles
 
-## Development Principles
+- Prefira padrões defensivos compatíveis com Word 2010 ou superior.
+- Reconfigure o tratamento de erros explicitamente após blocos com `On Error Resume Next`.
+- Utilize helpers (`SafeSetFont`, `ReplacePlaceholders` etc.) em vez de lógica ad-hoc.
+- Agrupe operações para reduzir flicker de interface e mudanças de seleção desnecessárias.
 
-- Scope: Focus on document standardization in Word (VBA). Avoid adding unrelated features or external dependencies.
-- Robustness: Favor defensive code and safe fallbacks that work across Word 2010+.
-- Simplicity: Keep the single-module approach unless there is a compelling maintenance reason to split.
-- Performance: Prefer batch operations and minimize UI thrashing; keep the code responsive (use DoEvents where helpful).
+## Workflow
 
-## Getting Started
+1. Faça fork do repositório e crie uma branch temática (por exemplo `fix/paragraph-spacing`).
+2. Implemente a mudança com commits focados; evite ajustes de formatação não relacionados.
+3. Atualize a documentação sempre que houver alteração de comportamento ou uso.
+4. Teste o macro em documentos exemplo cobrindo título, seções numeradas, carimbos e fluxos de fallback.
+5. Abra um pull request descrevendo o problema, a solução e eventuais efeitos colaterais.
 
-1. Fork the repository on GitHub
-2. Create a branch for your change
-   - Example: `git checkout -b fix/paragraph-spacing`
-3. Make your changes
-   - Keep edits tight and focused; avoid unrelated formatting changes
-   - Follow existing style and naming conventions (.Text, .Count, etc.)
-4. Update documentation if behavior changes
-5. Open a Pull Request
-   - Describe the intent, the change, and any trade-offs
-   - Reference related issues, if any
+## Review Checklist
 
-## Coding Style (VBA)
+- Código compila no Word VBA (2010+).
+- Espaçamento e nomenclatura seguem o estilo atual do módulo.
+- Nenhuma nova dependência externa ou edição de registro é adicionada.
+- Notas de validação manual (documentos usados, versão do Word) aparecem no corpo do PR.
 
-- Use explicit casing for Word/VBA members (e.g., `.Text`, `.Count`, `.Alignment`, `.LeftIndent`)
-- Use `Option Explicit` and avoid undeclared variables
-- Prefer helper functions for safe property access and formatting (e.g., `SafeSetFont`, `SafeGetCharacterCount`)
-- Use constants and centralized messages for user-facing strings
-- Avoid heavy logging or telemetry; this project aims for clean local execution
+## Conduct
 
-## Tests and Validation
-
-- Manual validation steps are acceptable for this VBA project
-- Run the macro on a few sample documents to verify:
-  - Title formatting
-  - Paragraph spacing and indentation
-  - Header image behavior (assets\\stamp.png present/missing)
-  - Footer page numbering present
-  - No crashes in Word 2010+
-
-## Pull Request Checklist
-
-- [ ] Changes are scoped and documented
-- [ ] Code compiles in Word VBA (2010+)
-- [ ] README/CHANGELOG updated if needed
-- [ ] No new external dependencies
-
-## Code of Conduct
-
-Please be respectful and constructive in issues and PRs. Harassment or discrimination of any kind is not tolerated.
+Trate todos os participantes com respeito. Relate comportamentos abusivos ao mantenedor imediatamente.
 
 ## Licensing
 
-By submitting a contribution, you agree that your work will be licensed under the project’s license (GPL-3.0-or-later). See LICENSE for details.
+As contribuições são aceitas sob GPL-3.0-or-later. Confirme que você tem direito de enviar o código.
 
 ## Contact
 
-If you have questions about contributions, open an issue or contact the maintainer via email at [chrmsantos@gmail.com](mailto:chrmsantos@gmail.com).
+Questões sobre o processo podem ser registradas em issues do GitHub ou enviadas para [chrmsantos@gmail.com](mailto:chrmsantos@gmail.com).

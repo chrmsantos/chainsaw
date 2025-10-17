@@ -1,46 +1,11 @@
 ' SPDX-License-Identifier: GPL-3.0-or-later
-' =============================================================================
-' PROJECT: CHAINSAW PROPOSITURAS
-' =============================================================================
-'
-' Automated system for standardizing legislative proposers in Microsoft Word
-'
-' This program is free software: you can redistribute it and/or modify
-' it under the terms of the GNU General Public License as published by
-' the Free Software Foundation, either version 3 of the License, or
-' (at your option) any later version.
-'
-' This program is distributed in the hope that it will be useful,
-' but WITHOUT ANY WARRANTY; without even the implied warranty of
-' MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-' GNU General Public License for more details.
-'
-' You should have received a copy of the GNU General Public License
-' along with this program.  If not, see <https://www.gnu.org/licenses/>.
-'
-' Version: 1.0.0-Beta3 | Date: 2025-10-10
-' Repository: github.com/chrmsantos/chainsaw-proposituras
-' Author: Christian Martin dos Santos <chrmsantos@gmail.com>
-'
-' INTEGRATED IMPROVEMENTS FROM x.bas (CONSOLIDATED CODE):
-' - MELHORIA #1: Centralized Logging System (LogEvent, FormatLogEntry, ViewLog)
-' - MELHORIA #2: Word Object Caching System (InitializeParagraphCache, GetCachedParagraph)
-' - MELHORIA #3: Advanced Regex Validation with Confidence Scoring
-' - MELHORIA #4: Visual Progress Bar (InitializeProgress, UpdateProgressBar)
-' - MELHORIA #5: Intelligent Memory Management (CleanupMemory)
-' - MELHORIA #6: Post-Processing Integrity Validation (ValidatePostProcessing)
-' - MELHORIA #7: Optimized 2-Pass Stamp Detection Algorithm (FindSessionStampParagraphOptimized)
-' - MELHORIA #8: Robust Error Handling with Context (HandleErrorWithContext)
-' - MELHORIA #9: Externalized Configuration (LoadConfiguration, SaveConfiguration)
-' - SOLICITAÇÃO #1: Remove paragraph spacing before/after (RemoveParagraphSpacing)
-' - SOLICITAÇÃO #2: Protection Zone after session stamp (IsAfterSessionStamp)
-' - SOLICITAÇÃO #3: Bold formatting for "Justificativa:" (FormatJustificativaHeading)
+' Chainsaw Proposituras automation macros for Microsoft Word legislative documents.
+' Distributed under the GNU General Public License v3.0 or later; see accompanying license details.
+' Maintainer: Christian Martin dos Santos <chrmsantos@gmail.com>
 
 Option Explicit
 
-'================================================================================
-' CONSTANTS
-'================================================================================
+'=== Core constants ===
 
 ' System constants
 Private Const version As String = "v1.0.0-Beta3"
@@ -81,7 +46,7 @@ Private Const MSG_OPERATION_CANCELLED As String = "Operation cancelled by user."
 Private Const MSG_CRITICAL_SAVE_EXIT As String = "Critical save failure: {{ERR}}" & vbCrLf & _
     "Processing aborted to prevent data loss."
 
-' Dialog/MsgBox title constants (centralized UI titles)
+' UI message titles
 Private Const TITLE_VERSION_ERROR As String = "Version Requirement - " & SYSTEM_NAME
 Private Const TITLE_DOC_NOT_FOUND As String = "Document Not Found - " & SYSTEM_NAME
 Private Const TITLE_ENABLE_EDITING As String = "Enable Editing - " & SYSTEM_NAME
@@ -98,9 +63,7 @@ Private Const TITLE_SAVE_ERROR As String = "Save Error - " & SYSTEM_NAME
 Private Const TITLE_FINAL_CONFIRM As String = "Final Confirmation - " & SYSTEM_NAME
 Private Const TITLE_CRITICAL_SAVE_EXIT As String = "Critical Save Exit - " & SYSTEM_NAME
 
-'================================================================================
-' CONSTANTS
-'================================================================================
+'=== Word constant aliases ===
 
 ' Word built-in constants
 Private Const wdNoProtection As Long = -1
@@ -135,13 +98,13 @@ Private Const wdReplaceNone As Long = 0
 Private Const wdReplaceOne As Long = 1
 Private Const wdReplaceAll As Long = 2
 
-' Document formatting constants
+' Document formatting defaults
 Private Const STANDARD_FONT As String = "Arial"
 Private Const STANDARD_FONT_SIZE As Long = 12
 Private Const FOOTER_FONT_SIZE As Long = 9
 Private Const LINE_SPACING As Single = 14
 
-' Margin constants in centimeters
+' Margin distances in centimeters
 Private Const TOP_MARGIN_CM As Double = 4.6
 Private Const BOTTOM_MARGIN_CM As Double = 2
 Private Const LEFT_MARGIN_CM As Double = 3
@@ -149,29 +112,25 @@ Private Const RIGHT_MARGIN_CM As Double = 3
 Private Const HEADER_DISTANCE_CM As Double = 0.3
 Private Const FOOTER_DISTANCE_CM As Double = 0.9
 
-' Header image constants
+' Header image sizing
 Private Const HEADER_IMAGE_MAX_WIDTH_CM As Double = 21
 Private Const HEADER_IMAGE_TOP_MARGIN_CM As Double = 0.7
 Private Const HEADER_IMAGE_HEIGHT_RATIO As Double = 0.19
 Private Const MAX_SESSION_STAMP_WORDS As Long = 17
-' Performance batching constants (added to fix undefined symbol errors)
-' When total paragraphs exceed OPTIMIZATION_THRESHOLD we process them in
-' chunks of MAX_PARAGRAPH_BATCH_SIZE to balance speed and UI responsiveness.
+' Paragraph batching thresholds for throughput safeguards
 Private Const OPTIMIZATION_THRESHOLD As Long = 400
 Private Const MAX_PARAGRAPH_BATCH_SIZE As Long = 120
 
-' Fixed application constants (replacing dynamic configuration)
+' Static resource locations
 Private Const MIN_WORD_VERSION As Double = 14#
 Private Const HEADER_IMAGE_RELATIVE_PATH As String = "assets\stamp.png"
 
-' Phase 1: Backup & Recovery System constants
+' Backup and recovery limits
 Private Const BACKUP_FOLDER_NAME As String = "\Backups"
 Private Const MAX_RETRY_ATTEMPTS As Long = 3
 Private Const MAX_FIND_REPLACE_BATCH As Long = 100
 
-'================================================================================
-' MELHORIA #1: SISTEMA DE LOGGING CENTRALIZADO
-'================================================================================
+'=== Logging infrastructure ===
 
 Private Const LOG_FILE_PATH As String = "C:\Temp\chainsaw_log.txt"
 Private Const MAX_LOG_SIZE_MB As Long = 10
@@ -187,9 +146,7 @@ Private Type LogEntry
     ElapsedMs As Long
 End Type
 
-'================================================================================
-' MELHORIA #2: CACHE DE OBJETOS WORD
-'================================================================================
+'=== Paragraph cache ===
 
 Private Type CachedParagraph
     Index As Long
@@ -206,9 +163,7 @@ Private paraCache As Collection
 Private cacheTimestamp As Single
 Private cacheValid As Boolean
 
-'================================================================================
-' MELHORIA #3: VALIDAÇÃO AVANÇADA DE REGEX COM CONFIDENCE SCORING
-'================================================================================
+'=== Sensitive data pattern definitions ===
 
 Private Type SensitiveDataPattern
     Name As String
@@ -218,9 +173,7 @@ Private Type SensitiveDataPattern
     FalsePositivePatterns As String
 End Type
 
-'================================================================================
-' MELHORIA #4: BARRA DE PROGRESSO VISUAL
-'================================================================================
+'=== Progress tracking state ===
 
 Private Type ProgressTracker
     TotalItems As Long
@@ -233,9 +186,7 @@ End Type
 
 Private currentProgress As ProgressTracker
 
-'================================================================================
-' MELHORIA #6: VALIDAÇÃO DE INTEGRIDADE PÓS-PROCESSAMENTO
-'================================================================================
+'=== Document validation results ===
 
 Private Type ValidationResult
     IsValid As Boolean
@@ -245,9 +196,7 @@ Private Type ValidationResult
     ChecksPassed As Long
 End Type
 
-'================================================================================
-' MELHORIA #8: TRATAMENTO ROBUSTO DE ERROS COM CONTEXTO
-'================================================================================
+'=== Error handling context ===
 
 Private Type ErrorContext
     FunctionName As String
@@ -260,9 +209,7 @@ Private Type ErrorContext
     MaxRetries As Long
 End Type
 
-'================================================================================
-' MELHORIA #9: CONFIGURAÇÃO EXTERNALIZÁVEL
-'================================================================================
+'=== External configuration snapshot ===
 
 Private Type ChainsawConfig
     StandardFont As String
@@ -279,18 +226,14 @@ End Type
 
 Private configPath As String
 
-'================================================================================
-' GLOBAL VARIABLES
-'================================================================================
+'=== Global state ===
 Private undoGroupEnabled As Boolean
 Private formattingCancelled As Boolean
 Private processingStartTime As Single ' Stores Timer() value at start of processing
 Private ParagraphStampLocation As Paragraph ' Locates session stamp with fuzzy matching
 
-'================================================================================
-' UNIT CONVERSION UTILITIES
-'================================================================================
-' Word uses points (1 point = 1/72 inch). 1 inch = 2.54 cm. So cm = points * 2.54 / 72.
+'=== Measurement helpers ===
+' Converts Word points to centimeters using 1 in = 2.54 cm and 72 points per inch.
 Private Function CmFromPoints(ByVal pts As Double) As Double
     On Error GoTo ErrorHandler
     CmFromPoints = (pts * 2.54) / 72#
@@ -299,11 +242,8 @@ ErrorHandler:
     CmFromPoints = 0
 End Function
 
-'================================================================================
-' TIMING UTILITIES
-'================================================================================
-' Returns whole seconds elapsed since the stored processingStartTime.
-' Safe if called before initialization (returns 0). Placed after UDT per VBA ordering rules.
+'=== Timing helpers ===
+' Returns elapsed seconds from processingStartTime, guarding against midnight rollover.
 Private Function ElapsedSeconds() As Long
     On Error GoTo ErrorHandler
     If processingStartTime <= 0 Then
@@ -319,20 +259,18 @@ ErrorHandler:
     ElapsedSeconds = 0
 End Function
 
-'================================================================================
-' PERFORMANCE OPTIMIZATION SYSTEM
-'================================================================================
+'=== Performance guardrails ===
 
 Private Function InitializePerformanceOptimization() As Boolean
     On Error GoTo ErrorHandler
     
     InitializePerformanceOptimization = False
     
-    ' Apply standard performance optimizations (always on)
+    ' Suspend expensive UI updates to accelerate bulk operations
     Application.ScreenUpdating = False
     Application.DisplayAlerts = wdAlertsNone
     
-    ' Word-specific optimizations
+    ' Apply additional Word-specific performance settings
     Call OptimizeWordSettings
     
     
@@ -431,9 +369,7 @@ Private Sub CleanParagraph(para As Paragraph)
     On Error GoTo 0
 End Sub
 
-'================================================================================
-' MELHORIA #1: SISTEMA DE LOGGING CENTRALIZADO
-'================================================================================
+'=== Session stamp detection ===
 
 Private Function InitializeLogging() As Boolean
     On Error GoTo ErrorHandler
@@ -481,7 +417,7 @@ Private Sub LogEvent(functionName As String, level As String, message As String,
         .ElapsedMs = CLng(elapsedTime * 1000)
     End With
     
-    ' Write to file
+    ' Append entry to the rolling log file
     Dim fileNum As Integer
     fileNum = FreeFile
     
@@ -491,7 +427,7 @@ Private Sub LogEvent(functionName As String, level As String, message As String,
         Print #fileNum, FormatLogEntry(entry)
         Close fileNum
     Else
-        ' Silently fail if file cannot be written (don't cascade logging errors)
+        ' Ignore logging failures to avoid recursive error handling
         Err.Clear
     End If
     
@@ -520,19 +456,17 @@ End Function
 
 Public Sub ViewLog()
     On Error Resume Next
-    ' SAFETY: Quote the path to handle spaces in file paths
+    ' Launch log viewer with a quoted path to survive spaces
     Shell "notepad.exe """ & LOG_FILE_PATH & """"
     On Error GoTo 0
 End Sub
 
-'================================================================================
-' MELHORIA #2: CACHE DE OBJETOS WORD
-'================================================================================
+'=== Paragraph cache operations ===
 
 Private Function InitializeParagraphCache(doc As Document) As Boolean
     On Error GoTo ErrorHandler
     
-    ' STABILITY: Invalidate old cache to prevent memory leaks
+    ' Reset prior cache content so stale references are released
     If Not (paraCache Is Nothing) Then
         Call InvalidateParagraphCache()
     End If
@@ -546,16 +480,16 @@ Private Function InitializeParagraphCache(doc As Document) As Boolean
     Dim i As Long
     Dim cacheCount As Long
     
-    ' SAFETY: Check document validity
+    ' Confirm the document reference before iterating
     If doc Is Nothing Then
         LogEvent "InitializeParagraphCache", "ERROR", "Document is Nothing", 0, "Cannot cache null document"
         InitializeParagraphCache = False
         Exit Function
     End If
     
-    ' PROTECTION: Limit cache size for very large documents
+    ' Cap cache size to safeguard memory on huge documents
     Dim maxParagraphsToCache As Long
-    maxParagraphsToCache = 10000 ' Safety limit
+    maxParagraphsToCache = 10000 ' Prevent unbounded cache growth
     
     Dim paragraphCount As Long
     paragraphCount = doc.Paragraphs.count
@@ -606,8 +540,7 @@ End Function
 Private Function GetCachedParagraph(index As Long) As CachedParagraph
     On Error Resume Next
     
-    ' SAFETY: Atomic read - check cacheValid first, then verify collection exists
-    ' before checking count to prevent race condition with InvalidateParagraphCache
+    ' Read cache only when marked valid and the collection is still allocated
     If cacheValid Then
         If Not (paraCache Is Nothing) Then
             If index > 0 And index <= paraCache.count Then
@@ -628,9 +561,7 @@ Private Sub InvalidateParagraphCache()
     On Error GoTo 0
 End Sub
 
-'================================================================================
-' MELHORIA #3: VALIDAÇÃO AVANÇADA DE REGEX COM CONFIDENCE SCORING
-'================================================================================
+'=== Sensitive data helpers ===
 
 Private Function GetSensitivePatterns() As Collection
     Dim patterns As Collection
@@ -686,7 +617,6 @@ Private Function CalculateSensitiveDataConfidence(matchText As String, pattern A
 End Function
 
 '================================================================================
-' MELHORIA #4: BARRA DE PROGRESSO VISUAL
 '================================================================================
 
 Private Function InitializeProgress(totalItems As Long, phase As String) As Boolean
@@ -766,7 +696,6 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' MELHORIA #5: GESTÃO INTELIGENTE DE MEMÓRIA
 '================================================================================
 
 Private Function CleanupMemory() As Boolean
@@ -785,7 +714,6 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' MELHORIA #6: VALIDAÇÃO DE INTEGRIDADE PÓS-PROCESSAMENTO
 '================================================================================
 
 Private Function ValidatePostProcessing(doc As Document) As ValidationResult
@@ -925,7 +853,6 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' MELHORIA #7: OTIMIZAÇÃO DO ALGORITMO DE DETECÇÃO DE CARIMBO (2-PASS)
 '================================================================================
 
 Private Function FindSessionStampParagraphOptimized(doc As Document) As Paragraph
@@ -940,13 +867,12 @@ Private Function FindSessionStampParagraphOptimized(doc As Document) As Paragrap
     Dim i As Long
     Dim searchLimit As Long
     
-    ' Strategy: Stamps typically appear in first 10-20% of document
+    ' Favor early paragraphs because session stamps usually appear near the front
     searchLimit = CLng(doc.Paragraphs.count * 0.2)
     If searchLimit > 1000 Then searchLimit = 1000
     If searchLimit < 50 Then searchLimit = doc.Paragraphs.count
     
-    ' Two-pass strategy:
-    ' Pass 1: Look only for centered paragraphs (faster)
+    ' Pass 1 scans centered paragraphs only for a quick win
     For i = 1 To searchLimit
         On Error Resume Next
         Set para = doc.Paragraphs(i)
@@ -980,7 +906,7 @@ Private Function FindSessionStampParagraphOptimized(doc As Document) As Paragrap
 NextPassOne:
     Next i
     
-    ' Pass 2: If not found, broaden search (slower fallback)
+    ' Pass 2 falls back to a full scan when the first pass fails
     LogEvent "FindSessionStampParagraphOptimized", "WARNING", "Pass 1 failed, attempting Pass 2 full scan", , "Fallback search"
     
     For i = searchLimit + 1 To doc.Paragraphs.count
@@ -1021,20 +947,18 @@ ErrorHandler:
     Set FindSessionStampParagraphOptimized = Nothing
 End Function
 
-'================================================================================
-' MELHORIA #8: TRATAMENTO ROBUSTO DE ERROS COM CONTEXTO
-'================================================================================
+'=== Context-aware error handling ===
 
 Private Function HandleErrorWithContext(context As ErrorContext) As Boolean
     On Error GoTo ErrorHandler
     
-    ' Log detailed error
+    ' Emit a detailed diagnostic record
     LogEvent context.FunctionName, "ERROR", _
              "Err#" & context.ErrorNumber & ": " & context.ErrorDescription, _
              context.ErrorNumber, _
              "Operation: " & context.CurrentOperation & " | Doc: " & context.DocumentPath
     
-    ' Attempt automatic recovery based on error type
+    ' Apply targeted recovery logic where feasible
     Select Case context.ErrorNumber
         Case 11 ' Division by zero
             LogEvent context.FunctionName, "RECOVERY", "Attempted recovery from division by zero", context.ErrorNumber
@@ -1065,14 +989,12 @@ ErrorHandler:
     HandleErrorWithContext = False
 End Function
 
-'================================================================================
-' MELHORIA #9: CONFIGURAÇÃO EXTERNALIZÁVEL
-'================================================================================
+'=== Configuration loader ===
 
 Private Function LoadConfiguration() As ChainsawConfig
     On Error GoTo ErrorHandler
     
-    ' SAFETY: Check if document path is valid before using it
+    ' Validate document path before attempting file operations
     If ThisDocument.Path = "" Then
         configPath = ""
     Else
@@ -1081,7 +1003,7 @@ Private Function LoadConfiguration() As ChainsawConfig
     
     Dim config As ChainsawConfig
     
-    ' Default values
+    ' Seed defaults before reading configuration file
     With config
         .StandardFont = "Arial"
         .StandardFontSize = 12
@@ -1095,7 +1017,7 @@ Private Function LoadConfiguration() As ChainsawConfig
         .EnableProgressBar = True
     End With
     
-    ' Try to load from file
+    ' Attempt to read persisted configuration
     If Dir(configPath) <> "" Then
         Dim fso As Object, configFile As Object
         Set fso = CreateObject("Scripting.FileSystemObject")
@@ -1108,7 +1030,7 @@ Private Function LoadConfiguration() As ChainsawConfig
         End If
         On Error GoTo 0
         
-        ' Parse key=value format
+    ' Consume lines written as key=value pairs
         Dim line As String
         On Error Resume Next
         While Not configFile.AtEndOfStream
@@ -1148,7 +1070,7 @@ Private Function LoadConfiguration() As ChainsawConfig
         Call SaveConfiguration(config)
     End If
     
-    ' Ensure file is closed even if error occurred
+    ' Always close file handles before exit
     If Not configFile Is Nothing Then
         On Error Resume Next
         configFile.Close
@@ -1206,9 +1128,7 @@ Private Sub SaveConfiguration(config As ChainsawConfig)
     Set fso = Nothing
 End Sub
 
-'================================================================================
-' SOLICITAÇÃO #1: REMOÇÃO DE ESPAÇOS ANTES E DEPOIS DOS PARÁGRAFOS
-'================================================================================
+'=== Paragraph spacing normalization ===
 
 Private Function RemoveParagraphSpacing(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -1222,14 +1142,13 @@ Private Function RemoveParagraphSpacing(doc As Document) As Boolean
         Exit Function
     End If
     
-    ' PROTECTION: Ensure stamp location is set before proceeding
-    ' If stamp was not found, don't apply spacing removal to be safe
+    ' Continue even without a located stamp, but log the conservative path
     If ParagraphStampLocation Is Nothing Then
         ' Stamp not found - apply spacing removal to all (conservative approach)
         LogEvent "RemoveParagraphSpacing", "WARNING", "Stamp not found - applying conservative spacing removal", 0, "No protection zone"
     End If
     
-    ' Process all paragraphs (backwards to avoid index issues)
+    ' Iterate backwards to keep indices stable while editing
     For i = doc.Paragraphs.count To 1 Step -1
         On Error Resume Next
         Set para = doc.Paragraphs(i)
@@ -1240,10 +1159,9 @@ Private Function RemoveParagraphSpacing(doc As Document) As Boolean
         On Error GoTo ErrorHandler
         
         If Not para Is Nothing Then
-            ' Skip paragraphs after session stamp (PROTECTION ZONE)
-            ' IsAfterSessionStamp handles null stampPara gracefully
+            ' Preserve spacing after the protected stamp region
             If Not IsAfterSessionStamp(para, ParagraphStampLocation) Then
-                ' Remove before and after spacing for paragraphs BEFORE stamp
+                ' Zero out inter-paragraph spacing before the stamp
                 With para.Format
                     .SpaceBefore = 0
                     .SpaceAfter = 0
@@ -1263,9 +1181,7 @@ ErrorHandler:
     RemoveParagraphSpacing = False
 End Function
 
-'================================================================================
-' SOLICITAÇÃO #2: PROTEÇÃO DA ZONA PÓS-CARIMBO
-'================================================================================
+'=== Session stamp boundary check ===
 
 Private Function IsAfterSessionStamp(para As Paragraph, stampPara As Paragraph) As Boolean
     On Error GoTo ErrorHandler
@@ -1279,7 +1195,7 @@ Private Function IsAfterSessionStamp(para As Paragraph, stampPara As Paragraph) 
     Dim paraIndex As Long
     Dim stampIndex As Long
     
-    ' Get paragraph indices safely
+    ' Retrieve relative positions defensively
     On Error Resume Next
     paraIndex = para.Range.ParagraphNumber
     stampIndex = stampPara.Range.ParagraphNumber
@@ -1289,7 +1205,7 @@ Private Function IsAfterSessionStamp(para As Paragraph, stampPara As Paragraph) 
     End If
     On Error GoTo ErrorHandler
     
-    ' Para is after stamp if its index is greater
+    ' Determine order by comparing paragraph numbers
     If paraIndex > stampIndex Then
         IsAfterSessionStamp = True
     End If
@@ -1300,9 +1216,7 @@ ErrorHandler:
     IsAfterSessionStamp = False
 End Function
 
-'================================================================================
-' SOLICITAÇÃO #3: JUSTIFICATIVA EM NEGRITO
-'================================================================================
+'=== Justificativa heading formatter ===
 
 Private Function FormatJustificativaHeading(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -1317,7 +1231,7 @@ Private Function FormatJustificativaHeading(doc As Document) As Boolean
         Exit Function
     End If
     
-    ' Process all paragraphs
+    ' Evaluate each paragraph in sequence
     For i = 1 To doc.Paragraphs.count
         On Error Resume Next
         Set para = doc.Paragraphs(i)
@@ -1328,13 +1242,13 @@ Private Function FormatJustificativaHeading(doc As Document) As Boolean
         On Error GoTo ErrorHandler
         
         If Not para Is Nothing Then
-            ' Get paragraph text (normalized)
+            ' Normalize paragraph text for comparison
             paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
             
-            ' Check if paragraph contains ONLY "Justificativa:" (case-insensitive)
+            ' Match paragraphs that contain only the heading text
             If LCase(paraText) = "justificativa:" Or LCase(paraText) = "justificativa" Then
                 
-                ' Safety check: skip if paragraph has visual content (images, shapes)
+                ' Skip paragraphs that host inline visuals
                 If Not SafeHasVisualContent(para) Then
                     With para.Range.Font
                         .Bold = True
@@ -1355,34 +1269,29 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' MAIN ENTRY POINT
-'================================================================================
+'=== Main entry point ===
 Public Sub StandardizeDocumentMain()
     On Error GoTo CriticalErrorHandler
     
-    ' ========================================
-    ' INITIALIZATION AND CONFIG LOAD
-    ' ========================================
+    ' -- Initialization and configuration load --
     
     processingStartTime = Timer
     formattingCancelled = False
     
-    ' Initialize logging system (MELHORIA #1)
+    ' Ensure logging subsystem is ready
     If Not InitializeLogging() Then
         ' Continue without logging
     End If
     
     LogEvent "StandardizeDocumentMain", "INFO", "Document standardization started", , "v1.0.0-Beta3"
     
-    ' Load configuration (MELHORIA #9)
+    ' Load persisted configuration file when available
     Dim appConfig As ChainsawConfig
     appConfig = LoadConfiguration()
     
-    ' ========================================
-    ' PRELIMINARY VALIDATIONS
-    ' ========================================
+    ' -- Preliminary guard clauses --
     
-    ' Word version validation (always on)
+    ' Validate the running Word version
     If Not CheckWordVersion() Then
         Application.StatusBar = "Error: Word version not supported (minimum: Word " & MIN_WORD_VERSION & ")"
         Dim verMsg As String
@@ -1393,7 +1302,7 @@ Public Sub StandardizeDocumentMain()
         Exit Sub
     End If
         
-    ' Active document validation
+    ' Acquire the active document and confirm accessibility
     Dim doc As Document
     Set doc = Nothing
     
@@ -1443,12 +1352,12 @@ Public Sub StandardizeDocumentMain()
         End If
     End If
     
-    ' Initialize paragraph cache (MELHORIA #2)
+    ' Refresh paragraph cache for downstream scans
     If Not InitializeParagraphCache(doc) Then
         LogEvent "StandardizeDocumentMain", "WARNING", "Failed to initialize paragraph cache", , "Continuing without cache"
     End If
     
-    ' Initialize progress tracking (MELHORIA #4)
+    ' Prepare progress indicator for user feedback
     If appConfig.EnableProgressBar Then
         Call InitializeProgress(doc.Paragraphs.count, "Formatando documento...")
     End If
@@ -1463,7 +1372,7 @@ Public Sub StandardizeDocumentMain()
         GoTo CleanUp
     End If
     
-    ' Post-processing validation (MELHORIA #6)
+    ' Execute final validation suite before exiting
     Application.StatusBar = "Validating formatted document..."
     Dim valResult As ValidationResult
     valResult = ValidatePostProcessing(doc)
@@ -1478,7 +1387,7 @@ Public Sub StandardizeDocumentMain()
              "Validation: " & valResult.ChecksPassed & "/" & valResult.ChecksPerformed & " checks passed"
 
 CleanUp:
-    ' Memory cleanup (MELHORIA #5)
+    ' Free cached references and release COM pressure
     Call CleanupMemory()
     
     ' Restore performance settings
@@ -1584,11 +1493,8 @@ ErrorHandler:
     EnsureDocumentEditable = False
 End Function
 
-'================================================================================
-' EMERGENCY RECOVERY (stub)
-'================================================================================
-' Attempts minimal recovery actions after a critical failure.
-' In the simplified build this only restores basic app state safely.
+'=== Minimal recovery hook ===
+' Restores core Word UI flags after defensive error exits.
 Private Sub EmergencyRecovery()
     On Error Resume Next
     ' Attempt to re-enable screen updating / alerts if disabled
@@ -1805,7 +1711,7 @@ End Function
 Private Sub StartUndoGroup(groupName As String)
     On Error GoTo ErrorHandler
     
-    ' STABILITY: If undo group already active, properly close it first
+    ' Close any lingering undo group before starting a new one
     If undoGroupEnabled Then
         On Error Resume Next
         Application.UndoRecord.EndCustomRecord
@@ -1827,7 +1733,7 @@ Private Sub EndUndoGroup()
     On Error GoTo ErrorHandler
     
     If undoGroupEnabled Then
-        ' STABILITY: Mark as disabled before actual EndCustomRecord to prevent double-end
+    ' Flag undo grouping as disabled prior to ending the session
         undoGroupEnabled = False
         Application.UndoRecord.EndCustomRecord
     End If
@@ -2300,7 +2206,7 @@ Private Sub FormatCharacterByCharacter(para As Paragraph, fontName As String, fo
     
     charCount = SafeGetCharacterCount(para.Range) ' Cached safe count
     
-    If charCount > 0 Then ' Safety check
+    If charCount > 0 Then ' Skip zero-length ranges
         For j = 1 To charCount
             Set charRange = para.Range.Characters(j)
             If charRange.InlineShapes.count = 0 Then
@@ -2569,7 +2475,7 @@ Private Function CountBlankLinesBefore(doc As Document, paraIndex As Long) As Lo
             Exit For
         End If
         
-    ' Safety limit
+    ' Bound the search iterations to control runtime
         If count >= 5 Then Exit For
     Next i
     
@@ -2633,7 +2539,7 @@ Private Function FindSessionStampParagraph(doc As Document) As Paragraph
     Dim maxIterations As Long
     
     maxIterations = doc.Paragraphs.count
-    If maxIterations > 5000 Then maxIterations = 5000 ' Safety limit for huge documents
+    If maxIterations > 5000 Then maxIterations = 5000 ' Cap iterations for very large files
     
     For i = 1 To maxIterations
         On Error Resume Next
@@ -2854,7 +2760,7 @@ End Function
 ' These functions were called but not defined. Implementations created.
 '================================================================================
 
-' Helper: CleanDocumentStructure - Remove blank lines above first text
+'=== CleanDocumentStructure: normalize leading content ===
 Private Function CleanDocumentStructure(doc As Document) As Boolean
     On Error GoTo ErrorHandler
     If doc Is Nothing Then CleanDocumentStructure = False: Exit Function
@@ -2864,7 +2770,7 @@ ErrorHandler:
     CleanDocumentStructure = False
 End Function
 
-' Helper: ValidatePropositionType - Validate document proposition type
+'=== ValidatePropositionType: confirm template type ===
 Private Function ValidatePropositionType(doc As Document) As Boolean
     On Error GoTo ErrorHandler
     If doc Is Nothing Then ValidatePropositionType = False: Exit Function
@@ -2874,7 +2780,7 @@ ErrorHandler:
     ValidatePropositionType = False
 End Function
 
-' Helper: ValidateContentConsistency - Validate document content is consistent
+'=== ValidateContentConsistency: evaluate textual consistency ===
 Private Function ValidateContentConsistency(doc As Document) As Boolean
     On Error GoTo ErrorHandler
     If doc Is Nothing Then ValidateContentConsistency = False: Exit Function
@@ -2884,7 +2790,7 @@ ErrorHandler:
     ValidateContentConsistency = False
 End Function
 
-' Helper: FormatDocumentTitle - Format document title
+'=== FormatDocumentTitle: enforce title styling ===
 Private Function FormatDocumentTitle(doc As Document) As Boolean
     On Error GoTo ErrorHandler
     If doc Is Nothing Then FormatDocumentTitle = False: Exit Function
@@ -2895,7 +2801,7 @@ ErrorHandler:
     FormatDocumentTitle = False
 End Function
 
-' Helper: FormatConsiderandoParagraphs - Format CONSIDERANDO paragraphs
+'=== FormatConsiderandoParagraphs: standardize considering clauses ===
 Private Function FormatConsiderandoParagraphs(doc As Document) As Boolean
     On Error GoTo ErrorHandler
     If doc Is Nothing Then FormatConsiderandoParagraphs = False: Exit Function
@@ -2905,7 +2811,7 @@ ErrorHandler:
     FormatConsiderandoParagraphs = False
 End Function
 
-' Helper: ApplyTextReplacements - Apply standard text replacements
+'=== ApplyTextReplacements: run configured replacements ===
 Private Function ApplyTextReplacements(doc As Document) As Boolean
     On Error GoTo ErrorHandler
     If doc Is Nothing Then ApplyTextReplacements = False: Exit Function
@@ -2915,7 +2821,7 @@ ErrorHandler:
     ApplyTextReplacements = False
 End Function
 
-' Helper: ApplySpecificParagraphReplacements - Apply specific paragraph replacements
+'=== ApplySpecificParagraphReplacements: adjust targeted paragraphs ===
 Private Function ApplySpecificParagraphReplacements(doc As Document) As Boolean
     On Error GoTo ErrorHandler
     If doc Is Nothing Then ApplySpecificParagraphReplacements = False: Exit Function
@@ -2925,7 +2831,7 @@ ErrorHandler:
     ApplySpecificParagraphReplacements = False
 End Function
 
-' Helper: FormatNumberedParagraphs - Format numbered/enumerated paragraphs
+'=== FormatNumberedParagraphs: reformat enumerated items ===
 Private Function FormatNumberedParagraphs(doc As Document) As Boolean
     On Error GoTo ErrorHandler
     If doc Is Nothing Then FormatNumberedParagraphs = False: Exit Function
@@ -2935,7 +2841,7 @@ ErrorHandler:
     FormatNumberedParagraphs = False
 End Function
 
-' Helper: FormatJustificativaAnexoParagraphs - Format Justificativa/Anexo paragraphs
+'=== FormatJustificativaAnexoParagraphs: align justificativa/anexo sections ===
 Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
     On Error GoTo ErrorHandler
     If doc Is Nothing Then FormatJustificativaAnexoParagraphs = False: Exit Function
@@ -2945,9 +2851,7 @@ ErrorHandler:
     FormatJustificativaAnexoParagraphs = False
 End Function
 
-'================================================================================
-' CLEAN MULTIPLE SPACES - FINAL PASS
-'================================================================================
+'=== Text Cleanup: collapse repeated spacing ===
 Private Function CleanMultipleSpaces(doc As Document) As Boolean
     On Error GoTo ErrorHandler
     If doc Is Nothing Then GoTo ErrorHandler
@@ -3123,9 +3027,7 @@ Cleanup:
     On Error GoTo 0
 End Function
 
-'================================================================================
-' LIMIT SEQUENTIAL EMPTY LINES - CONTROL CONSECUTIVE BLANK LINES
-'================================================================================
+'=== Text Cleanup: limit consecutive blank lines ===
 Private Function LimitSequentialEmptyLines(doc As Document) As Boolean
     On Error GoTo ErrorHandler
     If doc Is Nothing Then GoTo ErrorHandler
@@ -3247,9 +3149,7 @@ Cleanup:
     On Error GoTo 0
 End Function
 
-'================================================================================
-' ENSURE PARAGRAPH SEPARATION
-'================================================================================
+'=== Text Cleanup: insert blank line between adjacent paragraphs ===
 Private Function EnsureParagraphSeparation(doc As Document) As Boolean
     On Error GoTo ErrorHandler
     If doc Is Nothing Then GoTo ErrorHandler
@@ -3309,9 +3209,7 @@ Cleanup:
     On Error GoTo 0
 End Function
 
-'================================================================================
-' SECOND PARAGRAPH LOCATION HELPER - Locate the second paragraph
-'================================================================================
+'=== Paragraph Utilities: locate the second content paragraph ===
 Private Function GetSecondParagraphIndex(doc As Document) As Long
     On Error GoTo ErrorHandler
     If doc Is Nothing Then GoTo ErrorHandler
@@ -3348,9 +3246,7 @@ Cleanup:
     On Error GoTo 0
 End Function
 
-'================================================================================
-' ENSURE SECOND PARAGRAPH BLANK LINES - Ensure two blank lines
-'================================================================================
+'=== Paragraph Utilities: enforce spacing before and after second paragraph ===
 Private Function EnsureSecondParagraphBlankLines(doc As Document) As Boolean
     On Error GoTo ErrorHandler
     If doc Is Nothing Then GoTo ErrorHandler
@@ -3411,7 +3307,7 @@ Cleanup:
     On Error GoTo 0
 End Function
 
-' Helper: RemoveWatermark - Remove watermark from document
+'=== RemoveWatermark: strip existing watermarks ===
 Private Function RemoveWatermark(doc As Document) As Boolean
     On Error GoTo ErrorHandler
     If doc Is Nothing Then RemoveWatermark = False: Exit Function
@@ -3421,7 +3317,7 @@ ErrorHandler:
     RemoveWatermark = False
 End Function
 
-' Helper: InsertHeaderstamp - Insert header stamp/image
+'=== InsertHeaderstamp: apply header stamp ===
 Private Function InsertHeaderstamp(doc As Document) As Boolean
     On Error GoTo ErrorHandler
     If doc Is Nothing Then InsertHeaderstamp = False: Exit Function
@@ -3431,7 +3327,7 @@ ErrorHandler:
     InsertHeaderstamp = False
 End Function
 
-' Helper: InsertFooterstamp - Insert footer with page numbers
+'=== InsertFooterstamp: ensure footer numbering ===
 Private Function InsertFooterstamp(doc As Document) As Boolean
     On Error GoTo ErrorHandler
     If doc Is Nothing Then InsertFooterstamp = False: Exit Function
@@ -3441,7 +3337,7 @@ ErrorHandler:
     InsertFooterstamp = False
 End Function
 
-' Helper: ConfigureDocumentView - Configure document view (zoom, etc.)
+'=== ConfigureDocumentView: restore reader-friendly view ===
 Private Function ConfigureDocumentView(doc As Document) As Boolean
     On Error GoTo ErrorHandler
     If doc Is Nothing Then ConfigureDocumentView = False: Exit Function
@@ -3451,7 +3347,7 @@ ErrorHandler:
     ConfigureDocumentView = False
 End Function
 
-' Helper: HasVisualContent - Check if paragraph has visual content (images, shapes)
+'=== HasVisualContent: detect inline visuals ===
 Private Function HasVisualContent(para As Paragraph) As Boolean
     On Error GoTo ErrorHandler
     If para Is Nothing Then HasVisualContent = False: Exit Function
@@ -3461,7 +3357,7 @@ ErrorHandler:
     HasVisualContent = False
 End Function
 
-' Helper: IsParagraphEffectivelyBlank - Check if paragraph is effectively blank
+'=== IsParagraphEffectivelyBlank: test for substantive text ===
 Private Function IsParagraphEffectivelyBlank(para As Paragraph) As Boolean
     On Error GoTo ErrorHandler
     If para Is Nothing Then IsParagraphEffectivelyBlank = True: Exit Function
@@ -3473,7 +3369,7 @@ ErrorHandler:
     IsParagraphEffectivelyBlank = True
 End Function
 
-' Helper: NormalizeForMatching - Normalize text for fuzzy matching
+'=== NormalizeForMatching: prepare text for comparisons ===
 Private Function NormalizeForMatching(txt As String) As String
     On Error GoTo ErrorHandler
     ' Remove extra spaces and convert to lowercase for matching
@@ -3483,7 +3379,7 @@ ErrorHandler:
     NormalizeForMatching = ""
 End Function
 
-' Helper: CountWordsForStamp - Count words in potential session stamp
+'=== CountWordsForStamp: compute word count for stamp detection ===
 Private Function CountWordsForStamp(txt As String) As Long
     On Error GoTo ErrorHandler
     If txt = "" Then CountWordsForStamp = 0: Exit Function
@@ -3495,7 +3391,7 @@ ErrorHandler:
     CountWordsForStamp = 0
 End Function
 
-' Helper: IsLikelySessionStamp - Check if text matches session stamp pattern
+'=== IsLikelySessionStamp: heuristics for session stamp text ===
 Private Function IsLikelySessionStamp(normalizedText As String, originalText As String) As Boolean
     On Error GoTo ErrorHandler
     ' Session stamps typically contain date patterns or signature keywords
@@ -3508,13 +3404,13 @@ ErrorHandler:
     IsLikelySessionStamp = False
 End Function
 
-' Helper: CentimetersToPoints - Convert centimeters to points for Word formatting
+'=== CentimetersToPoints: convert centimeters to points ===
 Private Function CentimetersToPoints(cm As Double) As Double
     ' 1 cm = ~28.35 points
     CentimetersToPoints = cm * 28.35
 End Function
 
-' Helper: SaveDocumentFirst - Save document before processing
+'=== SaveDocumentFirst: enforce save-before-processing ===
 Private Function SaveDocumentFirst(doc As Document) As Boolean
     On Error GoTo ErrorHandler
     If doc Is Nothing Then SaveDocumentFirst = False: Exit Function
@@ -3525,7 +3421,7 @@ ErrorHandler:
     SaveDocumentFirst = False
 End Function
 
-' Helper: NormalizeForUI - Normalize text for UI display
+'=== NormalizeForUI: sanitize text for UI prompts ===
 Private Function NormalizeForUI(txt As String) As String
     On Error GoTo ErrorHandler
     ' Remove line breaks for UI display
@@ -3535,7 +3431,7 @@ ErrorHandler:
     NormalizeForUI = ""
 End Function
 
-' Helper: IsAnexoPattern - Detect if text matches "anexo" pattern
+'=== IsAnexoPattern: identify annex phrasing ===
 ' Input: cleanParaText (already lowercased, punctuation removed)
 ' Returns: True if text matches anexo variants (e.g., "anexo", "anexos")
 Private Function IsAnexoPattern(cleanParaText As String) As Boolean
@@ -3547,7 +3443,7 @@ ErrorHandler:
     IsAnexoPattern = False
 End Function
 
-' Helper: ReplacePlaceholders - Replace placeholder text with values
+'=== ReplacePlaceholders: expand template placeholders ===
 ' Pattern: ReplacePlaceholders(template_string, "KEY1", value1, "KEY2", value2, ...)
 Private Function ReplacePlaceholders(template As String, ParamArray keyValuePairs()) As String
     On Error GoTo ErrorHandler
@@ -3575,7 +3471,7 @@ ErrorHandler:
     ReplacePlaceholders = template
 End Function
 
-' Helper: FormatFirstParagraph - Format first paragraph
+'=== FormatFirstParagraph: ensure opening paragraph style ===
 Private Function FormatFirstParagraph(doc As Document) As Boolean
     On Error GoTo ErrorHandler
     If doc Is Nothing Then FormatFirstParagraph = False: Exit Function
@@ -4053,7 +3949,7 @@ Private Function ParseConfigurationFile(configPath As String) As Boolean
         If Len(fileLine) > 0 And Left(fileLine, 1) <> "#" Then
             ' Verifica se é uma seção
             If Left(fileLine, 1) = "[" And Right(fileLine, 1) = "]" Then
-                ' SAFETY: Ensure section header has at least 3 chars (e.g., "[]")
+                ' Require minimal header length before sanitizing
                 If Len(fileLine) >= 3 Then
                     currentSection = UCase(Mid(fileLine, 2, Len(fileLine) - 2))
                 End If
