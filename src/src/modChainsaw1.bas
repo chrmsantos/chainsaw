@@ -5,6 +5,13 @@
 
 Option Explicit
 
+'=== Windows API Declarations ===
+#If VBA7 Then
+    Private Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
+#Else
+    Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
+#End If
+
 '=== Core constants ===
 
 ' System constants
@@ -159,19 +166,20 @@ Private Type CachedParagraph
     CacheTime As Single
 End Type
 
-Private paraCache As Collection
+Private paraCache() As CachedParagraph
 Private cacheTimestamp As Single
 Private cacheValid As Boolean
+Private paraCacheInitialized As Boolean
 
 '=== Sensitive data pattern definitions ===
 
-Private Type SensitiveDataPattern
-    Name As String
-    Pattern As String
-    MinConfidence As Long
-    ContextKeywords As String
-    FalsePositivePatterns As String
-End Type
+Private Enum SensitivePatternField
+    spName = 0
+    spRegex = 1
+    spMinConfidence = 2
+    spContextKeywords = 3
+    spFalsePositives = 4
+End Enum
 
 '=== Progress tracking state ===
 
@@ -225,6 +233,98 @@ Private Type ChainsawConfig
 End Type
 
 Private configPath As String
+Private Type ChainsawRuntimeConfig
+    debugMode As Boolean
+    performanceMode As Boolean
+    compatibilityMode As Boolean
+    checkWordVersion As Boolean
+    validateDocumentIntegrity As Boolean
+    validatePropositionType As Boolean
+    validateContentConsistency As Boolean
+    checkDiskSpace As Boolean
+    minWordVersion As Double
+    maxDocumentSize As Long
+    autoBackup As Boolean
+    backupBeforeProcessing As Boolean
+    maxBackupFiles As Long
+    backupCleanup As Boolean
+    backupRetryAttempts As Long
+    applyPageSetup As Boolean
+    applyStandardFont As Boolean
+    applyStandardParagraphs As Boolean
+    formatFirstParagraph As Boolean
+    formatSecondParagraph As Boolean
+    formatNumberedParagraphs As Boolean
+    formatConsiderandoParagraphs As Boolean
+    formatJustificativaParagraphs As Boolean
+    enableHyphenation As Boolean
+    clearAllFormatting As Boolean
+    cleanDocumentStructure As Boolean
+    cleanMultipleSpaces As Boolean
+    limitSequentialEmptyLines As Boolean
+    ensureParagraphSeparation As Boolean
+    cleanVisualElements As Boolean
+    deleteHiddenElements As Boolean
+    deleteVisualElementsFirstFourParagraphs As Boolean
+    insertHeaderstamp As Boolean
+    insertFooterstamp As Boolean
+    removeWatermark As Boolean
+    headerImagePath As String
+    headerImageMaxWidth As Double
+    headerImageHeightRatio As Double
+    applyTextReplacements As Boolean
+    applySpecificParagraphReplacements As Boolean
+    replaceHyphensWithEmDash As Boolean
+    removeManualLineBreaks As Boolean
+    normalizeDosteVariants As Boolean
+    normalizeVereadorVariants As Boolean
+    backupAllImages As Boolean
+    restoreAllImages As Boolean
+    protectImagesInRange As Boolean
+    backupViewSettings As Boolean
+    restoreViewSettings As Boolean
+    enableLogging As Boolean
+    logLevel As String
+    logToFile As Boolean
+    logDetailedOperations As Boolean
+    logWarnings As Boolean
+    logErrors As Boolean
+    maxLogSizeMb As Long
+    disableScreenUpdating As Boolean
+    disableDisplayAlerts As Boolean
+    useBulkOperations As Boolean
+    optimizeFindReplace As Boolean
+    minimizeObjectCreation As Boolean
+    cacheFrequentlyUsedObjects As Boolean
+    useEfficientLoops As Boolean
+    batchParagraphOperations As Boolean
+    showProgressMessages As Boolean
+    showStatusBarUpdates As Boolean
+    confirmCriticalOperations As Boolean
+    showCompletionMessage As Boolean
+    enableEmergencyRecovery As Boolean
+    timeoutOperations As Boolean
+    supportWord2010 As Boolean
+    supportWord2013 As Boolean
+    supportWord2016 As Boolean
+    useSafePropertyAccess As Boolean
+    fallbackMethods As Boolean
+    handleMissingFeatures As Boolean
+    requireDocumentSaved As Boolean
+    validateFilePermissions As Boolean
+    checkDocumentProtection As Boolean
+    enableEmergencyBackup As Boolean
+    sanitizeInputs As Boolean
+    validateRanges As Boolean
+    maxRetryAttempts As Long
+    retryDelayMs As Long
+    compilationCheck As Boolean
+    vbaAccessRequired As Boolean
+    autoCleanup As Boolean
+    forceGcCollection As Boolean
+End Type
+
+Private runtimeConfig As ChainsawRuntimeConfig
 
 '=== Global state ===
 Private undoGroupEnabled As Boolean
@@ -369,6 +469,14 @@ Private Sub CleanParagraph(para As Paragraph)
     On Error GoTo 0
 End Sub
 
+Private Sub ValidateParagraph(para As Paragraph)
+    On Error Resume Next
+    ' Placeholder for paragraph validation
+    ' This stub exists to support batch processing operations
+    ' Implement validation logic here as needed
+    On Error GoTo 0
+End Sub
+
 '=== Session stamp detection ===
 
 Private Function InitializeLogging() As Boolean
@@ -467,11 +575,10 @@ Private Function InitializeParagraphCache(doc As Document) As Boolean
     On Error GoTo ErrorHandler
     
     ' Reset prior cache content so stale references are released
-    If Not (paraCache Is Nothing) Then
+    If paraCacheInitialized Then
         Call InvalidateParagraphCache()
     End If
     
-    Set paraCache = New Collection
     cacheTimestamp = Timer
     cacheValid = False
     
@@ -479,6 +586,8 @@ Private Function InitializeParagraphCache(doc As Document) As Boolean
     Dim cached As CachedParagraph
     Dim i As Long
     Dim cacheCount As Long
+    Dim paragraphCount As Long
+    Dim cacheIndex As Long
     
     ' Confirm the document reference before iterating
     If doc Is Nothing Then
@@ -491,13 +600,23 @@ Private Function InitializeParagraphCache(doc As Document) As Boolean
     Dim maxParagraphsToCache As Long
     maxParagraphsToCache = 10000 ' Prevent unbounded cache growth
     
-    Dim paragraphCount As Long
     paragraphCount = doc.Paragraphs.count
     
     If paragraphCount > maxParagraphsToCache Then
         LogEvent "InitializeParagraphCache", "WARNING", "Document has " & paragraphCount & " paragraphs, limiting cache to " & maxParagraphsToCache, 0, "Large document"
         paragraphCount = maxParagraphsToCache
     End If
+
+    If paragraphCount <= 0 Then
+        cacheValid = False
+        paraCacheInitialized = False
+        LogEvent "InitializeParagraphCache", "INFO", "Document has no paragraphs to cache", , "Cache initialization"
+        InitializeParagraphCache = True
+        Exit Function
+    End If
+
+    ReDim paraCache(1 To paragraphCount)
+    paraCacheInitialized = True
     
     For i = 1 To paragraphCount
         On Error Resume Next
@@ -509,6 +628,7 @@ Private Function InitializeParagraphCache(doc As Document) As Boolean
         On Error GoTo ErrorHandler
         
         If Not para Is Nothing Then
+            cacheIndex = cacheIndex + 1
             With cached
                 .Index = i
                 .Text = para.Range.text
@@ -520,12 +640,23 @@ Private Function InitializeParagraphCache(doc As Document) As Boolean
                 .CacheTime = Timer
             End With
             
-            paraCache.Add cached
+            paraCache(cacheIndex) = cached
             cacheCount = cacheCount + 1
         End If
         
 NextCachePara:
     Next i
+    
+    If cacheCount = 0 Then
+        Call InvalidateParagraphCache()
+        LogEvent "InitializeParagraphCache", "WARNING", "No paragraphs cached due to access errors", 0, "Cache initialization"
+        InitializeParagraphCache = False
+        Exit Function
+    End If
+    
+    If cacheCount < paragraphCount Then
+        ReDim Preserve paraCache(1 To cacheCount)
+    End If
     
     cacheValid = True
     LogEvent "InitializeParagraphCache", "INFO", "Cached " & cacheCount & " paragraphs", , "Cache initialization"
@@ -540,22 +671,24 @@ End Function
 Private Function GetCachedParagraph(index As Long) As CachedParagraph
     On Error Resume Next
     
-    ' Read cache only when marked valid and the collection is still allocated
-    If cacheValid Then
-        If Not (paraCache Is Nothing) Then
-            If index > 0 And index <= paraCache.count Then
-                GetCachedParagraph = paraCache.Item(index)
+    ' Read cache only when marked valid and the backing array is initialized
+    If cacheValid And paraCacheInitialized Then
+        If index > 0 Then
+            Dim upperBound As Long
+            upperBound = UBound(paraCache)
+            If index <= upperBound Then
+                GetCachedParagraph = paraCache(index)
             End If
-        Else
-            ' Cache marked valid but collection is Nothing - mark as invalid
-            cacheValid = False
         End If
     End If
 End Function
 
 Private Sub InvalidateParagraphCache()
     On Error Resume Next
-    Set paraCache = Nothing
+    If paraCacheInitialized Then
+        Erase paraCache
+        paraCacheInitialized = False
+    End If
     cacheValid = False
     cacheTimestamp = 0
     On Error GoTo 0
@@ -567,30 +700,26 @@ Private Function GetSensitivePatterns() As Collection
     Dim patterns As Collection
     Set patterns = New Collection
     
-    Dim cpfPattern As SensitiveDataPattern
-    With cpfPattern
-        .Name = "CPF"
-        .Pattern = "(\d{3}\.\d{3}\.\d{3}-\d{2}|\d{11})"
-        .MinConfidence = 85
-        .ContextKeywords = "CPF,CADASTRO,PESSOA,FÍSICA,CONTRIBUINTE"
-        .FalsePositivePatterns = "000.000.000-00,111.111.111-11"
-    End With
+    Dim cpfPattern(0 To 4) As Variant
+    cpfPattern(spName) = "CPF"
+    cpfPattern(spRegex) = "(\d{3}\.\d{3}\.\d{3}-\d{2}|\d{11})"
+    cpfPattern(spMinConfidence) = 85
+    cpfPattern(spContextKeywords) = "CPF,CADASTRO,PESSOA,FISICA,CONTRIBUINTE"
+    cpfPattern(spFalsePositives) = "000.000.000-00,111.111.111-11"
     patterns.Add cpfPattern
     
-    Dim rgPattern As SensitiveDataPattern
-    With rgPattern
-        .Name = "RG"
-        .Pattern = "(\d{1,2}\.\d{3}\.\d{3}-?\d{1}|\d{7,8}-?\d{1})"
-        .MinConfidence = 75
-        .ContextKeywords = "RG,IDENTIDADE,REGISTRO,GERAL"
-        .FalsePositivePatterns = ""
-    End With
+    Dim rgPattern(0 To 4) As Variant
+    rgPattern(spName) = "RG"
+    rgPattern(spRegex) = "(\d{1,2}\.\d{3}\.\d{3}-?\d{1}|\d{7,8}-?\d{1})"
+    rgPattern(spMinConfidence) = 75
+    rgPattern(spContextKeywords) = "RG,IDENTIDADE,REGISTRO,GERAL"
+    rgPattern(spFalsePositives) = ""
     patterns.Add rgPattern
     
     Set GetSensitivePatterns = patterns
 End Function
 
-Private Function CalculateSensitiveDataConfidence(matchText As String, pattern As SensitiveDataPattern, contextText As String) As Long
+Private Function CalculateSensitiveDataConfidence(matchText As String, pattern As Variant, contextText As String) As Long
     Dim confidence As Long
     confidence = pattern.MinConfidence
     
@@ -989,6 +1118,104 @@ ErrorHandler:
     HandleErrorWithContext = False
 End Function
 
+' Seeds runtimeConfig with commonsense defaults prior to applying overrides.
+Private Function InitializeRuntimeConfigDefaults() As ChainsawRuntimeConfig
+    Dim defaults As ChainsawRuntimeConfig
+    
+    With defaults
+        .debugMode = False
+        .performanceMode = False
+        .compatibilityMode = False
+        .checkWordVersion = True
+        .validateDocumentIntegrity = True
+        .validatePropositionType = True
+        .validateContentConsistency = True
+        .checkDiskSpace = True
+        .minWordVersion = MIN_WORD_VERSION
+        .maxDocumentSize = 10485760
+        .autoBackup = True
+        .backupBeforeProcessing = True
+        .maxBackupFiles = 5
+        .backupCleanup = True
+        .backupRetryAttempts = MAX_RETRY_ATTEMPTS
+        .applyPageSetup = True
+        .applyStandardFont = True
+        .applyStandardParagraphs = True
+        .formatFirstParagraph = True
+        .formatSecondParagraph = True
+        .formatNumberedParagraphs = True
+        .formatConsiderandoParagraphs = True
+        .formatJustificativaParagraphs = True
+        .enableHyphenation = False
+        .clearAllFormatting = False
+        .cleanDocumentStructure = True
+        .cleanMultipleSpaces = True
+        .limitSequentialEmptyLines = True
+        .ensureParagraphSeparation = True
+        .cleanVisualElements = True
+        .deleteHiddenElements = True
+        .deleteVisualElementsFirstFourParagraphs = False
+        .insertHeaderstamp = True
+        .insertFooterstamp = True
+        .removeWatermark = False
+        .headerImagePath = HEADER_IMAGE_RELATIVE_PATH
+        .headerImageMaxWidth = HEADER_IMAGE_MAX_WIDTH_CM
+        .headerImageHeightRatio = HEADER_IMAGE_HEIGHT_RATIO
+        .applyTextReplacements = True
+        .applySpecificParagraphReplacements = True
+        .replaceHyphensWithEmDash = False
+        .removeManualLineBreaks = True
+        .normalizeDosteVariants = True
+        .normalizeVereadorVariants = True
+        .backupAllImages = False
+        .restoreAllImages = False
+        .protectImagesInRange = False
+        .backupViewSettings = True
+        .restoreViewSettings = True
+        .enableLogging = True
+        .logLevel = "INFO"
+        .logToFile = True
+        .logDetailedOperations = False
+        .logWarnings = True
+        .logErrors = True
+        .maxLogSizeMb = MAX_LOG_SIZE_MB
+        .disableScreenUpdating = True
+        .disableDisplayAlerts = True
+        .useBulkOperations = True
+        .optimizeFindReplace = True
+        .minimizeObjectCreation = True
+        .cacheFrequentlyUsedObjects = True
+        .useEfficientLoops = True
+        .batchParagraphOperations = True
+        .showProgressMessages = True
+        .showStatusBarUpdates = True
+        .confirmCriticalOperations = False
+        .showCompletionMessage = True
+        .enableEmergencyRecovery = True
+        .timeoutOperations = False
+        .supportWord2010 = True
+        .supportWord2013 = True
+        .supportWord2016 = True
+        .useSafePropertyAccess = True
+        .fallbackMethods = True
+        .handleMissingFeatures = True
+        .requireDocumentSaved = True
+        .validateFilePermissions = True
+        .checkDocumentProtection = True
+        .enableEmergencyBackup = True
+        .sanitizeInputs = True
+        .validateRanges = True
+        .maxRetryAttempts = MAX_RETRY_ATTEMPTS
+        .retryDelayMs = 500
+        .compilationCheck = True
+        .vbaAccessRequired = False
+        .autoCleanup = True
+        .forceGcCollection = False
+    End With
+    
+    InitializeRuntimeConfigDefaults = defaults
+End Function
+
 '=== Configuration loader ===
 
 Private Function LoadConfiguration() As ChainsawConfig
@@ -1077,6 +1304,8 @@ Private Function LoadConfiguration() As ChainsawConfig
         On Error GoTo 0
     End If
     
+    runtimeConfig = InitializeRuntimeConfigDefaults()
+    
     Set fso = Nothing
     Set configFile = Nothing
     LoadConfiguration = config
@@ -1084,6 +1313,7 @@ Private Function LoadConfiguration() As ChainsawConfig
     
 ErrorHandler:
     LogEvent "LoadConfiguration", "ERROR", Err.Description, Err.Number, "Config load failed - using defaults"
+    runtimeConfig = InitializeRuntimeConfigDefaults()
     LoadConfiguration = config
 End Function
 
@@ -1192,21 +1422,21 @@ Private Function IsAfterSessionStamp(para As Paragraph, stampPara As Paragraph) 
         Exit Function
     End If
     
-    Dim paraIndex As Long
-    Dim stampIndex As Long
+    Dim paraStart As Long
+    Dim stampStart As Long
     
     ' Retrieve relative positions defensively
     On Error Resume Next
-    paraIndex = para.Range.ParagraphNumber
-    stampIndex = stampPara.Range.ParagraphNumber
+    paraStart = para.Range.Start
+    stampStart = stampPara.Range.Start
     If Err.Number <> 0 Then
         Err.Clear
         Exit Function
     End If
     On Error GoTo ErrorHandler
     
-    ' Determine order by comparing paragraph numbers
-    If paraIndex > stampIndex Then
+    ' Determine order by comparing range starts
+    If paraStart > stampStart Then
         IsAfterSessionStamp = True
     End If
     
@@ -1276,6 +1506,7 @@ Public Sub StandardizeDocumentMain()
     ' -- Initialization and configuration load --
     
     processingStartTime = Timer
+    runtimeConfig = InitializeRuntimeConfigDefaults()
     formattingCancelled = False
     
     ' Ensure logging subsystem is ready
@@ -2637,6 +2868,7 @@ Private Function HasBlankPadding(para As Paragraph) As Boolean
     Dim hasBlankAfter As Boolean
     Dim docRef As Document
     Dim paraNumber As Long
+    Dim i As Long
     
     ' Get document reference safely from paragraph
     On Error Resume Next
@@ -2648,7 +2880,20 @@ Private Function HasBlankPadding(para As Paragraph) As Boolean
     End If
     On Error GoTo ErrorHandler
     
-    paraNumber = para.Range.ParagraphNumber
+    ' Find paragraph index by comparing range starts
+    paraNumber = 0
+    For i = 1 To docRef.Paragraphs.count
+        If docRef.Paragraphs(i).Range.Start = para.Range.Start Then
+            paraNumber = i
+            Exit For
+        End If
+    Next i
+    
+    If paraNumber = 0 Then
+        ' Could not find paragraph index
+        HasBlankPadding = False
+        Exit Function
+    End If
     
     ' Check paragraph before
     If paraNumber > 1 Then
@@ -4024,246 +4269,246 @@ End Sub
 Private Sub ProcessGeneralConfig(key As String, value As String)
     Select Case key
         Case "DEBUG_MODE"
-            Config.debugMode = (LCase(value) = "true")
+            runtimeConfig.debugMode = (LCase(value) = "true")
         Case "PERFORMANCE_MODE"
-            Config.performanceMode = (LCase(value) = "true")
+            runtimeConfig.performanceMode = (LCase(value) = "true")
         Case "COMPATIBILITY_MODE"
-            Config.compatibilityMode = (LCase(value) = "true")
+            runtimeConfig.compatibilityMode = (LCase(value) = "true")
     End Select
 End Sub
 
 Private Sub ProcessValidationConfig(key As String, value As String)
     Select Case key
         Case "CHECK_WORD_VERSION"
-            Config.checkWordVersion = (LCase(value) = "true")
+            runtimeConfig.checkWordVersion = (LCase(value) = "true")
         Case "VALIDATE_DOCUMENT_INTEGRITY"
-            Config.validateDocumentIntegrity = (LCase(value) = "true")
+            runtimeConfig.validateDocumentIntegrity = (LCase(value) = "true")
         Case "VALIDATE_PROPOSITION_TYPE"
-            Config.validatePropositionType = (LCase(value) = "true")
+            runtimeConfig.validatePropositionType = (LCase(value) = "true")
         Case "VALIDATE_CONTENT_CONSISTENCY"
-            Config.validateContentConsistency = (LCase(value) = "true")
+            runtimeConfig.validateContentConsistency = (LCase(value) = "true")
         Case "CHECK_DISK_SPACE"
-            Config.checkDiskSpace = (LCase(value) = "true")
+            runtimeConfig.checkDiskSpace = (LCase(value) = "true")
         Case "MIN_WORD_VERSION"
-            Config.minWordVersion = CDbl(value)
+            runtimeConfig.minWordVersion = CDbl(value)
         Case "MAX_DOCUMENT_SIZE"
-            Config.maxDocumentSize = CLng(value)
+            runtimeConfig.maxDocumentSize = CLng(value)
     End Select
 End Sub
 
 Private Sub ProcessBackupConfig(key As String, value As String)
     Select Case key
         Case "AUTO_BACKUP"
-            Config.autoBackup = (LCase(value) = "true")
+            runtimeConfig.autoBackup = (LCase(value) = "true")
         Case "BACKUP_BEFORE_PROCESSING"
-            Config.backupBeforeProcessing = (LCase(value) = "true")
+            runtimeConfig.backupBeforeProcessing = (LCase(value) = "true")
         Case "MAX_BACKUP_FILES"
-            Config.maxBackupFiles = CLng(value)
+            runtimeConfig.maxBackupFiles = CLng(value)
         Case "BACKUP_CLEANUP"
-            Config.backupCleanup = (LCase(value) = "true")
+            runtimeConfig.backupCleanup = (LCase(value) = "true")
         Case "BACKUP_RETRY_ATTEMPTS"
-            Config.backupRetryAttempts = CLng(value)
+            runtimeConfig.backupRetryAttempts = CLng(value)
     End Select
 End Sub
 
 Private Sub ProcessFormattingConfig(key As String, value As String)
     Select Case key
         Case "APPLY_PAGE_SETUP"
-            Config.applyPageSetup = (LCase(value) = "true")
+            runtimeConfig.applyPageSetup = (LCase(value) = "true")
         Case "APPLY_STANDARD_FONT"
-            Config.applyStandardFont = (LCase(value) = "true")
+            runtimeConfig.applyStandardFont = (LCase(value) = "true")
         Case "APPLY_STANDARD_PARAGRAPHS"
-            Config.applyStandardParagraphs = (LCase(value) = "true")
+            runtimeConfig.applyStandardParagraphs = (LCase(value) = "true")
         Case "FORMAT_FIRST_PARAGRAPH"
-            Config.formatFirstParagraph = (LCase(value) = "true")
+            runtimeConfig.formatFirstParagraph = (LCase(value) = "true")
         Case "FORMAT_SECOND_PARAGRAPH"
-            Config.formatSecondParagraph = (LCase(value) = "true")
+            runtimeConfig.formatSecondParagraph = (LCase(value) = "true")
         Case "FORMAT_NUMBERED_PARAGRAPHS"
-            Config.formatNumberedParagraphs = (LCase(value) = "true")
+            runtimeConfig.formatNumberedParagraphs = (LCase(value) = "true")
         Case "FORMAT_CONSIDERANDO_PARAGRAPHS"
-            Config.formatConsiderandoParagraphs = (LCase(value) = "true")
+            runtimeConfig.formatConsiderandoParagraphs = (LCase(value) = "true")
         Case "FORMAT_JUSTIFICATIVA_PARAGRAPHS"
-            Config.formatJustificativaParagraphs = (LCase(value) = "true")
+            runtimeConfig.formatJustificativaParagraphs = (LCase(value) = "true")
         Case "ENABLE_HYPHENATION"
-            Config.enableHyphenation = (LCase(value) = "true")
+            runtimeConfig.enableHyphenation = (LCase(value) = "true")
     End Select
 End Sub
 
 Private Sub ProcessCleaningConfig(key As String, value As String)
     Select Case key
         Case "CLEAR_ALL_FORMATTING"
-            Config.clearAllFormatting = (LCase(value) = "true")
+            runtimeConfig.clearAllFormatting = (LCase(value) = "true")
         Case "CLEAN_DOCUMENT_STRUCTURE"
-            Config.cleanDocumentStructure = (LCase(value) = "true")
+            runtimeConfig.cleanDocumentStructure = (LCase(value) = "true")
         Case "CLEAN_MULTIPLE_SPACES"
-            Config.cleanMultipleSpaces = (LCase(value) = "true")
+            runtimeConfig.cleanMultipleSpaces = (LCase(value) = "true")
         Case "LIMIT_SEQUENTIAL_EMPTY_LINES"
-            Config.limitSequentialEmptyLines = (LCase(value) = "true")
+            runtimeConfig.limitSequentialEmptyLines = (LCase(value) = "true")
         Case "ENSURE_PARAGRAPH_SEPARATION"
-            Config.ensureParagraphSeparation = (LCase(value) = "true")
+            runtimeConfig.ensureParagraphSeparation = (LCase(value) = "true")
         Case "CLEAN_VISUAL_ELEMENTS"
-            Config.cleanVisualElements = (LCase(value) = "true")
+            runtimeConfig.cleanVisualElements = (LCase(value) = "true")
         Case "DELETE_HIDDEN_ELEMENTS"
-            Config.deleteHiddenElements = (LCase(value) = "true")
+            runtimeConfig.deleteHiddenElements = (LCase(value) = "true")
         Case "DELETE_VISUAL_ELEMENTS_FIRST_FOUR_PARAGRAPHS"
-            Config.deleteVisualElementsFirstFourParagraphs = (LCase(value) = "true")
+            runtimeConfig.deleteVisualElementsFirstFourParagraphs = (LCase(value) = "true")
     End Select
 End Sub
 
 Private Sub ProcessHeaderFooterConfig(key As String, value As String)
     Select Case key
         Case "INSERT_HEADER_stamp"
-            Config.insertHeaderstamp = (LCase(value) = "true")
+            runtimeConfig.insertHeaderstamp = (LCase(value) = "true")
         Case "INSERT_FOOTER_stamp"
-            Config.insertFooterstamp = (LCase(value) = "true")
+            runtimeConfig.insertFooterstamp = (LCase(value) = "true")
         Case "REMOVE_WATERMARK"
-            Config.removeWatermark = (LCase(value) = "true")
+            runtimeConfig.removeWatermark = (LCase(value) = "true")
         Case "HEADER_IMAGE_PATH"
-            Config.headerImagePath = value
+            runtimeConfig.headerImagePath = value
         Case "HEADER_IMAGE_MAX_WIDTH"
-            Config.headerImageMaxWidth = CDbl(value)
+            runtimeConfig.headerImageMaxWidth = CDbl(value)
         Case "HEADER_IMAGE_HEIGHT_RATIO"
-            Config.headerImageHeightRatio = CDbl(value)
+            runtimeConfig.headerImageHeightRatio = CDbl(value)
     End Select
 End Sub
 
 Private Sub ProcessReplacementConfig(key As String, value As String)
     Select Case key
         Case "APPLY_TEXT_REPLACEMENTS"
-            Config.applyTextReplacements = (LCase(value) = "true")
+            runtimeConfig.applyTextReplacements = (LCase(value) = "true")
         Case "APPLY_SPECIFIC_PARAGRAPH_REPLACEMENTS"
-            Config.applySpecificParagraphReplacements = (LCase(value) = "true")
+            runtimeConfig.applySpecificParagraphReplacements = (LCase(value) = "true")
         Case "REPLACE_HYPHENS_WITH_EM_DASH"
-            Config.replaceHyphensWithEmDash = (LCase(value) = "true")
+            runtimeConfig.replaceHyphensWithEmDash = (LCase(value) = "true")
         Case "REMOVE_MANUAL_LINE_BREAKS"
-            Config.removeManualLineBreaks = (LCase(value) = "true")
+            runtimeConfig.removeManualLineBreaks = (LCase(value) = "true")
         Case "NORMALIZE_DOESTE_VARIANTS"
-            Config.normalizeDosteVariants = (LCase(value) = "true")
+            runtimeConfig.normalizeDosteVariants = (LCase(value) = "true")
         Case "NORMALIZE_VEREADOR_VARIANTS"
-            Config.normalizeVereadorVariants = (LCase(value) = "true")
+            runtimeConfig.normalizeVereadorVariants = (LCase(value) = "true")
     End Select
 End Sub
 
 Private Sub ProcessVisualElementsConfig(key As String, value As String)
     Select Case key
         Case "BACKUP_ALL_IMAGES"
-            Config.backupAllImages = (LCase(value) = "true")
+            runtimeConfig.backupAllImages = (LCase(value) = "true")
         Case "RESTORE_ALL_IMAGES"
-            Config.restoreAllImages = (LCase(value) = "true")
+            runtimeConfig.restoreAllImages = (LCase(value) = "true")
         Case "PROTECT_IMAGES_IN_RANGE"
-            Config.protectImagesInRange = (LCase(value) = "true")
+            runtimeConfig.protectImagesInRange = (LCase(value) = "true")
         Case "BACKUP_VIEW_SETTINGS"
-            Config.backupViewSettings = (LCase(value) = "true")
+            runtimeConfig.backupViewSettings = (LCase(value) = "true")
         Case "RESTORE_VIEW_SETTINGS"
-            Config.restoreViewSettings = (LCase(value) = "true")
+            runtimeConfig.restoreViewSettings = (LCase(value) = "true")
     End Select
 End Sub
 
 Private Sub ProcessLoggingConfig(key As String, value As String)
     Select Case key
         Case "ENABLE_LOGGING"
-            Config.enableLogging = (LCase(value) = "true")
+            runtimeConfig.enableLogging = (LCase(value) = "true")
         Case "LOG_LEVEL"
-            Config.logLevel = UCase(value)
+            runtimeConfig.logLevel = value
         Case "LOG_TO_FILE"
-            Config.logToFile = (LCase(value) = "true")
+            runtimeConfig.logToFile = (LCase(value) = "true")
         Case "LOG_DETAILED_OPERATIONS"
-            Config.logDetailedOperations = (LCase(value) = "true")
+            runtimeConfig.logDetailedOperations = (LCase(value) = "true")
         Case "LOG_WARNINGS"
-            Config.logWarnings = (LCase(value) = "true")
+            runtimeConfig.logWarnings = (LCase(value) = "true")
         Case "LOG_ERRORS"
-            Config.logErrors = (LCase(value) = "true")
+            runtimeConfig.logErrors = (LCase(value) = "true")
         Case "MAX_LOG_SIZE_MB"
-            Config.maxLogSizeMb = CLng(value)
+            runtimeConfig.maxLogSizeMb = CLng(value)
     End Select
 End Sub
 
 Private Sub ProcessPerformanceConfig(key As String, value As String)
     Select Case key
         Case "DISABLE_SCREEN_UPDATING"
-            Config.disableScreenUpdating = (LCase(value) = "true")
+            runtimeConfig.disableScreenUpdating = (LCase(value) = "true")
         Case "DISABLE_DISPLAY_ALERTS"
-            Config.disableDisplayAlerts = (LCase(value) = "true")
+            runtimeConfig.disableDisplayAlerts = (LCase(value) = "true")
         Case "USE_BULK_OPERATIONS"
-            Config.useBulkOperations = (LCase(value) = "true")
+            runtimeConfig.useBulkOperations = (LCase(value) = "true")
         Case "OPTIMIZE_FIND_REPLACE"
-            Config.optimizeFindReplace = (LCase(value) = "true")
+            runtimeConfig.optimizeFindReplace = (LCase(value) = "true")
         Case "MINIMIZE_OBJECT_CREATION"
-            Config.minimizeObjectCreation = (LCase(value) = "true")
+            runtimeConfig.minimizeObjectCreation = (LCase(value) = "true")
         Case "CACHE_FREQUENTLY_USED_OBJECTS"
-            Config.cacheFrequentlyUsedObjects = (LCase(value) = "true")
+            runtimeConfig.cacheFrequentlyUsedObjects = (LCase(value) = "true")
         Case "USE_EFFICIENT_LOOPS"
-            Config.useEfficientLoops = (LCase(value) = "true")
+            runtimeConfig.useEfficientLoops = (LCase(value) = "true")
         Case "BATCH_PARAGRAPH_OPERATIONS"
-            Config.batchParagraphOperations = (LCase(value) = "true")
+            runtimeConfig.batchParagraphOperations = (LCase(value) = "true")
     End Select
 End Sub
 
 Private Sub ProcessInterfaceConfig(key As String, value As String)
     Select Case key
         Case "SHOW_PROGRESS_MESSAGES"
-            Config.showProgressMessages = (LCase(value) = "true")
+            runtimeConfig.showProgressMessages = (LCase(value) = "true")
         Case "SHOW_STATUS_BAR_UPDATES"
-            Config.showStatusBarUpdates = (LCase(value) = "true")
+            runtimeConfig.showStatusBarUpdates = (LCase(value) = "true")
         Case "CONFIRM_CRITICAL_OPERATIONS"
-            Config.confirmCriticalOperations = (LCase(value) = "true")
+            runtimeConfig.confirmCriticalOperations = (LCase(value) = "true")
         Case "SHOW_COMPLETION_MESSAGE"
-            Config.showCompletionMessage = (LCase(value) = "true")
+            runtimeConfig.showCompletionMessage = (LCase(value) = "true")
         Case "ENABLE_EMERGENCY_RECOVERY"
-            Config.enableEmergencyRecovery = (LCase(value) = "true")
+            runtimeConfig.enableEmergencyRecovery = (LCase(value) = "true")
         Case "TIMEOUT_OPERATIONS"
-            Config.timeoutOperations = (LCase(value) = "true")
+            runtimeConfig.timeoutOperations = (LCase(value) = "true")
     End Select
 End Sub
 
 Private Sub ProcessCompatibilityConfig(key As String, value As String)
     Select Case key
         Case "SUPPORT_WORD_2010"
-            Config.supportWord2010 = (LCase(value) = "true")
+            runtimeConfig.supportWord2010 = (LCase(value) = "true")
         Case "SUPPORT_WORD_2013"
-            Config.supportWord2013 = (LCase(value) = "true")
+            runtimeConfig.supportWord2013 = (LCase(value) = "true")
         Case "SUPPORT_WORD_2016"
-            Config.supportWord2016 = (LCase(value) = "true")
+            runtimeConfig.supportWord2016 = (LCase(value) = "true")
         Case "USE_SAFE_PROPERTY_ACCESS"
-            Config.useSafePropertyAccess = (LCase(value) = "true")
+            runtimeConfig.useSafePropertyAccess = (LCase(value) = "true")
         Case "FALLBACK_METHODS"
-            Config.fallbackMethods = (LCase(value) = "true")
+            runtimeConfig.fallbackMethods = (LCase(value) = "true")
         Case "HANDLE_MISSING_FEATURES"
-            Config.handleMissingFeatures = (LCase(value) = "true")
+            runtimeConfig.handleMissingFeatures = (LCase(value) = "true")
     End Select
 End Sub
 
 Private Sub ProcessSecurityConfig(key As String, value As String)
     Select Case key
         Case "REQUIRE_DOCUMENT_SAVED"
-            Config.requireDocumentSaved = (LCase(value) = "true")
+            runtimeConfig.requireDocumentSaved = (LCase(value) = "true")
         Case "VALIDATE_FILE_PERMISSIONS"
-            Config.validateFilePermissions = (LCase(value) = "true")
+            runtimeConfig.validateFilePermissions = (LCase(value) = "true")
         Case "CHECK_DOCUMENT_PROTECTION"
-            Config.checkDocumentProtection = (LCase(value) = "true")
+            runtimeConfig.checkDocumentProtection = (LCase(value) = "true")
         Case "ENABLE_EMERGENCY_BACKUP"
-            Config.enableEmergencyBackup = (LCase(value) = "true")
+            runtimeConfig.enableEmergencyBackup = (LCase(value) = "true")
         Case "SANITIZE_INPUTS"
-            Config.sanitizeInputs = (LCase(value) = "true")
+            runtimeConfig.sanitizeInputs = (LCase(value) = "true")
         Case "VALIDATE_RANGES"
-            Config.validateRanges = (LCase(value) = "true")
+            runtimeConfig.validateRanges = (LCase(value) = "true")
     End Select
 End Sub
 
 Private Sub ProcessAdvancedConfig(key As String, value As String)
     Select Case key
         Case "MAX_RETRY_ATTEMPTS"
-            Config.maxRetryAttempts = CLng(value)
+            runtimeConfig.maxRetryAttempts = CLng(value)
         Case "RETRY_DELAY_MS"
-            Config.retryDelayMs = CLng(value)
+            runtimeConfig.retryDelayMs = CLng(value)
         Case "COMPILATION_CHECK"
-            Config.compilationCheck = (LCase(value) = "true")
+            runtimeConfig.compilationCheck = (LCase(value) = "true")
         Case "VBA_ACCESS_REQUIRED"
-            Config.vbaAccessRequired = (LCase(value) = "true")
+            runtimeConfig.vbaAccessRequired = (LCase(value) = "true")
         Case "AUTO_CLEANUP"
-            Config.autoCleanup = (LCase(value) = "true")
+            runtimeConfig.autoCleanup = (LCase(value) = "true")
         Case "FORCE_GC_COLLECTION"
-            Config.forceGcCollection = (LCase(value) = "true")
+            runtimeConfig.forceGcCollection = (LCase(value) = "true")
     End Select
 End Sub
 
@@ -4301,7 +4546,7 @@ Public Sub AbrirPastaLogs()
     Application.StatusBar = "Pasta de logs aberta: " & logsFolder
     
     ' Log da operação se sistema de log estiver ativo
-    If loggingEnabled Then
+    If runtimeConfig.enableLogging Then
         LogEvent "AbrirPastaLogs", "INFO", "Pasta de logs aberta pelo usuário: " & logsFolder, 0, ""
     End If
     
@@ -4690,17 +4935,3 @@ ErrorHandler:
     LogEvent "ProcessParagraphBatch", "ERROR", "Erro: " & Err.Description, 0, ""
     ProcessParagraphBatch = False
 End Function
-
-' Helper functions for paragraph processing
-Private Sub FormatParagraph(para As Paragraph)
-    ' Placeholder for paragraph formatting
-End Sub
-
-Private Sub CleanParagraph(para As Paragraph)
-    ' Placeholder for paragraph cleaning
-End Sub
-
-Private Sub ValidateParagraph(para As Paragraph)
-    ' Placeholder for paragraph validation
-End Sub
-
