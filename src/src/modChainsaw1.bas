@@ -3384,6 +3384,7 @@ Private Function EnsureSecondParagraphBlankLines(doc As Document) As Boolean
             Next i
             insertionPoint.InsertBefore newLines
             secondParaIndex = secondParaIndex + linesToAdd
+            Set para = doc.Paragraphs(secondParaIndex)
         End If
 
         blankLinesAfter = CountBlankLinesAfter(doc, secondParaIndex)
