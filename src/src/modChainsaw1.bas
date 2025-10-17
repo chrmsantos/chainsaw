@@ -1676,6 +1676,34 @@ ErrorHandler:
 End Function
 
 '================================================================================
+' VALIDATE DOCUMENT STRUCTURE
+'================================================================================
+Private Function ValidateDocumentStructure(doc As Document) As Boolean
+    If doc Is Nothing Then
+        ValidateDocumentStructure = False
+        Exit Function
+    End If
+
+    Dim hasContent As Boolean
+    Dim hasSections As Boolean
+
+    On Error Resume Next
+    hasContent = (doc.Range.End > 0)
+    hasSections = (doc.Sections.Count > 0)
+
+    If Err.Number <> 0 Then
+        Err.Clear
+        ValidateDocumentStructure = False
+        GoTo Cleanup
+    End If
+
+    ValidateDocumentStructure = (hasContent And hasSections)
+
+Cleanup:
+    On Error GoTo 0
+End Function
+
+'================================================================================
 ' SAFE PROPERTY ACCESS FUNCTIONS - Compatibilidade total com Word 2010+
 '================================================================================
 Private Function SafeGetCharacterCount(targetRange As Range) As Long
@@ -2915,6 +2943,471 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
     Exit Function
 ErrorHandler:
     FormatJustificativaAnexoParagraphs = False
+End Function
+
+'================================================================================
+' CLEAN MULTIPLE SPACES - FINAL PASS
+'================================================================================
+Private Function CleanMultipleSpaces(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+    If doc Is Nothing Then GoTo ErrorHandler
+
+    Application.StatusBar = "Cleaning multiple spaces..."
+
+    Dim rng As Range
+    Dim spacesRemoved As Long
+    Dim totalOperations As Long
+    Dim currentReplaceCount As Long
+    Dim finalCleanCount As Long
+
+    ' First pass: collapse repeated spaces
+    Set rng = doc.Range
+    With rng.Find
+        .ClearFormatting
+        .Replacement.ClearFormatting
+        .Forward = True
+        .Wrap = wdFindContinue
+        .Format = False
+        .MatchCase = False
+        .MatchWholeWord = False
+        .MatchWildcards = False
+        .MatchSoundsLike = False
+        .MatchAllWordForms = False
+
+        Do
+            .Text = "  "
+            .Replacement.Text = " "
+            currentReplaceCount = 0
+
+            Do While .Execute(Replace:=wdReplaceOne)
+                currentReplaceCount = currentReplaceCount + 1
+                spacesRemoved = spacesRemoved + 1
+                rng.Collapse wdCollapseEnd
+
+                If currentReplaceCount Mod 200 = 0 Then
+                    DoEvents
+                    If spacesRemoved > 2000 Then Exit Do
+                End If
+            Loop
+
+            totalOperations = totalOperations + 1
+            If currentReplaceCount = 0 Or totalOperations > 10 Then Exit Do
+        Loop
+    End With
+
+    ' Remove stray spaces around paragraph breaks
+    Set rng = doc.Range
+    With rng.Find
+        .ClearFormatting
+        .Replacement.ClearFormatting
+        .Forward = True
+        .Wrap = wdFindContinue
+        .Format = False
+        .MatchWildcards = False
+
+        .Text = "  ^p"
+        .Replacement.Text = " ^p"
+        Do While .Execute(Replace:=wdReplaceOne)
+            spacesRemoved = spacesRemoved + 1
+            rng.Collapse wdCollapseEnd
+            If spacesRemoved > 2000 Then Exit Do
+        Loop
+
+        .Text = " ^p"
+        .Replacement.Text = "^p"
+        Do While .Execute(Replace:=wdReplaceOne)
+            spacesRemoved = spacesRemoved + 1
+            rng.Collapse wdCollapseEnd
+            If spacesRemoved > 2000 Then Exit Do
+        Loop
+
+        .Text = "^p  "
+        .Replacement.Text = "^p "
+        Do While .Execute(Replace:=wdReplaceOne)
+            spacesRemoved = spacesRemoved + 1
+            rng.Collapse wdCollapseEnd
+            If spacesRemoved > 2000 Then Exit Do
+        Loop
+    End With
+
+    ' Tidy tab usage
+    Set rng = doc.Range
+    With rng.Find
+        .ClearFormatting
+        .Replacement.ClearFormatting
+        .MatchWildcards = False
+
+        .Text = "^t^t"
+        .Replacement.Text = "^t"
+        Do While .Execute(Replace:=wdReplaceOne)
+            spacesRemoved = spacesRemoved + 1
+            rng.Collapse wdCollapseEnd
+            If spacesRemoved > 2000 Then Exit Do
+        Loop
+
+        .Text = "^t"
+        .Replacement.Text = " "
+        Do While .Execute(Replace:=wdReplaceAll)
+            spacesRemoved = spacesRemoved + 1
+            If spacesRemoved > 2000 Then Exit Do
+        Loop
+    End With
+
+    ' Final quick scan for double spaces
+    Set rng = doc.Range
+    With rng.Find
+        .Text = "  "
+        .Replacement.Text = " "
+        .MatchWildcards = False
+        .Forward = True
+        .Wrap = wdFindStop
+
+        Do While .Execute(Replace:=wdReplaceOne)
+            finalCleanCount = finalCleanCount + 1
+            spacesRemoved = spacesRemoved + 1
+            rng.Collapse wdCollapseEnd
+            If finalCleanCount >= 100 Then Exit Do
+        Loop
+    End With
+
+    ' Ensure CONSIDERANDO has spacing safeguards
+    Set rng = doc.Range
+    With rng.Find
+        .ClearFormatting
+        .Replacement.ClearFormatting
+        .MatchCase = False
+        .Forward = True
+        .Wrap = wdFindContinue
+        .MatchWildcards = False
+
+        .Text = "CONSIDERANDOa"
+        .Replacement.Text = "CONSIDERANDO a"
+        Do While .Execute(Replace:=wdReplaceOne)
+            spacesRemoved = spacesRemoved + 1
+            rng.Collapse wdCollapseEnd
+            If spacesRemoved > 2100 Then Exit Do
+        Loop
+
+        .Text = "CONSIDERANDOe"
+        .Replacement.Text = "CONSIDERANDO e"
+        Do While .Execute(Replace:=wdReplaceOne)
+            spacesRemoved = spacesRemoved + 1
+            rng.Collapse wdCollapseEnd
+            If spacesRemoved > 2100 Then Exit Do
+        Loop
+
+        .Text = "CONSIDERANDOo"
+        .Replacement.Text = "CONSIDERANDO o"
+        Do While .Execute(Replace:=wdReplaceOne)
+            spacesRemoved = spacesRemoved + 1
+            rng.Collapse wdCollapseEnd
+            If spacesRemoved > 2100 Then Exit Do
+        Loop
+
+        .Text = "CONSIDERANDOq"
+        .Replacement.Text = "CONSIDERANDO q"
+        Do While .Execute(Replace:=wdReplaceOne)
+            spacesRemoved = spacesRemoved + 1
+            rng.Collapse wdCollapseEnd
+            If spacesRemoved > 2100 Then Exit Do
+        Loop
+    End With
+
+    CleanMultipleSpaces = True
+    GoTo Cleanup
+
+ErrorHandler:
+    CleanMultipleSpaces = False
+
+Cleanup:
+    On Error GoTo 0
+End Function
+
+'================================================================================
+' LIMIT SEQUENTIAL EMPTY LINES - CONTROL CONSECUTIVE BLANK LINES
+'================================================================================
+Private Function LimitSequentialEmptyLines(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+    If doc Is Nothing Then GoTo ErrorHandler
+
+    Application.StatusBar = "Controlling consecutive blank lines..."
+
+    Dim secondParaIndex As Long
+    Dim rng As Range
+    Dim linesRemoved As Long
+    Dim totalReplaces As Long
+    Dim passCount As Long
+    Dim secondPassCount As Long
+    Dim finalPassCount As Long
+    Dim fallbackRemoved As Long
+    Dim para As Paragraph
+    Dim i As Long
+    Dim emptyLineCount As Long
+    Dim paraText As String
+
+    secondParaIndex = GetSecondParagraphIndex(doc)
+    passCount = 1
+
+    Set rng = doc.Range
+    With rng.Find
+        .ClearFormatting
+        .Replacement.ClearFormatting
+        .Forward = True
+        .Wrap = wdFindContinue
+        .Format = False
+        .MatchWildcards = False
+
+        .Text = "^p^p^p^p"
+        .Replacement.Text = "^p^p"
+        Do While .Execute(Replace:=wdReplaceAll)
+            linesRemoved = linesRemoved + 1
+            totalReplaces = totalReplaces + 1
+            If totalReplaces > 500 Then Exit Do
+            If linesRemoved Mod 50 = 0 Then DoEvents
+        Loop
+
+        .Text = "^p^p^p"
+        .Replacement.Text = "^p^p"
+        Do While .Execute(Replace:=wdReplaceAll)
+            linesRemoved = linesRemoved + 1
+            totalReplaces = totalReplaces + 1
+            If totalReplaces > 500 Then Exit Do
+            If linesRemoved Mod 50 = 0 Then DoEvents
+        Loop
+    End With
+
+    If totalReplaces > 0 Then passCount = passCount + 1
+
+    Set rng = doc.Range
+    With rng.Find
+        .ClearFormatting
+        .Replacement.ClearFormatting
+        .MatchWildcards = False
+        .Forward = True
+        .Wrap = wdFindContinue
+
+        .Text = "^p^p^p"
+        .Replacement.Text = "^p^p"
+        Do While .Execute(Replace:=wdReplaceAll) And secondPassCount < 200
+            secondPassCount = secondPassCount + 1
+            linesRemoved = linesRemoved + 1
+        Loop
+    End With
+
+    If secondPassCount > 0 Then passCount = passCount + 1
+
+    Set rng = doc.Range
+    With rng.Find
+        .Text = "^p^p^p"
+        .Replacement.Text = "^p^p"
+        .MatchWildcards = False
+        Do While .Execute(Replace:=wdReplaceAll) And finalPassCount < 100
+            finalPassCount = finalPassCount + 1
+            linesRemoved = linesRemoved + 1
+        Loop
+    End With
+
+    If finalPassCount > 0 Then passCount = passCount + 1
+
+    If finalPassCount >= 100 Then
+        passCount = passCount + 1
+        i = 1
+        emptyLineCount = 0
+
+        Do While i <= doc.Paragraphs.Count And fallbackRemoved < 50
+            Set para = doc.Paragraphs(i)
+            paraText = Trim$(Replace$(Replace$(para.Range.Text, vbCr, vbNullString), vbLf, vbNullString))
+
+            If paraText = vbNullString And Not HasVisualContent(para) Then
+                emptyLineCount = emptyLineCount + 1
+                If emptyLineCount > 1 Then
+                    para.Range.Delete
+                    fallbackRemoved = fallbackRemoved + 1
+                    linesRemoved = linesRemoved + 1
+                Else
+                    i = i + 1
+                End If
+            Else
+                emptyLineCount = 0
+                i = i + 1
+            End If
+
+            If fallbackRemoved Mod 10 = 0 Then DoEvents
+            If i > 500 Then Exit Do
+        Loop
+    End If
+
+    LimitSequentialEmptyLines = True
+    GoTo Cleanup
+
+ErrorHandler:
+    LimitSequentialEmptyLines = False
+
+Cleanup:
+    On Error GoTo 0
+End Function
+
+'================================================================================
+' ENSURE PARAGRAPH SEPARATION
+'================================================================================
+Private Function EnsureParagraphSeparation(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+    If doc Is Nothing Then GoTo ErrorHandler
+
+    Application.StatusBar = "Ensuring minimum separation between paragraphs..."
+
+    Dim para As Paragraph
+    Dim nextPara As Paragraph
+    Dim i As Long
+    Dim insertedCount As Long
+    Dim totalChecked As Long
+    Dim paraText As String
+    Dim nextParaText As String
+    Dim currentParaEnd As Long
+    Dim nextParaStart As Long
+    Dim insertRange As Range
+
+    For i = 1 To doc.Paragraphs.Count - 1
+        Set para = doc.Paragraphs(i)
+        Set nextPara = doc.Paragraphs(i + 1)
+        totalChecked = totalChecked + 1
+
+        paraText = Trim$(Replace$(Replace$(para.Range.Text, vbCr, vbNullString), vbLf, vbNullString))
+        nextParaText = Trim$(Replace$(Replace$(nextPara.Range.Text, vbCr, vbNullString), vbLf, vbNullString))
+
+        If paraText <> vbNullString And nextParaText <> vbNullString Then
+            currentParaEnd = para.Range.End
+            nextParaStart = nextPara.Range.Start
+
+            If nextParaStart - currentParaEnd <= 1 Then
+                Set insertRange = doc.Range(currentParaEnd - 1, currentParaEnd - 1)
+                insertRange.Text = vbCrLf
+                insertedCount = insertedCount + 1
+
+                On Error Resume Next
+                Set para = doc.Paragraphs(i)
+                Set nextPara = doc.Paragraphs(i + 2)
+                On Error GoTo ErrorHandler
+            End If
+        End If
+
+        If totalChecked Mod 100 = 0 Then
+            DoEvents
+            Application.StatusBar = "Checking paragraph separation... " & totalChecked & " checked"
+        End If
+
+        If totalChecked > 5000 Then Exit For
+    Next i
+
+    EnsureParagraphSeparation = True
+    GoTo Cleanup
+
+ErrorHandler:
+    EnsureParagraphSeparation = False
+
+Cleanup:
+    On Error GoTo 0
+End Function
+
+'================================================================================
+' SECOND PARAGRAPH LOCATION HELPER - Locate the second paragraph
+'================================================================================
+Private Function GetSecondParagraphIndex(doc As Document) As Long
+    On Error GoTo ErrorHandler
+    If doc Is Nothing Then GoTo ErrorHandler
+
+    Dim para As Paragraph
+    Dim paraText As String
+    Dim i As Long
+    Dim actualParaIndex As Long
+
+    actualParaIndex = 0
+
+    For i = 1 To doc.Paragraphs.Count
+        Set para = doc.Paragraphs(i)
+        paraText = Trim$(Replace$(Replace$(para.Range.Text, vbCr, vbNullString), vbLf, vbNullString))
+
+        If paraText <> vbNullString Or HasVisualContent(para) Then
+            actualParaIndex = actualParaIndex + 1
+            If actualParaIndex = 2 Then
+                GetSecondParagraphIndex = i
+                GoTo Cleanup
+            End If
+        End If
+
+        If i > 50 Then Exit For
+    Next i
+
+    GetSecondParagraphIndex = 0
+    GoTo Cleanup
+
+ErrorHandler:
+    GetSecondParagraphIndex = 0
+
+Cleanup:
+    On Error GoTo 0
+End Function
+
+'================================================================================
+' ENSURE SECOND PARAGRAPH BLANK LINES - Ensure two blank lines
+'================================================================================
+Private Function EnsureSecondParagraphBlankLines(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+    If doc Is Nothing Then GoTo ErrorHandler
+
+    Dim secondParaIndex As Long
+    Dim linesToAdd As Long
+    Dim linesToAddAfter As Long
+    Dim para As Paragraph
+    Dim insertionPoint As Range
+    Dim newLines As String
+    Dim i As Long
+    Dim blankLinesBefore As Long
+    Dim blankLinesAfter As Long
+
+    secondParaIndex = GetSecondParagraphIndex(doc)
+    linesToAdd = 0
+    linesToAddAfter = 0
+
+    If secondParaIndex > 0 And secondParaIndex <= doc.Paragraphs.Count Then
+        Set para = doc.Paragraphs(secondParaIndex)
+
+        blankLinesBefore = CountBlankLinesBefore(doc, secondParaIndex)
+        If blankLinesBefore < 2 Then
+            Set insertionPoint = para.Range
+            insertionPoint.Collapse wdCollapseStart
+            linesToAdd = 2 - blankLinesBefore
+
+            newLines = vbNullString
+            For i = 1 To linesToAdd
+                newLines = newLines & vbCrLf
+            Next i
+            insertionPoint.InsertBefore newLines
+            secondParaIndex = secondParaIndex + linesToAdd
+        End If
+
+        blankLinesAfter = CountBlankLinesAfter(doc, secondParaIndex)
+        If blankLinesAfter < 2 Then
+            Set insertionPoint = para.Range
+            insertionPoint.Collapse wdCollapseEnd
+            linesToAddAfter = 2 - blankLinesAfter
+
+            newLines = vbNullString
+            For i = 1 To linesToAddAfter
+                newLines = newLines & vbCrLf
+            Next i
+            insertionPoint.InsertAfter newLines
+        End If
+    End If
+
+    EnsureSecondParagraphBlankLines = True
+    GoTo Cleanup
+
+ErrorHandler:
+    EnsureSecondParagraphBlankLines = False
+
+Cleanup:
+    On Error GoTo 0
 End Function
 
 ' Helper: RemoveWatermark - Remove watermark from document
