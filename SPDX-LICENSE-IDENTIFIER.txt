@@ -1,7 +1,0 @@
-SPDX-License-Identifier: GPL-3.0-or-later
-
-Utilize a linha abaixo uma vez próximo ao topo de cada arquivo VBA:
-
-' SPDX-License-Identifier: GPL-3.0-or-later
-
-Recursos binários não precisam do identificador.
