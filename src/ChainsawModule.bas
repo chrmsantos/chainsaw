@@ -14,7 +14,7 @@ Option Explicit
 '=== Core constants ===
 
 ' System constants
-Private Const version As String = "v1.0.0-Stable"
+Private Const version As String = "v1.0.0-RC1"
 Private Const SYSTEM_NAME As String = "CHAINSAW PROPOSITURAS"
 
 '================================================================================
@@ -72,6 +72,7 @@ Private Const TITLE_CRITICAL_SAVE_EXIT As String = "Critical Save Exit - " & SYS
 '=== Word constant aliases ===
 
 ' Word built-in constants
+Private Const wdDocumentsPath As Long = 0
 Private Const wdNoProtection As Long = -1
 Private Const wdTypeDocument As Long = 0
 Private Const wdHeaderFooterPrimary As Long = 1
@@ -129,16 +130,17 @@ Private Const MAX_PARAGRAPH_BATCH_SIZE As Long = 120
 
 ' Static resource locations
 Private Const MIN_WORD_VERSION As Double = 14#
-Private Const HEADER_IMAGE_RELATIVE_PATH As String = "assets\stamp.png"
+Private Const DEFAULT_PATH As String = Application.Options.DefaultFilePath(wdDocumentsPath)
+Private Const HEADER_IMAGE_PATH As String = DEFAULT_PATH & "\chainsaw\assets\stamp.png"
 
 ' Backup and recovery limits
-Private Const BACKUP_FOLDER_NAME As String = "\Backups"
+Private Const BACKUP_FOLDER_NAME As String = DEFAULT_PATH & "\backups"
 Private Const MAX_RETRY_ATTEMPTS As Long = 3
 Private Const MAX_FIND_REPLACE_BATCH As Long = 100
 
 '=== Logging infrastructure ===
 
-Private Const LOG_FILE_PATH As String = "C:\Temp\chainsaw_log.txt"
+Private Const LOG_FILE_PATH As String = DEFAULT_PATH & "\logs\chainsaw_log.txt"
 Private Const MAX_LOG_SIZE_MB As Long = 10
 
 Private Type LogEntry
