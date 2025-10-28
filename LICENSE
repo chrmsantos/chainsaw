@@ -1,4 +1,5 @@
-GNU GENERAL PUBLIC LICENSE
+# GNU GENERAL PUBLIC LICENSE
+
 Version 3, 29 June 2007
 
 Copyright (C) 2007 Free Software Foundation, Inc. <https://fsf.org/>
@@ -70,7 +71,7 @@ modification follow.
 
 TERMS AND CONDITIONS
 
-0. Definitions.
+1/8. Definitions.
 
 "This License" refers to version 3 of the GNU General Public License.
 
@@ -109,7 +110,7 @@ work under this License, and how to view a copy of this License. If
 the interface presents a list of user commands or options, such as a
 menu, a prominent item in the list meets this criterion.
 
-1. Source Code.
+2/8. Source Code.
 
 The "source code" for a work means the preferred form of the work
 for making modifications to it. "Object code" means any non-source
@@ -151,7 +152,7 @@ regenerate automatically from other parts of the Corresponding Source.
 The Corresponding Source for a work in source code form is that same
 work.
 
-2. Basic Permissions.
+3/8. Basic Permissions.
 
 All rights granted under this License are granted for the term of
 copyright on the Program, and are irrevocable provided the stated
@@ -176,7 +177,7 @@ Conveying under any other circumstances is permitted solely under the
 conditions stated below. Sublicensing is not allowed; section 10 makes
 it unnecessary.
 
-3. Protecting Users' Legal Rights From Anti-Circumvention Law.
+4/8. Protecting Users' Legal Rights From Anti-Circumvention Law.
 
 No covered work shall be deemed part of an effective technological
 measure under any applicable law fulfilling obligations under article
@@ -192,7 +193,7 @@ modification of the work as a means of enforcing, against the work's
 users, your or third parties' legal rights to forbid circumvention of
 technological measures.
 
-4. Conveying Verbatim Copies.
+5/8. Conveying Verbatim Copies.
 
 You may convey verbatim copies of the Program's source code as you
 receive it, in any medium, provided that you conspicuously and
@@ -202,7 +203,7 @@ non-permissive terms added in accord with section 7 apply to the code;
 keep intact all notices of the absence of any warranty; and give all
 recipients a copy of this License along with the Program.
 
-5. Conveying Modified Source Versions.
+6/8. Conveying Modified Source Versions.
 
 You may convey a work based on the Program, or the modifications to
 produce it from the Program, in the form of source code under the
@@ -226,7 +227,7 @@ terms of section 4, provided that you also meet all of these conditions:
     interfaces that do not display Appropriate Legal Notices, your
     work need not make them do so.
 
-6. Conveying Non-Source Forms.
+7/8. Conveying Non-Source Forms.
 
 You may convey a covered work in object code form under the terms of
 sections 4 and 5, provided that you also convey the machine-readable
@@ -270,7 +271,7 @@ ways:
     Source of the work are being offered to the general public at no
     charge under subsection 6d.
 
-7. Additional Terms.
+8/8. Additional Terms.
 
 "Additional permissions" are terms that supplement the terms of this
 License by making exceptions from one or more of its conditions.
@@ -280,5 +281,3 @@ that they are valid under applicable law. If additional permissions
 apply only to part of the Program, that part may be used separately
 under those permissions, but the entire Program remains governed by
 this License without regard to the additional permissions.
-
-(license text truncated for brevity in this file excerpt—include full text in actual file)

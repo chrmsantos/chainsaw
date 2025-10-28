@@ -1,4 +1,3 @@
-' SPDX-License-Identifier: GPL-3.0-or-later
 ' Chainsaw Proposituras automation macros for Microsoft Word legislative documents.
 ' Distributed under the GNU General Public License v3.0 or later; see accompanying license details.
 ' Maintainer: Christian Martin dos Santos <chrmsantos@gmail.com>
@@ -15,7 +14,7 @@ Option Explicit
 '=== Core constants ===
 
 ' System constants
-Private Const version As String = "v1.0.0-Beta3"
+Private Const version As String = "v1.0.0-Stable"
 Private Const SYSTEM_NAME As String = "CHAINSAW PROPOSITURAS"
 
 '================================================================================
