@@ -130,37 +130,43 @@ Private Const MAX_PARAGRAPH_BATCH_SIZE As Long = 120
 
 ' Static resource locations
 Private Const MIN_WORD_VERSION As Double = 14#
-Private Const DEFAULT_PATH As String = Application.Options.DefaultFilePath(wdDocumentsPath)
-Private Const HEADER_IMAGE_PATH As String = DEFAULT_PATH & "\chainsaw\assets\stamp.png"
 
+' Default path
+Private DEFAULT_PATH As String
+' Header image folder path
+Private HEADER_IMAGE_PATH As String
+' Backup folder path
+Private BACKUP_FOLDER_NAME As String
+' Log file path (declared to fix "Variable not defined")
+Private LOG_FILE_PATH As String
+' Relative header image path (declared because runtime defaults reference it)
+Private HEADER_IMAGE_RELATIVE_PATH As String
 ' Backup and recovery limits
-Private Const BACKUP_FOLDER_NAME As String = DEFAULT_PATH & "\backups"
 Private Const MAX_RETRY_ATTEMPTS As Long = 3
 Private Const MAX_FIND_REPLACE_BATCH As Long = 100
 
 '=== Logging infrastructure ===
 
-Private Const LOG_FILE_PATH As String = DEFAULT_PATH & "\logs\chainsaw_log.txt"
 Private Const MAX_LOG_SIZE_MB As Long = 10
 
 Private Type LogEntry
-    Timestamp As Date
-    Level As String
-    FunctionName As String
-    Message As String
+    timestamp As Date
+    level As String
+    functionName As String
+    message As String
     ErrorNumber As Long
     ErrorSource As String
-    Context As String
+    context As String
     ElapsedMs As Long
 End Type
 
 '=== Paragraph cache ===
 
 Private Type CachedParagraph
-    Index As Long
+    index As Long
     Text As String
     TextNormalized As String
-    InlineShapesCount As Long
+    inlineShapesCount As Long
     HasVisualContent As Boolean
     IsBlank As Boolean
     WordCount As Long
@@ -185,10 +191,10 @@ End Enum
 '=== Progress tracking state ===
 
 Private Type ProgressTracker
-    TotalItems As Long
+    totalItems As Long
     ProcessedItems As Long
     CurrentPhase As String
-    StartTime As Single
+    startTime As Single
     LastUpdateTime As Single
     EstimatedTimeRemainingSec As Long
 End Type
@@ -199,7 +205,7 @@ Private currentProgress As ProgressTracker
 
 Private Type ValidationResult
     IsValid As Boolean
-    ErrorCount As Long
+    errorCount As Long
     WarningCount As Long
     ChecksPerformed As Long
     ChecksPassed As Long
@@ -208,13 +214,13 @@ End Type
 '=== Error handling context ===
 
 Private Type ErrorContext
-    FunctionName As String
+    functionName As String
     ErrorNumber As Long
     ErrorDescription As String
     ErrorSource As String
     DocumentPath As String
     CurrentOperation As String
-    RetryCount As Long
+    retryCount As Long
     MaxRetries As Long
 End Type
 
@@ -227,7 +233,7 @@ Private Type ChainsawConfig
     BottomMarginCm As Double
     LeftMarginCm As Double
     RightMarginCm As Double
-    EnableLogging As Boolean
+    enableLogging As Boolean
     MaxSessionStampWords As Long
     SensitiveDataMinConfidence As Long
     EnableProgressBar As Boolean
@@ -238,11 +244,11 @@ Private Type ChainsawRuntimeConfig
     debugMode As Boolean
     performanceMode As Boolean
     compatibilityMode As Boolean
-    checkWordVersion As Boolean
-    validateDocumentIntegrity As Boolean
-    validatePropositionType As Boolean
-    validateContentConsistency As Boolean
-    checkDiskSpace As Boolean
+    CheckWordVersion As Boolean
+    ValidateDocumentIntegrity As Boolean
+    ValidatePropositionType As Boolean
+    ValidateContentConsistency As Boolean
+    CheckDiskSpace As Boolean
     minWordVersion As Double
     maxDocumentSize As Long
     autoBackup As Boolean
@@ -250,31 +256,31 @@ Private Type ChainsawRuntimeConfig
     maxBackupFiles As Long
     backupCleanup As Boolean
     backupRetryAttempts As Long
-    applyPageSetup As Boolean
+    ApplyPageSetup As Boolean
     applyStandardFont As Boolean
     applyStandardParagraphs As Boolean
-    formatFirstParagraph As Boolean
-    formatSecondParagraph As Boolean
-    formatNumberedParagraphs As Boolean
-    formatConsiderandoParagraphs As Boolean
+    FormatFirstParagraph As Boolean
+    FormatSecondParagraph As Boolean
+    FormatNumberedParagraphs As Boolean
+    FormatConsiderandoParagraphs As Boolean
     formatJustificativaParagraphs As Boolean
     enableHyphenation As Boolean
     clearAllFormatting As Boolean
-    cleanDocumentStructure As Boolean
-    cleanMultipleSpaces As Boolean
-    limitSequentialEmptyLines As Boolean
-    ensureParagraphSeparation As Boolean
+    CleanDocumentStructure As Boolean
+    CleanMultipleSpaces As Boolean
+    LimitSequentialEmptyLines As Boolean
+    EnsureParagraphSeparation As Boolean
     cleanVisualElements As Boolean
     deleteHiddenElements As Boolean
     deleteVisualElementsFirstFourParagraphs As Boolean
-    insertHeaderstamp As Boolean
-    insertFooterstamp As Boolean
-    removeWatermark As Boolean
+    InsertHeaderstamp As Boolean
+    InsertFooterstamp As Boolean
+    RemoveWatermark As Boolean
     headerImagePath As String
     headerImageMaxWidth As Double
     headerImageHeightRatio As Double
-    applyTextReplacements As Boolean
-    applySpecificParagraphReplacements As Boolean
+    ApplyTextReplacements As Boolean
+    ApplySpecificParagraphReplacements As Boolean
     replaceHyphensWithEmDash As Boolean
     removeManualLineBreaks As Boolean
     normalizeDosteVariants As Boolean
@@ -426,13 +432,13 @@ Private Sub FormatParagraph(para As Paragraph)
     If para Is Nothing Then Exit Sub
     If para.Range.Tables.count > 0 Then Exit Sub
     Dim txt As String
-    txt = para.Range.text
+    txt = para.Range.Text
     ' Word paragraphs end with vbCr; preserve the final terminator
     If Len(txt) > 1 Then
         Dim body As String
         body = Left$(txt, Len(txt) - 1)
         body = Trim$(body)
-        para.Range.text = body & vbCr
+        para.Range.Text = body & vbCr
     End If
     On Error GoTo 0
 End Sub
@@ -447,7 +453,7 @@ Private Sub CleanParagraph(para As Paragraph)
     ' Exclude final paragraph mark
     r.End = r.End - 1
     Dim s As String
-    s = r.text
+    s = r.Text
     If InStr(s, "   ") > 0 Then
         Do While InStr(s, "   ") > 0
             s = Replace$(s, "   ", "  ")
@@ -465,7 +471,7 @@ Private Sub CleanParagraph(para As Paragraph)
                 End If
             End If
         Next i
-        r.text = tmp
+        r.Text = tmp
     End If
     On Error GoTo 0
 End Sub
@@ -482,7 +488,17 @@ End Sub
 
 Private Function InitializeLogging() As Boolean
     On Error GoTo ErrorHandler
-    
+
+    ' Ensure default paths are computed at runtime (cannot be Const)
+    On Error Resume Next
+    If DEFAULT_PATH = "" Then
+        DEFAULT_PATH = Application.Options.DefaultFilePath(wdDocumentsPath)
+    End If
+    HEADER_IMAGE_PATH = DEFAULT_PATH & "\chainsaw\assets\stamp.png"
+    BACKUP_FOLDER_NAME = DEFAULT_PATH & "\backups"
+    LOG_FILE_PATH = DEFAULT_PATH & "\logs\chainsaw_log.txt"
+    On Error GoTo ErrorHandler
+
     ' Check and rotate log file if needed
     If Dir(LOG_FILE_PATH) <> "" Then
         Dim fso As Object
@@ -513,13 +529,13 @@ Private Sub LogEvent(functionName As String, level As String, message As String,
     
     Dim entry As LogEntry
     With entry
-        .Timestamp = Now
-        .Level = level
-        .FunctionName = functionName
-        .Message = message
+        .timestamp = Now
+        .level = level
+        .functionName = functionName
+        .message = message
         .ErrorNumber = errorNum
         .ErrorSource = Err.Source
-        .Context = context
+        .context = context
         Dim elapsedTime As Double
         elapsedTime = Timer - processingStartTime
         If elapsedTime < 0 Then elapsedTime = elapsedTime + 86400
@@ -545,17 +561,17 @@ End Sub
 
 Private Function FormatLogEntry(entry As LogEntry) As String
     Dim output As String
-    output = Format(entry.Timestamp, "yyyy-MM-dd HH:mm:ss.000") & " | " & _
-             "[" & entry.Level & "] | " & _
-             entry.FunctionName & " | " & _
-             entry.Message
+    output = Format(entry.timestamp, "yyyy-MM-dd HH:mm:ss.000") & " | " & _
+             "[" & entry.level & "] | " & _
+             entry.functionName & " | " & _
+             entry.message
     
     If entry.ErrorNumber <> 0 Then
         output = output & " | Err#" & entry.ErrorNumber & ": " & entry.ErrorSource
     End If
     
-    If entry.Context <> "" Then
-        output = output & " | Context: " & entry.Context
+    If entry.context <> "" Then
+        output = output & " | Context: " & entry.context
     End If
     
     output = output & " | Elapsed: " & entry.ElapsedMs & "ms"
@@ -577,7 +593,7 @@ Private Function InitializeParagraphCache(doc As Document) As Boolean
     
     ' Reset prior cache content so stale references are released
     If paraCacheInitialized Then
-        Call InvalidateParagraphCache()
+        Call InvalidateParagraphCache
     End If
     
     cacheTimestamp = Timer
@@ -631,10 +647,10 @@ Private Function InitializeParagraphCache(doc As Document) As Boolean
         If Not para Is Nothing Then
             cacheIndex = cacheIndex + 1
             With cached
-                .Index = i
-                .Text = para.Range.text
+                .index = i
+                .Text = para.Range.Text
                 .TextNormalized = NormalizeForMatching(.Text)
-                .InlineShapesCount = para.Range.InlineShapes.count
+                .inlineShapesCount = para.Range.InlineShapes.count
                 .HasVisualContent = SafeHasVisualContent(para)
                 .IsBlank = IsParagraphEffectivelyBlank(para)
                 .WordCount = CountWordsForStamp(.Text)
@@ -649,7 +665,7 @@ NextCachePara:
     Next i
     
     If cacheCount = 0 Then
-        Call InvalidateParagraphCache()
+        Call InvalidateParagraphCache
         LogEvent "InitializeParagraphCache", "WARNING", "No paragraphs cached due to access errors", 0, "Cache initialization"
         InitializeParagraphCache = False
         Exit Function
@@ -711,7 +727,7 @@ Private Function GetSensitivePatterns() As Collection
     
     Dim rgPattern(0 To 4) As Variant
     rgPattern(spName) = "RG"
-    rgPattern(spRegex) = "(\d{1,2}\.\d{3}\.\d{3}-?\d{1}|\d{7,8}-?\d{1})"
+    rgPattern(spRegex) = "(\d{1,2}\.\d{3}\.\d{303}-?\d{1}|\d{7,8}-?\d{1})"
     rgPattern(spMinConfidence) = 75
     rgPattern(spContextKeywords) = "RG,IDENTIDADE,REGISTRO,GERAL"
     rgPattern(spFalsePositives) = ""
@@ -751,10 +767,10 @@ End Function
 
 Private Function InitializeProgress(totalItems As Long, phase As String) As Boolean
     With currentProgress
-        .TotalItems = totalItems
+        .totalItems = totalItems
         .ProcessedItems = 0
         .CurrentPhase = phase
-        .StartTime = Timer
+        .startTime = Timer
         .LastUpdateTime = Timer
         .EstimatedTimeRemainingSec = 0
     End With
@@ -775,7 +791,7 @@ Private Sub UpdateProgressBar(Optional incrementBy As Long = 1)
         Dim timeSinceUpdate As Double
         timeSinceUpdate = Timer - .LastUpdateTime
         If timeSinceUpdate < 0 Then timeSinceUpdate = timeSinceUpdate + 86400 ' Handle midnight wrap
-        If timeSinceUpdate < 0.5 And .ProcessedItems < .TotalItems Then
+        If timeSinceUpdate < 0.5 And .ProcessedItems < .totalItems Then
             Exit Sub
         End If
         
@@ -783,22 +799,22 @@ Private Sub UpdateProgressBar(Optional incrementBy As Long = 1)
         
         ' Calculate estimate
         Dim elapsedSec As Long
-        elapsedSec = CLng(Timer - .StartTime)
+        elapsedSec = CLng(Timer - .startTime)
         If elapsedSec < 0 Then elapsedSec = elapsedSec + 86400 ' Handle midnight wrap
         
         If .ProcessedItems > 0 And elapsedSec > 0 Then
             Dim ratePerSec As Double
             ratePerSec = .ProcessedItems / elapsedSec
-            .EstimatedTimeRemainingSec = CLng((.TotalItems - .ProcessedItems) / ratePerSec)
+            .EstimatedTimeRemainingSec = CLng((.totalItems - .ProcessedItems) / ratePerSec)
         End If
         
         ' Format status bar message
         Dim percentComplete As Long
-        percentComplete = IIf(.TotalItems > 0, CLng((.ProcessedItems / .TotalItems) * 100), 0)
+        percentComplete = IIf(.totalItems > 0, CLng((.ProcessedItems / .totalItems) * 100), 0)
         
         Dim statusMsg As String
         statusMsg = "CHAINSAW: " & .CurrentPhase & " (" & percentComplete & "%) | " & _
-                    .ProcessedItems & "/" & .TotalItems & " | " & _
+                    .ProcessedItems & "/" & .totalItems & " | " & _
                     "Tempo: " & FormatSeconds(.EstimatedTimeRemainingSec)
         
         Application.StatusBar = statusMsg
@@ -832,7 +848,7 @@ Private Function CleanupMemory() As Boolean
     On Error GoTo ErrorHandler
     
     ' Clear paragraph cache
-    Call InvalidateParagraphCache()
+    Call InvalidateParagraphCache
     
     LogEvent "CleanupMemory", "INFO", "Memory cleanup completed", , "Post-processing"
     CleanupMemory = True
@@ -850,7 +866,7 @@ Private Function ValidatePostProcessing(doc As Document) As ValidationResult
     Dim result As ValidationResult
     result.ChecksPerformed = 0
     result.ChecksPassed = 0
-    result.ErrorCount = 0
+    result.errorCount = 0
     result.WarningCount = 0
     
     ' Check #1: All paragraphs use standard font
@@ -866,7 +882,7 @@ Private Function ValidatePostProcessing(doc As Document) As ValidationResult
     If ValidatePageSetupCorrect(doc) Then
         result.ChecksPassed = result.ChecksPassed + 1
     Else
-        result.ErrorCount = result.ErrorCount + 1
+        result.errorCount = result.errorCount + 1
     End If
     
     ' Check #3: No spacing violations
@@ -878,11 +894,11 @@ Private Function ValidatePostProcessing(doc As Document) As ValidationResult
     End If
     
     ' Determine overall validity
-    result.IsValid = (result.ErrorCount = 0)
+    result.IsValid = (result.errorCount = 0)
     
     LogEvent "ValidatePostProcessing", "INFO", _
              "Validation: " & result.ChecksPassed & "/" & result.ChecksPerformed & " checks passed", , _
-             "Errors: " & result.ErrorCount & ", Warnings: " & result.WarningCount
+             "Errors: " & result.errorCount & ", Warnings: " & result.WarningCount
     
     ValidatePostProcessing = result
 End Function
@@ -904,7 +920,7 @@ Private Function ValidateAllParagraphsHaveStandardFont(doc As Document) As Boole
         On Error GoTo ErrorHandler
         
         If Not para Is Nothing Then
-            If para.Range.Font.name <> STANDARD_FONT Then
+            If para.Range.Font.Name <> STANDARD_FONT Then
                 violationCount = violationCount + 1
                 If violationCount > 5 Then Exit For
             End If
@@ -961,7 +977,7 @@ Private Function ValidateNoExcessiveSpacing(doc As Document) As Boolean
         On Error GoTo ErrorHandler
         
         If Not para Is Nothing Then
-            If Trim(para.Range.text) = "" Then
+            If Trim(para.Range.Text) = "" Then
                 blankCount = blankCount + 1
                 If blankCount > 3 Then
                     ValidateNoExcessiveSpacing = False
@@ -1021,7 +1037,7 @@ Private Function FindSessionStampParagraphOptimized(doc As Document) As Paragrap
                     
                     ' Quick length check
                     If CountWordsForStamp(rawText) <= MAX_SESSION_STAMP_WORDS Then
-                        If IsLikelySessionStamp(NormalizeForMatching(rawText), para.Range.text) Then
+                        If IsLikelySessionStamp(NormalizeForMatching(rawText), para.Range.Text) Then
                             If HasBlankPadding(para) Then
                                 Set FindSessionStampParagraphOptimized = para
                                 LogEvent "FindSessionStampParagraphOptimized", "INFO", "Found stamp at paragraph " & i & " (Pass 1)", , "2-pass optimization"
@@ -1054,7 +1070,7 @@ NextPassOne:
                 rawTextPass2 = ParagraphTextWithoutBreaks(para)
                 
                 If CountWordsForStamp(rawTextPass2) <= MAX_SESSION_STAMP_WORDS Then
-                    If IsLikelySessionStamp(NormalizeForMatching(rawTextPass2), para.Range.text) Then
+                    If IsLikelySessionStamp(NormalizeForMatching(rawTextPass2), para.Range.Text) Then
                         If HasBlankPadding(para) Then
                             Set FindSessionStampParagraphOptimized = para
                             LogEvent "FindSessionStampParagraphOptimized", "INFO", "Found stamp at paragraph " & i & " (Pass 2)", , "Fallback search"
@@ -1083,7 +1099,7 @@ Private Function HandleErrorWithContext(context As ErrorContext) As Boolean
     On Error GoTo ErrorHandler
     
     ' Emit a detailed diagnostic record
-    LogEvent context.FunctionName, "ERROR", _
+    LogEvent context.functionName, "ERROR", _
              "Err#" & context.ErrorNumber & ": " & context.ErrorDescription, _
              context.ErrorNumber, _
              "Operation: " & context.CurrentOperation & " | Doc: " & context.DocumentPath
@@ -1091,22 +1107,22 @@ Private Function HandleErrorWithContext(context As ErrorContext) As Boolean
     ' Apply targeted recovery logic where feasible
     Select Case context.ErrorNumber
         Case 11 ' Division by zero
-            LogEvent context.FunctionName, "RECOVERY", "Attempted recovery from division by zero", context.ErrorNumber
+            LogEvent context.functionName, "RECOVERY", "Attempted recovery from division by zero", context.ErrorNumber
             HandleErrorWithContext = True
             
         Case 429 ' ActiveX object error
-            LogEvent context.FunctionName, "CRITICAL", "Word ActiveX object failed", context.ErrorNumber
+            LogEvent context.functionName, "CRITICAL", "Word ActiveX object failed", context.ErrorNumber
             HandleErrorWithContext = False
             
         Case 4605 ' Document protection
-            LogEvent context.FunctionName, "WARNING", "Document protection prevented operation", context.ErrorNumber
+            LogEvent context.functionName, "WARNING", "Document protection prevented operation", context.ErrorNumber
             HandleErrorWithContext = False
             
         Case Else
-            LogEvent context.FunctionName, "ERROR", "Unhandled error - retry scheduled", context.ErrorNumber
+            LogEvent context.functionName, "ERROR", "Unhandled error - retry scheduled", context.ErrorNumber
             ' Retry logic
-            If context.RetryCount < context.MaxRetries Then
-                context.RetryCount = context.RetryCount + 1
+            If context.retryCount < context.MaxRetries Then
+                context.retryCount = context.retryCount + 1
                 HandleErrorWithContext = True
             Else
                 HandleErrorWithContext = False
@@ -1127,11 +1143,11 @@ Private Function InitializeRuntimeConfigDefaults() As ChainsawRuntimeConfig
         .debugMode = False
         .performanceMode = False
         .compatibilityMode = False
-        .checkWordVersion = True
-        .validateDocumentIntegrity = True
-        .validatePropositionType = True
-        .validateContentConsistency = True
-        .checkDiskSpace = True
+        .CheckWordVersion = True
+        .ValidateDocumentIntegrity = True
+        .ValidatePropositionType = True
+        .ValidateContentConsistency = True
+        .CheckDiskSpace = True
         .minWordVersion = MIN_WORD_VERSION
         .maxDocumentSize = 10485760
         .autoBackup = True
@@ -1139,31 +1155,31 @@ Private Function InitializeRuntimeConfigDefaults() As ChainsawRuntimeConfig
         .maxBackupFiles = 5
         .backupCleanup = True
         .backupRetryAttempts = MAX_RETRY_ATTEMPTS
-        .applyPageSetup = True
+        .ApplyPageSetup = True
         .applyStandardFont = True
         .applyStandardParagraphs = True
-        .formatFirstParagraph = True
-        .formatSecondParagraph = True
-        .formatNumberedParagraphs = True
-        .formatConsiderandoParagraphs = True
+        .FormatFirstParagraph = True
+        .FormatSecondParagraph = True
+        .FormatNumberedParagraphs = True
+        .FormatConsiderandoParagraphs = True
         .formatJustificativaParagraphs = True
         .enableHyphenation = False
         .clearAllFormatting = False
-        .cleanDocumentStructure = True
-        .cleanMultipleSpaces = True
-        .limitSequentialEmptyLines = True
-        .ensureParagraphSeparation = True
+        .CleanDocumentStructure = True
+        .CleanMultipleSpaces = True
+        .LimitSequentialEmptyLines = True
+        .EnsureParagraphSeparation = True
         .cleanVisualElements = True
         .deleteHiddenElements = True
         .deleteVisualElementsFirstFourParagraphs = False
-        .insertHeaderstamp = True
-        .insertFooterstamp = True
-        .removeWatermark = False
+        .InsertHeaderstamp = True
+        .InsertFooterstamp = True
+        .RemoveWatermark = False
         .headerImagePath = HEADER_IMAGE_RELATIVE_PATH
         .headerImageMaxWidth = HEADER_IMAGE_MAX_WIDTH_CM
         .headerImageHeightRatio = HEADER_IMAGE_HEIGHT_RATIO
-        .applyTextReplacements = True
-        .applySpecificParagraphReplacements = True
+        .ApplyTextReplacements = True
+        .ApplySpecificParagraphReplacements = True
         .replaceHyphensWithEmDash = False
         .removeManualLineBreaks = True
         .normalizeDosteVariants = True
@@ -1239,7 +1255,7 @@ Private Function LoadConfiguration() As ChainsawConfig
         .BottomMarginCm = 2
         .LeftMarginCm = 3
         .RightMarginCm = 3
-        .EnableLogging = True
+        .enableLogging = True
         .MaxSessionStampWords = 17
         .SensitiveDataMinConfidence = 80
         .EnableProgressBar = True
@@ -1283,7 +1299,7 @@ Private Function LoadConfiguration() As ChainsawConfig
                             config.TopMarginCm = CDbl(value)
                             On Error GoTo 0
                         Case "enablelogging"
-                            config.EnableLogging = (LCase(value) = "true")
+                            config.enableLogging = (LCase(value) = "true")
                     End Select
                 End If
             End If
@@ -1291,7 +1307,7 @@ Private Function LoadConfiguration() As ChainsawConfig
         On Error GoTo 0
         configFile.Close
         
-        EndLoadConfig:
+EndLoadConfig:
         
         LogEvent "LoadConfiguration", "INFO", "Configuration loaded from " & configPath, , "Settings loaded"
     Else
@@ -1347,7 +1363,7 @@ Private Sub SaveConfiguration(config As ChainsawConfig)
         configFile.WriteLine "BottomMargin=" & .BottomMarginCm
         configFile.WriteLine "LeftMargin=" & .LeftMarginCm
         configFile.WriteLine "RightMargin=" & .RightMarginCm
-        configFile.WriteLine "EnableLogging=" & IIf(.EnableLogging, "true", "false")
+        configFile.WriteLine "EnableLogging=" & IIf(.enableLogging, "true", "false")
         configFile.WriteLine "MaxSessionStampWords=" & .MaxSessionStampWords
         configFile.WriteLine "EnableProgressBar=" & IIf(.EnableProgressBar, "true", "false")
     End With
@@ -1474,7 +1490,7 @@ Private Function FormatJustificativaHeading(doc As Document) As Boolean
         
         If Not para Is Nothing Then
             ' Normalize paragraph text for comparison
-            paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+            paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
             
             ' Match paragraphs that contain only the heading text
             If LCase(paraText) = "justificativa:" Or LCase(paraText) = "justificativa" Then
@@ -1549,12 +1565,12 @@ Public Sub StandardizeDocumentMain()
     On Error GoTo CriticalErrorHandler
     
     ' Document integrity validation (always on)
-    If Not ValidateDocumentIntegrity(doc) Then GoTo CleanUp
+    If Not ValidateDocumentIntegrity(doc) Then GoTo Cleanup
     
     ' Ensure the document is editable
     If Not EnsureDocumentEditable(doc) Then
         Application.StatusBar = "Document is not editable - operation cancelled"
-        GoTo CleanUp
+        GoTo Cleanup
     End If
     
     ' ========================================
@@ -1565,7 +1581,7 @@ Public Sub StandardizeDocumentMain()
     End If
         
     ' Configure undo group
-    StartUndoGroup "Document Standardization - " & doc.name
+    StartUndoGroup "Document Standardization - " & doc.Name
     
     ' Configure application state
     If Not SetAppState(False, "Formatting document...") Then
@@ -1573,14 +1589,14 @@ Public Sub StandardizeDocumentMain()
     
     ' Preliminary checks
     If Not PreviousChecking(doc) Then
-        GoTo CleanUp
+        GoTo Cleanup
     End If
     
     ' Mandatory save for unsaved documents
     If doc.Path = "" Then
         If Not SaveDocumentFirst(doc) Then
             Application.StatusBar = "Operation cancelled: document needs to be saved"
-            GoTo CleanUp
+            GoTo Cleanup
         End If
     End If
     
@@ -1597,11 +1613,11 @@ Public Sub StandardizeDocumentMain()
     Application.StatusBar = "Processing document structure..."
 
     If Not PreviousFormatting(doc) Then
-        GoTo CleanUp
+        GoTo Cleanup
     End If
 
     If formattingCancelled Then
-        GoTo CleanUp
+        GoTo Cleanup
     End If
     
     ' Execute final validation suite before exiting
@@ -1611,16 +1627,16 @@ Public Sub StandardizeDocumentMain()
     
     If Not valResult.IsValid Then
         LogEvent "StandardizeDocumentMain", "ERROR", "Post-processing validation failed", , _
-                 "Errors: " & valResult.ErrorCount & ", Warnings: " & valResult.WarningCount
+                 "Errors: " & valResult.errorCount & ", Warnings: " & valResult.WarningCount
     End If
 
     Application.StatusBar = "Document standardized successfully!"
     LogEvent "StandardizeDocumentMain", "INFO", "Document standardization completed successfully", , _
              "Validation: " & valResult.ChecksPassed & "/" & valResult.ChecksPerformed & " checks passed"
 
-CleanUp:
+Cleanup:
     ' Free cached references and release COM pressure
-    Call CleanupMemory()
+    Call CleanupMemory
     
     ' Restore performance settings
     If Not RestorePerformanceSettings() Then
@@ -1827,7 +1843,7 @@ Private Function ValidateDocumentStructure(doc As Document) As Boolean
 
     On Error Resume Next
     hasContent = (doc.Range.End > 0)
-    hasSections = (doc.Sections.Count > 0)
+    hasSections = (doc.Sections.count > 0)
 
     If Err.Number <> 0 Then
         Err.Clear
@@ -1854,7 +1870,7 @@ Private Function SafeGetCharacterCount(targetRange As Range) As Long
 FallbackMethod:
     On Error GoTo ErrorHandler
     ' Alternative method for versions with issues in .Characters.Count
-    SafeGetCharacterCount = Len(targetRange.text)
+    SafeGetCharacterCount = Len(targetRange.Text)
     Exit Function
     
 ErrorHandler:
@@ -1866,7 +1882,7 @@ Private Function SafeSetFont(targetRange As Range, fontName As String, fontSize 
     
     ' Apply font formatting safely
     With targetRange.Font
-        If fontName <> "" Then .name = fontName
+        If fontName <> "" Then .Name = fontName
         If fontSize > 0 Then .size = fontSize
         .Color = wdColorAutomatic
     End With
@@ -1921,7 +1937,7 @@ Private Function SafeGetLastCharacter(rng As Range) As String
     charCount = SafeGetCharacterCount(rng)
     
     If charCount > 0 Then
-    SafeGetLastCharacter = rng.Characters(charCount).text
+    SafeGetLastCharacter = rng.Characters(charCount).Text
     Else
         SafeGetLastCharacter = ""
     End If
@@ -1930,7 +1946,7 @@ Private Function SafeGetLastCharacter(rng As Range) As String
 ErrorHandler:
     ' Alternative method using Right()
     On Error GoTo FinalFallback
-    SafeGetLastCharacter = Right(rng.text, 1)
+    SafeGetLastCharacter = Right(rng.Text, 1)
     Exit Function
     
 FinalFallback:
@@ -2212,15 +2228,15 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     ' Remove spacing before and after paragraphs (NEW - spacing normalization)
     Call RemoveParagraphSpacing(doc)
     
-    ' Final spacing and separation controls
-    Call CleanMultipleSpaces(doc)
+    ' Final spacing and
+                         Call CleanMultipleSpaces(doc)
     Call LimitSequentialEmptyLines(doc)
     Call EnsureParagraphSeparation(doc)
     Call EnsureSecondParagraphBlankLines(doc)
     Call FormatJustificativaAnexoParagraphs(doc)
     
     ' Replace session stamp with standardized format (final format routine)
-    Call ReplaceSessionStampParagraph()
+    ' Call ReplaceSessionStampParagraph
     
     ' Configure view (keeps user zoom)
     Call ConfigureDocumentView(doc)
@@ -2288,7 +2304,7 @@ Private Function ApplyStdFont(doc As Document) As Boolean
         Dim paraFont As Font
         Set paraFont = para.Range.Font
         Dim needsFontFormatting As Boolean
-    needsFontFormatting = (paraFont.name <> STANDARD_FONT) Or _
+    needsFontFormatting = (paraFont.Name <> STANDARD_FONT) Or _
                  (paraFont.size <> STANDARD_FONT_SIZE) Or _
                              (paraFont.Color <> wdColorAutomatic)
         
@@ -2327,7 +2343,7 @@ Private Function ApplyStdFont(doc As Document) As Boolean
         
     ' Only check text when special formatting decisions are needed
         If needsUnderlineRemoval Or needsBoldRemoval Then
-            paraFullText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+            paraFullText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
             
             ' Check if it is the first paragraph with text (title) - optimized
             If i <= 3 And para.Format.alignment = wdAlignParagraphCenter And paraFullText <> "" Then
@@ -2353,7 +2369,7 @@ Private Function ApplyStdFont(doc As Document) As Boolean
                 Set nextPara = doc.Paragraphs(i + 1)
                 If Not HasVisualContent(nextPara) Then
                     Dim nextParaText As String
-                    nextParaText = Trim(Replace(Replace(nextPara.Range.text, vbCr, ""), vbLf, ""))
+                    nextParaText = Trim(Replace(Replace(nextPara.Range.Text, vbCr, ""), vbLf, ""))
                     ' Remove ending punctuation for analysis
                     Dim nextCleanText As String
                     nextCleanText = nextParaText
@@ -2376,7 +2392,7 @@ Private Function ApplyStdFont(doc As Document) As Boolean
                 Else
                     ' Fallback to traditional method in case of error
                     With paraFont
-                        .name = STANDARD_FONT
+                        .Name = STANDARD_FONT
                         .size = STANDARD_FONT_SIZE
                         .Color = wdColorAutomatic
                     End With
@@ -2444,7 +2460,7 @@ Private Sub FormatCharacterByCharacter(para As Paragraph, fontName As String, fo
             If charRange.InlineShapes.count = 0 Then
                 With charRange.Font
                     ' Apply font formatting if specified
-                    If fontName <> "" Then .name = fontName
+                    If fontName <> "" Then .Name = fontName
                     If fontSize > 0 Then .size = fontSize
                     If fontColor >= 0 Then .Color = fontColor
                     
@@ -2497,7 +2513,7 @@ Private Function ApplyStdParagraphs(doc As Document) As Boolean
         
     ' Robust cleanup of multiple spaces - ALWAYS applied
         Dim cleanText As String
-    cleanText = para.Range.text
+    cleanText = para.Range.Text
         
     ' OPTIMIZED: Combine multiple cleanup operations in one block
         If InStr(cleanText, "  ") > 0 Or InStr(cleanText, vbTab) > 0 Then
@@ -2524,16 +2540,6 @@ Private Function ApplyStdParagraphs(doc As Document) As Boolean
             Loop
         End If
         
-    ' Apply cleaned text ONLY if there are no images (protection)
-        If cleanText <> para.Range.text And Not hasInlineImage Then
-            para.Range.text = cleanText
-        End If
-
-    paraText = Trim(LCase(Replace(Replace(Replace(para.Range.text, ".", ""), ",", ""), ";", "")))
-        paraText = Replace(paraText, vbCr, "")
-        paraText = Replace(paraText, vbLf, "")
-        paraText = Replace(paraText, " ", "")
-
     ' Paragraph formatting - ALWAYS applied
         With para.Format
             .LineSpacingRule = wdLineSpacingMultiple
@@ -2594,7 +2600,7 @@ Private Function FormatSecondParagraph(doc As Document) As Boolean
     ' Find the 2nd paragraph with content (skip empty)
     For i = 1 To doc.Paragraphs.count
         Set para = doc.Paragraphs(i)
-    paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+    paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
         
     ' If the paragraph has text or visual content, count as valid paragraph
         If paraText <> "" Or HasVisualContent(para) Then
@@ -2697,7 +2703,7 @@ Private Function CountBlankLinesBefore(doc As Document, paraIndex As Long) As Lo
         If i <= 0 Then Exit For
         
         Set para = doc.Paragraphs(i)
-    paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+    paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
         
     ' If the paragraph is empty, count as a blank line
         If paraText = "" And Not HasVisualContent(para) Then
@@ -2737,7 +2743,7 @@ Private Function CountBlankLinesAfter(doc As Document, paraIndex As Long) As Lon
         End If
         On Error GoTo ErrorHandler
         
-        paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+        paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
         
         If paraText = "" And Not HasVisualContent(para) Then
             count = count + 1
@@ -2755,7 +2761,9 @@ ErrorHandler:
     CountBlankLinesAfter = 0
 End Function
 
-' filepath: c:\Users\csantos\Meu Drive\Câmara\Câmara 2025\Legislativo\Projects\chainsaw\src\src\modChainsaw1.bas
+'================================================================================
+' FIND SESSION STAMP PARAGRAPH
+'================================================================================
 Private Function FindSessionStampParagraph(doc As Document) As Paragraph
     On Error GoTo ErrorHandler
     
@@ -2790,7 +2798,7 @@ Private Function FindSessionStampParagraph(doc As Document) As Paragraph
                 If CountWordsForStamp(rawText) <= MAX_SESSION_STAMP_WORDS Then
                     normalizedLine = NormalizeForMatching(rawText)
                     
-                    If IsLikelySessionStamp(normalizedLine, para.Range.text) Then
+                    If IsLikelySessionStamp(normalizedLine, para.Range.Text) Then
                         If HasBlankPadding(para) Then
                             Set FindSessionStampParagraph = para
                             Exit Function
@@ -2808,51 +2816,6 @@ NextIter:
     
 ErrorHandler:
     Set FindSessionStampParagraph = Nothing
-End Function
-
-' filepath: c:\Users\csantos\Meu Drive\Câmara\Câmara 2025\Legislativo\Projects\chainsaw\src\src\modChainsaw1.bas
-Private Function IsNumeric(val As String) As Boolean
-    On Error Resume Next
-    IsNumeric = (CDbl(val) = CDbl(val))
-    On Error GoTo 0
-End Function
-
-' filepath: c:\Users\csantos\Meu Drive\Câmara\Câmara 2025\Legislativo\Projects\chainsaw\src\src\modChainsaw1.bas
-Private Function ReplaceSessionStampParagraph() As Boolean
-    On Error GoTo ErrorHandler
-    
-    If ParagraphStampLocation Is Nothing Then
-        ReplaceSessionStampParagraph = False
-        Exit Function
-    End If
-    
-    ' Guard: Verify paragraph is still valid in document
-    On Error Resume Next
-    Dim testRange As Range
-    Set testRange = ParagraphStampLocation.Range
-    If Err.Number <> 0 Or testRange Is Nothing Then
-        Err.Clear
-        ReplaceSessionStampParagraph = False
-        Exit Function
-    End If
-    On Error GoTo ErrorHandler
-    
-    Dim replacementText As String
-    replacementText = "Plenário Dr. Tancredo Neves, $DATAATUALEXTENSO$."
-    
-    ParagraphStampLocation.Range.text = replacementText & vbCr
-    
-    With ParagraphStampLocation
-        .Alignment = wdAlignParagraphCenter
-        .SpaceAfter = 0
-        .SpaceBefore = 0
-    End With
-    
-    ReplaceSessionStampParagraph = True
-    Exit Function
-    
-ErrorHandler:
-    ReplaceSessionStampParagraph = False
 End Function
 
 ' ISSUE #1: HasBlankPadding() - Fix undefined 'doc' variable
@@ -2939,7 +2902,7 @@ Private Function ParagraphTextWithoutBreaks(para As Paragraph) As String
     Dim txt As String
     
     ' Extract paragraph text (includes trailing vbCr)
-    txt = para.Range.text
+    txt = para.Range.Text
     
     ' Remove line feed characters (if any)
     txt = Replace(txt, vbLf, "")
@@ -2992,14 +2955,14 @@ End Function
 '     End If
 
 ' SUMMARY OF RECOMMENDED ACTIONS:
-' ✓ Apply HasBlankPadding() fix (undefined doc reference)
-' ✓ Fix ParagraphTextWithoutBreaks() to properly preserve/trim vbCr
-' ✓ Enhance FindSessionStampParagraph() with safety limits and better error handling
-' ✓ Remove duplicate IsNumeric() definition (keep ONE)
-' ✓ Add array bounds check in FormatDocumentTitle()
-' ✓ Verify all referenced helper functions are present and visible
-' ✓ Consider adding simple logging function for error tracking
-' ✓ Add timeout protection for documents > 1000 paragraphs
+' ? Apply HasBlankPadding() fix (undefined doc reference)
+' ? Fix ParagraphTextWithoutBreaks() to properly preserve/trim vbCr
+' ? Enhance FindSessionStampParagraph() with safety limits and better error handling
+' ? Remove duplicate IsNumeric() definition (keep ONE)
+' ? Add array bounds check in FormatDocumentTitle()
+' ? Verify all referenced helper functions are present and visible
+' ? Consider adding simple logging function for error tracking
+' ? Add timeout protection for documents > 1000 paragraphs
 
 '================================================================================
 ' MISSING HELPER FUNCTIONS - RESTORED FROM x.bas ANALYSIS
@@ -3362,7 +3325,7 @@ Private Function LimitSequentialEmptyLines(doc As Document) As Boolean
         i = 1
         emptyLineCount = 0
 
-        Do While i <= doc.Paragraphs.Count And fallbackRemoved < 50
+        Do While i <= doc.Paragraphs.count And fallbackRemoved < 50
             Set para = doc.Paragraphs(i)
             paraText = Trim$(Replace$(Replace$(para.Range.Text, vbCr, vbNullString), vbLf, vbNullString))
 
@@ -3407,13 +3370,15 @@ Private Function EnsureParagraphSeparation(doc As Document) As Boolean
     Dim i As Long
     Dim insertedCount As Long
     Dim totalChecked As Long
-    Dim paraText As String
-    Dim nextParaText As String
     Dim currentParaEnd As Long
     Dim nextParaStart As Long
     Dim insertRange As Range
 
-    For i = 1 To doc.Paragraphs.Count - 1
+    ' Added missing declarations to fix "Variable not defined" compile error
+    Dim paraText As String
+    Dim nextParaText As String
+
+    For i = 1 To doc.Paragraphs.count - 1
         Set para = doc.Paragraphs(i)
         Set nextPara = doc.Paragraphs(i + 1)
         totalChecked = totalChecked + 1
@@ -3467,7 +3432,7 @@ Private Function GetSecondParagraphIndex(doc As Document) As Long
 
     actualParaIndex = 0
 
-    For i = 1 To doc.Paragraphs.Count
+    For i = 1 To doc.Paragraphs.count
         Set para = doc.Paragraphs(i)
         paraText = Trim$(Replace$(Replace$(para.Range.Text, vbCr, vbNullString), vbLf, vbNullString))
 
@@ -3511,7 +3476,7 @@ Private Function EnsureSecondParagraphBlankLines(doc As Document) As Boolean
     linesToAdd = 0
     linesToAddAfter = 0
 
-    If secondParaIndex > 0 And secondParaIndex <= doc.Paragraphs.Count Then
+    If secondParaIndex > 0 And secondParaIndex <= doc.Paragraphs.count Then
         Set para = doc.Paragraphs(secondParaIndex)
 
         blankLinesBefore = CountBlankLinesBefore(doc, secondParaIndex)
@@ -3608,7 +3573,7 @@ Private Function IsParagraphEffectivelyBlank(para As Paragraph) As Boolean
     On Error GoTo ErrorHandler
     If para Is Nothing Then IsParagraphEffectivelyBlank = True: Exit Function
     Dim txt As String
-    txt = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+    txt = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
     IsParagraphEffectivelyBlank = (txt = "" And para.Range.InlineShapes.count = 0)
     Exit Function
 ErrorHandler:
@@ -3746,7 +3711,7 @@ Private Function CreateDocumentBackup(doc As Document) As Boolean
     End If
     
     ' Não faz backup se documento não foi salvo
-    If doc.path = "" Then
+    If doc.Path = "" Then
         LogEvent "CreateDocumentBackup", "INFO", "Backup ignorado - documento não salvo", 0, "Document has no path"
         CreateDocumentBackup = True
         Exit Function
@@ -3770,7 +3735,7 @@ Private Function CreateDocumentBackup(doc As Document) As Boolean
     ' Define pasta de backup
     On Error Resume Next
     Dim parentPath As String
-    parentPath = fso.GetParentFolderName(doc.path)
+    parentPath = fso.GetParentFolderName(doc.Path)
     On Error GoTo ErrorHandler
     
     If parentPath = "" Then
@@ -3844,19 +3809,12 @@ Private Function CreateDocumentBackup(doc As Document) As Boolean
     
     ' Verifica se o backup foi criado
     If Not fso.FileExists(backupFilePath) Then
-        LogEvent "CreateDocumentBackup", "ERROR", "Arquivo de backup não foi criado", 0, "Backup file not created"
-        Exit Function
-    End If
-    
-    ' Limpa backups antigos
-    CleanOldBackups backupFolder, docName
-    
-    LogEvent "CreateDocumentBackup", "INFO", "Backup criado: " & backupFileName, 0, "Backup successful"
     CreateDocumentBackup = True
     On Error Resume Next
     Set fso = Nothing
     On Error GoTo 0
     Exit Function
+    End If
 
 ErrorHandler:
     LogEvent "CreateDocumentBackup", "ERROR", "Erro crítico: " & Err.Description, 0, "Error at line " & Erl
@@ -3879,7 +3837,7 @@ Private Sub CleanOldBackups(backupFolder As String, docBaseName As String)
     Set folder = fso.GetFolder(backupFolder)
     
     Dim filesCount As Long
-    filesCount = folder.Files.Count
+    filesCount = folder.Files.count
     
     If filesCount > 10 Then
         LogEvent "CleanOldBackups", "WARNING", "Muitos backups na pasta (" & filesCount & " arquivos)", 0, "Consider manual cleanup"
@@ -3907,8 +3865,8 @@ Public Sub AbrirPastaBackups()
     Set doc = ActiveDocument
     On Error GoTo ErrorHandler
     
-    If Not doc Is Nothing And doc.path <> "" Then
-        backupFolder = fso.GetParentFolderName(doc.path) & BACKUP_FOLDER_NAME
+    If Not doc Is Nothing And doc.Path <> "" Then
+        backupFolder = fso.GetParentFolderName(doc.Path) & BACKUP_FOLDER_NAME
     Else
         Application.StatusBar = "Nenhum documento salvo ativo"
         Set fso = Nothing
@@ -3951,7 +3909,7 @@ Private Function DeleteHiddenVisualElements(doc As Document) As Boolean
     deletedCount = 0
     
     Dim i As Long
-    For i = doc.Shapes.Count To 1 Step -1
+    For i = doc.Shapes.count To 1 Step -1
         Dim shp As Shape
         Set shp = doc.Shapes(i)
         
@@ -3974,7 +3932,7 @@ Private Function DeleteHiddenVisualElements(doc As Document) As Boolean
         End If
     Next i
     
-    For i = doc.InlineShapes.Count To 1 Step -1
+    For i = doc.InlineShapes.count To 1 Step -1
         Dim inlineShp As InlineShape
         Set inlineShp = doc.InlineShapes(i)
         
@@ -4009,7 +3967,7 @@ Private Function DeleteVisualElementsInFirstFourParagraphs(doc As Document) As B
     
     Application.StatusBar = "Removendo elementos dos primeiros 4 parágrafos..."
     
-    If doc.Paragraphs.Count < 1 Then
+    If doc.Paragraphs.count < 1 Then
         LogEvent "DeleteVisualElementsInFirstFourParagraphs", "INFO", "Documento vazio", 0, "Skipping"
         DeleteVisualElementsInFirstFourParagraphs = True
         Exit Function
@@ -4019,8 +3977,8 @@ Private Function DeleteVisualElementsInFirstFourParagraphs(doc As Document) As B
     deletedCount = 0
     
     Dim maxParagraphs As Long
-    If doc.Paragraphs.Count < 4 Then
-        maxParagraphs = doc.Paragraphs.Count
+    If doc.Paragraphs.count < 4 Then
+        maxParagraphs = doc.Paragraphs.count
     Else
         maxParagraphs = 4
     End If
@@ -4031,7 +3989,7 @@ Private Function DeleteVisualElementsInFirstFourParagraphs(doc As Document) As B
     endRange = doc.Paragraphs(maxParagraphs).Range.End
     
     Dim i As Long
-    For i = doc.Shapes.Count To 1 Step -1
+    For i = doc.Shapes.count To 1 Step -1
         Dim shp As Shape
         Set shp = doc.Shapes(i)
         
@@ -4049,7 +4007,7 @@ Private Function DeleteVisualElementsInFirstFourParagraphs(doc As Document) As B
         End If
     Next i
     
-    For i = doc.InlineShapes.Count To 1 Step -1
+    For i = doc.InlineShapes.count To 1 Step -1
         Dim inlineShp As InlineShape
         Set inlineShp = doc.InlineShapes(i)
         
@@ -4076,7 +4034,7 @@ End Function
 '================================================================================
 Private Function GetParagraphNumberFromPosition(doc As Document, position As Long) As Long
     Dim i As Long
-    For i = 1 To doc.Paragraphs.Count
+    For i = 1 To doc.Paragraphs.count
         If position >= doc.Paragraphs(i).Range.Start And position <= doc.Paragraphs(i).Range.End Then
             GetParagraphNumberFromPosition = i
             Exit Function
@@ -4125,7 +4083,7 @@ Private Function OptimizedFindReplace(findText As String, replaceText As String,
     Dim doc As Document
     Set doc = ActiveDocument
     
-    If doc.Paragraphs.Count > OPTIMIZATION_THRESHOLD Then
+    If doc.Paragraphs.count > OPTIMIZATION_THRESHOLD Then
         OptimizedFindReplace = BulkFindReplace(findText, replaceText, searchRange)
     Else
         OptimizedFindReplace = StandardFindReplace(findText, replaceText, searchRange)
@@ -4281,15 +4239,15 @@ End Sub
 Private Sub ProcessValidationConfig(key As String, value As String)
     Select Case key
         Case "CHECK_WORD_VERSION"
-            runtimeConfig.checkWordVersion = (LCase(value) = "true")
+            runtimeConfig.CheckWordVersion = (LCase(value) = "true")
         Case "VALIDATE_DOCUMENT_INTEGRITY"
-            runtimeConfig.validateDocumentIntegrity = (LCase(value) = "true")
+            runtimeConfig.ValidateDocumentIntegrity = (LCase(value) = "true")
         Case "VALIDATE_PROPOSITION_TYPE"
-            runtimeConfig.validatePropositionType = (LCase(value) = "true")
+            runtimeConfig.ValidatePropositionType = (LCase(value) = "true")
         Case "VALIDATE_CONTENT_CONSISTENCY"
-            runtimeConfig.validateContentConsistency = (LCase(value) = "true")
+            runtimeConfig.ValidateContentConsistency = (LCase(value) = "true")
         Case "CHECK_DISK_SPACE"
-            runtimeConfig.checkDiskSpace = (LCase(value) = "true")
+            runtimeConfig.CheckDiskSpace = (LCase(value) = "true")
         Case "MIN_WORD_VERSION"
             runtimeConfig.minWordVersion = CDbl(value)
         Case "MAX_DOCUMENT_SIZE"
@@ -4315,19 +4273,19 @@ End Sub
 Private Sub ProcessFormattingConfig(key As String, value As String)
     Select Case key
         Case "APPLY_PAGE_SETUP"
-            runtimeConfig.applyPageSetup = (LCase(value) = "true")
+            runtimeConfig.ApplyPageSetup = (LCase(value) = "true")
         Case "APPLY_STANDARD_FONT"
             runtimeConfig.applyStandardFont = (LCase(value) = "true")
         Case "APPLY_STANDARD_PARAGRAPHS"
             runtimeConfig.applyStandardParagraphs = (LCase(value) = "true")
         Case "FORMAT_FIRST_PARAGRAPH"
-            runtimeConfig.formatFirstParagraph = (LCase(value) = "true")
+            runtimeConfig.FormatFirstParagraph = (LCase(value) = "true")
         Case "FORMAT_SECOND_PARAGRAPH"
-            runtimeConfig.formatSecondParagraph = (LCase(value) = "true")
+            runtimeConfig.FormatSecondParagraph = (LCase(value) = "true")
         Case "FORMAT_NUMBERED_PARAGRAPHS"
-            runtimeConfig.formatNumberedParagraphs = (LCase(value) = "true")
+            runtimeConfig.FormatNumberedParagraphs = (LCase(value) = "true")
         Case "FORMAT_CONSIDERANDO_PARAGRAPHS"
-            runtimeConfig.formatConsiderandoParagraphs = (LCase(value) = "true")
+            runtimeConfig.FormatConsiderandoParagraphs = (LCase(value) = "true")
         Case "FORMAT_JUSTIFICATIVA_PARAGRAPHS"
             runtimeConfig.formatJustificativaParagraphs = (LCase(value) = "true")
         Case "ENABLE_HYPHENATION"
@@ -4340,13 +4298,13 @@ Private Sub ProcessCleaningConfig(key As String, value As String)
         Case "CLEAR_ALL_FORMATTING"
             runtimeConfig.clearAllFormatting = (LCase(value) = "true")
         Case "CLEAN_DOCUMENT_STRUCTURE"
-            runtimeConfig.cleanDocumentStructure = (LCase(value) = "true")
+            runtimeConfig.CleanDocumentStructure = (LCase(value) = "true")
         Case "CLEAN_MULTIPLE_SPACES"
-            runtimeConfig.cleanMultipleSpaces = (LCase(value) = "true")
+            runtimeConfig.CleanMultipleSpaces = (LCase(value) = "true")
         Case "LIMIT_SEQUENTIAL_EMPTY_LINES"
-            runtimeConfig.limitSequentialEmptyLines = (LCase(value) = "true")
+            runtimeConfig.LimitSequentialEmptyLines = (LCase(value) = "true")
         Case "ENSURE_PARAGRAPH_SEPARATION"
-            runtimeConfig.ensureParagraphSeparation = (LCase(value) = "true")
+            runtimeConfig.EnsureParagraphSeparation = (LCase(value) = "true")
         Case "CLEAN_VISUAL_ELEMENTS"
             runtimeConfig.cleanVisualElements = (LCase(value) = "true")
         Case "DELETE_HIDDEN_ELEMENTS"
@@ -4359,11 +4317,11 @@ End Sub
 Private Sub ProcessHeaderFooterConfig(key As String, value As String)
     Select Case key
         Case "INSERT_HEADER_stamp"
-            runtimeConfig.insertHeaderstamp = (LCase(value) = "true")
+            runtimeConfig.InsertHeaderstamp = (LCase(value) = "true")
         Case "INSERT_FOOTER_stamp"
-            runtimeConfig.insertFooterstamp = (LCase(value) = "true")
+            runtimeConfig.InsertFooterstamp = (LCase(value) = "true")
         Case "REMOVE_WATERMARK"
-            runtimeConfig.removeWatermark = (LCase(value) = "true")
+            runtimeConfig.RemoveWatermark = (LCase(value) = "true")
         Case "HEADER_IMAGE_PATH"
             runtimeConfig.headerImagePath = value
         Case "HEADER_IMAGE_MAX_WIDTH"
@@ -4376,9 +4334,9 @@ End Sub
 Private Sub ProcessReplacementConfig(key As String, value As String)
     Select Case key
         Case "APPLY_TEXT_REPLACEMENTS"
-            runtimeConfig.applyTextReplacements = (LCase(value) = "true")
+            runtimeConfig.ApplyTextReplacements = (LCase(value) = "true")
         Case "APPLY_SPECIFIC_PARAGRAPH_REPLACEMENTS"
-            runtimeConfig.applySpecificParagraphReplacements = (LCase(value) = "true")
+            runtimeConfig.ApplySpecificParagraphReplacements = (LCase(value) = "true")
         Case "REPLACE_HYPHENS_WITH_EM_DASH"
             runtimeConfig.replaceHyphensWithEmDash = (LCase(value) = "true")
         Case "REMOVE_MANUAL_LINE_BREAKS"
@@ -4530,8 +4488,8 @@ Public Sub AbrirPastaLogs()
     On Error GoTo ErrorHandler
     
     ' Define pasta de logs baseada no documento atual ou temp
-    If Not doc Is Nothing And doc.path <> "" Then
-        logsFolder = doc.path
+    If Not doc Is Nothing And doc.Path <> "" Then
+        logsFolder = doc.Path
     Else
         logsFolder = Environ("TEMP")
     End If
@@ -4580,7 +4538,7 @@ Public Sub SalvarESair()
     LogEvent "SalvarESair", "INFO", "Iniciando processo de salvar e sair - verificação de documentos", 0, ""
     
     ' Verifica se há documentos abertos
-    If Application.Documents.Count = 0 Then
+    If Application.Documents.count = 0 Then
         Application.StatusBar = "Nenhum documento aberto - encerrando Word"
         LogEvent "SalvarESair", "INFO", "Nenhum documento aberto - encerrando aplicação", 0, ""
         Application.Quit SaveChanges:=wdDoNotSaveChanges
@@ -4595,12 +4553,12 @@ Public Sub SalvarESair()
     Dim i As Long
     
     ' Verifica cada documento aberto
-    For i = 1 To Application.Documents.Count
+    For i = 1 To Application.Documents.count
         Set doc = Application.Documents(i)
         
         On Error Resume Next
         ' Verifica se o documento tem alterações não salvas
-        If doc.Saved = False Or doc.path = "" Then
+        If doc.Saved = False Or doc.Path = "" Then
             unsavedDocs.Add doc.Name
             LogEvent "SalvarESair", "INFO", "Documento não salvo detectado: " & doc.Name, 0, ""
         End If
@@ -4608,7 +4566,7 @@ Public Sub SalvarESair()
     Next i
     
     ' Se não há documentos não salvos, encerra diretamente
-    If unsavedDocs.Count = 0 Then
+    If unsavedDocs.count = 0 Then
         Application.StatusBar = "Todos os documentos salvos - encerrando Word"
         LogEvent "SalvarESair", "INFO", "Todos os documentos estão salvos - encerrando aplicação", 0, ""
         Application.Quit SaveChanges:=wdDoNotSaveChanges
@@ -4619,11 +4577,11 @@ Public Sub SalvarESair()
     Dim message As String
     Dim docList As String
     
-    For i = 1 To unsavedDocs.Count
+    For i = 1 To unsavedDocs.count
         docList = docList & "• " & unsavedDocs(i) & vbCrLf
     Next i
     
-    message = "ATENÇÃO: Há " & unsavedDocs.Count & " documento(s) com alterações não salvas:" & vbCrLf & vbCrLf
+    message = "ATENÇÃO: Há " & unsavedDocs.count & " documento(s) com alterações não salvas:" & vbCrLf & vbCrLf
     message = message & docList & vbCrLf
     message = message & "Deseja salvar todos os documentos antes de sair?" & vbCrLf & vbCrLf
     message = message & "• SIM: Salva todos e fecha o Word" & vbCrLf
@@ -4635,7 +4593,7 @@ Public Sub SalvarESair()
     
     Dim userChoice As VbMsgBoxResult
     userChoice = MsgBox(message, vbYesNoCancel + vbExclamation + vbDefaultButton1, _
-                        "Chainsaw - Salvar e Sair (" & unsavedDocs.Count & " documentos não salvos)")
+                        "Chainsaw - Salvar e Sair (" & unsavedDocs.count & " documentos não salvos)")
     
     Select Case userChoice
         Case vbYes
@@ -4660,7 +4618,7 @@ Public Sub SalvarESair()
             ' Usuário escolheu não salvar
             Dim confirmMessage As String
             confirmMessage = "CONFIRMAÇÃO FINAL:" & vbCrLf & vbCrLf
-            confirmMessage = confirmMessage & "Você está prestes a FECHAR O WORD SEM SALVAR " & unsavedDocs.Count & " documento(s)." & vbCrLf & vbCrLf
+            confirmMessage = confirmMessage & "Você está prestes a FECHAR O WORD SEM SALVAR " & unsavedDocs.count & " documento(s)." & vbCrLf & vbCrLf
             confirmMessage = confirmMessage & "TODAS AS ALTERAÇÕES NÃO SALVAS SERÃO PERDIDAS!" & vbCrLf & vbCrLf
             confirmMessage = confirmMessage & "Tem certeza absoluta?"
             
@@ -4717,7 +4675,7 @@ Private Function SalvarTodosDocumentos() As Boolean
     Dim errorCount As Long
     Dim totalDocs As Long
     
-    totalDocs = Application.Documents.Count
+    totalDocs = Application.Documents.count
     
     ' Salva cada documento individualmente
     For i = 1 To totalDocs
@@ -4728,7 +4686,7 @@ Private Function SalvarTodosDocumentos() As Boolean
         On Error Resume Next
         
         ' Se o documento nunca foi salvo (sem caminho), abre dialog
-        If doc.path = "" Then
+        If doc.Path = "" Then
             Dim saveDialog As Object
             Set saveDialog = Application.FileDialog(msoFileDialogSaveAs)
             
@@ -4821,7 +4779,7 @@ Private Function OptimizedParagraphProcessing(processingFunction As String) As B
     Dim doc As Document
     Set doc = ActiveDocument
     
-    If doc.Paragraphs.Count > OPTIMIZATION_THRESHOLD Then
+    If doc.Paragraphs.count > OPTIMIZATION_THRESHOLD Then
         OptimizedParagraphProcessing = BatchProcessParagraphs(processingFunction)
     Else
         OptimizedParagraphProcessing = StandardProcessParagraphs(processingFunction)
@@ -4846,7 +4804,7 @@ Private Function BatchProcessParagraphs(processingFunction As String) As Boolean
     Set doc = ActiveDocument
     
     Dim paragraphCount As Long
-    paragraphCount = doc.Paragraphs.Count
+    paragraphCount = doc.Paragraphs.count
     
     Dim batchSize As Long
     batchSize = IIf(paragraphCount > OPTIMIZATION_THRESHOLD, MAX_PARAGRAPH_BATCH_SIZE, paragraphCount)
@@ -4914,7 +4872,7 @@ Private Function ProcessParagraphBatch(startIndex As Long, endIndex As Long, pro
     
     Dim i As Long
     For i = startIndex To endIndex
-        If i <= doc.Paragraphs.Count Then
+        If i <= doc.Paragraphs.count Then
             Dim para As Paragraph
             Set para = doc.Paragraphs(i)
             
