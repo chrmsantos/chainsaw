@@ -130,7 +130,7 @@ Private Const HEADER_DISTANCE_CM As Double = 0.3
 Private Const FOOTER_DISTANCE_CM As Double = 0.9
 
 ' Header image constants
-Private Const HEADER_IMAGE_RELATIVE_PATH As String = "\chainsaw-fprops\private-data\Stamp.png"
+Private Const HEADER_IMAGE_RELATIVE_PATH As String = "\chainsaw-proposituras\assets\stamp.png"
 Private Const HEADER_IMAGE_MAX_WIDTH_CM As Double = 21
 Private Const HEADER_IMAGE_TOP_MARGIN_CM As Double = 0.7
 Private Const HEADER_IMAGE_HEIGHT_RATIO As Double = 0.19
@@ -151,7 +151,7 @@ Private Const MAX_RETRY_ATTEMPTS As Long = 3
 Private Const RETRY_DELAY_MS As Long = 1000
 
 ' Backup constants
-Private Const BACKUP_FOLDER_NAME As String = "chainsaw-backups"
+Private Const BACKUP_FOLDER_NAME As String = "\chainsaw-proposituras\backups"
 Private Const MAX_BACKUP_FILES As Long = 10
 
 '================================================================================
@@ -4089,51 +4089,45 @@ End Sub
 Private Sub ReplacePlenarioDateParagraph(doc As Document)
     On Error GoTo ErrorHandler
     
+    If doc Is Nothing Then Exit Sub
+    
     Dim para As Paragraph
-    Dim matchCount As Integer
     Dim paraText As String
-    Dim searchTerms() As String
+    Dim matchCount As Integer
+    Dim terms() As String
     
-    ' Define the search terms array
-    searchTerms = Array("Palácio 15 de Junho", "Plenário", "Dr. Tancredo Neves", _
-                       " de janeiro de ", "de fevereiro de", "de março de", "de abril de", _
-                       "de maio de", "de junho de", "de julho de", "de agosto de", _
-                       "de setembro de", "de outubro de", "de novembro de", "de dezembro de")
+    ' Define os termos de busca
+    terms = Split("Palácio 15 de Junho,Plenário,Dr. Tancredo Neves," & _
+                 " de janeiro de , de fevereiro de, de março de, de abril de," & _
+                 " de maio de, de junho de, de julho de, de agosto de," & _
+                 " de setembro de, de outubro de, de novembro de, de dezembro de", ",")
     
+    ' Processa cada parágrafo
     For Each para In doc.Paragraphs
-        ' Reset match counter for each paragraph
         matchCount = 0
         
-        ' Skip if paragraph is too long
-        If Len(para.Range.text) > 80 Then
-            GoTo NextParagraph
-        End If
-        
-        ' Get paragraph text and convert to lowercase for case-insensitive comparison
-        paraText = LCase(para.Range.text)
-        
-        ' Count matches in this paragraph
-        Dim term As Variant
-        For Each term In searchTerms
-            If InStr(1, paraText, LCase(CStr(term)), vbTextCompare) > 0 Then
-                matchCount = matchCount + 1
+        ' Pula parágrafos muito longos
+        If Len(para.Range.Text) <= 80 Then
+            paraText = para.Range.Text
+            
+            ' Conta matches
+            Dim term As Variant
+            For Each term In terms
+                If InStr(1, paraText, CStr(term), vbTextCompare) > 0 Then
+                    matchCount = matchCount + 1
+                End If
                 If matchCount >= 2 Then
-                    ' We found at least 2 matches and paragraph is within length limit
-                    ' Replace the paragraph text
-                    para.Range.text = "Plenário ""Dr. Tancredo Neves"", $DATAATUALEXTENSO$."
-                    LogMessage "Parágrafo substituído: """ & Left(paraText, 50) & "...""", LOG_LEVEL_INFO
+                    ' Encontrou 2+ matches, faz a substituição
+                    para.Range.Text = "Plenário ""Dr. Tancredo Neves"", $DATAATUALEXTENSO$."
+                    LogMessage "Parágrafo de plenário substituído", LOG_LEVEL_INFO
                     Exit For
                 End If
-            End If
-        Next term
-        
-NextParagraph:
+            Next term
+        End If
     Next para
     
     Exit Sub
     
 ErrorHandler:
     LogMessage "Erro ao processar parágrafos: " & Err.Description, LOG_LEVEL_ERROR
-    Resume Next
 End Sub
-
