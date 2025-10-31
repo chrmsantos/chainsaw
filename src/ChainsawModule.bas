@@ -130,6 +130,7 @@ Private Const HEADER_DISTANCE_CM As Double = 0.3
 Private Const FOOTER_DISTANCE_CM As Double = 0.9
 
 ' Header image constants
+' Header image constants
 Private Const HEADER_IMAGE_RELATIVE_PATH As String = "\chainsaw-proposituras\assets\stamp.png"
 Private Const HEADER_IMAGE_MAX_WIDTH_CM As Double = 21
 Private Const HEADER_IMAGE_TOP_MARGIN_CM As Double = 0.7
@@ -947,9 +948,6 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     
     ' REFORÇO: Garante que o 2º parágrafo mantenha suas 2 linhas em branco
     EnsureSecondParagraphBlankLines doc
-    
-    ' REFORÇO: Aplica novamente formatação especial para garantir que não foi sobrescrita
-    FormatJustificativaAnexoParagraphs doc
 
     ' Substituição de datas no parágrafo de plenário
     ReplacePlenarioDateParagraph doc
@@ -1283,7 +1281,7 @@ Private Function ApplyStdParagraphs(doc As Document) As Boolean
             para.Range.text = cleanText
         End If
 
-        paraText = Trim(LCase(Replace(Replace(Replace(para.Range.text, ".", ""), ",", ""), ";", "")))
+        paraText = Trim(LCase(Replace(Replace(para.Range.text, ".", ""), ",", ""), ";", ""))
         paraText = Replace(paraText, vbCr, "")
         paraText = Replace(paraText, vbLf, "")
         paraText = Replace(paraText, " ", "")
@@ -1303,10 +1301,10 @@ Private Function ApplyStdParagraphs(doc As Document) As Boolean
                 firstIndent = .firstLineIndent
                 paragraphIndent = .leftIndent
                 If paragraphIndent >= CentimetersToPoints(5) Then
-                    .leftIndent = CentimetersToPoints(9.5)
+                    .leftIndent = CentimetersToPoints(9)
                 ElseIf firstIndent < CentimetersToPoints(5) Then
                     .leftIndent = CentimetersToPoints(0)
-                    .firstLineIndent = CentimetersToPoints(1.5)
+                    .firstLineIndent = CentimetersToPoints(2.5)
                 End If
             End If
         End With
@@ -1791,84 +1789,136 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' INSERT HEADER IMAGE - #STABLE
+' HEADER IMAGE PATH MANAGEMENT - #STABLE
+'================================================================================
+Private Function GetHeaderImagePath() As String
+    On Error GoTo ErrorHandler
+
+    Dim fso As Object
+    Dim shell As Object
+    Dim documentsPath As String
+    Dim headerImagePath As String
+
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    Set shell = CreateObject("WScript.Shell")
+
+    ' Obtém pasta Documents do usuário atual (compatível com Windows)
+    documentsPath = shell.SpecialFolders("MyDocuments")
+    If Right(documentsPath, 1) = "\" Then
+        documentsPath = Left(documentsPath, Len(documentsPath) - 1)
+    End If
+
+    ' Constrói caminho absoluto para a imagem desejada
+    headerImagePath = documentsPath & "\chainsaw-proposituras\assets\stamp.png"
+
+    ' Verifica se o arquivo existe
+    If Not fso.FileExists(headerImagePath) Then
+        LogMessage "Imagem de cabeçalho não encontrada em: " & headerImagePath, LOG_LEVEL_WARNING
+        GetHeaderImagePath = ""
+        Exit Function
+    End If
+
+    GetHeaderImagePath = headerImagePath
+    Exit Function
+
+ErrorHandler:
+    LogMessage "Erro ao localizar imagem de cabeçalho: " & Err.Description, LOG_LEVEL_ERROR
+    GetHeaderImagePath = ""
+End Function
+
+'================================================================================
+' INSERT HEADER STAMP - insere a imagem do cabeçalho de forma segura
 '================================================================================
 Private Function InsertHeaderStamp(doc As Document) As Boolean
     On Error GoTo ErrorHandler
 
-    Dim sec As section
-    Dim header As HeaderFooter
-    Dim imgFile As String
-    Dim username As String
-    Dim imgWidth As Single
-    Dim imgHeight As Single
-    Dim shp As shape
-    Dim imgFound As Boolean
-    Dim sectionsProcessed As Long
+    Dim headerImagePath As String
+    Dim hdrRange As Range
+    Dim pic As InlineShape
+    Dim maxWidthPoints As Single
+    Dim aspectRatio As Double
 
-    username = GetSafeUserName()
-    imgFile = "C:\Users\" & username & HEADER_IMAGE_RELATIVE_PATH
+    InsertHeaderStamp = False
 
-    ' Busca inteligente da imagem em múltiplos locais
-    If Dir(imgFile) = "" Then
-        ' Tenta localização alternativa no perfil do usuário
-        imgFile = Environ("USERPROFILE") & HEADER_IMAGE_RELATIVE_PATH
-        If Dir(imgFile) = "" Then
-            ' Tenta localização de rede corporativa
-            imgFile = "\\strqnapmain\Dir. Legislativa\Christian" & HEADER_IMAGE_RELATIVE_PATH
-            If Dir(imgFile) = "" Then
-                ' Registra erro e tenta continuar sem a imagem
-                Application.StatusBar = "Aviso: Imagem de cabeçalho não encontrada"
-                LogMessage "Imagem de cabeçalho não encontrada em nenhum local: " & HEADER_IMAGE_RELATIVE_PATH, LOG_LEVEL_WARNING
-                InsertHeaderStamp = False
-                Exit Function
-            End If
-        End If
+    If doc Is Nothing Then Exit Function
+
+    ' Obtém caminho absoluto da imagem (usa Documents\<user>\chainsaw-proposituras\assets\stamp.png)
+    headerImagePath = GetHeaderImagePath()
+    If headerImagePath = "" Then
+        ' Já registrado pelo GetHeaderImagePath
+        Exit Function
     End If
 
-    imgWidth = CentimetersToPoints(HEADER_IMAGE_MAX_WIDTH_CM)
-    imgHeight = imgWidth * HEADER_IMAGE_HEIGHT_RATIO
+    ' Define largura máxima em pontos (usa constante HEADER_IMAGE_MAX_WIDTH_CM definida no módulo)
+    On Error Resume Next
+    maxWidthPoints = CentimetersToPoints(HEADER_IMAGE_MAX_WIDTH_CM)
+    If Err.Number <> 0 Then
+        Err.Clear
+        maxWidthPoints = 0
+    End If
+    On Error GoTo ErrorHandler
 
-    For Each sec In doc.Sections
-        Set header = sec.Headers(wdHeaderFooterPrimary)
-        If header.Exists Then
-            header.LinkToPrevious = False
-            header.Range.Delete
-            
-            Set shp = header.Shapes.AddPicture( _
-                FileName:=imgFile, _
-                LinkToFile:=False, _
-                SaveWithDocument:=msoTrue)
-            
-            If shp Is Nothing Then
-                LogMessage "Falha ao inserir imagem no cabeçalho da seção " & sectionsProcessed + 1, LOG_LEVEL_WARNING
+    ' Usa o cabeçalho primário da primeira seção (compatível com documentos simples)
+    Set hdrRange = doc.Sections(1).Headers(wdHeaderFooterPrimary).Range
+
+    ' Opcional: remove imagens anteriores com o mesmo caminho/stamp para evitar duplicação
+    On Error Resume Next
+    For Each pic In hdrRange.InlineShapes
+        If pic.Type = msoPicture Then
+            ' tenta comparar o SourceFullName quando possível (pode falhar em alguns casos)
+            If pic.LinkFormat Is Nothing Then
+                ' não linkado - remover todas as imagens do cabeçalho padrão para evitar duplicação
+                pic.Delete
             Else
-                With shp
-                    .LockAspectRatio = msoTrue
-                    .Width = imgWidth
-                    .Height = imgHeight
-                    .RelativeHorizontalPosition = wdRelativeHorizontalPositionPage
-                    .RelativeVerticalPosition = wdRelativeVerticalPositionPage
-                    .Left = (doc.PageSetup.PageWidth - .Width) / 2
-                    .Top = CentimetersToPoints(HEADER_IMAGE_TOP_MARGIN_CM)
-                    .WrapFormat.Type = wdWrapTopBottom
-                    .ZOrder msoSendToBack
-                End With
-                
-                imgFound = True
-                sectionsProcessed = sectionsProcessed + 1
+                ' se for linked picture, podemos verificar o SourceFullName
+                On Error Resume Next
+                If LCase(pic.LinkFormat.SourceFullName) = LCase(headerImagePath) Then
+                    pic.Delete
+                End If
+                On Error GoTo 0
             End If
         End If
-    Next sec
+    Next pic
+    On Error GoTo ErrorHandler
 
-    If imgFound Then
-        ' Log detalhado removido para performance
-        InsertHeaderStamp = True
-    Else
-        LogMessage "Nenhum cabeçalho foi inserido", LOG_LEVEL_WARNING
-        InsertHeaderStamp = False
+    ' Garante que o cabeçalho tem pelo menos um parágrafo para inserir a imagem
+    If Len(Trim(hdrRange.Text)) = 0 Then
+        hdrRange.Text = vbCr
     End If
 
+    ' Insere a imagem inline no cabeçalho
+    Set pic = hdrRange.InlineShapes.AddPicture(FileName:=headerImagePath, LinkToFile:=False, SaveWithDocument:=True)
+
+    ' Ajusta tamanho preservando proporção, se possível
+    On Error Resume Next
+    If Not pic Is Nothing Then
+        If maxWidthPoints > 0 Then
+            ' calcula aspect ratio atual e ajusta largura para maxWidthPoints
+            If pic.Width > 0 Then
+                aspectRatio = pic.Height / pic.Width
+            Else
+                aspectRatio = 0
+            End If
+
+            If pic.Width > maxWidthPoints Then
+                pic.LockAspectRatio = msoTrue
+                pic.Width = maxWidthPoints
+                If aspectRatio > 0 Then
+                    pic.Height = maxWidthPoints * aspectRatio
+                End If
+            End If
+
+            ' força salvar com documento
+            pic.SaveWithDocument = True
+        End If
+
+        ' Centraliza a imagem no cabeçalho (se desejar alterar o alinhamento, ajuste aqui)
+        hdrRange.ParagraphFormat.Alignment = wdAlignParagraphCenter
+    End If
+    On Error GoTo ErrorHandler
+
+    LogMessage "Imagem de cabeçalho inserida: " & headerImagePath, LOG_LEVEL_INFO
+    InsertHeaderStamp = True
     Exit Function
 
 ErrorHandler:
@@ -2683,8 +2733,8 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
             Loop
             cleanText = Trim(LCase(cleanText))
             
-            ' REQUISITO 1: Formatação de "justificativa"
-            If cleanText = "justificativa" Then
+            ' REQUISITO 1: Formatação de "justificativa" (case insensitive)
+            If LCase(Trim(cleanText)) = "justificativa" Then
                 ' Aplica formatação específica para Justificativa
                 With para.Format
                     .leftIndent = 0               ' Recuo à esquerda = 0
@@ -2694,6 +2744,9 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
                     .SpaceBefore = 12
                     .SpaceAfter = 6
                 End With
+                
+                ' Força formatação mesmo após outras funções
+                Application.DisplayAlerts = wdAlertsNone  ' Evita prompts
                 
                 ' FORÇA os recuos zerados com chamadas individuais para garantia
                 para.Format.leftIndent = 0
@@ -4119,7 +4172,13 @@ Private Sub ReplacePlenarioDateParagraph(doc As Document)
                 If matchCount >= 2 Then
                     ' Encontrou 2+ matches, faz a substituição
                     para.Range.Text = "Plenário ""Dr. Tancredo Neves"", $DATAATUALEXTENSO$."
-                    LogMessage "Parágrafo de plenário substituído", LOG_LEVEL_INFO
+                    ' Aplica formatação: centralizado e sem recuos
+                    With para.Range.ParagraphFormat
+                        .LeftIndent = 0
+                        .FirstLineIndent = 0
+                        .Alignment = wdAlignParagraphCenter
+                    End With
+                    LogMessage "Parágrafo de plenário substituído e formatado", LOG_LEVEL_INFO
                     Exit For
                 End If
             Next term
@@ -4131,3 +4190,106 @@ Private Sub ReplacePlenarioDateParagraph(doc As Document)
 ErrorHandler:
     LogMessage "Erro ao processar parágrafos: " & Err.Description, LOG_LEVEL_ERROR
 End Sub
+
+'================================================================================
+' BACKUP DIRECTORY MANAGEMENT - #STABLE
+'================================================================================
+Private Function EnsureBackupDirectory(doc As Document) As String
+    On Error GoTo ErrorHandler
+    
+    Dim fso As Object
+    Dim backupPath As String
+    
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    
+    ' Define o caminho base para backups (mesmo diretório do documento ou TEMP)
+    If doc.Path <> "" Then
+        backupPath = doc.Path & "\" & BACKUP_FOLDER_NAME
+    Else
+        backupPath = Environ("TEMP") & "\" & BACKUP_FOLDER_NAME
+    End If
+    
+    ' Cria o diretório se não existir
+    If Not fso.FolderExists(backupPath) Then
+        fso.CreateFolder backupPath
+        LogMessage "Pasta de backup criada: " & backupPath, LOG_LEVEL_INFO
+    End If
+    
+    EnsureBackupDirectory = backupPath
+    Exit Function
+    
+ErrorHandler:
+    LogMessage "Erro ao criar pasta de backup: " & Err.Description, LOG_LEVEL_ERROR
+    ' Retorna pasta TEMP como fallback
+    EnsureBackupDirectory = Environ("TEMP")
+End Function
+
+'================================================================================
+' DOCUMENT BACKUP - #STABLE
+'================================================================================
+Private Function CreateDocumentBackup(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+    
+    ' Garante que a pasta de backup existe
+    Dim backupFolder As String
+    backupFolder = EnsureBackupDirectory(doc)
+    
+    ' Gera nome único para o arquivo de backup
+    backupFilePath = backupFolder & "\" & _
+                    Replace(doc.Name, ".doc", "") & _
+                    "_backup_" & Format(Now, "yyyy-mm-dd_hhmmss") & ".docx"
+    
+    ' Remove extensões antigas se houver
+    backupFilePath = Replace(backupFilePath, ".docx.docx", ".docx")
+    backupFilePath = Replace(backupFilePath, ".docm.docx", ".docx")
+    
+    ' Salva o backup
+    doc.SaveAs2 FileName:=backupFilePath, _
+                FileFormat:=wdFormatDocumentDefault, _
+                AddToRecentFiles:=False
+    
+    LogMessage "Backup criado com sucesso: " & _
+              Mid(backupFilePath, InStrRev(backupFilePath, "\") + 1), _
+              LOG_LEVEL_INFO
+    
+    CreateDocumentBackup = True
+    Exit Function
+    
+ErrorHandler:
+    backupFilePath = ""
+    LogMessage "Erro ao criar backup: " & Err.Description, LOG_LEVEL_ERROR
+    CreateDocumentBackup = False
+End Function
+
+'================================================================================
+' HEADER IMAGE PATH MANAGEMENT - #STABLE
+'================================================================================
+Private Function GetHeaderImagePath() As String
+    On Error GoTo ErrorHandler
+    
+    Dim fso As Object
+    Dim documentsPath As String
+    Dim headerImagePath As String
+    
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    
+    ' Obtém pasta Documents do usuário atual
+    documentsPath = CreateObject("WScript.Shell").SpecialFolders("MyDocuments")
+    
+    ' Constrói caminho absoluto para a imagem
+    headerImagePath = documentsPath & "\chainsaw-proposituras\assets\stamp.png"
+    
+    ' Verifica se o arquivo existe
+    If Not fso.FileExists(headerImagePath) Then
+        LogMessage "Imagem de cabeçalho não encontrada em: " & headerImagePath, LOG_LEVEL_WARNING
+        GetHeaderImagePath = ""
+        Exit Function
+    End If
+    
+    GetHeaderImagePath = headerImagePath
+    Exit Function
+    
+ErrorHandler:
+    LogMessage "Erro ao localizar imagem de cabeçalho: " & Err.Description, LOG_LEVEL_ERROR
+    GetHeaderImagePath = ""
+End Function

@@ -1,0 +1,47 @@
+========================================================
+LOG DE FORMATAÇÃO DE DOCUMENTO - SISTEMA DE REGISTRO
+========================================================
+Duração: 00:00:00
+Erros: 0 - 
+Status: INICIANDO
+--------------------------------------------------------
+Sessão: 2025-10-31 18:11:53
+Usuário: csantos
+Estação: NOTEPROCLEG01
+Versão Word: 16.0
+Documento: siscam_operacao_tapa_buraco_rua_noruegam2gve3j1x_backup_2025-10-31_173111.docx
+Local: C:\Users\csantos\Downloads\chainsaw-proposituras\backups
+Proteção: Sem proteção
+Tamanho: 1,1 KB
+========================================================
+2025-10-31 18:11:53 [INFO]  Iniciando padronização do documento: siscam_operacao_tapa_buraco_rua_noruegam2gve3j1x_backup_2025-10-31_173111.docx
+2025-10-31 18:11:54 [INFO]  Verificações de segurança concluídas com sucesso
+2025-10-31 18:11:54 [ERRO]  Erro ao criar pasta de backup: Caminho não localizado
+2025-10-31 18:11:54 [INFO]  Backup criado com sucesso: siscam_operacao_tapa_buraco_rua_noruegam2gve3j1x_backup_2025-10-31_173111x_backup_2025-10-31_181154.docx
+2025-10-31 18:11:54 [INFO]  Backup das configurações de visualização concluído
+2025-10-31 18:11:54 [INFO]  Backup de propriedades de imagens concluído: 0 imagens catalogadas
+2025-10-31 18:11:54 [INFO]  Formatação limpa: 15 parágrafos resetados
+2025-10-31 18:11:54 [INFO]  Tipo de proposição validado: indicação
+2025-10-31 18:11:54 [INFO]  Título de proposição formatado: INDICAÇÃO Nº $NUMERO$/$ANO$ (centralizado, caixa alta, negrito, sublinhado)
+2025-10-31 18:11:54 [INFO]  2º parágrafo formatado com 2 linhas em branco antes e depois (posição: 4)
+2025-10-31 18:11:54 [INFO]  Formatação 'considerando' aplicada: 0 ocorrências em negrito e caixa alta
+2025-10-31 18:11:54 [ERRO]  Erro nas substituições de texto: Argumento ou chamada de procedimento inválida
+2025-10-31 18:11:54 [INFO]  Parágrafo 'Justificativa' formatado (centralizado, negrito, sem recuos)
+2025-10-31 18:11:54 [INFO]  Formatação especial concluída: 1 parágrafos formatados (incluindo 0 '- Vereador -')
+2025-10-31 18:11:54 [INFO]  Imagem de cabeçalho inserida: C:\Users\csantos\Documents\chainsaw-proposituras\assets\stamp.png
+2025-10-31 18:11:55 [INFO]  Limpeza de espaços concluída: 0 correções aplicadas (com proteção CONSIDERANDO)
+2025-10-31 18:11:55 [INFO]  Controle de linhas vazias concluído em 2 passada(s): 2 linhas excedentes removidas (máximo 1 sequencial)
+2025-10-31 18:11:55 [INFO]  Linhas em branco do 2º parágrafo reforçadas (antes: 2, depois: 2)
+2025-10-31 18:11:55 [INFO]  Parágrafo de plenário substituído e formatado
+2025-10-31 18:11:55 [INFO]  Visualização configurada: zoom definido para 110%, demais configurações preservadas
+2025-10-31 18:11:55 [INFO]  Formatação completa aplicada
+2025-10-31 18:11:55 [INFO]  Configurações de visualização originais restauradas (zoom mantido em 110%)
+2025-10-31 18:11:55 [INFO]  Documento padronizado com sucesso
+2025-10-31 18:11:55 [INFO]  Variáveis de proteção de imagens limpas
+2025-10-31 18:11:55 [INFO]  Variáveis de configurações de visualização limpas
+================================================
+FIM DA SESSÃO - 2025-10-31 18:11:55
+Duração: 00:00:02
+Erros: Nenhum
+Status: CONCLUÍDO
+================================================
