@@ -22,6 +22,9 @@
 ' • SISTEMA DE BACKUP AUTOMÁTICO:
 '   - Backup automático antes de qualquer modificação
 '   - Pasta de backups organizada por documento
+'
+' CONFIGURAÇÕES PADRÃO DE FORMATAÇÃO
+Private Const LINE_SPACING As Double = 12# * 1.15# ' 1,15 na interface do Word (12 pt base)
  
 Private Function EnsureBlankLinesAroundParagraphIndex(doc As Document, ByRef paraIndex As Long, _
     ByVal requiredBefore As Long, ByVal requiredAfter As Long, _
@@ -2317,7 +2320,7 @@ Private Function ClearAllFormatting(doc As Document) As Boolean
                     With .ParagraphFormat
                         .Reset
                         .alignment = wdAlignParagraphLeft
-                        .LineSpacing = 12
+                        .LineSpacing = LINE_SPACING
                         .SpaceBefore = 0
                         .SpaceAfter = 0
                         .leftIndent = 0
@@ -2360,7 +2363,7 @@ Private Function ClearAllFormatting(doc As Document) As Boolean
             With .ParagraphFormat
                 .Reset
                 .alignment = wdAlignParagraphLeft
-                .LineSpacing = 12
+                .LineSpacing = LINE_SPACING
                 .SpaceBefore = 0
                 .SpaceAfter = 0
                 .leftIndent = 0
