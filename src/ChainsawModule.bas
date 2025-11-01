@@ -130,7 +130,6 @@ Private Const HEADER_DISTANCE_CM As Double = 0.3
 Private Const FOOTER_DISTANCE_CM As Double = 0.9
 
 ' Header image constants
-' Header image constants
 Private Const HEADER_IMAGE_RELATIVE_PATH As String = "\chainsaw-proposituras\assets\stamp.png"
 Private Const HEADER_IMAGE_MAX_WIDTH_CM As Double = 21
 Private Const HEADER_IMAGE_TOP_MARGIN_CM As Double = 0.7
@@ -1827,103 +1826,106 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' INSERT HEADER STAMP - insere a imagem do cabeçalho de forma segura
+' INSERT HEADER IMAGE
 '================================================================================
-Private Function InsertHeaderStamp(doc As Document) As Boolean
+Private Function InsertHeaderstamp(doc As Document) As Boolean
     On Error GoTo ErrorHandler
 
-    Dim headerImagePath As String
-    Dim hdrRange As Range
-    Dim pic As InlineShape
-    Dim maxWidthPoints As Single
-    Dim aspectRatio As Double
+    Dim sec As section
+    Dim header As HeaderFooter
+    Dim imgFile As String
+    Dim username As String
+    Dim imgWidth As Single
+    Dim imgHeight As Single
+    Dim shp As shape
+    Dim imgFound As Boolean
+    Dim sectionsProcessed As Long
 
-    InsertHeaderStamp = False
+    ' Resolve image file path using configuration if provided
+    imgFile = Trim(Config.headerImagePath)
+    If Len(imgFile) = 0 Then
+        ' No configured path; try common locations relative to document or repo folder
+        Dim baseFolder As String
+        On Error Resume Next
+        baseFolder = IIf(doc.Path <> "", doc.Path, Environ("USERPROFILE") & "\Documents")
+        On Error GoTo ErrorHandler
+        If Right(baseFolder, 1) <> "\" Then baseFolder = baseFolder & "\"
+        If Dir(baseFolder & "assets\stamp.png") <> "" Then
+            imgFile = baseFolder & "assets\stamp.png"
+        ElseIf Dir(Environ("USERPROFILE") & "\Documents\chainsaw\assets\stamp.png") <> "" Then
+            imgFile = Environ("USERPROFILE") & "\Documents\chainsaw\assets\stamp.png"
+        End If
+    Else
+        ' If relative path (no drive letter), try resolve from current document folder and repo root
+        If InStr(1, imgFile, ":", vbTextCompare) = 0 And Left(imgFile, 2) <> "\\" Then
+            On Error Resume Next
+            baseFolder = IIf(doc.Path <> "", doc.Path, Environ("USERPROFILE") & "\Documents")
+            On Error GoTo ErrorHandler
+            If Right(baseFolder, 1) <> "\" Then baseFolder = baseFolder & "\"
+            If Dir(baseFolder & imgFile) <> "" Then
+                imgFile = baseFolder & imgFile
+            ElseIf Dir(Environ("USERPROFILE") & "\Documents\chainsaw\" & imgFile) <> "" Then
+                imgFile = Environ("USERPROFILE") & "\Documents\chainsaw\" & imgFile
+            End If
+        End If
+    End If
 
-    If doc Is Nothing Then Exit Function
-
-    ' Obtém caminho absoluto da imagem (usa Documents\<user>\chainsaw-proposituras\assets\stamp.png)
-    headerImagePath = GetHeaderImagePath()
-    If headerImagePath = "" Then
-        ' Já registrado pelo GetHeaderImagePath
+    If Dir(imgFile) = "" Then
+        Application.StatusBar = "Warning: Header image not found"
+        LogMessage "Header image not found at: " & imgFile, LOG_LEVEL_WARNING
+        InsertHeaderstamp = False
         Exit Function
     End If
 
-    ' Define largura máxima em pontos (usa constante HEADER_IMAGE_MAX_WIDTH_CM definida no módulo)
-    On Error Resume Next
-    maxWidthPoints = CentimetersToPoints(HEADER_IMAGE_MAX_WIDTH_CM)
-    If Err.Number <> 0 Then
-        Err.Clear
-        maxWidthPoints = 0
-    End If
-    On Error GoTo ErrorHandler
+    ' Size using standard constants
+    imgWidth = CentimetersToPoints(HEADER_IMAGE_MAX_WIDTH_CM)
+    imgHeight = imgWidth * HEADER_IMAGE_HEIGHT_RATIO
 
-    ' Usa o cabeçalho primário da primeira seção (compatível com documentos simples)
-    Set hdrRange = doc.Sections(1).Headers(wdHeaderFooterPrimary).Range
-
-    ' Opcional: remove imagens anteriores com o mesmo caminho/stamp para evitar duplicação
-    On Error Resume Next
-    For Each pic In hdrRange.InlineShapes
-        If pic.Type = msoPicture Then
-            ' tenta comparar o SourceFullName quando possível (pode falhar em alguns casos)
-            If pic.LinkFormat Is Nothing Then
-                ' não linkado - remover todas as imagens do cabeçalho padrão para evitar duplicação
-                pic.Delete
+    For Each sec In doc.Sections
+        Set header = sec.Headers(wdHeaderFooterPrimary)
+        If header.Exists Then
+            header.LinkToPrevious = False
+            header.Range.Delete
+            
+            Set shp = header.Shapes.AddPicture( _
+                FileName:=imgFile, _
+                LinkToFile:=False, _
+                SaveWithDocument:=msoTrue)
+            
+            If shp Is Nothing Then
+                LogMessage "Failed to insert header image at section " & sectionsProcessed + 1, LOG_LEVEL_WARNING
             Else
-                ' se for linked picture, podemos verificar o SourceFullName
-                On Error Resume Next
-                If LCase(pic.LinkFormat.SourceFullName) = LCase(headerImagePath) Then
-                    pic.Delete
-                End If
-                On Error GoTo 0
+                With shp
+                    .LockAspectRatio = msoTrue
+                    .Width = imgWidth
+                    .Height = imgHeight
+                    .RelativeHorizontalPosition = wdRelativeHorizontalPositionPage
+                    .RelativeVerticalPosition = wdRelativeVerticalPositionPage
+                    .Left = (doc.PageSetup.PageWidth - .Width) / 2
+                    .Top = CentimetersToPoints(HEADER_IMAGE_TOP_MARGIN_CM)
+                    .WrapFormat.Type = wdWrapTopBottom
+                    .ZOrder msoSendToBack
+                End With
+                
+                imgFound = True
+                sectionsProcessed = sectionsProcessed + 1
             End If
         End If
-    Next pic
-    On Error GoTo ErrorHandler
+    Next sec
 
-    ' Garante que o cabeçalho tem pelo menos um parágrafo para inserir a imagem
-    If Len(Trim(hdrRange.Text)) = 0 Then
-        hdrRange.Text = vbCr
+    If imgFound Then
+        ' Log detalhado removido para performance
+        InsertHeaderstamp = True
+    Else
+    LogMessage "No header was inserted", LOG_LEVEL_WARNING
+        InsertHeaderstamp = False
     End If
 
-    ' Insere a imagem inline no cabeçalho
-    Set pic = hdrRange.InlineShapes.AddPicture(FileName:=headerImagePath, LinkToFile:=False, SaveWithDocument:=True)
-
-    ' Ajusta tamanho preservando proporção, se possível
-    On Error Resume Next
-    If Not pic Is Nothing Then
-        If maxWidthPoints > 0 Then
-            ' calcula aspect ratio atual e ajusta largura para maxWidthPoints
-            If pic.Width > 0 Then
-                aspectRatio = pic.Height / pic.Width
-            Else
-                aspectRatio = 0
-            End If
-
-            If pic.Width > maxWidthPoints Then
-                pic.LockAspectRatio = msoTrue
-                pic.Width = maxWidthPoints
-                If aspectRatio > 0 Then
-                    pic.Height = maxWidthPoints * aspectRatio
-                End If
-            End If
-
-            ' força salvar com documento
-            pic.SaveWithDocument = True
-        End If
-
-        ' Centraliza a imagem no cabeçalho (se desejar alterar o alinhamento, ajuste aqui)
-        hdrRange.ParagraphFormat.Alignment = wdAlignParagraphCenter
-    End If
-    On Error GoTo ErrorHandler
-
-    LogMessage "Imagem de cabeçalho inserida: " & headerImagePath, LOG_LEVEL_INFO
-    InsertHeaderStamp = True
     Exit Function
 
 ErrorHandler:
-    LogMessage "Erro ao inserir cabeçalho: " & Err.Description, LOG_LEVEL_ERROR
-    InsertHeaderStamp = False
+    LogMessage "Error inserting header: " & Err.Description, LOG_LEVEL_ERROR
+    InsertHeaderstamp = False
 End Function
 
 '================================================================================
