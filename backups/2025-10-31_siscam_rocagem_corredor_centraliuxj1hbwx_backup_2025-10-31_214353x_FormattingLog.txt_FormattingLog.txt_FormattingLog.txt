@@ -1,0 +1,56 @@
+========================================================
+LOG DE FORMATAÇÃO DE DOCUMENTO - SISTEMA DE REGISTRO
+========================================================
+Duração: 00:00:00
+Erros: 0 - 
+Status: INICIANDO
+--------------------------------------------------------
+Sessão: 2025-10-31 22:52:26
+Usuário: csantos
+Estação: NOTEPROCLEG01
+Versão Word: 16.0
+Documento: siscam_rocagem_corredor_centraliuxj1hbwx_backup_2025-10-31_214353.docx
+Local: C:\Users\csantos\Downloads\chainsaw-proposituras\backups
+Proteção: Sem proteção
+Tamanho: 1,4 KB
+========================================================
+2025-10-31 22:52:26 [INFO]  Iniciando padronização do documento: siscam_rocagem_corredor_centraliuxj1hbwx_backup_2025-10-31_214353.docx
+2025-10-31 22:52:26 [INFO]  Verificações de segurança concluídas com sucesso
+2025-10-31 22:52:26 [ERRO]  Erro ao criar backup: Caminho não localizado
+2025-10-31 22:52:26 [AVISO]  Falha ao criar backup - continuando sem backup
+2025-10-31 22:52:26 [INFO]  Backup das configurações de visualização concluído
+2025-10-31 22:52:26 [INFO]  Backup de propriedades de imagens concluído: 1 imagens catalogadas
+2025-10-31 22:52:27 [INFO]  Formatação limpa: 41 parágrafos resetados
+2025-10-31 22:52:27 [INFO]  Estrutura limpa: 2 linhas vazias removidas
+2025-10-31 22:52:27 [INFO]  Tipo de proposição validado: indicação
+2025-10-31 22:52:27 [INFO]  Título de proposição formatado: INDICAÇÃO Nº $NUMERO$/$ANO$ (centralizado, caixa alta, negrito, sublinhado)
+2025-10-31 22:52:27 [INFO]  Fontes formatadas: 39 parágrafos (incluindo 1 com proteção de imagens)
+2025-10-31 22:52:27 [INFO]  Parágrafos formatados: 39 (incluindo 1 com proteção de imagens)
+2025-10-31 22:52:27 [INFO]  2º parágrafo formatado com 2 linhas em branco antes e depois (posição: 4)
+2025-10-31 22:52:27 [INFO]  Formatação 'considerando' aplicada: 0 ocorrências em negrito e caixa alta
+2025-10-31 22:52:27 [ERRO]  Erro nas substituições de texto: Argumento ou chamada de procedimento inválida
+2025-10-31 22:52:27 [INFO]  Parágrafo anterior a '- Vereador -' formatado (centralizado, caixa alta, negrito, sem recuos): CARLOS FONTES...
+2025-10-31 22:52:27 [INFO]  Parágrafo '- Vereador -' formatado (centralizado, negrito, sem recuos)
+2025-10-31 22:52:27 [INFO]  Parágrafo anterior a '- Vereador -' formatado (centralizado, caixa alta, negrito, sem recuos): CARLOS FONTES...
+2025-10-31 22:52:27 [INFO]  Parágrafo '- Vereador -' formatado (centralizado, negrito, sem recuos)
+2025-10-31 22:52:27 [INFO]  Formatação especial concluída: 2 parágrafos formatados (incluindo 2 '- Vereador -')
+2025-10-31 22:52:27 [ERRO]  Error inserting header: O nome do documento não é válido.
+Tente uma ou mais das seguintes opções:
+* Verifique o caminho para certificar-se de que foi digitado corretamente.
+* Selecione um arquivo da lista de arquivos e pastas.
+2025-10-31 22:52:27 [INFO]  Limpeza de espaços concluída: 1 correções aplicadas (com proteção CONSIDERANDO)
+2025-10-31 22:52:27 [INFO]  Controle de linhas vazias concluído em 2 passada(s): 10 linhas excedentes removidas (máximo 1 sequencial)
+2025-10-31 22:52:27 [INFO]  Linhas em branco do 2º parágrafo reforçadas (antes: 2, depois: 2)
+2025-10-31 22:52:28 [INFO]  Visualização configurada: zoom definido para 110%, demais configurações preservadas
+2025-10-31 22:52:28 [INFO]  Formatação completa aplicada
+2025-10-31 22:52:28 [INFO]  Verificação de imagens concluída: 0 imagens íntegras
+2025-10-31 22:52:28 [INFO]  Configurações de visualização originais restauradas (zoom mantido em 110%)
+2025-10-31 22:52:28 [INFO]  Documento padronizado com sucesso
+2025-10-31 22:52:28 [INFO]  Variáveis de proteção de imagens limpas
+2025-10-31 22:52:28 [INFO]  Variáveis de configurações de visualização limpas
+================================================
+FIM DA SESSÃO - 2025-10-31 22:52:28
+Duração: 00:00:02
+Erros: Nenhum
+Status: CONCLUÍDO
+================================================
