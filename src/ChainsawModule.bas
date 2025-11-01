@@ -22,193 +22,181 @@
 ' • SISTEMA DE BACKUP AUTOMÁTICO:
 '   - Backup automático antes de qualquer modificação
 '   - Pasta de backups organizada por documento
-'   - Limpeza automática de backups antigos (limite: 10 arquivos)
-'   - Subrotina pública para acesso à pasta de backups
-'
-' • SUBROTINA PÚBLICA PARA SALVAR E SAIR:
-'   - Verificação automática de todos os documentos abertos
-'   - Detecção de documentos com alterações não salvas
-'   - Interface profissional com opções claras ao usuário
-'   - Salvamento assistido com diálogos para novos arquivos
-'   - Confirmação dupla para fechamento sem salvar
-'   - Tratamento robusto de erros e recuperação
-'
-' • FORMATAÇÃO AUTOMATIZADA INSTITUCIONAL:
-'   - Limpeza completa de formatação ao iniciar
-'   - Remoção robusta de espaços múltiplos e tabs
-'   - Controle de linhas vazias (máximo 2 sequenciais)
-'   - PROTEÇÃO MÁXIMA: Sistema avançado de backup/restauração de imagens
-'   - PROTEÇÃO MÁXIMA: Preserva imagens inline, flutuantes e objetos
-'   - PROTEÇÃO MÁXIMA: Detecta e protege shapes ancoradas e campos visuais
-'   - Primeira linha: SEMPRE caixa alta, negrito, sublinhado, centralizada
-'   - Parágrafos 2°, 3° e 4°: recuo esquerdo 9cm, sem recuo primeira linha
-'   - "Considerando": caixa alta e negrito no início de parágrafos
-'   - "Justificativa:": centralizada, sem recuos, negrito, capitalizada
-'   - "Anexo/Anexos": alinhado à esquerda, sem recuos, negrito, capitalizado
-'   - Configuração de margens e orientação (A4)
-'   - Fonte Arial 12pt com espaçamento 1.4
-'   - Recuos e alinhamento justificado
-'   - Cabeçalho com logotipo institucional
-'   - Rodapé com numeração centralizada
-'   - Visualização: zoom 110% (mantido), demais configurações preservadas
-'   - PROTEÇÃO TOTAL: Preserva réguas, modos de exibição e configurações originais
-'   - Remoção de marcas d'água e formatações manuais
-'
-' • SISTEMA DE LOGS E MONITORAMENTO:
-'   - Registro detalhado de operações
-'   - Controle de erros com fallback
-'   - Mensagens na barra de status
-'   - Histórico de execução
-'
-' • SISTEMA DE PROTEÇÃO DE CONFIGURAÇÕES DE VISUALIZAÇÃO:
-'   - Backup automático de todas as configurações de exibição
-'   - Preservação de réguas (horizontal e vertical)
-'   - Manutenção do modo de visualização original
-'   - Proteção de configurações de marcas de formatação
-'   - Restauração completa após processamento (exceto zoom)
-'   - Compatibilidade com todos os modos de exibição do Word
-'
-' • PERFORMANCE OTIMIZADA:
-'   - Processamento eficiente para documentos grandes
-'   - Desabilitação temporária de atualizações visuais
-'   - Gerenciamento inteligente de recursos
-'   - Sistema de logging otimizado (principais, warnings e erros)
-'
-' =============================================================================
+ 
+Private Function EnsureBlankLinesAroundParagraphIndex(doc As Document, ByRef paraIndex As Long, _
+    ByVal requiredBefore As Long, ByVal requiredAfter As Long, _
+    Optional ByRef finalBefore As Long, Optional ByRef finalAfter As Long) As Boolean
+    On Error GoTo ErrorHandler
 
-'VBA
-Option Explicit
+    Dim para As Paragraph
+    Dim blankBefore As Long
+    Dim blankAfter As Long
+    Dim addedBefore As Long
+    Dim addedAfter As Long
+    Dim rng As Range
 
-'================================================================================
-' CONSTANTS
-'================================================================================
+    If doc Is Nothing Then GoTo ErrorHandler
+    If paraIndex < 1 Or paraIndex > doc.Paragraphs.count Then GoTo ErrorHandler
 
-' Word built-in constants
-Private Const wdNoProtection As Long = -1
-Private Const wdTypeDocument As Long = 0
-Private Const wdHeaderFooterPrimary As Long = 1
-Private Const wdAlignParagraphLeft As Long = 0
-Private Const wdAlignParagraphCenter As Long = 1
-Private Const wdAlignParagraphJustify As Long = 3
-Private Const wdLineSpaceSingle As Long = 0
-Private Const wdLineSpace1pt5 As Long = 1
-Private Const wdLineSpacingMultiple As Long = 5
-Private Const wdStatisticPages As Long = 2
-Private Const msoTrue As Long = -1
-Private Const msoFalse As Long = 0
-Private Const msoPicture As Long = 13
-Private Const msoTextEffect As Long = 15
-Private Const wdCollapseEnd As Long = 0
-Private Const wdCollapseStart As Long = 1
-Private Const wdFieldPage As Long = 33
-Private Const wdFieldNumPages As Long = 26
-Private Const wdFieldEmpty As Long = -1
-Private Const wdRelativeHorizontalPositionPage As Long = 1
-Private Const wdRelativeVerticalPositionPage As Long = 1
-Private Const wdWrapTopBottom As Long = 3
-Private Const wdAlertsAll As Long = 0
-Private Const wdAlertsNone As Long = -1
-Private Const wdColorAutomatic As Long = -16777216
-Private Const wdOrientPortrait As Long = 0
-Private Const wdUnderlineNone As Long = 0
-Private Const wdUnderlineSingle As Long = 1
-Private Const wdTextureNone As Long = 0
-Private Const wdPrintView As Long = 3
+    Set para = doc.Paragraphs(paraIndex)
 
-' Document formatting constants
-Private Const STANDARD_FONT As String = "Arial"
-Private Const STANDARD_FONT_SIZE As Long = 12
-Private Const FOOTER_FONT_SIZE As Long = 9
-Private Const LINE_SPACING As Single = 14
+    If requiredBefore > 0 Then
+        blankBefore = CountBlankLinesBefore(doc, paraIndex)
+        If blankBefore < requiredBefore Then
+            addedBefore = requiredBefore - blankBefore
+            Set rng = para.Range
+            rng.Collapse wdCollapseStart
+            rng.InsertBefore String$(addedBefore, Chr(13))
+            paraIndex = paraIndex + addedBefore
+            If paraIndex > doc.Paragraphs.count Then paraIndex = doc.Paragraphs.count
+            Set para = doc.Paragraphs(paraIndex)
+            blankBefore = blankBefore + addedBefore
+        End If
+    Else
+        blankBefore = CountBlankLinesBefore(doc, paraIndex)
+    End If
 
-' Margin constants in centimeters
-Private Const TOP_MARGIN_CM As Double = 4.6
-Private Const BOTTOM_MARGIN_CM As Double = 2
-Private Const LEFT_MARGIN_CM As Double = 3
-Private Const RIGHT_MARGIN_CM As Double = 3
-Private Const HEADER_DISTANCE_CM As Double = 0.3
-Private Const FOOTER_DISTANCE_CM As Double = 0.9
+    If requiredAfter > 0 Then
+        blankAfter = CountBlankLinesAfter(doc, paraIndex)
+        If blankAfter < requiredAfter Then
+            addedAfter = requiredAfter - blankAfter
+            Set rng = para.Range
+            rng.Collapse wdCollapseEnd
+            rng.InsertAfter String$(addedAfter, Chr(13))
+            blankAfter = blankAfter + addedAfter
+        End If
+    Else
+        blankAfter = CountBlankLinesAfter(doc, paraIndex)
+    End If
 
-' Header image constants
-Private Const HEADER_IMAGE_RELATIVE_PATH As String = "\chainsaw-proposituras\assets\stamp.png"
-Private Const HEADER_IMAGE_MAX_WIDTH_CM As Double = 21
-Private Const HEADER_IMAGE_TOP_MARGIN_CM As Double = 0.7
-Private Const HEADER_IMAGE_HEIGHT_RATIO As Double = 0.19
+    finalBefore = blankBefore
+    finalAfter = blankAfter
+    EnsureBlankLinesAroundParagraphIndex = True
+    Exit Function
 
-' Minimum supported version
-Private Const MIN_SUPPORTED_VERSION As Long = 14 ' Word 2010
+ErrorHandler:
+    EnsureBlankLinesAroundParagraphIndex = False
+End Function
 
-' Logging constants
-Private Const LOG_LEVEL_INFO As Long = 1
-Private Const LOG_LEVEL_WARNING As Long = 2
-Private Const LOG_LEVEL_ERROR As Long = 3
+Private Function GetNthParagraphIndex(doc As Document, ByVal targetOrder As Long) As Long
+    On Error GoTo ErrorHandler
 
-' Required string constant
-Private Const REQUIRED_STRING As String = "$NUMERO$/$ANO$"
+    Dim para As Paragraph
+    Dim paraText As String
+    Dim i As Long
+    Dim actualParaIndex As Long
 
-' Timeout constants
-Private Const MAX_RETRY_ATTEMPTS As Long = 3
-Private Const RETRY_DELAY_MS As Long = 1000
+    If doc Is Nothing Then GoTo ErrorHandler
+    If targetOrder < 1 Then GoTo ErrorHandler
 
-' Backup constants
-Private Const BACKUP_FOLDER_NAME As String = "chainsaw\backups"
-Private Const LOG_FOLDER_NAME As String = "chainsaw\logs"
-Private Const MAX_BACKUP_FILES As Long = 10
+    actualParaIndex = 0
+
+    For i = 1 To doc.Paragraphs.count
+        Set para = doc.Paragraphs(i)
+        paraText = Trim$(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+
+        If paraText <> "" Or HasVisualContent(para) Then
+            actualParaIndex = actualParaIndex + 1
+            If actualParaIndex = targetOrder Then
+                GetNthParagraphIndex = i
+                Exit Function
+            End If
+        End If
+
+        If i > 50 Then Exit For
+    Next i
+
+    GetNthParagraphIndex = 0
+    Exit Function
+
+ErrorHandler:
+    GetNthParagraphIndex = 0
+End Function
+
+Private Function GetSecondParagraphIndex(doc As Document) As Long
+    GetSecondParagraphIndex = GetNthParagraphIndex(doc, 2)
+End Function
+
+Private Function GetThirdParagraphIndex(doc As Document) As Long
+    GetThirdParagraphIndex = GetNthParagraphIndex(doc, 3)
+End Function
 
 '================================================================================
-' GLOBAL VARIABLES
+' FORMAT FIRST PARAGRAPH - FORMATAÇÃO DO 1º PARÁGRAFO - #NEW
 '================================================================================
-Private undoGroupEnabled As Boolean
-Private loggingEnabled As Boolean
-Private logFilePath As String
-Private formattingCancelled As Boolean
-Private executionStartTime As Date
-Private backupFilePath As String
+Private Function FormatFirstParagraph(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
 
-' Image protection variables
-Private Type ImageInfo
-    paraIndex As Long
-    ImageIndex As Long
-    ImageType As String
-    ImageData As Variant
-    Position As Long
-    WrapType As Long
-    Width As Single
-    Height As Single
-    LeftPosition As Single
-    TopPosition As Single
-    AnchorRange As Range
-End Type
+    Dim para As Paragraph
+    Dim paraText As String
+    Dim i As Long
+    Dim actualParaIndex As Long
+    Dim firstParaIndex As Long
+    Dim n As Long
+    Dim charCount As Long
+    Dim charRange As Range
 
-Private savedImages() As ImageInfo
-Private imageCount As Long
+    actualParaIndex = 0
+    firstParaIndex = 0
 
-' View settings backup variables
-Private Type ViewSettings
-    ViewType As Long
-    ShowVerticalRuler As Boolean
-    ShowHorizontalRuler As Boolean
-    ShowFieldCodes As Boolean
-    ShowBookmarks As Boolean
-    ShowParagraphMarks As Boolean
-    ShowSpaces As Boolean
-    ShowTabs As Boolean
-    ShowHiddenText As Boolean
-    ShowOptionalHyphens As Boolean
-    ShowAll As Boolean
-    ShowDrawings As Boolean
-    ShowObjectAnchors As Boolean
-    ShowTextBoundaries As Boolean
-    ShowHighlight As Boolean
-    ' ShowAnimation removida - compatibilidade
-    DraftFont As Boolean
-    WrapToWindow As Boolean
-    ShowPicturePlaceHolders As Boolean
-    ShowFieldShading As Long
-    TableGridlines As Boolean
-    ' EnlargeFontsLessThan removida - compatibilidade
-End Type
+    For i = 1 To doc.Paragraphs.count
+        Set para = doc.Paragraphs(i)
+        paraText = Trim$(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
 
+        If paraText <> "" Or HasVisualContent(para) Then
+            actualParaIndex = actualParaIndex + 1
+            If actualParaIndex = 1 Then
+                firstParaIndex = i
+                Exit For
+            End If
+        End If
+
+        If i > 20 Then Exit For
+    Next i
+
+    If firstParaIndex > 0 And firstParaIndex <= doc.Paragraphs.count Then
+        Set para = doc.Paragraphs(firstParaIndex)
+
+        If HasVisualContent(para) Then
+            charCount = SafeGetCharacterCount(para.Range)
+            If charCount > 0 Then
+                For n = 1 To charCount
+                    Set charRange = para.Range.Characters(n)
+                    If charRange.InlineShapes.count = 0 Then
+                        With charRange.Font
+                            .AllCaps = True
+                            .Bold = True
+                            .Underline = wdUnderlineSingle
+                        End With
+                    End If
+                Next n
+            End If
+            LogMessage "1º parágrafo formatado com proteção de imagem (posição: " & firstParaIndex & ")"
+        Else
+            With para.Range.Font
+                .AllCaps = True
+                .Bold = True
+                .Underline = wdUnderlineSingle
+            End With
+        End If
+
+        With para.Format
+            .alignment = wdAlignParagraphCenter
+            .leftIndent = 0
+            .firstLineIndent = 0
+            .RightIndent = 0
+        End With
+    Else
+        LogMessage "1º parágrafo não encontrado para formatação", LOG_LEVEL_WARNING
+    End If
+
+    FormatFirstParagraph = True
+    Exit Function
+
+ErrorHandler:
+    LogMessage "Erro na formatação do 1º parágrafo: " & Err.Description, LOG_LEVEL_ERROR
+    FormatFirstParagraph = False
+End Function
 Private originalViewSettings As ViewSettings
 
 '================================================================================
@@ -966,6 +954,10 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     
     ' REFORÇO: Garante que o 2º parágrafo mantenha suas 2 linhas em branco
     EnsureSecondParagraphBlankLines doc
+    ' REFORÇO: Aplica o mesmo padrão ao 3º parágrafo
+    EnsureThirdParagraphBlankLines doc
+    ' REFORÇO: Centraliza controle de espaçamento em parágrafos "Justificativa"
+    EnsureJustificativaBlankLines doc
 
     ' Substituição de datas no parágrafo de plenário
     ReplacePlenarioDateParagraph doc
@@ -1529,108 +1521,205 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' SECOND PARAGRAPH LOCATION HELPER - Localiza o segundo parágrafo
+' SECOND PARAGRAPH BLANK LINES - Reforça linhas em branco do 2º parágrafo
 '================================================================================
-Private Function GetSecondParagraphIndex(doc As Document) As Long
+Private Function EnsureSecondParagraphBlankLines(doc As Document) As Boolean
     On Error GoTo ErrorHandler
-    
+
+    Dim secondParaIndex As Long
+    Dim beforeResult As Long
+    Dim afterResult As Long
+
+    If doc Is Nothing Then
+        EnsureSecondParagraphBlankLines = True
+        Exit Function
+    End If
+
+    secondParaIndex = GetSecondParagraphIndex(doc)
+
+    If secondParaIndex > 0 And secondParaIndex <= doc.Paragraphs.count Then
+        If EnsureBlankLinesAroundParagraphIndex(doc, secondParaIndex, 2, 2, beforeResult, afterResult) Then
+            LogMessage "Linhas em branco do 2º parágrafo reforçadas (antes: " & beforeResult & ", depois: " & afterResult & ")", LOG_LEVEL_INFO
+        End If
+    End If
+
+    EnsureSecondParagraphBlankLines = True
+    Exit Function
+
+ErrorHandler:
+    EnsureSecondParagraphBlankLines = False
+    LogMessage "Erro ao garantir linhas em branco do 2º parágrafo: " & Err.Description, LOG_LEVEL_WARNING
+End Function
+
+Private Function EnsureThirdParagraphBlankLines(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+
+    Dim thirdParaIndex As Long
+    Dim beforeResult As Long
+    Dim afterResult As Long
+
+    If doc Is Nothing Then
+        EnsureThirdParagraphBlankLines = True
+        Exit Function
+    End If
+
+    thirdParaIndex = GetThirdParagraphIndex(doc)
+
+    If thirdParaIndex > 0 And thirdParaIndex <= doc.Paragraphs.count Then
+        If EnsureBlankLinesAroundParagraphIndex(doc, thirdParaIndex, 2, 2, beforeResult, afterResult) Then
+            LogMessage "Linhas em branco do 3º parágrafo reforçadas (antes: " & beforeResult & ", depois: " & afterResult & ")", LOG_LEVEL_INFO
+        End If
+    End If
+
+    EnsureThirdParagraphBlankLines = True
+    Exit Function
+
+ErrorHandler:
+    EnsureThirdParagraphBlankLines = False
+    LogMessage "Erro ao garantir linhas em branco do 3º parágrafo: " & Err.Description, LOG_LEVEL_WARNING
+End Function
+
+Private Function EnsureJustificativaBlankLines(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+
+    Dim i As Long
+    Dim para As Paragraph
+    Dim paraText As String
+    Dim normalized As String
+    Dim paraIndex As Long
+    Dim adjustedCount As Long
+
+    If doc Is Nothing Then
+        EnsureJustificativaBlankLines = True
+        Exit Function
+    End If
+
+    For i = 1 To doc.Paragraphs.count
+        Set para = doc.Paragraphs(i)
+        paraText = Replace(Replace(para.Range.text, vbCr, ""), vbLf, "")
+        paraText = Trim$(paraText)
+        If Len(paraText) = 0 Then GoTo ContinueLoop
+
+        normalized = LCase$(paraText)
+        Do While Len(normalized) > 0 And InStr(":;.,", Right$(normalized, 1)) > 0
+            normalized = Left$(normalized, Len(normalized) - 1)
+        Loop
+
+        If normalized = "justificativa" Then
+            paraIndex = i
+            If EnsureBlankLinesAroundParagraphIndex(doc, paraIndex, 2, 2) Then
+                adjustedCount = adjustedCount + 1
+                i = paraIndex
+            End If
+        End If
+
+ContinueLoop:
+    Next i
+
+    If adjustedCount > 0 Then
+        LogMessage "Linhas em branco reforçadas em " & adjustedCount & " parágrafo(s) 'Justificativa'", LOG_LEVEL_INFO
+    End If
+
+    EnsureJustificativaBlankLines = True
+    Exit Function
+
+ErrorHandler:
+    EnsureJustificativaBlankLines = False
+    LogMessage "Erro ao reforçar linhas em branco de 'Justificativa': " & Err.Description, LOG_LEVEL_WARNING
+End Function
+
+Private Function EnsureBlankLinesAroundParagraphIndex(doc As Document, ByRef paraIndex As Long, _
+    ByVal requiredBefore As Long, ByVal requiredAfter As Long, _
+    Optional ByRef finalBefore As Variant, Optional ByRef finalAfter As Variant) As Boolean
+    On Error GoTo ErrorHandler
+
+    Dim para As Paragraph
+    Dim blankBefore As Long
+    Dim blankAfter As Long
+    Dim addedBefore As Long
+    Dim addedAfter As Long
+    Dim rng As Range
+
+    If doc Is Nothing Then Exit Function
+    If paraIndex < 1 Or paraIndex > doc.Paragraphs.count Then Exit Function
+
+    Set para = doc.Paragraphs(paraIndex)
+
+    If requiredBefore > 0 Then
+        blankBefore = CountBlankLinesBefore(doc, paraIndex)
+        If blankBefore < requiredBefore Then
+            addedBefore = requiredBefore - blankBefore
+            Set rng = para.Range
+            rng.Collapse wdCollapseStart
+            rng.InsertBefore String$(addedBefore, vbCr)
+            paraIndex = paraIndex + addedBefore
+            If paraIndex > doc.Paragraphs.count Then paraIndex = doc.Paragraphs.count
+            Set para = doc.Paragraphs(paraIndex)
+            blankBefore = blankBefore + addedBefore
+        End If
+    End If
+
+    If requiredAfter > 0 Then
+        blankAfter = CountBlankLinesAfter(doc, paraIndex)
+        If blankAfter < requiredAfter Then
+            addedAfter = requiredAfter - blankAfter
+            Set rng = para.Range
+            rng.Collapse wdCollapseEnd
+            rng.InsertAfter String$(addedAfter, vbCr)
+            blankAfter = blankAfter + addedAfter
+        End If
+    End If
+
+    If Not IsMissing(finalBefore) Then finalBefore = blankBefore
+    If Not IsMissing(finalAfter) Then finalAfter = blankAfter
+    EnsureBlankLinesAroundParagraphIndex = True
+    Exit Function
+
+ErrorHandler:
+    EnsureBlankLinesAroundParagraphIndex = False
+End Function
+
+Private Function GetNthParagraphIndex(doc As Document, ByVal targetOrder As Long) As Long
+    On Error GoTo ErrorHandler
+
     Dim para As Paragraph
     Dim paraText As String
     Dim i As Long
     Dim actualParaIndex As Long
-    
+
+    If doc Is Nothing Then GoTo ErrorHandler
+    If targetOrder < 1 Then GoTo ErrorHandler
+
     actualParaIndex = 0
-    
-    ' Encontra o 2º parágrafo com conteúdo (pula vazios)
+
     For i = 1 To doc.Paragraphs.count
         Set para = doc.Paragraphs(i)
-        paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
-        
-        ' Se o parágrafo tem texto ou conteúdo visual, conta como parágrafo válido
+        paraText = Trim$(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+
         If paraText <> "" Or HasVisualContent(para) Then
             actualParaIndex = actualParaIndex + 1
-            
-            ' Retorna o índice do 2º parágrafo
-            If actualParaIndex = 2 Then
-                GetSecondParagraphIndex = i
+            If actualParaIndex = targetOrder Then
+                GetNthParagraphIndex = i
                 Exit Function
             End If
         End If
-        
-        ' Proteção: processa até 20 parágrafos para encontrar o 2º
-        If i > 20 Then Exit For
+
+        If i > 50 Then Exit For
     Next i
-    
-    GetSecondParagraphIndex = 0  ' Não encontrado
+
+    GetNthParagraphIndex = 0
     Exit Function
-    
+
 ErrorHandler:
-    GetSecondParagraphIndex = 0
+    GetNthParagraphIndex = 0
 End Function
 
-'================================================================================
-' ENSURE SECOND PARAGRAPH BLANK LINES - Garante 2 linhas em branco no 2º parágrafo
-'================================================================================
-Private Function EnsureSecondParagraphBlankLines(doc As Document) As Boolean
-    On Error GoTo ErrorHandler
-    
-    Dim secondParaIndex As Long
-    Dim linesToAdd As Long
-    Dim linesToAddAfter As Long
-    
-    secondParaIndex = GetSecondParagraphIndex(doc)
-    linesToAdd = 0
-    linesToAddAfter = 0
-    
-    If secondParaIndex > 0 And secondParaIndex <= doc.Paragraphs.count Then
-        Dim para As Paragraph
-        Set para = doc.Paragraphs(secondParaIndex)
-        
-        ' Verifica e corrige linhas em branco ANTES
-        Dim blankLinesBefore As Long
-        blankLinesBefore = CountBlankLinesBefore(doc, secondParaIndex)
-        
-        If blankLinesBefore < 2 Then
-            Dim insertionPoint As Range
-            Set insertionPoint = para.Range
-            insertionPoint.Collapse wdCollapseStart
-            
-            linesToAdd = 2 - blankLinesBefore
-            
-            Dim newLines As String
-            newLines = String(linesToAdd, vbCrLf)
-            insertionPoint.InsertBefore newLines
-            
-            ' Atualiza o índice (foi deslocado)
-            secondParaIndex = secondParaIndex + linesToAdd
-            Set para = doc.Paragraphs(secondParaIndex)
-        End If
-        
-        ' Verifica e corrige linhas em branco DEPOIS
-        Dim blankLinesAfter As Long
-        blankLinesAfter = CountBlankLinesAfter(doc, secondParaIndex)
-        
-        If blankLinesAfter < 2 Then
-            Dim insertionPointAfter As Range
-            Set insertionPointAfter = para.Range
-            insertionPointAfter.Collapse wdCollapseEnd
-            
-            linesToAddAfter = 2 - blankLinesAfter
-            
-            Dim newLinesAfter As String
-            newLinesAfter = String(linesToAddAfter, vbCrLf)
-            insertionPointAfter.InsertAfter newLinesAfter
-        End If
-        
-        LogMessage "Linhas em branco do 2º parágrafo reforçadas (antes: " & (blankLinesBefore + linesToAdd) & ", depois: " & (blankLinesAfter + linesToAddAfter) & ")", LOG_LEVEL_INFO
-    End If
-    
-    EnsureSecondParagraphBlankLines = True
-    Exit Function
-    
-ErrorHandler:
-    EnsureSecondParagraphBlankLines = False
-    LogMessage "Erro ao garantir linhas em branco do 2º parágrafo: " & Err.Description, LOG_LEVEL_WARNING
+Private Function GetSecondParagraphIndex(doc As Document) As Long
+    GetSecondParagraphIndex = GetNthParagraphIndex(doc, 2)
+End Function
+
+Private Function GetThirdParagraphIndex(doc As Document) As Long
+    GetThirdParagraphIndex = GetNthParagraphIndex(doc, 3)
 End Function
 
 '================================================================================
@@ -1638,83 +1727,70 @@ End Function
 '================================================================================
 Private Function FormatFirstParagraph(doc As Document) As Boolean
     On Error GoTo ErrorHandler
-    
+
     Dim para As Paragraph
     Dim paraText As String
     Dim i As Long
     Dim actualParaIndex As Long
     Dim firstParaIndex As Long
-    
-    ' Identifica o 1º parágrafo (considerando apenas parágrafos com texto)
+    Dim n As Long
+    Dim charCount As Long
+    Dim charRange As Range
+
     actualParaIndex = 0
     firstParaIndex = 0
-    
-    ' Encontra o 1º parágrafo com conteúdo (pula vazios)
+
     For i = 1 To doc.Paragraphs.count
         Set para = doc.Paragraphs(i)
-        paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
-        
-        ' Se o parágrafo tem texto ou conteúdo visual, conta como parágrafo válido
+        paraText = Trim$(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+
         If paraText <> "" Or HasVisualContent(para) Then
             actualParaIndex = actualParaIndex + 1
-            
-            ' Registra o índice do 1º parágrafo
             If actualParaIndex = 1 Then
                 firstParaIndex = i
-                Exit For ' Já encontramos o 1º parágrafo
+                Exit For
             End If
         End If
-        
-        ' Proteção expandida: processa até 20 parágrafos para encontrar o 1º
+
         If i > 20 Then Exit For
     Next i
-    
-    ' Aplica formatação específica apenas ao 1º parágrafo
+
     If firstParaIndex > 0 And firstParaIndex <= doc.Paragraphs.count Then
         Set para = doc.Paragraphs(firstParaIndex)
-        
-        ' NOVO: Aplica formatação SEMPRE, protegendo apenas as imagens
-        ' Formatação do 1º parágrafo: caixa alta, negrito e sublinhado
+
         If HasVisualContent(para) Then
-            ' Para parágrafos com imagens, aplica formatação caractere por caractere
-            Dim n As Long
-            Dim charCount4 As Long
-            charCount4 = SafeGetCharacterCount(para.Range) ' Cache da contagem segura
-            
-            If charCount4 > 0 Then ' Verificação de segurança
-                For n = 1 To charCount4
-                    Dim charRange3 As Range
-                    Set charRange3 = para.Range.Characters(n)
-                    If charRange3.InlineShapes.count = 0 Then
-                        With charRange3.Font
-                            .AllCaps = True           ' Caixa alta (maiúsculas)
-                            .Bold = True              ' Negrito
-                            .Underline = wdUnderlineSingle ' Sublinhado
+            charCount = SafeGetCharacterCount(para.Range)
+            If charCount > 0 Then
+                For n = 1 To charCount
+                    Set charRange = para.Range.Characters(n)
+                    If charRange.InlineShapes.count = 0 Then
+                        With charRange.Font
+                            .AllCaps = True
+                            .Bold = True
+                            .Underline = wdUnderlineSingle
                         End With
                     End If
                 Next n
             End If
             LogMessage "1º parágrafo formatado com proteção de imagem (posição: " & firstParaIndex & ")"
         Else
-            ' Formatação normal para parágrafos sem imagens
             With para.Range.Font
-                .AllCaps = True           ' Caixa alta (maiúsculas)
-                .Bold = True              ' Negrito
-                .Underline = wdUnderlineSingle ' Sublinhado
+                .AllCaps = True
+                .Bold = True
+                .Underline = wdUnderlineSingle
             End With
         End If
-        
-        ' Aplicar também formatação de parágrafo - SEMPRE
+
         With para.Format
-            .alignment = wdAlignParagraphCenter       ' Centralizado
-            .leftIndent = 0                           ' Sem recuo à esquerda
-            .firstLineIndent = 0                      ' Sem recuo da primeira linha
-            .RightIndent = 0                          ' Sem recuo à direita
+            .alignment = wdAlignParagraphCenter
+            .leftIndent = 0
+            .firstLineIndent = 0
+            .RightIndent = 0
         End With
     Else
         LogMessage "1º parágrafo não encontrado para formatação", LOG_LEVEL_WARNING
     End If
-    
+
     FormatFirstParagraph = True
     Exit Function
 
@@ -4226,7 +4302,13 @@ Private Sub ReplacePlenarioDateParagraph(doc As Document)
                        "de setembro de", "de outubro de", "de novembro de", "de dezembro de")
     locationTerms = Array("palácio 15 de junho", "palacio 15 de junho", "plenário", "plenario")
     
-    For Each para In doc.Paragraphs
+    Dim i As Long
+    Dim paraIndex As Long
+    Dim beforeSpacing As Long
+    Dim afterSpacing As Long
+    
+    For i = 1 To doc.Paragraphs.count
+        Set para = doc.Paragraphs(i)
         rawText = para.Range.text
         rawText = Replace(rawText, vbCr, "")
         rawText = Replace(rawText, vbLf, "")
@@ -4258,6 +4340,13 @@ Private Sub ReplacePlenarioDateParagraph(doc As Document)
         
         If Len(lowerText) > 180 Then GoTo NextParagraph
         
+        paraIndex = i
+        If Not EnsureBlankLinesAroundParagraphIndex(doc, paraIndex, 2, 2, beforeSpacing, afterSpacing) Then
+            beforeSpacing = CountBlankLinesBefore(doc, paraIndex)
+            afterSpacing = CountBlankLinesAfter(doc, paraIndex)
+        End If
+        If paraIndex < 1 Or paraIndex > doc.Paragraphs.count Then GoTo NextParagraph
+        Set para = doc.Paragraphs(paraIndex)
         Set targetRange = para.Range
         targetRange.text = "Plenário ""Dr. Tancredo Neves"", $DATAATUALEXTENSO$." & vbCr
         
@@ -4266,12 +4355,12 @@ Private Sub ReplacePlenarioDateParagraph(doc As Document)
             .firstLineIndent = 0
             .alignment = wdAlignParagraphCenter
         End With
-        LogMessage "Parágrafo de plenário substituído e formatado", LOG_LEVEL_INFO
+        LogMessage "Parágrafo de plenário substituído e formatado (linhas em branco antes: " & beforeSpacing & ", depois: " & afterSpacing & ")", LOG_LEVEL_INFO
         replaced = True
         Exit For
         
 NextParagraph:
-    Next para
+    Next i
     
     If Not replaced Then
         LogMessage "Parágrafo de plenário não encontrado para substituição", LOG_LEVEL_WARNING
