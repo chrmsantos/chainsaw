@@ -47,6 +47,20 @@ Private Type ViewSettings
     ShowOptionalHyphens As Boolean
 End Type
 
+Private Type ImageInfo
+    paraIndex As Long
+    ImageIndex As Long
+    ImageType As String
+    Position As Long
+    WrapType As Long
+    Width As Single
+    Height As Single
+    LeftPosition As Single
+    TopPosition As Single
+    ImageData As String
+    AnchorRange As Range
+End Type
+
 Private Const LINE_SPACING As Double = 12# * 1.15# ' 1,15 na interface do Word (12 pt base)
 Private Const WORD_HANG_TIMEOUT_SECONDS As Double = 30# ' Tempo limite para detectar travamento iminente
 Private Const USER_DATA_ROOT_FOLDER As String = "chainsaw-proposituras"
@@ -61,6 +75,8 @@ Private Const LOG_LEVEL_ERROR As Long = 2
 Private hangDetectionStart As Double
 Private hangDetectionTriggered As Boolean
 Private originalViewSettings As ViewSettings
+Private savedImages() As ImageInfo
+Private imageCount As Long
  
 Private Function EnsureBlankLinesAroundParagraphIndex(doc As Document, ByRef paraIndex As Long, _
     ByVal requiredBefore As Long, ByVal requiredAfter As Long, _
