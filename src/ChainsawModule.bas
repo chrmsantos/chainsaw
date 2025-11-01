@@ -1549,7 +1549,7 @@ Private Function ApplyStdParagraphs(doc As Document) As Boolean
         paraText = Replace(paraText, vbTab, "")
         ' Formatação de parágrafo - SEMPRE aplicada
         With para.Format
-            .LineSpacingRule = wdLineSpacingMultiple
+            .LineSpacingRule = wdLineSpaceMultiple
             .LineSpacing = LINE_SPACING
             .RightIndent = rightMarginPoints
             .SpaceBefore = 0
