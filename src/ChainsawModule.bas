@@ -24,10 +24,41 @@
 '   - Pasta de backups organizada por documento
 '
 ' CONFIGURAÇÕES PADRÃO DE FORMATAÇÃO
+Private Type ViewSettings
+    ViewType As Long
+    ShowHorizontalRuler As Boolean
+    ShowVerticalRuler As Boolean
+    ShowFieldCodes As Boolean
+    ShowBookmarks As Boolean
+    ShowParagraphMarks As Boolean
+    ShowSpaces As Boolean
+    ShowTabs As Boolean
+    ShowHiddenText As Boolean
+    ShowAll As Boolean
+    ShowDrawings As Boolean
+    ShowObjectAnchors As Boolean
+    ShowTextBoundaries As Boolean
+    ShowHighlight As Boolean
+    DraftFont As Boolean
+    WrapToWindow As Boolean
+    ShowPicturePlaceHolders As Boolean
+    ShowFieldShading As Long
+    TableGridlines As Boolean
+    ShowOptionalHyphens As Boolean
+End Type
+
 Private Const LINE_SPACING As Double = 12# * 1.15# ' 1,15 na interface do Word (12 pt base)
 Private Const WORD_HANG_TIMEOUT_SECONDS As Double = 30# ' Tempo limite para detectar travamento iminente
+Private Const USER_DATA_ROOT_FOLDER As String = "chainsaw-proposituras"
+Private Const LOG_FOLDER_NAME As String = USER_DATA_ROOT_FOLDER & "\logs"
+Private Const BACKUP_FOLDER_NAME As String = USER_DATA_ROOT_FOLDER & "\backups"
+Private Const MIN_SUPPORTED_VERSION As Double = 14# ' Word 2010
+Private Const LOG_LEVEL_INFO As Long = 0
+Private Const LOG_LEVEL_WARNING As Long = 1
+Private Const LOG_LEVEL_ERROR As Long = 2
 Private hangDetectionStart As Double
 Private hangDetectionTriggered As Boolean
+Private originalViewSettings As ViewSettings
  
 Private Function EnsureBlankLinesAroundParagraphIndex(doc As Document, ByRef paraIndex As Long, _
     ByVal requiredBefore As Long, ByVal requiredAfter As Long, _
@@ -203,8 +234,6 @@ ErrorHandler:
     LogMessage "Erro na formatação do 1º parágrafo: " & Err.Description, LOG_LEVEL_ERROR
     FormatFirstParagraph = False
 End Function
-Private originalViewSettings As ViewSettings
-
 '================================================================================
 ' MAIN ENTRY POINT - #STABLE
 '================================================================================
