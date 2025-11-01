@@ -857,6 +857,8 @@ Private Function PreviousChecking(doc As Document) As Boolean
         LogMessage "Estrutura do documento validada com avisos", LOG_LEVEL_WARNING
     End If
 
+    WarnSensitiveData doc
+
     LogMessage "Verificações de segurança concluídas com sucesso", LOG_LEVEL_INFO
     PreviousChecking = True
     Exit Function
@@ -899,6 +901,57 @@ ErrorHandler:
     ' Se não conseguir verificar, assume que há espaço suficiente
     CheckDiskSpace = True
 End Function
+
+'================================================================================
+' SENSITIVE DATA DETECTION - AVISO PARA DADOS PESSOAIS SENSÍVEIS
+'================================================================================
+Private Sub WarnSensitiveData(doc As Document)
+    On Error GoTo ErrorHandler
+
+    Dim docText As String
+    Dim lowerText As String
+    Dim sensitiveTerms As Variant
+    Dim term As Variant
+    Dim found As Boolean
+    Dim regEx As Object
+
+    If doc Is Nothing Then Exit Sub
+
+    docText = doc.Range.text
+    If Len(docText) = 0 Then Exit Sub
+
+    lowerText = LCase$(docText)
+    sensitiveTerms = Array("cpf:", "rg:", "cnh:", "filiação", "filiacao", "mãe:", "mae:", "naturalidade:", "estado civil:")
+
+    For Each term In sensitiveTerms
+        If InStr(1, lowerText, term, vbBinaryCompare) > 0 Then
+            found = True
+            Exit For
+        End If
+    Next term
+
+    If Not found Then
+        Set regEx = CreateObject("VBScript.RegExp")
+        regEx.Global = False
+        regEx.IgnoreCase = True
+        regEx.Pattern = "\bpai\s*[:\-]"
+        If regEx.Test(docText) Then
+            found = True
+        End If
+    End If
+
+    If found Then
+        Application.StatusBar = "Aviso: possível presença de dados sensíveis. Revise o documento."
+        LogMessage "Possível presença de dados sensíveis detectada no documento", LOG_LEVEL_WARNING
+        MsgBox "Aviso: foram encontrados indícios de dados sensíveis (como CPF, RG, filiação, etc.). Revise o documento antes de prosseguir.", _
+               vbExclamation, "Verificação de Dados Sensíveis"
+    End If
+
+    Exit Sub
+
+ErrorHandler:
+    LogMessage "Falha ao verificar dados sensíveis: " & Err.Description, LOG_LEVEL_WARNING
+End Sub
 
 '================================================================================
 ' MAIN FORMATTING ROUTINE - #STABLE
