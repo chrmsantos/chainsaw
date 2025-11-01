@@ -4409,8 +4409,8 @@ Private Sub ReplacePlenarioDateParagraph(doc As Document)
         
         If Len(rawText) = 0 Then GoTo NextParagraph
         
-        normalizedText = Replace(rawText, ChrW(8220), """)
-        normalizedText = Replace(normalizedText, ChrW(8221), """)
+    normalizedText = Replace(rawText, ChrW(8220), "\"")
+    normalizedText = Replace(normalizedText, ChrW(8221), "\"")
         lowerText = LCase$(normalizedText)
         
         monthFound = False
