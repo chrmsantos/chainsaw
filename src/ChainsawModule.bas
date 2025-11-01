@@ -2362,54 +2362,84 @@ Private Function NormalizeParagraphBreaks(doc As Document) As Boolean
     Dim replacedPairs As Long
     Dim replacedLineFeeds As Long
     Dim guardCounter As Long
+    Dim docText As String
+    Dim hasLineFeeds As Boolean
+    Dim hasCarriagePairs As Boolean
 
     If doc Is Nothing Then
         NormalizeParagraphBreaks = True
         Exit Function
     End If
 
+    docText = doc.Content.text
+    hasLineFeeds = (InStr(docText, vbLf) > 0)
+    hasCarriagePairs = (InStr(docText, vbCrLf) > 0)
+
+    If Not hasLineFeeds Then
+        NormalizeParagraphBreaks = True
+        Exit Function
+    End If
+
     Application.StatusBar = "Normalizando quebras de parágrafo..."
 
-    Set rng = doc.Content
-    With rng.Find
-        .ClearFormatting
-        .Replacement.ClearFormatting
-        .text = PARAGRAPH_BREAK & Chr(10)
-        .Replacement.text = PARAGRAPH_BREAK
-        .Forward = True
-        .Wrap = wdFindContinue
-        .Format = False
-        .MatchCase = False
-        .MatchWholeWord = False
-        .MatchWildcards = False
+    If hasCarriagePairs Then
+        Set rng = doc.Content
+        With rng.Find
+            .ClearFormatting
+            .Replacement.ClearFormatting
+            .text = vbCrLf
+            .Replacement.text = PARAGRAPH_BREAK
+            .Forward = True
+            .Wrap = wdFindContinue
+            .Format = False
+            .MatchCase = False
+            .MatchWholeWord = False
+            .MatchWildcards = False
 
-        Do While .Execute(Replace:=True)
-            replacedPairs = replacedPairs + 1
-            guardCounter = guardCounter + 1
-            If guardCounter > 50000 Then Exit Do
-        Loop
-    End With
+            Do While .Execute(Replace:=True)
+                replacedPairs = replacedPairs + 1
+                guardCounter = guardCounter + 1
+                If guardCounter Mod 100 = 0 Then
+                    DoEvents
+                    If ShouldAbortForWordHang("normalização de quebras") Then
+                        NormalizeParagraphBreaks = False
+                        Exit Function
+                    End If
+                End If
+                If guardCounter > 50000 Then Exit Do
+            Loop
+        End With
+    End If
 
-    Set rng = doc.Content
-    guardCounter = 0
-    With rng.Find
-        .ClearFormatting
-        .Replacement.ClearFormatting
-        .text = Chr(10)
-        .Replacement.text = PARAGRAPH_BREAK
-        .Forward = True
-        .Wrap = wdFindContinue
-        .Format = False
-        .MatchCase = False
-        .MatchWholeWord = False
-        .MatchWildcards = False
+    If InStr(doc.Content.text, vbLf) > 0 Then
+        Set rng = doc.Content
+        guardCounter = 0
+        With rng.Find
+            .ClearFormatting
+            .Replacement.ClearFormatting
+            .text = vbLf
+            .Replacement.text = PARAGRAPH_BREAK
+            .Forward = True
+            .Wrap = wdFindContinue
+            .Format = False
+            .MatchCase = False
+            .MatchWholeWord = False
+            .MatchWildcards = False
 
-        Do While .Execute(Replace:=True)
-            replacedLineFeeds = replacedLineFeeds + 1
-            guardCounter = guardCounter + 1
-            If guardCounter > 50000 Then Exit Do
-        Loop
-    End With
+            Do While .Execute(Replace:=True)
+                replacedLineFeeds = replacedLineFeeds + 1
+                guardCounter = guardCounter + 1
+                If guardCounter Mod 100 = 0 Then
+                    DoEvents
+                    If ShouldAbortForWordHang("normalização de quebras") Then
+                        NormalizeParagraphBreaks = False
+                        Exit Function
+                    End If
+                End If
+                If guardCounter > 50000 Then Exit Do
+            Loop
+        End With
+    End If
 
     If replacedPairs > 0 Or replacedLineFeeds > 0 Then
         LogMessage "Quebras normalizadas: " & replacedPairs & " CR+LF convertidos e " & replacedLineFeeds & " LF isolados tratados", LOG_LEVEL_INFO
@@ -3524,6 +3554,23 @@ Private Function CleanMultipleSpaces(doc As Document) As Boolean
     Dim rng As Range
     Dim spacesRemoved As Long
     Dim totalOperations As Long
+    Dim hasDoubleSpaces As Boolean
+    Dim hasTabs As Boolean
+    Dim docSnapshot As String
+
+    If doc Is Nothing Then
+        CleanMultipleSpaces = True
+        Exit Function
+    End If
+
+    docSnapshot = doc.Content.text
+    hasDoubleSpaces = (InStr(docSnapshot, "  ") > 0)
+    hasTabs = (InStr(docSnapshot, vbTab) > 0)
+    If Not hasDoubleSpaces And Not hasTabs Then
+        CleanMultipleSpaces = True
+        Exit Function
+    End If
+    docSnapshot = ""
     
     ' SUPER OTIMIZADO: Operações consolidadas em uma única configuração Find
     Set rng = doc.Range
@@ -3556,8 +3603,12 @@ Private Function CleanMultipleSpaces(doc As Document) As Boolean
                 ' Proteção otimizada - verifica a cada 200 operações
                 If currentReplaceCount Mod 200 = 0 Then
                     DoEvents
-                    If spacesRemoved > 2000 Then Exit Do
+                    If ShouldAbortForWordHang("limpeza de espaços") Then
+                        CleanMultipleSpaces = False
+                        Exit Function
+                    End If
                 End If
+                If spacesRemoved > 2000 Then Exit Do
             Loop
             
             totalOperations = totalOperations + 1
@@ -3581,6 +3632,13 @@ Private Function CleanMultipleSpaces(doc As Document) As Boolean
         .Replacement.text = " ^p"  ' 1 espaço seguido de quebra
         Do While .Execute(Replace:=True)
             spacesRemoved = spacesRemoved + 1
+            If spacesRemoved Mod 200 = 0 Then
+                DoEvents
+                If ShouldAbortForWordHang("limpeza de espaços") Then
+                    CleanMultipleSpaces = False
+                    Exit Function
+                End If
+            End If
             If spacesRemoved > 2000 Then Exit Do
         Loop
         
@@ -3589,6 +3647,13 @@ Private Function CleanMultipleSpaces(doc As Document) As Boolean
         .Replacement.text = "^p"
         Do While .Execute(Replace:=True)
             spacesRemoved = spacesRemoved + 1
+            If spacesRemoved Mod 200 = 0 Then
+                DoEvents
+                If ShouldAbortForWordHang("limpeza de espaços") Then
+                    CleanMultipleSpaces = False
+                    Exit Function
+                End If
+            End If
             If spacesRemoved > 2000 Then Exit Do
         Loop
         
@@ -3597,6 +3662,13 @@ Private Function CleanMultipleSpaces(doc As Document) As Boolean
         .Replacement.text = "^p "  ' Quebra seguida de 1 espaço
         Do While .Execute(Replace:=True)
             spacesRemoved = spacesRemoved + 1
+            If spacesRemoved Mod 200 = 0 Then
+                DoEvents
+                If ShouldAbortForWordHang("limpeza de espaços") Then
+                    CleanMultipleSpaces = False
+                    Exit Function
+                End If
+            End If
             If spacesRemoved > 2000 Then Exit Do
         Loop
     End With
@@ -3613,6 +3685,13 @@ Private Function CleanMultipleSpaces(doc As Document) As Boolean
         .Replacement.text = "^t"  ' 1 tab
         Do While .Execute(Replace:=True)
             spacesRemoved = spacesRemoved + 1
+            If spacesRemoved Mod 200 = 0 Then
+                DoEvents
+                If ShouldAbortForWordHang("limpeza de espaços") Then
+                    CleanMultipleSpaces = False
+                    Exit Function
+                End If
+            End If
             If spacesRemoved > 2000 Then Exit Do
         Loop
         
@@ -3621,6 +3700,13 @@ Private Function CleanMultipleSpaces(doc As Document) As Boolean
         .Replacement.text = " "
         Do While .Execute(Replace:=True)
             spacesRemoved = spacesRemoved + 1
+            If spacesRemoved Mod 200 = 0 Then
+                DoEvents
+                If ShouldAbortForWordHang("limpeza de espaços") Then
+                    CleanMultipleSpaces = False
+                    Exit Function
+                End If
+            End If
             If spacesRemoved > 2000 Then Exit Do
         Loop
     End With
@@ -3638,6 +3724,13 @@ Private Function CleanMultipleSpaces(doc As Document) As Boolean
         Do While .Execute(Replace:=True) And finalCleanCount < 100
             finalCleanCount = finalCleanCount + 1
             spacesRemoved = spacesRemoved + 1
+            If finalCleanCount Mod 50 = 0 Then
+                DoEvents
+                If ShouldAbortForWordHang("limpeza de espaços") Then
+                    CleanMultipleSpaces = False
+                    Exit Function
+                End If
+            End If
         Loop
     End With
     
@@ -3657,6 +3750,13 @@ Private Function CleanMultipleSpaces(doc As Document) As Boolean
         Do While .Execute(Replace:=True)
             spacesRemoved = spacesRemoved + 1
             If spacesRemoved > 2100 Then Exit Do
+            If spacesRemoved Mod 200 = 0 Then
+                DoEvents
+                If ShouldAbortForWordHang("limpeza de espaços") Then
+                    CleanMultipleSpaces = False
+                    Exit Function
+                End If
+            End If
         Loop
         
         .text = "CONSIDERANDOe"
@@ -3664,6 +3764,13 @@ Private Function CleanMultipleSpaces(doc As Document) As Boolean
         Do While .Execute(Replace:=True)
             spacesRemoved = spacesRemoved + 1
             If spacesRemoved > 2100 Then Exit Do
+            If spacesRemoved Mod 200 = 0 Then
+                DoEvents
+                If ShouldAbortForWordHang("limpeza de espaços") Then
+                    CleanMultipleSpaces = False
+                    Exit Function
+                End If
+            End If
         Loop
         
         .text = "CONSIDERANDOo"
@@ -3671,6 +3778,13 @@ Private Function CleanMultipleSpaces(doc As Document) As Boolean
         Do While .Execute(Replace:=True)
             spacesRemoved = spacesRemoved + 1
             If spacesRemoved > 2100 Then Exit Do
+            If spacesRemoved Mod 200 = 0 Then
+                DoEvents
+                If ShouldAbortForWordHang("limpeza de espaços") Then
+                    CleanMultipleSpaces = False
+                    Exit Function
+                End If
+            End If
         Loop
         
         .text = "CONSIDERANDOq"
@@ -3678,6 +3792,13 @@ Private Function CleanMultipleSpaces(doc As Document) As Boolean
         Do While .Execute(Replace:=True)
             spacesRemoved = spacesRemoved + 1
             If spacesRemoved > 2100 Then Exit Do
+            If spacesRemoved Mod 200 = 0 Then
+                DoEvents
+                If ShouldAbortForWordHang("limpeza de espaços") Then
+                    CleanMultipleSpaces = False
+                    Exit Function
+                End If
+            End If
         Loop
     End With
     
@@ -3698,6 +3819,20 @@ Private Function LimitSequentialEmptyLines(doc As Document) As Boolean
     
     Application.StatusBar = "Controlando linhas em branco sequenciais..."
     
+    Dim docSnapshot As String
+
+    If doc Is Nothing Then
+        LimitSequentialEmptyLines = True
+        Exit Function
+    End If
+
+    docSnapshot = doc.Content.text
+    If InStr(docSnapshot, PARAGRAPH_BREAK & PARAGRAPH_BREAK & PARAGRAPH_BREAK) = 0 Then
+        LimitSequentialEmptyLines = True
+        Exit Function
+    End If
+    docSnapshot = ""
+
     ' IDENTIFICAÇÃO DO SEGUNDO PARÁGRAFO PARA PROTEÇÃO
     Dim secondParaIndex As Long
     secondParaIndex = GetSecondParagraphIndex(doc)
@@ -3729,7 +3864,13 @@ Private Function LimitSequentialEmptyLines(doc As Document) As Boolean
             linesRemoved = linesRemoved + 1
             totalReplaces = totalReplaces + 1
             If totalReplaces > 500 Then Exit Do
-            If linesRemoved Mod 50 = 0 Then DoEvents
+            If linesRemoved Mod 50 = 0 Then
+                DoEvents
+                If ShouldAbortForWordHang("controle de linhas vazias") Then
+                    LimitSequentialEmptyLines = False
+                    Exit Function
+                End If
+            End If
         Loop
         
         ' Remove 3 quebras -> 2 quebras
@@ -3740,7 +3881,13 @@ Private Function LimitSequentialEmptyLines(doc As Document) As Boolean
             linesRemoved = linesRemoved + 1
             totalReplaces = totalReplaces + 1
             If totalReplaces > 500 Then Exit Do
-            If linesRemoved Mod 50 = 0 Then DoEvents
+            If linesRemoved Mod 50 = 0 Then
+                DoEvents
+                If ShouldAbortForWordHang("controle de linhas vazias") Then
+                    LimitSequentialEmptyLines = False
+                    Exit Function
+                End If
+            End If
         Loop
     End With
     
@@ -3763,6 +3910,13 @@ Private Function LimitSequentialEmptyLines(doc As Document) As Boolean
         Do While .Execute(Replace:=True) And secondPassCount < 200
             secondPassCount = secondPassCount + 1
             linesRemoved = linesRemoved + 1
+            If secondPassCount Mod 50 = 0 Then
+                DoEvents
+                If ShouldAbortForWordHang("controle de linhas vazias") Then
+                    LimitSequentialEmptyLines = False
+                    Exit Function
+                End If
+            End If
         Loop
     End With
     
@@ -3780,6 +3934,13 @@ Private Function LimitSequentialEmptyLines(doc As Document) As Boolean
         Do While .Execute(Replace:=True) And finalPassCount < 100
             finalPassCount = finalPassCount + 1
             linesRemoved = linesRemoved + 1
+            If finalPassCount Mod 50 = 0 Then
+                DoEvents
+                If ShouldAbortForWordHang("controle de linhas vazias") Then
+                    LimitSequentialEmptyLines = False
+                    Exit Function
+                End If
+            End If
         Loop
     End With
     
@@ -3822,7 +3983,13 @@ Private Function LimitSequentialEmptyLines(doc As Document) As Boolean
             End If
             
             ' Responsividade e proteção otimizadas
-            If fallbackRemoved Mod 10 = 0 Then DoEvents
+            If fallbackRemoved Mod 10 = 0 Then
+                DoEvents
+                If ShouldAbortForWordHang("controle de linhas vazias") Then
+                    LimitSequentialEmptyLines = False
+                    Exit Function
+                End If
+            End If
             If i > 500 Then Exit Do ' Proteção adicional
         Loop
     End If
