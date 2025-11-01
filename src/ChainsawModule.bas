@@ -181,7 +181,7 @@ Private Function GetThirdParagraphIndex(doc As Document) As Long
 End Function
 
 '================================================================================
-' FORMAT FIRST PARAGRAPH - FORMATAÇÃO DO 1º PARÁGRAFO - #NEW
+' FORMAT FIRST PARAGRAPH - FORMATAÇÃO DO 1º PARÁGRAFO
 '================================================================================
 Private Function FormatFirstParagraph(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -257,7 +257,7 @@ ErrorHandler:
     FormatFirstParagraph = False
 End Function
 '================================================================================
-' MAIN ENTRY POINT - #STABLE
+' MAIN ENTRY POINT
 '================================================================================
 Public Sub PadronizarDocumentoMain()
     On Error GoTo CriticalErrorHandler
@@ -364,7 +364,7 @@ CriticalErrorHandler:
 End Sub
 
 '================================================================================
-' EMERGENCY RECOVERY - #STABLE
+' EMERGENCY RECOVERY
 '================================================================================
 Private Sub EmergencyRecovery()
     On Error Resume Next
@@ -389,7 +389,7 @@ Private Sub EmergencyRecovery()
 End Sub
 
 '================================================================================
-' SAFE CLEANUP - LIMPEZA SEGURA - #STABLE
+' SAFE CLEANUP - LIMPEZA SEGURA
 '================================================================================
 Private Sub SafeCleanup()
     On Error Resume Next
@@ -400,7 +400,7 @@ Private Sub SafeCleanup()
 End Sub
 
 '================================================================================
-' RELEASE OBJECTS - #STABLE
+' RELEASE OBJECTS
 '================================================================================
 Private Sub ReleaseObjects()
     On Error Resume Next
@@ -415,7 +415,7 @@ Private Sub ReleaseObjects()
 End Sub
 
 '================================================================================
-' CLOSE ALL OPEN FILES - #STABLE
+' CLOSE ALL OPEN FILES
 '================================================================================
 Private Sub CloseAllOpenFiles()
     On Error Resume Next
@@ -429,7 +429,7 @@ Private Sub CloseAllOpenFiles()
 End Sub
 
 '================================================================================
-' VERSION COMPATIBILITY AND SAFETY CHECKS - #STABLE
+' VERSION COMPATIBILITY AND SAFETY CHECKS
 '================================================================================
 Private Function CheckWordVersion() As Boolean
     On Error GoTo ErrorHandler
@@ -494,23 +494,6 @@ ErrorHandler:
     LogMessage "Erro ao aplicar fonte: " & Err.Description & " - Range: " & Left(targetRange.text, 20), LOG_LEVEL_WARNING
 End Function
 
-Private Function SafeSetParagraphFormat(para As Paragraph, alignment As Long, leftIndent As Single, firstLineIndent As Single) As Boolean
-    On Error GoTo ErrorHandler
-    
-    With para.Format
-        If alignment >= 0 Then .alignment = alignment
-        If leftIndent >= 0 Then .leftIndent = leftIndent
-        If firstLineIndent >= 0 Then .firstLineIndent = firstLineIndent
-    End With
-    
-    SafeSetParagraphFormat = True
-    Exit Function
-    
-ErrorHandler:
-    SafeSetParagraphFormat = False
-    LogMessage "Erro ao aplicar formatação de parágrafo: " & Err.Description, LOG_LEVEL_WARNING
-End Function
-
 Private Function SafeHasVisualContent(para As Paragraph) As Boolean
     On Error GoTo SafeMode
     
@@ -546,49 +529,6 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' SAFE FIND/REPLACE OPERATIONS - Compatibilidade com todas as versões
-'================================================================================
-Private Function SafeFindReplace(doc As Document, findText As String, replaceText As String, Optional useWildcards As Boolean = False) As Long
-    On Error GoTo ErrorHandler
-    
-    Dim findCount As Long
-    findCount = 0
-    
-    ' Configuração segura de Find/Replace
-    With doc.Range.Find
-        .ClearFormatting
-        .Replacement.ClearFormatting
-        .text = findText
-        .Replacement.text = replaceText
-        .Forward = True
-        .Wrap = wdFindContinue
-        .Format = False
-        .MatchCase = False
-        .MatchWholeWord = False
-        .MatchWildcards = useWildcards  ' Parâmetro controlado
-        .MatchSoundsLike = False
-        .MatchAllWordForms = False
-        
-        ' Executa a substituição e conta ocorrências
-        Do While .Execute(Replace:=True)
-            findCount = findCount + 1
-            ' Limite de segurança para evitar loops infinitos
-            If findCount > 10000 Then
-                LogMessage "Limite de substituições atingido para: " & findText, LOG_LEVEL_WARNING
-                Exit Do
-            End If
-        Loop
-    End With
-    
-    SafeFindReplace = findCount
-    Exit Function
-    
-ErrorHandler:
-    SafeFindReplace = 0
-    LogMessage "Erro na operação Find/Replace: " & findText & " -> " & replaceText & " | " & Err.Description, LOG_LEVEL_WARNING
-End Function
-
-'================================================================================
 ' SAFE CHARACTER ACCESS FUNCTIONS - Compatibilidade total
 '================================================================================
 Private Function SafeGetLastCharacter(rng As Range) As String
@@ -615,7 +555,7 @@ FinalFallback:
 End Function
 
 '================================================================================
-' UNDO GROUP MANAGEMENT - #STABLE
+' UNDO GROUP MANAGEMENT
 '================================================================================
 Private Sub StartUndoGroup(groupName As String)
     On Error GoTo ErrorHandler
@@ -648,7 +588,7 @@ ErrorHandler:
 End Sub
 
 '================================================================================
-' LOGGING MANAGEMENT - APRIMORADO COM DETALHES - #STABLE
+' LOGGING MANAGEMENT - APRIMORADO COM DETALHES
 '================================================================================
 Private Function InitializeLogging(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -794,7 +734,7 @@ ErrorHandler:
 End Sub
 
 '================================================================================
-' UTILITY: GET PROTECTION TYPE - #STABLE
+' UTILITY: GET PROTECTION TYPE
 '================================================================================
 Private Function GetProtectionType(doc As Document) As String
     On Error Resume Next
@@ -810,7 +750,7 @@ Private Function GetProtectionType(doc As Document) As String
 End Function
 
 '================================================================================
-' UTILITY: GET DOCUMENT SIZE - #STABLE
+' UTILITY: GET DOCUMENT SIZE
 '================================================================================
 Private Function GetDocumentSize(doc As Document) As String
     On Error Resume Next
@@ -828,7 +768,7 @@ Private Function GetDocumentSize(doc As Document) As String
 End Function
 
 '================================================================================
-' APPLICATION STATE HANDLER - #STABLE
+' APPLICATION STATE HANDLER
 '================================================================================
 Private Function SetAppState(Optional ByVal enabled As Boolean = True, Optional ByVal statusMsg As String = "") As Boolean
     On Error GoTo ErrorHandler
@@ -1092,7 +1032,7 @@ ErrorHandler:
 End Sub
 
 '================================================================================
-' MAIN FORMATTING ROUTINE - #STABLE
+' MAIN FORMATTING ROUTINE
 '================================================================================
 Private Function PreviousFormatting(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -1108,9 +1048,7 @@ Private Function PreviousFormatting(doc As Document) As Boolean
         Exit Function
     End If
 
-    ' Limpeza e formatações otimizadas (logs reduzidos para performance)
-    ClearAllFormatting doc
-    If formattingCancelled Then GoTo HangAbort
+    ' Preparações estruturais antes das formatações específicas
     CleanDocumentStructure doc
     If formattingCancelled Then GoTo HangAbort
     ValidatePropositionType doc
@@ -1199,7 +1137,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' PAGE SETUP - #STABLE
+' PAGE SETUP
 '================================================================================
 Private Function ApplyPageSetup(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -1225,7 +1163,7 @@ ErrorHandler:
 End Function
 
 ' ================================================================================
-' FONT FORMMATTING - #STABLE
+' FONT FORMMATTING
 ' ================================================================================
 Private Function ApplyStdFont(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -1438,7 +1376,7 @@ Private Sub FormatCharacterByCharacter(para As Paragraph, fontName As String, fo
 End Sub
 
 '================================================================================
-' PARAGRAPH FORMATTING - #STABLE
+' PARAGRAPH FORMATTING
 '================================================================================
 Private Function ApplyStdParagraphs(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -1559,7 +1497,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' FORMAT SECOND PARAGRAPH - FORMATAÇÃO APENAS DO 2º PARÁGRAFO - #NEW
+' FORMAT SECOND PARAGRAPH - FORMATAÇÃO APENAS DO 2º PARÁGRAFO
 '================================================================================
 Private Function FormatSecondParagraph(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -1856,7 +1794,7 @@ End Function
 
 
 '================================================================================
-' ENABLE HYPHENATION - #STABLE
+' ENABLE HYPHENATION
 '================================================================================
 Private Function EnableHyphenation(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -1880,7 +1818,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' REMOVE WATERMARK - #STABLE
+' REMOVE WATERMARK
 '================================================================================
 Private Function RemoveWatermark(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -2007,39 +1945,6 @@ Private Function SanitizeFileName(ByVal rawName As String) As String
 End Function
 
 '================================================================================
-' HEADER IMAGE PATH MANAGEMENT - #STABLE
-'================================================================================
-Private Function GetHeaderImagePath() As String
-    On Error GoTo ErrorHandler
-
-    Dim fso As Object
-    Dim documentsPath As String
-    Dim headerImagePath As String
-
-    Set fso = CreateObject("Scripting.FileSystemObject")
-
-    ' Obtém pasta Documents do usuário atual (compatível com Windows)
-    documentsPath = GetUserDocumentsPath()
-
-    ' Constrói caminho absoluto para a imagem desejada
-    headerImagePath = documentsPath & "\chainsaw-proposituras\assets\stamp.png"
-
-    ' Verifica se o arquivo existe
-    If Not fso.FileExists(headerImagePath) Then
-        LogMessage "Imagem de cabeçalho não encontrada em: " & headerImagePath, LOG_LEVEL_WARNING
-        GetHeaderImagePath = ""
-        Exit Function
-    End If
-
-    GetHeaderImagePath = headerImagePath
-    Exit Function
-
-ErrorHandler:
-    LogMessage "Erro ao localizar imagem de cabeçalho: " & Err.Description, LOG_LEVEL_ERROR
-    GetHeaderImagePath = ""
-End Function
-
-'================================================================================
 ' INSERT HEADER IMAGE
 '================================================================================
 Private Function InsertHeaderstamp(doc As Document) As Boolean
@@ -2143,7 +2048,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' INSERT FOOTER PAGE NUMBERS - #STABLE
+' INSERT FOOTER PAGE NUMBERS
 '================================================================================
 Private Function InsertFooterStamp(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -2195,7 +2100,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' UTILITY: CM TO POINTS - #STABLE
+' UTILITY: CM TO POINTS
 '================================================================================
 Private Function CentimetersToPoints(ByVal cm As Double) As Single
     On Error Resume Next
@@ -2206,48 +2111,7 @@ Private Function CentimetersToPoints(ByVal cm As Double) As Single
 End Function
 
 '================================================================================
-' UTILITY: SAFE USERNAME - #STABLE
-'================================================================================
-Private Function GetSafeUserName() As String
-    On Error GoTo ErrorHandler
-    
-    Dim rawName As String
-    Dim safeName As String
-    Dim i As Integer
-    Dim c As String
-    
-    rawName = Environ("USERNAME")
-    If rawName = "" Then rawName = Environ("USER")
-    If rawName = "" Then
-        On Error Resume Next
-        rawName = CreateObject("WScript.Network").username
-        On Error GoTo 0
-    End If
-    
-    If rawName = "" Then
-        rawName = "UsuarioDesconhecido"
-    End If
-    
-    For i = 1 To Len(rawName)
-        c = Mid(rawName, i, 1)
-        If c Like "[A-Za-z0-9_\-]" Then
-            safeName = safeName & c
-        ElseIf c = " " Then
-            safeName = safeName & "_"
-        End If
-    Next i
-    
-    If safeName = "" Then safeName = "Usuario"
-    
-    GetSafeUserName = safeName
-    Exit Function
-    
-ErrorHandler:
-    GetSafeUserName = "Usuario"
-End Function
-
-'================================================================================
-' VALIDATE DOCUMENT STRUCTURE - SIMPLIFICADO - #STABLE
+' VALIDATE DOCUMENT STRUCTURE - SIMPLIFICADO
 '================================================================================
 Private Function ValidateDocumentStructure(doc As Document) As Boolean
     On Error Resume Next
@@ -2263,7 +2127,7 @@ End Function
 
 '================================================================================
 ' CRITICAL FIX: SAVE DOCUMENT BEFORE PROCESSING
-' TO PREVENT CRASHES ON NEW NON SAVED DOCUMENTS - #STABLE
+' TO PREVENT CRASHES ON NEW NON SAVED DOCUMENTS
 '================================================================================
 Private Function SaveDocumentFirst(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -2316,7 +2180,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' NORMALIZE PARAGRAPH BREAKS - #NEW
+' NORMALIZE PARAGRAPH BREAKS
 '================================================================================
 Private Function NormalizeParagraphBreaks(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -2417,154 +2281,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' CLEAR ALL FORMATTING - LIMPEZA INICIAL COMPLETA - #NEW
-'================================================================================
-Private Function ClearAllFormatting(doc As Document) As Boolean
-    On Error GoTo ErrorHandler
-    
-    Application.StatusBar = "Limpando formatação existente..."
-    
-    ' SUPER OTIMIZADO: Verificação única de conteúdo visual no documento
-    Dim hasImages As Boolean
-    Dim hasShapes As Boolean
-    hasImages = (doc.InlineShapes.count > 0)
-    hasShapes = (doc.Shapes.count > 0)
-    Dim hasAnyVisualContent As Boolean
-    hasAnyVisualContent = hasImages Or hasShapes
-    
-    Dim paraCount As Long
-    Dim styleResetCount As Long
-    
-    If hasAnyVisualContent Then
-        ' MODO SEGURO OTIMIZADO: Cache de verificações visuais por parágrafo
-        Dim para As Paragraph
-        Dim visualContentCache As Object ' Cache para evitar recálculos
-        Set visualContentCache = CreateObject("Scripting.Dictionary")
-        
-        For Each para In doc.Paragraphs
-            On Error Resume Next
-
-            If ShouldAbortForWordHang("limpeza de formatação") Then
-                ClearAllFormatting = False
-                Exit Function
-            End If
-            
-            ' Cache da verificação de conteúdo visual
-            Dim paraKey As String
-            paraKey = CStr(para.Range.Start) & "-" & CStr(para.Range.End)
-            
-            Dim hasVisualInPara As Boolean
-            If visualContentCache.Exists(paraKey) Then
-                hasVisualInPara = visualContentCache(paraKey)
-            Else
-                hasVisualInPara = HasVisualContent(para)
-                visualContentCache.Add paraKey, hasVisualInPara
-            End If
-            
-            If Not hasVisualInPara Then
-                ' FORMATAÇÃO CONSOLIDADA: Aplica todas as configurações em uma única operação
-                With para.Range
-                    ' Reset completo de fonte em uma única operação
-                    With .Font
-                        .Reset
-                        .Name = STANDARD_FONT
-                        .size = STANDARD_FONT_SIZE
-                        .Color = wdColorAutomatic
-                        .Bold = False
-                        .Italic = False
-                        .Underline = wdUnderlineNone
-                    End With
-                    
-                    ' Reset completo de parágrafo em uma única operação
-                    With .ParagraphFormat
-                        .Reset
-                        .alignment = wdAlignParagraphLeft
-                        .LineSpacing = LINE_SPACING
-                        .SpaceBefore = 0
-                        .SpaceAfter = 0
-                        .leftIndent = 0
-                        .RightIndent = 0
-                        .firstLineIndent = 0
-                    End With
-                    
-                    ' Reset de bordas e sombreamento
-                    .Borders.Enable = False
-                    .Shading.Texture = wdTextureNone
-                End With
-                paraCount = paraCount + 1
-            Else
-                ' OTIMIZADO: Para parágrafos com conteúdo visual, formatação protegida mais rápida
-                Call FormatCharacterByCharacter(para, STANDARD_FONT, STANDARD_FONT_SIZE, wdColorAutomatic, True, True)
-                paraCount = paraCount + 1
-            End If
-            
-            ' Proteção otimizada contra loops infinitos
-            If paraCount Mod 100 = 0 Then DoEvents ' Permite responsividade a cada 100 parágrafos
-            If paraCount > 1000 Then Exit For
-            On Error GoTo ErrorHandler
-        Next para
-        
-    Else
-        ' MODO ULTRA-RÁPIDO: Sem conteúdo visual - formatação global em uma única operação
-        With doc.Range
-            ' Reset completo de fonte
-            With .Font
-                .Reset
-                .Name = STANDARD_FONT
-                .size = STANDARD_FONT_SIZE
-                .Color = wdColorAutomatic
-                .Bold = False
-                .Italic = False
-                .Underline = wdUnderlineNone
-            End With
-            
-            ' Reset completo de parágrafo
-            With .ParagraphFormat
-                .Reset
-                .alignment = wdAlignParagraphLeft
-                .LineSpacing = LINE_SPACING
-                .SpaceBefore = 0
-                .SpaceAfter = 0
-                .leftIndent = 0
-                .RightIndent = 0
-                .firstLineIndent = 0
-            End With
-            
-            On Error Resume Next
-            .Borders.Enable = False
-            .Shading.Texture = wdTextureNone
-            On Error GoTo ErrorHandler
-        End With
-        
-        paraCount = doc.Paragraphs.count
-    End If
-    
-    ' OTIMIZADO: Reset de estilos em uma única passada
-    For Each para In doc.Paragraphs
-        On Error Resume Next
-        If ShouldAbortForWordHang("reset de estilos") Then
-            ClearAllFormatting = False
-            Exit Function
-        End If
-        para.Style = "Normal"
-        styleResetCount = styleResetCount + 1
-        ' Otimização: Permite responsividade e proteção contra loops
-        If styleResetCount Mod 50 = 0 Then DoEvents
-        If styleResetCount > 1000 Then Exit For
-        On Error GoTo ErrorHandler
-    Next para
-    
-    LogMessage "Formatação limpa: " & paraCount & " parágrafos resetados", LOG_LEVEL_INFO
-    ClearAllFormatting = True
-    Exit Function
-
-ErrorHandler:
-    LogMessage "Erro ao limpar formatação: " & Err.Description, LOG_LEVEL_WARNING
-    ClearAllFormatting = False ' Não falha o processo por isso
-End Function
-
-'================================================================================
-' CLEAN DOCUMENT STRUCTURE - FUNCIONALIDADES 2, 6, 7 - #NEW
+' CLEAN DOCUMENT STRUCTURE - FUNCIONALIDADES 2, 6, 7
 '================================================================================
 Private Function CleanDocumentStructure(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -2706,7 +2423,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' SAFE CHECK FOR VISUAL CONTENT - VERIFICAÇÃO SEGURA DE CONTEÚDO VISUAL - #NEW
+' SAFE CHECK FOR VISUAL CONTENT - VERIFICAÇÃO SEGURA DE CONTEÚDO VISUAL
 '================================================================================
 Private Function HasVisualContent(para As Paragraph) As Boolean
     ' Usa a função segura implementada para compatibilidade total
@@ -2714,7 +2431,7 @@ Private Function HasVisualContent(para As Paragraph) As Boolean
 End Function
 
 '================================================================================
-' VALIDATE PROPOSITION TYPE - FUNCIONALIDADE 3 - #NEW
+' VALIDATE PROPOSITION TYPE - FUNCIONALIDADE 3
 '================================================================================
 Private Function ValidatePropositionType(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -2775,7 +2492,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' FORMAT DOCUMENT TITLE - FUNCIONALIDADES 4 e 5 - #NEW
+' FORMAT DOCUMENT TITLE - FUNCIONALIDADES 4 e 5
 '================================================================================
 Private Function FormatDocumentTitle(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -2868,7 +2585,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' FORMAT CONSIDERANDO PARAGRAPHS - OTIMIZADO E SIMPLIFICADO - FUNCIONALIDADE 8 - #NEW
+' FORMAT CONSIDERANDO PARAGRAPHS - OTIMIZADO E SIMPLIFICADO - FUNCIONALIDADE 8
 '================================================================================
 Private Function FormatConsiderandoParagraphs(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -2939,7 +2656,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' APPLY TEXT REPLACEMENTS - FUNCIONALIDADES 10 e 11 - #NEW
+' APPLY TEXT REPLACEMENTS - FUNCIONALIDADES 10 e 11
 '================================================================================
 Private Function ApplyTextReplacements(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -3039,7 +2756,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' FORMAT JUSTIFICATIVA/ANEXO PARAGRAPHS - FORMATAÇÃO ESPECÍFICA - #NEW
+' FORMAT JUSTIFICATIVA/ANEXO PARAGRAPHS - FORMATAÇÃO ESPECÍFICA
 '================================================================================
 Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -3272,7 +2989,7 @@ Private Function IsAnexoPattern(text As String) As Boolean
 End Function
 
 '================================================================================
-' SUBROTINA PÚBLICA: ABRIR PASTA DE LOGS - #NEW
+' SUBROTINA PÚBLICA: ABRIR PASTA DE LOGS
 '================================================================================
 Public Sub AbrirPastaLogs()
     On Error GoTo ErrorHandler
@@ -3318,7 +3035,7 @@ ErrorHandler:
 End Sub
 
 '================================================================================
-' SUBROTINA PÚBLICA: ABRIR REPOSITÓRIO GITHUB - FUNCIONALIDADE 9 - #NEW
+' SUBROTINA PÚBLICA: ABRIR REPOSITÓRIO GITHUB - FUNCIONALIDADE 9
 '================================================================================
 Public Sub AbrirRepositorioGitHub()
     On Error GoTo ErrorHandler
@@ -3367,7 +3084,7 @@ ErrorHandler:
 End Sub
 
 '================================================================================
-' SISTEMA DE BACKUP - FUNCIONALIDADE DE SEGURANÇA - #NEW
+' SISTEMA DE BACKUP - FUNCIONALIDADE DE SEGURANÇA
 '================================================================================
 Private Function CreateDocumentBackup(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -3432,7 +3149,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' LIMPEZA DE BACKUPS ANTIGOS - SIMPLIFICADO - #NEW
+' LIMPEZA DE BACKUPS ANTIGOS - SIMPLIFICADO
 '================================================================================
 Private Sub CleanOldBackups(backupFolder As String, docBaseName As String)
     On Error Resume Next
@@ -3454,7 +3171,7 @@ Private Sub CleanOldBackups(backupFolder As String, docBaseName As String)
 End Sub
 
 '================================================================================
-' SUBROTINA PÚBLICA: ABRIR PASTA DE BACKUPS - #NEW
+' SUBROTINA PÚBLICA: ABRIR PASTA DE BACKUPS
 '================================================================================
 Public Sub AbrirPastaBackups()
     On Error GoTo ErrorHandler
@@ -3507,7 +3224,7 @@ ErrorHandler:
 End Sub
 
 '================================================================================
-' CLEAN MULTIPLE SPACES - LIMPEZA FINAL DE ESPAÇOS MÚLTIPLOS - #NEW
+' CLEAN MULTIPLE SPACES - LIMPEZA FINAL DE ESPAÇOS MÚLTIPLOS
 '================================================================================
 Private Function CleanMultipleSpaces(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -3775,7 +3492,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' LIMIT SEQUENTIAL EMPTY LINES - CONTROLA LINHAS VAZIAS SEQUENCIAIS - #NEW
+' LIMIT SEQUENTIAL EMPTY LINES - CONTROLA LINHAS VAZIAS SEQUENCIAIS
 '================================================================================
 Private Function LimitSequentialEmptyLines(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -4477,7 +4194,7 @@ ErrorHandler:
 End Sub
 
 '================================================================================
-' BACKUP DIRECTORY MANAGEMENT - #STABLE
+' BACKUP DIRECTORY MANAGEMENT
 '================================================================================
 Private Function EnsureBackupDirectory(doc As Document) As String
     On Error GoTo ErrorHandler
