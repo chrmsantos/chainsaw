@@ -151,7 +151,8 @@ Private Const MAX_RETRY_ATTEMPTS As Long = 3
 Private Const RETRY_DELAY_MS As Long = 1000
 
 ' Backup constants
-Private Const BACKUP_FOLDER_NAME As String = "\chainsaw-proposituras\backups"
+Private Const BACKUP_FOLDER_NAME As String = "chainsaw\backups"
+Private Const LOG_FOLDER_NAME As String = "chainsaw\logs"
 Private Const MAX_BACKUP_FILES As Long = 10
 
 '================================================================================
@@ -622,14 +623,32 @@ End Sub
 Private Function InitializeLogging(doc As Document) As Boolean
     On Error GoTo ErrorHandler
     
-    If doc.Path <> "" Then
-        logFilePath = doc.Path & "\" & Format(Now, "yyyy-mm-dd") & "_" & _
-                     Replace(doc.Name, ".doc", "") & "_FormattingLog.txt"
-        logFilePath = Replace(logFilePath, ".docx", "") & "_FormattingLog.txt"
-        logFilePath = Replace(logFilePath, ".docm", "") & "_FormattingLog.txt"
-    Else
-        logFilePath = Environ("TEMP") & "\" & Format(Now, "yyyy-mm-dd") & "_DocumentFormattingLog.txt"
+    Dim fso As Object
+    Dim logsFolder As String
+    Dim baseName As String
+    Dim timeStamp As String
+    
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    logsFolder = EnsureUserDataDirectory(LOG_FOLDER_NAME)
+    If Len(logsFolder) = 0 Then
+        logsFolder = Environ("TEMP")
     End If
+    
+    If Not fso.FolderExists(logsFolder) Then
+        fso.CreateFolder logsFolder
+    End If
+    
+    If doc Is Nothing Then
+        baseName = "documento"
+    ElseIf doc.Name <> "" Then
+        baseName = fso.GetBaseName(doc.Name)
+    Else
+        baseName = "documento"
+    End If
+    
+    baseName = SanitizeFileName(baseName)
+    timeStamp = Format(Now, "yyyy-mm-dd_HHmmss")
+    logFilePath = fso.BuildPath(logsFolder, timeStamp & "_" & baseName & "_FormattingLog.txt")
     
     Open logFilePath For Output As #1
     Print #1, "========================================================"
@@ -1281,10 +1300,8 @@ Private Function ApplyStdParagraphs(doc As Document) As Boolean
         End If
 
         'paraText = Trim(LCase(Replace(Replace(para.Range.text, ".", ""), ",", ""), ";", ""))
-        paraText = Replace(paraText, vbCr, "")
-        paraText = Replace(paraText, vbLf, "")
-        paraText = Replace(paraText, " ", "")
-
+        paraText = Trim(LCase(Replace(Replace(para.Range.text, vbCr, ""), vbLf, "")))
+        paraText = Replace(paraText, vbTab, "")
         ' Formatação de parágrafo - SEMPRE aplicada
         With para.Format
             .LineSpacingRule = wdLineSpacingMultiple
@@ -1788,24 +1805,89 @@ ErrorHandler:
 End Function
 
 '================================================================================
+' USER DATA PATH HELPERS
+'================================================================================
+Private Function GetUserDocumentsPath() As String
+    On Error GoTo ErrorHandler
+    
+    Dim shell As Object
+    Dim documentsPath As String
+    
+    Set shell = CreateObject("WScript.Shell")
+    documentsPath = shell.SpecialFolders("MyDocuments")
+    
+    If Right(documentsPath, 1) = "\" Then
+        documentsPath = Left(documentsPath, Len(documentsPath) - 1)
+    End If
+    
+    GetUserDocumentsPath = documentsPath
+    Exit Function
+    
+ErrorHandler:
+    GetUserDocumentsPath = Environ("USERPROFILE") & "\Documents"
+End Function
+
+Private Function EnsureUserDataDirectory(relativePath As String) As String
+    On Error GoTo ErrorHandler
+    
+    Dim fso As Object
+    Dim basePath As String
+    Dim currentPath As String
+    Dim pathParts As Variant
+    Dim part As Variant
+    
+    basePath = GetUserDocumentsPath()
+    If Len(basePath) = 0 Then GoTo ErrorHandler
+    
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    currentPath = basePath
+    
+    If Len(relativePath) > 0 Then
+        pathParts = Split(relativePath, "\")
+        For Each part In pathParts
+            If Len(Trim$(CStr(part))) > 0 Then
+                currentPath = fso.BuildPath(currentPath, CStr(part))
+                If Not fso.FolderExists(currentPath) Then
+                    fso.CreateFolder currentPath
+                End If
+            End If
+        Next part
+    End If
+    
+    EnsureUserDataDirectory = currentPath
+    Exit Function
+    
+ErrorHandler:
+    EnsureUserDataDirectory = ""
+End Function
+
+Private Function SanitizeFileName(ByVal rawName As String) As String
+    Dim invalidChars As Variant
+    Dim ch As Variant
+    
+    invalidChars = Array("\", "/", ":", "*", "?", """", "<", ">", "|")
+    
+    For Each ch In invalidChars
+        rawName = Replace(rawName, CStr(ch), "_")
+    Next ch
+    
+    SanitizeFileName = rawName
+End Function
+
+'================================================================================
 ' HEADER IMAGE PATH MANAGEMENT - #STABLE
 '================================================================================
 Private Function GetHeaderImagePath() As String
     On Error GoTo ErrorHandler
 
     Dim fso As Object
-    Dim shell As Object
     Dim documentsPath As String
     Dim headerImagePath As String
 
     Set fso = CreateObject("Scripting.FileSystemObject")
-    Set shell = CreateObject("WScript.Shell")
 
     ' Obtém pasta Documents do usuário atual (compatível com Windows)
-    documentsPath = shell.SpecialFolders("MyDocuments")
-    If Right(documentsPath, 1) = "\" Then
-        documentsPath = Left(documentsPath, Len(documentsPath) - 1)
-    End If
+    documentsPath = GetUserDocumentsPath()
 
     ' Constrói caminho absoluto para a imagem desejada
     headerImagePath = documentsPath & "\chainsaw-proposituras\assets\stamp.png"
@@ -2626,19 +2708,19 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
     dOesteVariants(0) = "d'O"   ' Original
     dOesteVariants(1) = "d´O"   ' Acento agudo
     dOesteVariants(2) = "d`O"   ' Acento grave
-    dOesteVariants(3) = "d" & Chr(8220) & "O"   ' Aspas curvas esquerda
+    dOesteVariants(3) = "d" & ChrW(8220) & "O"   ' Aspas curvas esquerda
     dOesteVariants(4) = "d'o"   ' Minúscula
     dOesteVariants(5) = "d´o"
     dOesteVariants(6) = "d`o"
-    dOesteVariants(7) = "d" & Chr(8220) & "o"
+    dOesteVariants(7) = "d" & ChrW(8220) & "o"
     dOesteVariants(8) = "D'O"   ' Maiúscula no D
     dOesteVariants(9) = "D´O"
     dOesteVariants(10) = "D`O"
-    dOesteVariants(11) = "D" & Chr(8220) & "O"
+    dOesteVariants(11) = "D" & ChrW(8220) & "O"
     dOesteVariants(12) = "D'o"
     dOesteVariants(13) = "D´o"
     dOesteVariants(14) = "D`o"
-    dOesteVariants(15) = "D" & Chr(8220) & "o"
+    dOesteVariants(15) = "D" & ChrW(8220) & "o"
     
     For i = 0 To UBound(dOesteVariants)
         With rng.Find
@@ -2737,6 +2819,19 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
             
             ' REQUISITO 1: Formatação de "Justificativa:" (case insensitive)
             If LCase(Trim(cleanText)) = "Justificativa:" Then
+                ' Padroniza o texto mantendo pontuação original se houver
+                Dim originalEnd As String
+                Dim previousAlerts As WdAlertLevel
+                originalEnd = ""
+                If Len(paraText) > Len(cleanText) Then
+                    originalEnd = Right(paraText, Len(paraText) - Len(cleanText))
+                End If
+
+                previousAlerts = Application.DisplayAlerts
+                Application.DisplayAlerts = wdAlertsNone  ' Evita prompts visuais indesejados
+                para.Range.text = "Justificativa" & originalEnd & vbCrLf
+                Application.DisplayAlerts = previousAlerts
+                
                 ' Aplica formatação específica para Justificativa:
                 With para.Format
                     .leftIndent = 0               ' Recuo à esquerda = 0
@@ -2747,26 +2842,9 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
                     .SpaceAfter = 6
                 End With
                 
-                ' Força formatação mesmo após outras funções
-                Application.DisplayAlerts = wdAlertsNone  ' Evita prompts
-                
-                ' FORÇA os recuos zerados com chamadas individuais para garantia
-                para.Format.leftIndent = 0
-                para.Format.firstLineIndent = 0
-                para.Format.RightIndent = 0
-                para.Format.alignment = wdAlignParagraphCenter
-                
                 With para.Range.Font
                     .Bold = True                  ' Negrito
                 End With
-                
-                ' Padroniza o texto mantendo pontuação original se houver
-                Dim originalEnd As String
-                originalEnd = ""
-                If Len(paraText) > Len(cleanText) Then
-                    originalEnd = Right(paraText, Len(paraText) - Len(cleanText))
-                End If
-                para.Range.text = "Justificativa" & originalEnd & vbCrLf
                 
                 LogMessage "Parágrafo 'Justificativa:' formatado (centralizado, negrito, sem recuos)", LOG_LEVEL_INFO
                 formattedCount = formattedCount + 1
@@ -2928,7 +3006,6 @@ Public Sub AbrirPastaLogs()
     
     Dim doc As Document
     Dim logsFolder As String
-    Dim defaultLogsFolder As String
     
     ' Tenta obter documento ativo
     Set doc = Nothing
@@ -2936,15 +3013,9 @@ Public Sub AbrirPastaLogs()
     Set doc = ActiveDocument
     On Error GoTo ErrorHandler
     
-    ' Define pasta de logs baseada no documento atual ou temp
-    If Not doc Is Nothing And doc.Path <> "" Then
-        logsFolder = doc.Path
-    Else
-        logsFolder = Environ("TEMP")
-    End If
-    
-    ' Verifica se a pasta existe
-    If Dir(logsFolder, vbDirectory) = "" Then
+    ' Define pasta de logs no diretório do usuário
+    logsFolder = EnsureUserDataDirectory(LOG_FOLDER_NAME)
+    If Len(logsFolder) = 0 Then
         logsFolder = Environ("TEMP")
     End If
     
@@ -3044,13 +3115,12 @@ Private Function CreateDocumentBackup(doc As Document) As Boolean
     
     Set fso = CreateObject("Scripting.FileSystemObject")
     
-    ' Define pasta de backup
-    backupFolder = fso.GetParentFolderName(doc.Path) & "\" & BACKUP_FOLDER_NAME
-    
-    ' Cria pasta de backup se não existir
-    If Not fso.FolderExists(backupFolder) Then
-        fso.CreateFolder backupFolder
-        LogMessage "Pasta de backup criada: " & backupFolder, LOG_LEVEL_INFO
+    ' Garante a existência da pasta de backup e obtém o caminho final
+    backupFolder = EnsureBackupDirectory(doc)
+    If Len(backupFolder) = 0 Then
+        LogMessage "Backup não criado - pasta de backup indisponível", LOG_LEVEL_ERROR
+        CreateDocumentBackup = False
+        Exit Function
     End If
     
     ' Extrai nome e extensão do documento
@@ -3117,9 +3187,6 @@ Public Sub AbrirPastaBackups()
     
     Dim doc As Document
     Dim backupFolder As String
-    Dim fso As Object
-    
-    Set fso = CreateObject("Scripting.FileSystemObject")
     
     ' Tenta obter documento ativo
     Set doc = Nothing
@@ -3127,18 +3194,13 @@ Public Sub AbrirPastaBackups()
     Set doc = ActiveDocument
     On Error GoTo ErrorHandler
     
-    ' Define pasta de backup baseada no documento atual
-    If Not doc Is Nothing And doc.Path <> "" Then
-        backupFolder = fso.GetParentFolderName(doc.Path) & "\" & BACKUP_FOLDER_NAME
-    Else
-        Application.StatusBar = "Nenhum documento salvo ativo para localizar pasta de backups"
-        Exit Sub
-    End If
-    
-    ' Verifica se a pasta de backup existe
-    If Not fso.FolderExists(backupFolder) Then
-        Application.StatusBar = "Pasta de backups não encontrada - nenhum backup foi criado ainda"
-        LogMessage "Pasta de backups não encontrada: " & backupFolder, LOG_LEVEL_WARNING
+    ' Define pasta de backup na área de documentos do usuário
+    backupFolder = EnsureUserDataDirectory(BACKUP_FOLDER_NAME)
+    If Len(backupFolder) = 0 Then
+        Application.StatusBar = "Não foi possível localizar pasta de backups"
+        If loggingEnabled Then
+            LogMessage "Pasta de backups indisponível", LOG_LEVEL_WARNING
+        End If
         Exit Sub
     End If
     
@@ -3160,11 +3222,11 @@ ErrorHandler:
     
     ' Fallback: tenta abrir pasta do documento
     On Error Resume Next
-    If Not doc Is Nothing And doc.Path <> "" Then
-        Dim docFolder As String
-        docFolder = fso.GetParentFolderName(doc.Path)
-        shell "explorer.exe """ & docFolder & """", vbNormalFocus
-        Application.StatusBar = "Pasta do documento aberta como alternativa"
+    Dim userDocs As String
+    userDocs = GetUserDocumentsPath()
+    If Len(userDocs) > 0 Then
+        shell "explorer.exe """ & userDocs & """", vbNormalFocus
+        Application.StatusBar = "Pasta Documentos aberta como alternativa"
     Else
         Application.StatusBar = "Não foi possível abrir pasta de backups"
     End If
@@ -4147,55 +4209,73 @@ Private Sub ReplacePlenarioDateParagraph(doc As Document)
     If doc Is Nothing Then Exit Sub
     
     Dim para As Paragraph
-    Dim paraText As String
-    Dim matchCount As Integer
-    Dim terms() As String
+    Dim rawText As String
+    Dim normalizedText As String
+    Dim lowerText As String
+    Dim monthTerms As Variant
+    Dim locationTerms As Variant
+    Dim monthTerm As Variant
+    Dim locationTerm As Variant
+    Dim monthFound As Boolean
+    Dim locationFound As Boolean
+    Dim targetRange As Range
+    Dim replaced As Boolean
     
-    ' Define os termos de busca
-    terms = Split("Palácio 15 de Junho," & _
-                 "Plenário ""Dr. Tancredo Neves""," & _
-                 "de janeiro de," & _
-                 "de fevereiro de," & _
-                 "de março de," & _
-                 "de abril de," & _
-                 "de maio de," & _
-                 "de junho de," & _
-                 "de julho de," & _
-                 "de agosto de," & _
-                 "de setembro de," & _
-                 "de outubro de," & _
-                 "de novembro de," & _
-                 "de dezembro de", ",")
-
-    ' Processa cada parágrafo
+    monthTerms = Array("de janeiro de", "de fevereiro de", "de março de", "de abril de", _
+                       "de maio de", "de junho de", "de julho de", "de agosto de", _
+                       "de setembro de", "de outubro de", "de novembro de", "de dezembro de")
+    locationTerms = Array("palácio 15 de junho", "palacio 15 de junho", "plenário", "plenario")
+    
     For Each para In doc.Paragraphs
-        matchCount = 0
+        rawText = para.Range.text
+        rawText = Replace(rawText, vbCr, "")
+        rawText = Replace(rawText, vbLf, "")
+        rawText = Trim$(rawText)
         
-        ' Pula parágrafos muito longos
-        If Len(para.Range.text) <= 90 Then
-            paraText = para.Range.text
-            
-            ' Conta matches
-            Dim term As Variant
-            For Each term In terms
-                If InStr(1, paraText, CStr(term), vbTextCompare) > 0 Then
-                    matchCount = matchCount + 1
-                End If
-                If matchCount >= 2 Then
-                    ' Encontrou 2+ matches, faz a substituição
-                    para.Range.text = "Plenário ""Dr. Tancredo Neves"", $DATAATUALEXTENSO$."
-                    ' Aplica formatação: centralizado e sem recuos
-                    With para.Range.ParagraphFormat
-                        .leftIndent = 0
-                        .firstLineIndent = 0
-                        .alignment = wdAlignParagraphCenter
-                    End With
-                    LogMessage "Parágrafo de plenário substituído e formatado", LOG_LEVEL_INFO
-                    Exit For
-                End If
-            Next term
-        End If
+        If Len(rawText) = 0 Then GoTo NextParagraph
+        
+        normalizedText = Replace(rawText, ChrW(8220), """)
+        normalizedText = Replace(normalizedText, ChrW(8221), """)
+        lowerText = LCase$(normalizedText)
+        
+        monthFound = False
+        For Each monthTerm In monthTerms
+            If InStr(1, lowerText, CStr(monthTerm), vbBinaryCompare) > 0 Then
+                monthFound = True
+                Exit For
+            End If
+        Next monthTerm
+        If Not monthFound Then GoTo NextParagraph
+        
+        locationFound = False
+        For Each locationTerm In locationTerms
+            If InStr(1, lowerText, CStr(locationTerm), vbBinaryCompare) > 0 Then
+                locationFound = True
+                Exit For
+            End If
+        Next locationTerm
+        If Not locationFound Then GoTo NextParagraph
+        
+        If Len(lowerText) > 180 Then GoTo NextParagraph
+        
+        Set targetRange = para.Range
+        targetRange.text = "Plenário ""Dr. Tancredo Neves"", $DATAATUALEXTENSO$." & vbCr
+        
+        With targetRange.ParagraphFormat
+            .leftIndent = 0
+            .firstLineIndent = 0
+            .alignment = wdAlignParagraphCenter
+        End With
+        LogMessage "Parágrafo de plenário substituído e formatado", LOG_LEVEL_INFO
+        replaced = True
+        Exit For
+        
+NextParagraph:
     Next para
+    
+    If Not replaced Then
+        LogMessage "Parágrafo de plenário não encontrado para substituição", LOG_LEVEL_WARNING
+    End If
     
     Exit Sub
     
@@ -4209,29 +4289,20 @@ End Sub
 Private Function EnsureBackupDirectory(doc As Document) As String
     On Error GoTo ErrorHandler
     
-    Dim fso As Object
     Dim backupPath As String
+    Dim fso As Object
+    
+    backupPath = EnsureUserDataDirectory(BACKUP_FOLDER_NAME)
+    If Len(backupPath) = 0 Then GoTo ErrorHandler
     
     Set fso = CreateObject("Scripting.FileSystemObject")
-    
-    ' Define o caminho base para backups (mesmo diretório do documento ou TEMP)
-    If doc.Path <> "" Then
-        backupPath = doc.Path & "\" & BACKUP_FOLDER_NAME
-    Else
-        backupPath = Environ("TEMP") & "\" & BACKUP_FOLDER_NAME
-    End If
-    
-    ' Cria o diretório se não existir
     If Not fso.FolderExists(backupPath) Then
         fso.CreateFolder backupPath
-        LogMessage "Pasta de backup criada: " & backupPath, LOG_LEVEL_INFO
     End If
     
     EnsureBackupDirectory = backupPath
     Exit Function
     
 ErrorHandler:
-    LogMessage "Erro ao criar pasta de backup: " & Err.Description, LOG_LEVEL_ERROR
-    ' Retorna pasta TEMP como fallback
-    EnsureBackupDirectory = Environ("TEMP")
+    EnsureBackupDirectory = ""
 End Function
