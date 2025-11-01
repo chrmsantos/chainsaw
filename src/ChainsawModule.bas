@@ -91,6 +91,7 @@ Private Const STANDARD_FONT_SIZE As Long = 12
 Private Const LOG_LEVEL_INFO As Long = 0
 Private Const LOG_LEVEL_WARNING As Long = 1
 Private Const LOG_LEVEL_ERROR As Long = 2
+Private Const PARAGRAPH_BREAK As String = vbCr
 Private hangDetectionStart As Double
 Private hangDetectionTriggered As Boolean
 Private originalViewSettings As ViewSettings
@@ -284,9 +285,9 @@ Public Sub PadronizarDocumentoMain()
     If Not CheckWordVersion() Then
         Application.StatusBar = "Erro: Versão do Word não suportada (mínimo: Word 2010)"
         LogMessage "Versão do Word " & Application.version & " não suportada. Mínimo: " & CStr(MIN_SUPPORTED_VERSION), LOG_LEVEL_ERROR
-        MsgBox "Esta ferramenta requer Microsoft Word 2010 ou superior." & vbCrLf & _
-               "Versão atual: " & Application.version & vbCrLf & _
-               "Versão mínima: " & CStr(MIN_SUPPORTED_VERSION), vbCritical, "Versão Incompatível"
+     MsgBox "Esta ferramenta requer Microsoft Word 2010 ou superior." & PARAGRAPH_BREAK & _
+         "Versão atual: " & Application.version & PARAGRAPH_BREAK & _
+         "Versão mínima: " & CStr(MIN_SUPPORTED_VERSION), vbCritical, "Versão Incompatível"
         Exit Sub
     End If
     
@@ -1128,6 +1129,10 @@ End Sub
 Private Function PreviousFormatting(doc As Document) As Boolean
     On Error GoTo ErrorHandler
 
+    If Not NormalizeParagraphBreaks(doc) Then
+        LogMessage "Falha ao normalizar quebras de parágrafo", LOG_LEVEL_WARNING
+    End If
+
     ' Formatações básicas de página e estrutura
     If Not ApplyPageSetup(doc) Then
         LogMessage "Falha na configuração de página", LOG_LEVEL_ERROR
@@ -1649,7 +1654,7 @@ Private Function FormatSecondParagraph(doc As Document) As Boolean
             linesToAdd = 2 - blankLinesBefore
             
             Dim newLines As String
-            newLines = String(linesToAdd, vbCrLf)
+            newLines = String$(linesToAdd, PARAGRAPH_BREAK)
             insertionPoint.InsertBefore newLines
             
             ' Atualiza o índice do segundo parágrafo (foi deslocado)
@@ -1680,7 +1685,7 @@ Private Function FormatSecondParagraph(doc As Document) As Boolean
             linesToAddAfter = 2 - blankLinesAfter
             
             Dim newLinesAfter As String
-            newLinesAfter = String(linesToAddAfter, vbCrLf)
+            newLinesAfter = String$(linesToAddAfter, PARAGRAPH_BREAK)
             insertionPointAfter.InsertAfter newLinesAfter
         End If
         
@@ -2348,6 +2353,77 @@ ErrorHandler:
 End Function
 
 '================================================================================
+' NORMALIZE PARAGRAPH BREAKS - #NEW
+'================================================================================
+Private Function NormalizeParagraphBreaks(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+
+    Dim rng As Range
+    Dim replacedPairs As Long
+    Dim replacedLineFeeds As Long
+    Dim guardCounter As Long
+
+    If doc Is Nothing Then
+        NormalizeParagraphBreaks = True
+        Exit Function
+    End If
+
+    Application.StatusBar = "Normalizando quebras de parágrafo..."
+
+    Set rng = doc.Content
+    With rng.Find
+        .ClearFormatting
+        .Replacement.ClearFormatting
+        .text = PARAGRAPH_BREAK & Chr(10)
+        .Replacement.text = PARAGRAPH_BREAK
+        .Forward = True
+        .Wrap = wdFindContinue
+        .Format = False
+        .MatchCase = False
+        .MatchWholeWord = False
+        .MatchWildcards = False
+
+        Do While .Execute(Replace:=True)
+            replacedPairs = replacedPairs + 1
+            guardCounter = guardCounter + 1
+            If guardCounter > 50000 Then Exit Do
+        Loop
+    End With
+
+    Set rng = doc.Content
+    guardCounter = 0
+    With rng.Find
+        .ClearFormatting
+        .Replacement.ClearFormatting
+        .text = Chr(10)
+        .Replacement.text = PARAGRAPH_BREAK
+        .Forward = True
+        .Wrap = wdFindContinue
+        .Format = False
+        .MatchCase = False
+        .MatchWholeWord = False
+        .MatchWildcards = False
+
+        Do While .Execute(Replace:=True)
+            replacedLineFeeds = replacedLineFeeds + 1
+            guardCounter = guardCounter + 1
+            If guardCounter > 50000 Then Exit Do
+        Loop
+    End With
+
+    If replacedPairs > 0 Or replacedLineFeeds > 0 Then
+        LogMessage "Quebras normalizadas: " & replacedPairs & " CR+LF convertidos e " & replacedLineFeeds & " LF isolados tratados", LOG_LEVEL_INFO
+    End If
+
+    NormalizeParagraphBreaks = True
+    Exit Function
+
+ErrorHandler:
+    LogMessage "Erro ao normalizar quebras de parágrafo: " & Err.Description, LOG_LEVEL_WARNING
+    NormalizeParagraphBreaks = False
+End Function
+
+'================================================================================
 ' CLEAR ALL FORMATTING - LIMPEZA INICIAL COMPLETA - #NEW
 '================================================================================
 Private Function ClearAllFormatting(doc As Document) As Boolean
@@ -2767,7 +2843,7 @@ Private Function FormatDocumentTitle(doc As Document) As Boolean
     End If
     
     ' SEMPRE aplica formatação de título: caixa alta, negrito, sublinhado
-    firstPara.Range.text = UCase(newText) & vbCrLf
+    firstPara.Range.text = UCase(newText) & PARAGRAPH_BREAK
     
     ' Formatação completa do título (primeira linha)
     With firstPara.Range.Font
@@ -3016,7 +3092,7 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
 
                 previousAlerts = Application.DisplayAlerts
                 Application.DisplayAlerts = wdAlertsNone  ' Evita prompts visuais indesejados
-                para.Range.text = "Justificativa" & originalEnd & vbCrLf
+                para.Range.text = "Justificativa" & originalEnd & PARAGRAPH_BREAK
                 Application.DisplayAlerts = previousAlerts
                 
                 ' Aplica formatação específica para Justificativa:
@@ -3072,7 +3148,7 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
                             End With
                             
                             ' Aplica caixa alta ao parágrafo anterior
-                            paraPrev.Range.text = UCase(prevText) & vbCrLf
+                            paraPrev.Range.text = UCase(prevText) & PARAGRAPH_BREAK
                             
                             LogMessage "Parágrafo anterior a '- Vereador -' formatado (centralizado, caixa alta, negrito, sem recuos): " & Left(UCase(prevText), 30) & "...", LOG_LEVEL_INFO
                         End If
@@ -3100,7 +3176,7 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
                 End With
                 
                 ' Padroniza o texto
-                para.Range.text = "- Vereador -" & vbCrLf
+                para.Range.text = "- Vereador -" & PARAGRAPH_BREAK
                 
                 LogMessage "Parágrafo '- Vereador -' formatado (centralizado, negrito, sem recuos)", LOG_LEVEL_INFO
                 vereadorCount = vereadorCount + 1
@@ -3140,7 +3216,7 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
                     anexoText = "Anexos"
                 End If
                 finalAnexoHeading = anexoText & anexoEnd
-                para.Range.text = finalAnexoHeading & vbCrLf
+                para.Range.text = finalAnexoHeading & PARAGRAPH_BREAK
                 
                 LogMessage "Parágrafo '" & finalAnexoHeading & "' formatado (alinhado à esquerda, negrito, sem recuos)", LOG_LEVEL_INFO
                 formattedCount = formattedCount + 1
@@ -3842,14 +3918,14 @@ Public Sub SalvarESair()
     Dim docList As String
     
     For i = 1 To unsavedDocs.count
-        docList = docList & "• " & unsavedDocs(i) & vbCrLf
+        docList = docList & "• " & unsavedDocs(i) & PARAGRAPH_BREAK
     Next i
     
-    message = "ATENÇÃO: Há " & unsavedDocs.count & " documento(s) com alterações não salvas:" & vbCrLf & vbCrLf
-    message = message & docList & vbCrLf
-    message = message & "Deseja salvar todos os documentos antes de sair?" & vbCrLf & vbCrLf
-    message = message & "• SIM: Salva todos e fecha o Word" & vbCrLf
-    message = message & "• NÃO: Fecha sem salvar (PERDE as alterações)" & vbCrLf
+    message = "ATENÇÃO: Há " & unsavedDocs.count & " documento(s) com alterações não salvas:" & PARAGRAPH_BREAK & PARAGRAPH_BREAK
+    message = message & docList & PARAGRAPH_BREAK
+    message = message & "Deseja salvar todos os documentos antes de sair?" & PARAGRAPH_BREAK & PARAGRAPH_BREAK
+    message = message & "• SIM: Salva todos e fecha o Word" & PARAGRAPH_BREAK
+    message = message & "• NÃO: Fecha sem salvar (PERDE as alterações)" & PARAGRAPH_BREAK
     message = message & "• CANCELAR: Cancela a operação"
     
     ' Apresenta opções ao usuário
@@ -3872,18 +3948,18 @@ Public Sub SalvarESair()
             Else
                 Application.StatusBar = "Erro ao salvar documentos - operação cancelada"
                 LogMessage "Falha ao salvar alguns documentos - operação de sair cancelada", LOG_LEVEL_ERROR
-                MsgBox "Erro ao salvar um ou mais documentos." & vbCrLf & _
-                       "A operação foi cancelada por segurança." & vbCrLf & vbCrLf & _
-                       "Verifique os documentos e tente novamente.", _
+          MsgBox "Erro ao salvar um ou mais documentos." & PARAGRAPH_BREAK & _
+              "A operação foi cancelada por segurança." & PARAGRAPH_BREAK & PARAGRAPH_BREAK & _
+              "Verifique os documentos e tente novamente.", _
                        vbCritical, "Chainsaw - Erro ao Salvar"
             End If
             
         Case vbNo
             ' Usuário escolheu não salvar
             Dim confirmMessage As String
-            confirmMessage = "CONFIRMAÇÃO FINAL:" & vbCrLf & vbCrLf
-            confirmMessage = confirmMessage & "Você está prestes a FECHAR O WORD SEM SALVAR " & unsavedDocs.count & " documento(s)." & vbCrLf & vbCrLf
-            confirmMessage = confirmMessage & "TODAS AS ALTERAÇÕES NÃO SALVAS SERÃO PERDIDAS!" & vbCrLf & vbCrLf
+            confirmMessage = "CONFIRMAÇÃO FINAL:" & PARAGRAPH_BREAK & PARAGRAPH_BREAK
+            confirmMessage = confirmMessage & "Você está prestes a FECHAR O WORD SEM SALVAR " & unsavedDocs.count & " documento(s)." & PARAGRAPH_BREAK & PARAGRAPH_BREAK
+            confirmMessage = confirmMessage & "TODAS AS ALTERAÇÕES NÃO SALVAS SERÃO PERDIDAS!" & PARAGRAPH_BREAK & PARAGRAPH_BREAK
             confirmMessage = confirmMessage & "Tem certeza absoluta?"
             
             Dim finalConfirm As VbMsgBoxResult
@@ -3897,7 +3973,7 @@ Public Sub SalvarESair()
             Else
                 Application.StatusBar = "Operação cancelada pelo usuário"
                 LogMessage "Usuário cancelou fechamento sem salvar"
-                MsgBox "Operação cancelada." & vbCrLf & "Os documentos permanecem abertos.", _
+                MsgBox "Operação cancelada." & PARAGRAPH_BREAK & "Os documentos permanecem abertos.", _
                        vbInformation, "Chainsaw - Operação Cancelada"
             End If
             
@@ -3905,7 +3981,7 @@ Public Sub SalvarESair()
             ' Usuário cancelou
             Application.StatusBar = "Operação de sair cancelada pelo usuário"
             LogMessage "Usuário cancelou operação de salvar e sair"
-            MsgBox "Operação cancelada." & vbCrLf & "Os documentos permanecem abertos.", _
+            MsgBox "Operação cancelada." & PARAGRAPH_BREAK & "Os documentos permanecem abertos.", _
                    vbInformation, "Chainsaw - Operação Cancelada"
     End Select
     
@@ -3920,9 +3996,9 @@ CriticalErrorHandler:
     LogMessage errDesc, LOG_LEVEL_ERROR
     Application.StatusBar = "Erro crítico - operação cancelada"
     
-    MsgBox "Erro crítico durante a operação Salvar e Sair:" & vbCrLf & vbCrLf & _
-           Err.Description & vbCrLf & vbCrLf & _
-           "A operação foi cancelada por segurança." & vbCrLf & _
+    MsgBox "Erro crítico durante a operação Salvar e Sair:" & PARAGRAPH_BREAK & PARAGRAPH_BREAK & _
+        Err.Description & PARAGRAPH_BREAK & PARAGRAPH_BREAK & _
+        "A operação foi cancelada por segurança." & PARAGRAPH_BREAK & _
            "Salve manualmente os documentos importantes.", _
            vbCritical, "Chainsaw - Erro Crítico"
 End Sub
