@@ -1485,6 +1485,7 @@ Private Function ApplyStdParagraphs(doc As Document) As Boolean
     Dim skippedCount As Long
     Dim paraText As String
     Dim prevPara As Paragraph
+    Dim cleanText As String
 
     rightMarginPoints = 0
 
@@ -1511,7 +1512,6 @@ Private Function ApplyStdParagraphs(doc As Document) As Boolean
         ' (independente se contêm imagens ou não)
         
         ' Limpeza robusta de espaços múltiplos - SEMPRE aplicada
-        Dim cleanText As String
         cleanText = para.Range.text
         
         ' OTIMIZADO: Combinação de múltiplas operações de limpeza em um bloco
