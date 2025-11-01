@@ -4327,9 +4327,13 @@ Private Sub ReplacePlenarioDateParagraph(doc As Document)
     locationTerms = Array("palácio 15 de junho", "palacio 15 de junho", "plenário", "plenario")
     
     Dim i As Long
+    Dim j As Long
     Dim paraIndex As Long
     Dim beforeSpacing As Long
     Dim afterSpacing As Long
+    Dim formattedBelow As Long
+    Dim subsequentPara As Paragraph
+    Dim subsequentText As String
     
     For i = 1 To doc.Paragraphs.count
         Set para = doc.Paragraphs(i)
@@ -4377,9 +4381,36 @@ Private Sub ReplacePlenarioDateParagraph(doc As Document)
         With targetRange.ParagraphFormat
             .leftIndent = 0
             .firstLineIndent = 0
+            .RightIndent = 0
             .alignment = wdAlignParagraphCenter
         End With
         LogMessage "Parágrafo de plenário substituído e formatado (linhas em branco antes: " & beforeSpacing & ", depois: " & afterSpacing & ")", LOG_LEVEL_INFO
+
+        formattedBelow = 0
+        For j = paraIndex + 1 To doc.Paragraphs.count
+            If formattedBelow >= 4 Then Exit For
+
+            Set subsequentPara = doc.Paragraphs(j)
+            subsequentText = subsequentPara.Range.text
+            subsequentText = Replace(subsequentText, vbCr, "")
+            subsequentText = Replace(subsequentText, vbLf, "")
+            subsequentText = Trim$(subsequentText)
+
+            With subsequentPara.Format
+                .leftIndent = 0
+                .firstLineIndent = 0
+                .RightIndent = 0
+                .alignment = wdAlignParagraphCenter
+            End With
+
+            If Len(subsequentText) > 0 Or HasVisualContent(subsequentPara) Then
+                formattedBelow = formattedBelow + 1
+            End If
+        Next j
+
+        If formattedBelow > 0 Then
+            LogMessage "Parágrafos subsequentes à data centralizados (total tratados: " & formattedBelow & ")", LOG_LEVEL_INFO
+        End If
         replaced = True
         Exit For
         
