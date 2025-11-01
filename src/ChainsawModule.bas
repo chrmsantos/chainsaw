@@ -66,20 +66,6 @@ Private Type ViewSettings
     ShowOptionalHyphens As Boolean
 End Type
 
-Private Type ImageInfo
-    paraIndex As Long
-    ImageIndex As Long
-    ImageType As String
-    Position As Long
-    WrapType As Long
-    Width As Single
-    Height As Single
-    LeftPosition As Single
-    TopPosition As Single
-    ImageData As String
-    AnchorRange As Range
-End Type
-
 Private Const LINE_SPACING As Double = 12# * 1.15# ' 1,15 na interface do Word (12 pt base)
 Private Const WORD_HANG_TIMEOUT_SECONDS As Double = 30# ' Tempo limite para detectar travamento iminente
 Private Const USER_DATA_ROOT_FOLDER As String = "chainsaw-proposituras"
@@ -95,8 +81,6 @@ Private Const PARAGRAPH_BREAK As String = vbCr
 Private hangDetectionStart As Double
 Private hangDetectionTriggered As Boolean
 Private originalViewSettings As ViewSettings
-Private savedImages() As ImageInfo
-Private imageCount As Long
  
 Private Function EnsureBlankLinesAroundParagraphIndex(doc As Document, ByRef paraIndex As Long, _
     ByVal requiredBefore As Long, ByVal requiredAfter As Long, _
@@ -246,7 +230,7 @@ Private Function FormatFirstParagraph(doc As Document) As Boolean
                     End If
                 Next n
             End If
-            LogMessage "1º parágrafo formatado com proteção de imagem (posição: " & firstParaIndex & ")"
+            LogMessage "1º parágrafo formatado com conteúdo visual preservado (posição: " & firstParaIndex & ")"
         Else
             With para.Range.Font
                 .AllCaps = True
@@ -340,20 +324,8 @@ Public Sub PadronizarDocumentoMain()
         LogMessage "Aviso: Falha no backup das configurações de visualização", LOG_LEVEL_WARNING
     End If
 
-    ' Backup de imagens antes das formatações
-    Application.StatusBar = "Catalogando imagens do documento..."
-    If Not BackupAllImages(doc) Then
-        LogMessage "Aviso: Falha no backup de imagens - continuando com proteção básica", LOG_LEVEL_WARNING
-    End If
-
     If Not PreviousFormatting(doc) Then
         GoTo CleanUp
-    End If
-
-    ' Restaura imagens após formatações
-    Application.StatusBar = "Verificando integridade das imagens..."
-    If Not RestoreAllImages(doc) Then
-        LogMessage "Aviso: Algumas imagens podem ter sido afetadas durante o processamento", LOG_LEVEL_WARNING
     End If
 
     ' Restaura configurações de visualização originais (exceto zoom)
@@ -370,7 +342,6 @@ Public Sub PadronizarDocumentoMain()
 
 CleanUp:
     SafeCleanup
-    CleanupImageProtection ' Nova função para limpar variáveis de proteção de imagens
     CleanupViewSettings    ' Nova função para limpar variáveis de configurações de visualização
     
     If Not SetAppState(True, "Documento padronizado com sucesso!") Then
@@ -407,9 +378,6 @@ Private Sub EmergencyRecovery()
         Application.UndoRecord.EndCustomRecord
         undoGroupEnabled = False
     End If
-    
-    ' Limpa variáveis de proteção de imagens em caso de erro
-    CleanupImageProtection
     
     ' Limpa variáveis de configurações de visualização em caso de erro
     CleanupViewSettings
@@ -1380,7 +1348,7 @@ Private Function ApplyStdFont(doc As Document) As Boolean
         ' FORMATAÇÃO PRINCIPAL - Só executa se necessário
         If needsFontFormatting Then
             If Not hasInlineImage Then
-                ' Formatação rápida para parágrafos sem imagens usando método seguro
+                ' Formatação rápida para parágrafos sem conteúdo visual usando método seguro
                 If SafeSetFont(para.Range, STANDARD_FONT, STANDARD_FONT_SIZE) Then
                     formattedCount = formattedCount + 1
                 Else
@@ -1393,14 +1361,9 @@ Private Function ApplyStdFont(doc As Document) As Boolean
                     formattedCount = formattedCount + 1
                 End If
             Else
-                ' NOVO: Formatação protegida para parágrafos COM imagens
-                If ProtectImagesInRange(para.Range) Then
-                    formattedCount = formattedCount + 1
-                Else
-                    ' Fallback: formatação básica segura CONSOLIDADA
-                    Call FormatCharacterByCharacter(para, STANDARD_FONT, STANDARD_FONT_SIZE, wdColorAutomatic, False, False)
-                    formattedCount = formattedCount + 1
-                End If
+                ' Parágrafos com conteúdo visual recebem formatação caractere a caractere
+                Call FormatCharacterByCharacter(para, STANDARD_FONT, STANDARD_FONT_SIZE, wdColorAutomatic, False, False)
+                formattedCount = formattedCount + 1
             End If
         End If
         
@@ -1415,11 +1378,11 @@ Private Function ApplyStdFont(doc As Document) As Boolean
             ' Se precisa remover alguma formatação
             If removeUnderline Or removeBold Then
                 If Not hasInlineImage Then
-                    ' Formatação rápida para parágrafos sem imagens
+                    ' Formatação rápida para parágrafos sem conteúdo visual
                     If removeUnderline Then paraFont.Underline = wdUnderlineNone
                     If removeBold Then paraFont.Bold = False
                 Else
-                    ' Formatação protegida CONSOLIDADA para parágrafos com imagens
+                    ' Formatação caractere a caractere para preservar conteúdo visual
                     Call FormatCharacterByCharacter(para, "", 0, 0, removeUnderline, removeBold)
                 End If
                 
@@ -1432,7 +1395,7 @@ NextParagraph:
     
     ' Log otimizado
     If skippedCount > 0 Then
-        LogMessage "Fontes formatadas: " & formattedCount & " parágrafos (incluindo " & skippedCount & " com proteção de imagens)"
+        LogMessage "Fontes formatadas: " & formattedCount & " parágrafos (incluindo " & skippedCount & " com conteúdo visual preservado)"
     End If
     
     ApplyStdFont = True
@@ -1513,8 +1476,8 @@ Private Function ApplyStdParagraphs(doc As Document) As Boolean
             skippedCount = skippedCount + 1
         End If
 
-        ' Aplica formatação de parágrafo para TODOS os parágrafos
-        ' (independente se contêm imagens ou não)
+    ' Aplica formatação de parágrafo para TODOS os parágrafos
+    ' (independente de conterem conteúdo visual ou não)
         
         ' Limpeza robusta de espaços múltiplos - SEMPRE aplicada
         cleanText = para.Range.text
@@ -1544,7 +1507,7 @@ Private Function ApplyStdParagraphs(doc As Document) As Boolean
             Loop
         End If
         
-        ' Aplica o texto limpo APENAS se não há imagens (proteção)
+    ' Aplica o texto limpo apenas se não há conteúdo visual
         If cleanText <> para.Range.text And Not hasInlineImage Then
             para.Range.text = cleanText
         End If
@@ -1584,7 +1547,7 @@ Private Function ApplyStdParagraphs(doc As Document) As Boolean
     
     ' Log atualizado para refletir que todos os parágrafos são formatados
     If skippedCount > 0 Then
-        LogMessage "Parágrafos formatados: " & formattedCount & " (incluindo " & skippedCount & " com proteção de imagens)"
+        LogMessage "Parágrafos formatados: " & formattedCount & " (incluindo " & skippedCount & " com conteúdo visual preservado)"
     End If
     
     ApplyStdParagraphs = True
@@ -1662,7 +1625,7 @@ Private Function FormatSecondParagraph(doc As Document) As Boolean
             Set para = doc.Paragraphs(secondParaIndex)
         End If
         
-        ' FORMATAÇÃO PRINCIPAL: Aplica formatação SEMPRE, protegendo apenas as imagens
+        ' FORMATAÇÃO PRINCIPAL: Aplica formatação SEMPRE, preservando conteúdo visual quando presente
         With para.Format
             .leftIndent = CentimetersToPoints(9)      ' Recuo à esquerda de 9 cm
             .firstLineIndent = 0                      ' Sem recuo da primeira linha
@@ -1689,9 +1652,9 @@ Private Function FormatSecondParagraph(doc As Document) As Boolean
             insertionPointAfter.InsertAfter newLinesAfter
         End If
         
-        ' Se tem imagens, apenas registra (mas não pula a formatação)
+    ' Se há conteúdo visual, apenas registra (mas não pula a formatação)
         If HasVisualContent(para) Then
-            LogMessage "2º parágrafo formatado com proteção de imagem e linhas em branco (posição: " & secondParaIndex & ")", LOG_LEVEL_INFO
+            LogMessage "2º parágrafo formatado com conteúdo visual preservado e linhas em branco (posição: " & secondParaIndex & ")", LOG_LEVEL_INFO
         Else
             LogMessage "2º parágrafo formatado com 2 linhas em branco antes e depois (posição: " & secondParaIndex & ")", LOG_LEVEL_INFO
         End If
@@ -2530,7 +2493,7 @@ Private Function ClearAllFormatting(doc As Document) As Boolean
                 End With
                 paraCount = paraCount + 1
             Else
-                ' OTIMIZADO: Para parágrafos com imagens, formatação protegida mais rápida
+                ' OTIMIZADO: Para parágrafos com conteúdo visual, formatação protegida mais rápida
                 Call FormatCharacterByCharacter(para, STANDARD_FONT, STANDARD_FONT_SIZE, wdColorAutomatic, True, True)
                 paraCount = paraCount + 1
             End If
@@ -4245,271 +4208,6 @@ ErrorHandler:
     LogMessage "Erro crítico ao salvar documentos: " & Err.Description, LOG_LEVEL_ERROR
     SalvarTodosDocumentos = False
 End Function
-
-'================================================================================
-' IMAGE PROTECTION SYSTEM - SISTEMA DE PROTEÇÃO DE IMAGENS - #NEW
-'================================================================================
-
-'================================================================================
-' BACKUP ALL IMAGES - Faz backup de propriedades das imagens do documento
-'================================================================================
-Private Function BackupAllImages(doc As Document) As Boolean
-    On Error GoTo ErrorHandler
-    
-    Application.StatusBar = "Fazendo backup das propriedades das imagens..."
-    
-    imageCount = 0
-    ReDim savedImages(0)
-    
-    Dim para As Paragraph
-    Dim i As Long
-    Dim j As Long
-    Dim shape As InlineShape
-    Dim tempImageInfo As ImageInfo
-    
-    ' Conta todas as imagens primeiro
-    Dim totalImages As Long
-    For i = 1 To doc.Paragraphs.count
-        Set para = doc.Paragraphs(i)
-        totalImages = totalImages + para.Range.InlineShapes.count
-    Next i
-    
-    ' Adiciona shapes flutuantes
-    totalImages = totalImages + doc.Shapes.count
-    
-    ' Redimensiona array se necessário
-    If totalImages > 0 Then
-        ReDim savedImages(totalImages - 1)
-        
-        ' Backup de imagens inline - apenas propriedades críticas
-        For i = 1 To doc.Paragraphs.count
-            Set para = doc.Paragraphs(i)
-            
-            For j = 1 To para.Range.InlineShapes.count
-                Set shape = para.Range.InlineShapes(j)
-                
-                ' Salva apenas propriedades essenciais para proteção
-                With tempImageInfo
-                    .paraIndex = i
-                    .ImageIndex = j
-                    .ImageType = "Inline"
-                    .Position = shape.Range.Start
-                    .Width = shape.Width
-                    .Height = shape.Height
-                    Set .AnchorRange = shape.Range.Duplicate
-                    .ImageData = "InlineShape_Protected"
-                End With
-                
-                savedImages(imageCount) = tempImageInfo
-                imageCount = imageCount + 1
-                
-                ' Evita overflow
-                If imageCount >= UBound(savedImages) + 1 Then Exit For
-            Next j
-            
-            ' Evita overflow
-            If imageCount >= UBound(savedImages) + 1 Then Exit For
-        Next i
-        
-        ' Backup de shapes flutuantes - apenas propriedades críticas
-        Dim floatingShape As shape
-        For i = 1 To doc.Shapes.count
-            Set floatingShape = doc.Shapes(i)
-            
-            If floatingShape.Type = msoPicture Then
-                ' Redimensiona array se necessário
-                If imageCount >= UBound(savedImages) + 1 Then
-                    ReDim Preserve savedImages(imageCount)
-                End If
-                
-                With tempImageInfo
-                    .paraIndex = -1 ' Indica que é flutuante
-                    .ImageIndex = i
-                    .ImageType = "Floating"
-                    .WrapType = floatingShape.WrapFormat.Type
-                    .Width = floatingShape.Width
-                    .Height = floatingShape.Height
-                    .LeftPosition = floatingShape.Left
-                    .TopPosition = floatingShape.Top
-                    .ImageData = "FloatingShape_Protected"
-                End With
-                
-                savedImages(imageCount) = tempImageInfo
-                imageCount = imageCount + 1
-            End If
-        Next i
-    End If
-    
-    LogMessage "Backup de propriedades de imagens concluído: " & imageCount & " imagens catalogadas"
-    BackupAllImages = True
-    Exit Function
-
-ErrorHandler:
-    LogMessage "Erro ao fazer backup de propriedades de imagens: " & Err.Description, LOG_LEVEL_WARNING
-    BackupAllImages = False
-End Function
-
-'================================================================================
-' RESTORE ALL IMAGES - Verifica e corrige propriedades das imagens
-'================================================================================
-Private Function RestoreAllImages(doc As Document) As Boolean
-    On Error GoTo ErrorHandler
-    
-    If imageCount = 0 Then
-        RestoreAllImages = True
-        Exit Function
-    End If
-    
-    Application.StatusBar = "Verificando integridade das imagens..."
-    
-    Dim i As Long
-    Dim verifiedCount As Long
-    Dim correctedCount As Long
-    
-    For i = 0 To imageCount - 1
-        On Error Resume Next
-        
-        With savedImages(i)
-            If .ImageType = "Inline" Then
-                ' Verifica se a imagem inline ainda existe na posição esperada
-                If .paraIndex <= doc.Paragraphs.count Then
-                    Dim para As Paragraph
-                    Set para = doc.Paragraphs(.paraIndex)
-                    
-                    ' Se ainda há imagens inline no parágrafo, considera verificada
-                    If para.Range.InlineShapes.count > 0 Then
-                        verifiedCount = verifiedCount + 1
-                    End If
-                End If
-                
-            ElseIf .ImageType = "Floating" Then
-                ' Verifica e corrige propriedades de shapes flutuantes se ainda existem
-                If .ImageIndex <= doc.Shapes.count Then
-                    Dim targetShape As shape
-                    Set targetShape = doc.Shapes(.ImageIndex)
-                    
-                    ' Verifica se as propriedades foram alteradas e corrige se necessário
-                    Dim needsCorrection As Boolean
-                    needsCorrection = False
-                    
-                    If Abs(targetShape.Width - .Width) > 1 Then needsCorrection = True
-                    If Abs(targetShape.Height - .Height) > 1 Then needsCorrection = True
-                    If Abs(targetShape.Left - .LeftPosition) > 1 Then needsCorrection = True
-                    If Abs(targetShape.Top - .TopPosition) > 1 Then needsCorrection = True
-                    
-                    If needsCorrection Then
-                        ' Restaura propriedades originais
-                        With targetShape
-                            .Width = savedImages(i).Width
-                            .Height = savedImages(i).Height
-                            .Left = savedImages(i).LeftPosition
-                            .Top = savedImages(i).TopPosition
-                            .WrapFormat.Type = savedImages(i).WrapType
-                        End With
-                        correctedCount = correctedCount + 1
-                    End If
-                    
-                    verifiedCount = verifiedCount + 1
-                End If
-            End If
-        End With
-        
-        On Error GoTo ErrorHandler
-    Next i
-    
-    If correctedCount > 0 Then
-        LogMessage "Verificação de imagens concluída: " & verifiedCount & " verificadas, " & correctedCount & " corrigidas"
-    Else
-        LogMessage "Verificação de imagens concluída: " & verifiedCount & " imagens íntegras"
-    End If
-    
-    RestoreAllImages = True
-    Exit Function
-
-ErrorHandler:
-    LogMessage "Erro ao verificar imagens: " & Err.Description, LOG_LEVEL_WARNING
-    RestoreAllImages = False
-End Function
-
-'================================================================================
-' GET CLIPBOARD DATA - Obtém dados da área de transferência
-'================================================================================
-Private Function GetClipboardData() As Variant
-    On Error GoTo ErrorHandler
-    
-    ' Placeholder para dados da área de transferência
-    ' Em uma implementação completa, seria necessário usar APIs do Windows
-    ' ou métodos mais avançados para capturar dados binários
-    GetClipboardData = "ImageDataPlaceholder"
-    Exit Function
-
-ErrorHandler:
-    GetClipboardData = Empty
-End Function
-
-'================================================================================
-' ENHANCED IMAGE PROTECTION - Proteção aprimorada durante formatação
-'================================================================================
-Private Function ProtectImagesInRange(targetRange As Range) As Boolean
-    On Error GoTo ErrorHandler
-    
-    ' Verifica se há imagens no range antes de aplicar formatação
-    If targetRange.InlineShapes.count > 0 Then
-        ' OTIMIZADO: Aplica formatação caractere por caractere, protegendo imagens
-        Dim i As Long
-        Dim charRange As Range
-        Dim charCount As Long
-        charCount = SafeGetCharacterCount(targetRange) ' Cache da contagem segura
-        
-        If charCount > 0 Then ' Verificação de segurança
-            For i = 1 To charCount
-                Set charRange = targetRange.Characters(i)
-                ' Só formata caracteres que não são parte de imagens
-                If charRange.InlineShapes.count = 0 Then
-                    With charRange.Font
-                        .Name = STANDARD_FONT
-                        .size = STANDARD_FONT_SIZE
-                        .Color = wdColorAutomatic
-                    End With
-                End If
-            Next i
-        End If
-    Else
-        ' Range sem imagens - formatação normal completa
-        With targetRange.Font
-            .Name = STANDARD_FONT
-            .size = STANDARD_FONT_SIZE
-            .Color = wdColorAutomatic
-        End With
-    End If
-    
-    ProtectImagesInRange = True
-    Exit Function
-
-ErrorHandler:
-    LogMessage "Erro na proteção de imagens: " & Err.Description, LOG_LEVEL_WARNING
-    ProtectImagesInRange = False
-End Function
-
-'================================================================================
-' CLEANUP IMAGE PROTECTION - Limpeza das variáveis de proteção de imagens
-'================================================================================
-Private Sub CleanupImageProtection()
-    On Error Resume Next
-    
-    ' Limpa arrays de imagens
-    If imageCount > 0 Then
-        Dim i As Long
-        For i = 0 To imageCount - 1
-            Set savedImages(i).AnchorRange = Nothing
-        Next i
-    End If
-    
-    imageCount = 0
-    ReDim savedImages(0)
-    
-    LogMessage "Variáveis de proteção de imagens limpas"
-End Sub
 
 '================================================================================
 ' VIEW SETTINGS PROTECTION SYSTEM - SISTEMA DE PROTEÇÃO DAS CONFIGURAÇÕES DE VISUALIZAÇÃO
