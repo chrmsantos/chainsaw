@@ -943,6 +943,20 @@ Private Sub ResetHangDetection()
     hangDetectionTriggered = False
 End Sub
 
+Private Function IsWordReady() As Boolean
+    On Error GoTo NotReady
+
+    ' Word is considered ready when it is not performing background tasks
+    If Application.BackgroundSavingStatus <> 0 Then GoTo NotReady
+    If Application.BackgroundPrintingStatus <> 0 Then GoTo NotReady
+
+    IsWordReady = True
+    Exit Function
+
+NotReady:
+    IsWordReady = False
+End Function
+
 Private Function GetTimerElapsedSeconds(ByVal startValue As Double, ByVal currentValue As Double) As Double
     If startValue <= 0 Then
         GetTimerElapsedSeconds = 0
@@ -962,7 +976,7 @@ Private Function ShouldAbortForWordHang(ByVal context As String) As Boolean
     DoEvents
     nowTime = Timer
 
-    If Application.Ready Then
+    If IsWordReady() Then
         hangDetectionStart = 0
         ShouldAbortForWordHang = False
         Exit Function
