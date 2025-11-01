@@ -4369,7 +4369,7 @@ Private Sub ReplacePlenarioDateParagraph(doc As Document)
         If Len(lowerText) > 180 Then GoTo NextParagraph
         
         paraIndex = i
-        If Not EnsureBlankLinesAroundParagraphIndex(doc, paraIndex, 2, 2, beforeSpacing, afterSpacing) Then
+        If Not EnsureBlankLinesAroundParagraphIndex(doc, paraIndex, 2, 0, beforeSpacing, afterSpacing) Then
             beforeSpacing = CountBlankLinesBefore(doc, paraIndex)
             afterSpacing = CountBlankLinesAfter(doc, paraIndex)
         End If
