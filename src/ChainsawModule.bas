@@ -25,6 +25,9 @@
 '
 ' CONFIGURAÇÕES PADRÃO DE FORMATAÇÃO
 Private Const LINE_SPACING As Double = 12# * 1.15# ' 1,15 na interface do Word (12 pt base)
+Private Const WORD_HANG_TIMEOUT_SECONDS As Double = 30# ' Tempo limite para detectar travamento iminente
+Private hangDetectionStart As Double
+Private hangDetectionTriggered As Boolean
  
 Private Function EnsureBlankLinesAroundParagraphIndex(doc As Document, ByRef paraIndex As Long, _
     ByVal requiredBefore As Long, ByVal requiredAfter As Long, _
@@ -210,6 +213,7 @@ Public Sub PadronizarDocumentoMain()
     
     executionStartTime = Now
     formattingCancelled = False
+    ResetHangDetection
     
     If Not CheckWordVersion() Then
         Application.StatusBar = "Erro: Versão do Word não suportada (mínimo: Word 2010)"
@@ -903,6 +907,68 @@ ErrorHandler:
 End Function
 
 '================================================================================
+' WORD HANG DETECTION - MONITORAMENTO DE TRAVAMENTO
+'================================================================================
+Private Sub ResetHangDetection()
+    hangDetectionStart = 0
+    hangDetectionTriggered = False
+End Sub
+
+Private Function GetTimerElapsedSeconds(ByVal startValue As Double, ByVal currentValue As Double) As Double
+    If startValue <= 0 Then
+        GetTimerElapsedSeconds = 0
+    ElseIf currentValue >= startValue Then
+        GetTimerElapsedSeconds = currentValue - startValue
+    Else
+        GetTimerElapsedSeconds = (86400# - startValue) + currentValue
+    End If
+End Function
+
+Private Function ShouldAbortForWordHang(ByVal context As String) As Boolean
+    On Error GoTo ErrorHandler
+
+    Dim nowTime As Double
+    Dim elapsed As Double
+
+    DoEvents
+    nowTime = Timer
+
+    If Application.Ready Then
+        hangDetectionStart = 0
+        ShouldAbortForWordHang = False
+        Exit Function
+    End If
+
+    If hangDetectionStart = 0 Then
+        hangDetectionStart = nowTime
+        ShouldAbortForWordHang = False
+        Exit Function
+    End If
+
+    elapsed = GetTimerElapsedSeconds(hangDetectionStart, nowTime)
+
+    If elapsed < WORD_HANG_TIMEOUT_SECONDS Then
+        ShouldAbortForWordHang = False
+        Exit Function
+    End If
+
+    If Not hangDetectionTriggered Then
+        hangDetectionTriggered = True
+        formattingCancelled = True
+        Application.StatusBar = "Processo cancelado: possível travamento do Word detectado."
+        LogMessage "Execução abortada por segurança (contexto: " & context & ") - Word não responde há " & Format(elapsed, "0.0") & "s", LOG_LEVEL_ERROR
+        MsgBox "A automatização foi interrompida por segurança após detectar possível travamento do Word. Reabra o documento e tente novamente.", _
+               vbCritical, "Processo interrompido"
+    End If
+
+    ShouldAbortForWordHang = True
+    Exit Function
+
+ErrorHandler:
+    ShouldAbortForWordHang = False
+End Function
+
+'================================================================================
 ' SENSITIVE DATA DETECTION - AVISO PARA DADOS PESSOAIS SENSÍVEIS
 '================================================================================
 Private Sub WarnSensitiveData(doc As Document)
@@ -968,9 +1034,13 @@ Private Function PreviousFormatting(doc As Document) As Boolean
 
     ' Limpeza e formatações otimizadas (logs reduzidos para performance)
     ClearAllFormatting doc
+    If formattingCancelled Then GoTo HangAbort
     CleanDocumentStructure doc
+    If formattingCancelled Then GoTo HangAbort
     ValidatePropositionType doc
+    If formattingCancelled Then GoTo HangAbort
     FormatDocumentTitle doc
+    If formattingCancelled Then GoTo HangAbort
     
     ' Formatações principais
     If Not ApplyStdFont(doc) Then
@@ -993,33 +1063,45 @@ Private Function PreviousFormatting(doc As Document) As Boolean
 
     ' Formatações específicas (sem verificação de retorno para performance)
     FormatConsiderandoParagraphs doc
+    If formattingCancelled Then GoTo HangAbort
     ApplyTextReplacements doc
+    If formattingCancelled Then GoTo HangAbort
     
     ' Formatação específica para Justificativa/Anexo/Anexos
     FormatJustificativaAnexoParagraphs doc
     
     EnableHyphenation doc
+    If formattingCancelled Then GoTo HangAbort
     RemoveWatermark doc
+    If formattingCancelled Then GoTo HangAbort
     InsertHeaderstamp doc
+    If formattingCancelled Then GoTo HangAbort
     
     ' Limpeza final de espaços múltiplos em todo o documento
     CleanMultipleSpaces doc
+    If formattingCancelled Then GoTo HangAbort
     
     ' Controle de linhas em branco sequenciais (máximo 2)
     LimitSequentialEmptyLines doc
+    If formattingCancelled Then GoTo HangAbort
     
     ' REFORÇO: Garante que o 2º parágrafo mantenha suas 2 linhas em branco
     EnsureSecondParagraphBlankLines doc
+    If formattingCancelled Then GoTo HangAbort
     ' REFORÇO: Aplica o mesmo padrão ao 3º parágrafo
     EnsureThirdParagraphBlankLines doc
+    If formattingCancelled Then GoTo HangAbort
     ' REFORÇO: Centraliza controle de espaçamento em parágrafos "Justificativa"
     EnsureJustificativaBlankLines doc
+    If formattingCancelled Then GoTo HangAbort
 
     ' Substituição de datas no parágrafo de plenário
     ReplacePlenarioDateParagraph doc
+    If formattingCancelled Then GoTo HangAbort
     
     ' Configuração final da visualização
     ConfigureDocumentView doc
+    If formattingCancelled Then GoTo HangAbort
     
     If Not InsertFooterStamp(doc) Then
         LogMessage "Falha na inserção do rodapé", LOG_LEVEL_ERROR
@@ -1029,6 +1111,10 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     
     LogMessage "Formatação completa aplicada", LOG_LEVEL_INFO
     PreviousFormatting = True
+    Exit Function
+
+HangAbort:
+    PreviousFormatting = False
     Exit Function
 
 ErrorHandler:
@@ -1081,6 +1167,10 @@ Private Function ApplyStdFont(doc As Document) As Boolean
 
     For i = doc.Paragraphs.count To 1 Step -1
         Set para = doc.Paragraphs(i)
+        If ShouldAbortForWordHang("formatação de fontes") Then
+            ApplyStdFont = False
+            Exit Function
+        End If
         hasInlineImage = False
         isTitle = False
         hasConsiderando = False
@@ -1297,6 +1387,10 @@ Private Function ApplyStdParagraphs(doc As Document) As Boolean
 
     For i = doc.Paragraphs.count To 1 Step -1
         Set para = doc.Paragraphs(i)
+        If ShouldAbortForWordHang("formatação de parágrafos") Then
+            ApplyStdParagraphs = False
+            Exit Function
+        End If
         hasInlineImage = False
 
         If para.Range.InlineShapes.count > 0 Then
@@ -1412,6 +1506,10 @@ Private Function FormatSecondParagraph(doc As Document) As Boolean
     ' Encontra o 2º parágrafo com conteúdo (pula vazios)
     For i = 1 To doc.Paragraphs.count
         Set para = doc.Paragraphs(i)
+        If ShouldAbortForWordHang("detecção do 2º parágrafo") Then
+            FormatSecondParagraph = False
+            Exit Function
+        End If
         paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
         
         ' Se o parágrafo tem texto ou conteúdo visual, conta como parágrafo válido
@@ -1652,6 +1750,10 @@ Private Function EnsureJustificativaBlankLines(doc As Document) As Boolean
 
     For i = 1 To doc.Paragraphs.count
         Set para = doc.Paragraphs(i)
+        If ShouldAbortForWordHang("ajuste de justificativa") Then
+            EnsureJustificativaBlankLines = False
+            Exit Function
+        End If
         paraText = Replace(Replace(para.Range.text, vbCr, ""), vbLf, "")
         paraText = Trim$(paraText)
         If Len(paraText) = 0 Then GoTo ContinueLoop
@@ -2339,6 +2441,11 @@ Private Function ClearAllFormatting(doc As Document) As Boolean
         
         For Each para In doc.Paragraphs
             On Error Resume Next
+
+            If ShouldAbortForWordHang("limpeza de formatação") Then
+                ClearAllFormatting = False
+                Exit Function
+            End If
             
             ' Cache da verificação de conteúdo visual
             Dim paraKey As String
@@ -2433,6 +2540,10 @@ Private Function ClearAllFormatting(doc As Document) As Boolean
     ' OTIMIZADO: Reset de estilos em uma única passada
     For Each para In doc.Paragraphs
         On Error Resume Next
+        If ShouldAbortForWordHang("reset de estilos") Then
+            ClearAllFormatting = False
+            Exit Function
+        End If
         para.Style = "Normal"
         styleResetCount = styleResetCount + 1
         ' Otimização: Permite responsividade e proteção contra loops
@@ -2473,6 +2584,10 @@ Private Function CleanDocumentStructure(doc As Document) As Boolean
         If i > doc.Paragraphs.count Then Exit For ' Proteção dinâmica
         
         Set para = doc.Paragraphs(i)
+        If ShouldAbortForWordHang("limpeza de estrutura") Then
+            CleanDocumentStructure = False
+            Exit Function
+        End If
         Dim paraTextCheck As String
         paraTextCheck = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
         
@@ -2493,6 +2608,10 @@ Private Function CleanDocumentStructure(doc As Document) As Boolean
             If i > doc.Paragraphs.count Or i < 1 Then Exit For ' Proteção dinâmica
             
             Set para = doc.Paragraphs(i)
+            If ShouldAbortForWordHang("remoção de linhas em branco iniciais") Then
+                CleanDocumentStructure = False
+                Exit Function
+            End If
             Dim paraTextEmpty As String
             paraTextEmpty = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
             
@@ -4390,6 +4509,9 @@ Private Sub ReplacePlenarioDateParagraph(doc As Document)
     
     For i = 1 To doc.Paragraphs.count
         Set para = doc.Paragraphs(i)
+        If ShouldAbortForWordHang("substituição de data do plenário") Then
+            Exit Sub
+        End If
         rawText = para.Range.text
         rawText = Replace(rawText, vbCr, "")
         rawText = Replace(rawText, vbLf, "")
