@@ -1098,7 +1098,7 @@ Private Function ApplyStdFont(doc As Document) As Boolean
             Loop
             cleanParaText = Trim(LCase(cleanParaText))
             
-            If cleanParaText = "Justificativa:" Or IsVereadorPattern(cleanParaText) Or IsAnexoPattern(cleanParaText) Then
+            If IsJustificativaHeading(cleanParaText) Or IsVereadorPattern(cleanParaText) Or IsAnexoPattern(cleanParaText) Then
                 isSpecialParagraph = True
             End If
             
@@ -1603,11 +1603,8 @@ Private Function EnsureJustificativaBlankLines(doc As Document) As Boolean
         paraText = Trim$(paraText)
         If Len(paraText) = 0 Then GoTo ContinueLoop
 
-        normalized = LCase$(paraText)
-        Do While Len(normalized) > 0 And InStr(":;.,", Right$(normalized, 1)) > 0
-            normalized = Left$(normalized, Len(normalized) - 1)
-        Loop
-
+        normalized = NormalizeHeadingKey(paraText)
+        
         If normalized = "justificativa" Then
             paraIndex = i
             If EnsureBlankLinesAroundParagraphIndex(doc, paraIndex, 2, 2) Then
@@ -2876,6 +2873,13 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
     Dim para As Paragraph
     Dim paraText As String
     Dim cleanText As String
+    Dim normalizedHeading As String
+    Dim originalEnd As String
+    Dim previousAlerts As WdAlertLevel
+    Dim justificativaLabel As String
+    Dim anexoEnd As String
+    Dim anexoText As String
+    Dim finalAnexoHeading As String
     Dim i As Long
     Dim formattedCount As Long
     Dim vereadorCount As Long
@@ -2887,6 +2891,8 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
         ' Não processa parágrafos com conteúdo visual
         If Not HasVisualContent(para) Then
             paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+            Dim normalizedHeading As String
+            normalizedHeading = NormalizeHeadingKey(paraText)
             
             ' Remove pontuação final para análise mais precisa
             cleanText = paraText
@@ -2897,10 +2903,8 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
             cleanText = Trim(LCase(cleanText))
             
             ' REQUISITO 1: Formatação de "Justificativa:" (case insensitive)
-            If LCase(Trim(cleanText)) = "Justificativa:" Then
+            If normalizedHeading = "justificativa" Then
                 ' Padroniza o texto mantendo pontuação original se houver
-                Dim originalEnd As String
-                Dim previousAlerts As WdAlertLevel
                 originalEnd = ""
                 If Len(paraText) > Len(cleanText) Then
                     originalEnd = Right(paraText, Len(paraText) - Len(cleanText))
@@ -2925,7 +2929,8 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
                     .Bold = True                  ' Negrito
                 End With
                 
-                LogMessage "Parágrafo 'Justificativa:' formatado (centralizado, negrito, sem recuos)", LOG_LEVEL_INFO
+                justificativaLabel = "Justificativa" & originalEnd
+                LogMessage "Parágrafo '" & justificativaLabel & "' formatado (centralizado, negrito, sem recuos)", LOG_LEVEL_INFO
                 formattedCount = formattedCount + 1
                 
             ' REQUISITO 1: Formatação de variações de "vereador"
@@ -2998,7 +3003,7 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
                 formattedCount = formattedCount + 1
                 
             ' REQUISITO 3: Formatação de variações de "anexo" ou "anexos"
-            ElseIf IsAnexoPattern(cleanText) Then
+            ElseIf normalizedHeading = "anexo" Or normalizedHeading = "anexos" Then
                 ' Aplica formatação específica para Anexo/Anexos
                 With para.Format
                     .leftIndent = 0               ' Recuo à esquerda = 0
@@ -3020,21 +3025,20 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
                 End With
                 
                 ' Padroniza o texto mantendo pontuação original se houver
-                Dim anexoEnd As String
                 anexoEnd = ""
                 If Len(paraText) > Len(cleanText) Then
                     anexoEnd = Right(paraText, Len(paraText) - Len(cleanText))
                 End If
                 
-                Dim anexoText As String
-                If cleanText = "anexo" Then
+                If normalizedHeading = "anexo" Then
                     anexoText = "Anexo"
                 Else
                     anexoText = "Anexos"
                 End If
-                para.Range.text = anexoText & anexoEnd & vbCrLf
+                finalAnexoHeading = anexoText & anexoEnd
+                para.Range.text = finalAnexoHeading & vbCrLf
                 
-                LogMessage "Parágrafo '" & anexoText & "' formatado (alinhado à esquerda, negrito, sem recuos)", LOG_LEVEL_INFO
+                LogMessage "Parágrafo '" & finalAnexoHeading & "' formatado (alinhado à esquerda, negrito, sem recuos)", LOG_LEVEL_INFO
                 formattedCount = formattedCount + 1
             End If
         End If
@@ -3071,10 +3075,27 @@ Private Function IsVereadorPattern(text As String) As Boolean
     IsVereadorPattern = (cleanText = "vereador" Or cleanText = "vereadora")
 End Function
 
+Private Function NormalizeHeadingKey(text As String) As String
+    Dim normalized As String
+
+    normalized = Replace(Replace(text, vbCr, ""), vbLf, "")
+    normalized = Trim$(normalized)
+
+    Do While Len(normalized) > 0 And InStr(":;.,", Right$(normalized, 1)) > 0
+        normalized = Left$(normalized, Len(normalized) - 1)
+    Loop
+
+    NormalizeHeadingKey = LCase$(normalized)
+End Function
+
+Private Function IsJustificativaHeading(text As String) As Boolean
+    IsJustificativaHeading = (NormalizeHeadingKey(text) = "justificativa")
+End Function
+
 Private Function IsAnexoPattern(text As String) As Boolean
-    Dim cleanText As String
-    cleanText = LCase(Trim(text))
-    IsAnexoPattern = (cleanText = "anexo" Or cleanText = "anexos")
+    Dim normalized As String
+    normalized = NormalizeHeadingKey(text)
+    IsAnexoPattern = (normalized = "anexo" Or normalized = "anexos")
 End Function
 
 '================================================================================
