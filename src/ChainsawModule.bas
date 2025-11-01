@@ -2938,7 +2938,6 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
         ' Não processa parágrafos com conteúdo visual
         If Not HasVisualContent(para) Then
             paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
-            Dim normalizedHeading As String
             normalizedHeading = NormalizeHeadingKey(paraText)
             
             ' Remove pontuação final para análise mais precisa
