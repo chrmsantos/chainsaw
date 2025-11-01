@@ -43,7 +43,7 @@
 '   - Primeira linha: SEMPRE caixa alta, negrito, sublinhado, centralizada
 '   - Parágrafos 2°, 3° e 4°: recuo esquerdo 9cm, sem recuo primeira linha
 '   - "Considerando": caixa alta e negrito no início de parágrafos
-'   - "Justificativa": centralizada, sem recuos, negrito, capitalizada
+'   - "Justificativa:": centralizada, sem recuos, negrito, capitalizada
 '   - "Anexo/Anexos": alinhado à esquerda, sem recuos, negrito, capitalizado
 '   - Configuração de margens e orientação (A4)
 '   - Fonte Arial 12pt com espaçamento 1.4
@@ -1084,7 +1084,7 @@ Private Function ApplyStdFont(doc As Document) As Boolean
             Loop
             cleanParaText = Trim(LCase(cleanParaText))
             
-            If cleanParaText = "justificativa" Or IsVereadorPattern(cleanParaText) Or IsAnexoPattern(cleanParaText) Then
+            If cleanParaText = "Justificativa:" Or IsVereadorPattern(cleanParaText) Or IsAnexoPattern(cleanParaText) Then
                 isSpecialParagraph = True
             End If
             
@@ -2735,9 +2735,9 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
             Loop
             cleanText = Trim(LCase(cleanText))
             
-            ' REQUISITO 1: Formatação de "justificativa" (case insensitive)
-            If LCase(Trim(cleanText)) = "justificativa" Then
-                ' Aplica formatação específica para Justificativa
+            ' REQUISITO 1: Formatação de "Justificativa:" (case insensitive)
+            If LCase(Trim(cleanText)) = "Justificativa:" Then
+                ' Aplica formatação específica para Justificativa:
                 With para.Format
                     .leftIndent = 0               ' Recuo à esquerda = 0
                     .firstLineIndent = 0          ' Recuo da 1ª linha = 0
@@ -2768,7 +2768,7 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
                 End If
                 para.Range.text = "Justificativa" & originalEnd & vbCrLf
                 
-                LogMessage "Parágrafo 'Justificativa' formatado (centralizado, negrito, sem recuos)", LOG_LEVEL_INFO
+                LogMessage "Parágrafo 'Justificativa:' formatado (centralizado, negrito, sem recuos)", LOG_LEVEL_INFO
                 formattedCount = formattedCount + 1
                 
             ' REQUISITO 1: Formatação de variações de "vereador"
@@ -4152,17 +4152,27 @@ Private Sub ReplacePlenarioDateParagraph(doc As Document)
     Dim terms() As String
     
     ' Define os termos de busca
-    terms = Split("Palácio 15 de Junho,Plenário,Dr. Tancredo Neves," & _
-                 " de janeiro de , de fevereiro de, de março de, de abril de," & _
-                 " de maio de, de junho de, de julho de, de agosto de," & _
-                 " de setembro de, de outubro de, de novembro de, de dezembro de", ",")
-    
+    terms = Split("Palácio 15 de Junho," & _
+                 "Plenário ""Dr. Tancredo Neves""," & _
+                 "de janeiro de," & _
+                 "de fevereiro de," & _
+                 "de março de," & _
+                 "de abril de," & _
+                 "de maio de," & _
+                 "de junho de," & _
+                 "de julho de," & _
+                 "de agosto de," & _
+                 "de setembro de," & _
+                 "de outubro de," & _
+                 "de novembro de," & _
+                 "de dezembro de", ",")
+
     ' Processa cada parágrafo
     For Each para In doc.Paragraphs
         matchCount = 0
         
         ' Pula parágrafos muito longos
-        If Len(para.Range.text) <= 80 Then
+        If Len(para.Range.text) <= 90 Then
             paraText = para.Range.text
             
             ' Conta matches
