@@ -937,7 +937,7 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     
     EnableHyphenation doc
     RemoveWatermark doc
-    InsertHeaderStamp doc
+    InsertHeaderstamp doc
     
     ' Limpeza final de espaços múltiplos em todo o documento
     CleanMultipleSpaces doc
@@ -1280,7 +1280,7 @@ Private Function ApplyStdParagraphs(doc As Document) As Boolean
             para.Range.text = cleanText
         End If
 
-        paraText = Trim(LCase(Replace(Replace(para.Range.text, ".", ""), ",", ""), ";", ""))
+        'paraText = Trim(LCase(Replace(Replace(para.Range.text, ".", ""), ",", ""), ";", ""))
         paraText = Replace(paraText, vbCr, "")
         paraText = Replace(paraText, vbLf, "")
         paraText = Replace(paraText, " ", "")
@@ -1842,7 +1842,7 @@ Private Function InsertHeaderstamp(doc As Document) As Boolean
     Dim sectionsProcessed As Long
 
     ' Resolve image file path using configuration if provided
-    imgFile = Trim(Config.headerImagePath)
+    'imgFile = Trim(config.headerImagePath)
     If Len(imgFile) = 0 Then
         ' No configured path; try common locations relative to document or repo folder
         Dim baseFolder As String
@@ -2949,7 +2949,7 @@ Public Sub AbrirPastaLogs()
     End If
     
     ' Abre a pasta no Windows Explorer
-    Shell "explorer.exe """ & logsFolder & """", vbNormalFocus
+    shell "explorer.exe """ & logsFolder & """", vbNormalFocus
     
     Application.StatusBar = "Pasta de logs aberta: " & logsFolder
     
@@ -2965,7 +2965,7 @@ ErrorHandler:
     
     ' Fallback: tenta abrir pasta temporária
     On Error Resume Next
-    Shell "explorer.exe """ & Environ("TEMP") & """", vbNormalFocus
+    shell "explorer.exe """ & Environ("TEMP") & """", vbNormalFocus
     If Err.Number = 0 Then
         Application.StatusBar = "Pasta temporária aberta como alternativa"
     Else
@@ -2986,7 +2986,7 @@ Public Sub AbrirRepositorioGitHub()
     repoURL = "https://github.com/chrmsantos/chainsaw-fprops"
     
     ' Abre o link no navegador padrão
-    shellResult = Shell("rundll32.exe url.dll,FileProtocolHandler " & repoURL, vbNormalFocus)
+    shellResult = shell("rundll32.exe url.dll,FileProtocolHandler " & repoURL, vbNormalFocus)
     
     If shellResult > 0 Then
         Application.StatusBar = "Repositório GitHub aberto no navegador"
@@ -3143,7 +3143,7 @@ Public Sub AbrirPastaBackups()
     End If
     
     ' Abre a pasta no Windows Explorer
-    Shell "explorer.exe """ & backupFolder & """", vbNormalFocus
+    shell "explorer.exe """ & backupFolder & """", vbNormalFocus
     
     Application.StatusBar = "Pasta de backups aberta: " & backupFolder
     
@@ -3163,7 +3163,7 @@ ErrorHandler:
     If Not doc Is Nothing And doc.Path <> "" Then
         Dim docFolder As String
         docFolder = fso.GetParentFolderName(doc.Path)
-        Shell "explorer.exe """ & docFolder & """", vbNormalFocus
+        shell "explorer.exe """ & docFolder & """", vbNormalFocus
         Application.StatusBar = "Pasta do documento aberta como alternativa"
     Else
         Application.StatusBar = "Não foi possível abrir pasta de backups"
@@ -3688,7 +3688,7 @@ Private Function SalvarTodosDocumentos() As Boolean
             Set saveDialog = Application.FileDialog(msoFileDialogSaveAs)
             
             With saveDialog
-                .title = "Salvar documento: " & doc.Name
+                .Title = "Salvar documento: " & doc.Name
                 .InitialFileName = doc.Name
                 
                 If .Show = -1 Then
@@ -4162,8 +4162,8 @@ Private Sub ReplacePlenarioDateParagraph(doc As Document)
         matchCount = 0
         
         ' Pula parágrafos muito longos
-        If Len(para.Range.Text) <= 80 Then
-            paraText = para.Range.Text
+        If Len(para.Range.text) <= 80 Then
+            paraText = para.Range.text
             
             ' Conta matches
             Dim term As Variant
@@ -4173,12 +4173,12 @@ Private Sub ReplacePlenarioDateParagraph(doc As Document)
                 End If
                 If matchCount >= 2 Then
                     ' Encontrou 2+ matches, faz a substituição
-                    para.Range.Text = "Plenário ""Dr. Tancredo Neves"", $DATAATUALEXTENSO$."
+                    para.Range.text = "Plenário ""Dr. Tancredo Neves"", $DATAATUALEXTENSO$."
                     ' Aplica formatação: centralizado e sem recuos
                     With para.Range.ParagraphFormat
-                        .LeftIndent = 0
-                        .FirstLineIndent = 0
-                        .Alignment = wdAlignParagraphCenter
+                        .leftIndent = 0
+                        .firstLineIndent = 0
+                        .alignment = wdAlignParagraphCenter
                     End With
                     LogMessage "Parágrafo de plenário substituído e formatado", LOG_LEVEL_INFO
                     Exit For
@@ -4224,74 +4224,4 @@ ErrorHandler:
     LogMessage "Erro ao criar pasta de backup: " & Err.Description, LOG_LEVEL_ERROR
     ' Retorna pasta TEMP como fallback
     EnsureBackupDirectory = Environ("TEMP")
-End Function
-
-'================================================================================
-' DOCUMENT BACKUP - #STABLE
-'================================================================================
-Private Function CreateDocumentBackup(doc As Document) As Boolean
-    On Error GoTo ErrorHandler
-    
-    ' Garante que a pasta de backup existe
-    Dim backupFolder As String
-    backupFolder = EnsureBackupDirectory(doc)
-    
-    ' Gera nome único para o arquivo de backup
-    backupFilePath = backupFolder & "\" & _
-                    Replace(doc.Name, ".doc", "") & _
-                    "_backup_" & Format(Now, "yyyy-mm-dd_hhmmss") & ".docx"
-    
-    ' Remove extensões antigas se houver
-    backupFilePath = Replace(backupFilePath, ".docx.docx", ".docx")
-    backupFilePath = Replace(backupFilePath, ".docm.docx", ".docx")
-    
-    ' Salva o backup
-    doc.SaveAs2 FileName:=backupFilePath, _
-                FileFormat:=wdFormatDocumentDefault, _
-                AddToRecentFiles:=False
-    
-    LogMessage "Backup criado com sucesso: " & _
-              Mid(backupFilePath, InStrRev(backupFilePath, "\") + 1), _
-              LOG_LEVEL_INFO
-    
-    CreateDocumentBackup = True
-    Exit Function
-    
-ErrorHandler:
-    backupFilePath = ""
-    LogMessage "Erro ao criar backup: " & Err.Description, LOG_LEVEL_ERROR
-    CreateDocumentBackup = False
-End Function
-
-'================================================================================
-' HEADER IMAGE PATH MANAGEMENT - #STABLE
-'================================================================================
-Private Function GetHeaderImagePath() As String
-    On Error GoTo ErrorHandler
-    
-    Dim fso As Object
-    Dim documentsPath As String
-    Dim headerImagePath As String
-    
-    Set fso = CreateObject("Scripting.FileSystemObject")
-    
-    ' Obtém pasta Documents do usuário atual
-    documentsPath = CreateObject("WScript.Shell").SpecialFolders("MyDocuments")
-    
-    ' Constrói caminho absoluto para a imagem
-    headerImagePath = documentsPath & "\chainsaw-proposituras\assets\stamp.png"
-    
-    ' Verifica se o arquivo existe
-    If Not fso.FileExists(headerImagePath) Then
-        LogMessage "Imagem de cabeçalho não encontrada em: " & headerImagePath, LOG_LEVEL_WARNING
-        GetHeaderImagePath = ""
-        Exit Function
-    End If
-    
-    GetHeaderImagePath = headerImagePath
-    Exit Function
-    
-ErrorHandler:
-    LogMessage "Erro ao localizar imagem de cabeçalho: " & Err.Description, LOG_LEVEL_ERROR
-    GetHeaderImagePath = ""
 End Function
