@@ -24,6 +24,25 @@
 '   - Pasta de backups organizada por documento
 '
 ' CONFIGURAÇÕES PADRÃO DE FORMATAÇÃO
+Option Explicit
+
+Private executionStartTime As Date
+Private formattingCancelled As Boolean
+Private undoGroupEnabled As Boolean
+Private loggingEnabled As Boolean
+Private logFilePath As String
+
+Private Const TOP_MARGIN_CM As Double = 3#
+Private Const BOTTOM_MARGIN_CM As Double = 2#
+Private Const LEFT_MARGIN_CM As Double = 3#
+Private Const RIGHT_MARGIN_CM As Double = 2#
+Private Const HEADER_DISTANCE_CM As Double = 1.25
+Private Const FOOTER_DISTANCE_CM As Double = 1.25
+Private Const HEADER_IMAGE_MAX_WIDTH_CM As Double = 11#
+Private Const HEADER_IMAGE_HEIGHT_RATIO As Double = 0.22
+Private Const HEADER_IMAGE_TOP_MARGIN_CM As Double = 1#
+Private Const FOOTER_FONT_SIZE As Long = 10
+
 Private Type ViewSettings
     ViewType As Long
     ShowHorizontalRuler As Boolean
@@ -669,6 +688,7 @@ Private Function InitializeLogging(doc As Document) As Boolean
     Dim logsFolder As String
     Dim baseName As String
     Dim timeStamp As String
+    Dim fileNo As Integer
     
     Set fso = CreateObject("Scripting.FileSystemObject")
     logsFolder = EnsureUserDataDirectory(LOG_FOLDER_NAME)
@@ -692,24 +712,27 @@ Private Function InitializeLogging(doc As Document) As Boolean
     timeStamp = Format(Now, "yyyy-mm-dd_HHmmss")
     logFilePath = fso.BuildPath(logsFolder, timeStamp & "_" & baseName & "_FormattingLog.txt")
     
-    Open logFilePath For Output As #1
-    Print #1, "========================================================"
-    Print #1, "LOG DE FORMATAÇÃO DE DOCUMENTO - SISTEMA DE REGISTRO"
-    Print #1, "========================================================"
-    Print #1, "Duração: " & Format(Now - executionStartTime, "HH:MM:ss")
-    Print #1, "Erros: " & Err.Number & " - " & Err.Description
-    Print #1, "Status: INICIANDO"
-    Print #1, "--------------------------------------------------------"
-    Print #1, "Sessão: " & Format(Now, "yyyy-mm-dd HH:MM:ss")
-    Print #1, "Usuário: " & Environ("USERNAME")
-    Print #1, "Estação: " & Environ("COMPUTERNAME")
-    Print #1, "Versão Word: " & Application.version
-    Print #1, "Documento: " & doc.Name
-    Print #1, "Local: " & IIf(doc.Path = "", "(Não salvo)", doc.Path)
-    Print #1, "Proteção: " & GetProtectionType(doc)
-    Print #1, "Tamanho: " & GetDocumentSize(doc)
-    Print #1, "========================================================"
-    Close #1
+    fileNo = 0
+    fileNo = FreeFile
+
+    Open logFilePath For Output As #fileNo
+    Print #fileNo, "========================================================"
+    Print #fileNo, "LOG DE FORMATAÇÃO DE DOCUMENTO - SISTEMA DE REGISTRO"
+    Print #fileNo, "========================================================"
+    Print #fileNo, "Duração: " & Format(Now - executionStartTime, "HH:MM:ss")
+    Print #fileNo, "Erros: " & Err.Number & " - " & Err.Description
+    Print #fileNo, "Status: INICIANDO"
+    Print #fileNo, "--------------------------------------------------------"
+    Print #fileNo, "Sessão: " & Format(Now, "yyyy-mm-dd HH:MM:ss")
+    Print #fileNo, "Usuário: " & Environ("USERNAME")
+    Print #fileNo, "Estação: " & Environ("COMPUTERNAME")
+    Print #fileNo, "Versão Word: " & Application.version
+    Print #fileNo, "Documento: " & doc.Name
+    Print #fileNo, "Local: " & IIf(doc.Path = "", "(Não salvo)", doc.Path)
+    Print #fileNo, "Proteção: " & GetProtectionType(doc)
+    Print #fileNo, "Tamanho: " & GetDocumentSize(doc)
+    Print #fileNo, "========================================================"
+    Close #fileNo
     
     loggingEnabled = True
     InitializeLogging = True
@@ -717,6 +740,9 @@ Private Function InitializeLogging(doc As Document) As Boolean
     Exit Function
     
 ErrorHandler:
+    On Error Resume Next
+    If fileNo <> 0 Then Close #fileNo
+    On Error GoTo 0
     loggingEnabled = False
     InitializeLogging = False
 End Function
@@ -724,6 +750,9 @@ End Function
 Private Sub LogMessage(message As String, Optional level As Long = LOG_LEVEL_INFO)
     On Error GoTo ErrorHandler
     
+    Dim fileNo As Integer
+    fileNo = 0
+
     If Not loggingEnabled Then Exit Sub
     
     Dim levelText As String
@@ -747,30 +776,40 @@ Private Sub LogMessage(message As String, Optional level As Long = LOG_LEVEL_INF
     Dim formattedMessage As String
     formattedMessage = Format(Now, "yyyy-mm-dd HH:MM:ss") & " [" & levelText & "] " & levelIcon & " " & message
     
-    Open logFilePath For Append As #1
-    Print #1, formattedMessage
-    Close #1
+    fileNo = FreeFile
+
+    Open logFilePath For Append As #fileNo
+    Print #fileNo, formattedMessage
+    Close #fileNo
     
     Debug.Print "LOG: " & formattedMessage
     
     Exit Sub
     
 ErrorHandler:
+    On Error Resume Next
+    If fileNo <> 0 Then Close #fileNo
+    On Error GoTo 0
     Debug.Print "FALHA NO LOGGING: " & message
 End Sub
 
 Private Sub SafeFinalizeLogging()
     On Error GoTo ErrorHandler
     
+    Dim fileNo As Integer
+    fileNo = 0
+
     If loggingEnabled Then
-        Open logFilePath For Append As #1
-        Print #1, "================================================"
-        Print #1, "FIM DA SESSÃO - " & Format(Now, "yyyy-mm-dd HH:MM:ss")
-        Print #1, "Duração: " & Format(Now - executionStartTime, "HH:MM:ss")
-        Print #1, "Erros: " & IIf(Err.Number = 0, "Nenhum", Err.Number & " - " & Err.Description)
-        Print #1, "Status: " & IIf(formattingCancelled, "CANCELADO", "CONCLUÍDO")
-        Print #1, "================================================"
-        Close #1
+        fileNo = FreeFile
+
+        Open logFilePath For Append As #fileNo
+        Print #fileNo, "================================================"
+        Print #fileNo, "FIM DA SESSÃO - " & Format(Now, "yyyy-mm-dd HH:MM:ss")
+        Print #fileNo, "Duração: " & Format(Now - executionStartTime, "HH:MM:ss")
+        Print #fileNo, "Erros: " & IIf(Err.Number = 0, "Nenhum", Err.Number & " - " & Err.Description)
+        Print #fileNo, "Status: " & IIf(formattingCancelled, "CANCELADO", "CONCLUÍDO")
+        Print #fileNo, "================================================"
+        Close #fileNo
     End If
     
     loggingEnabled = False
@@ -778,6 +817,9 @@ Private Sub SafeFinalizeLogging()
     Exit Sub
     
 ErrorHandler:
+    On Error Resume Next
+    If fileNo <> 0 Then Close #fileNo
+    On Error GoTo 0
     Debug.Print "Erro ao finalizar logging: " & Err.Description
     loggingEnabled = False
 End Sub
@@ -3274,6 +3316,7 @@ Private Function CreateDocumentBackup(doc As Document) As Boolean
     Dim docExtension As String
     Dim timeStamp As String
     Dim backupFileName As String
+    Dim backupFilePath As String
     
     Set fso = CreateObject("Scripting.FileSystemObject")
     
