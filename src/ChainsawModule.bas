@@ -1878,21 +1878,18 @@ End Function
 Private Function EnableHyphenation(doc As Document) As Boolean
     On Error GoTo ErrorHandler
     
-    If Not doc.AutoHyphenation Then
-        doc.AutoHyphenation = True
-        doc.HyphenationZone = CentimetersToPoints(0.63)
-        doc.HyphenateCaps = True
-        ' Log removido para performance
-        EnableHyphenation = True
-    Else
-        ' Log removido para performance
-        EnableHyphenation = True
+    ' DESATIVA a hifenização automática em todo o documento
+    If doc.AutoHyphenation Then
+        doc.AutoHyphenation = False
+        doc.HyphenateCaps = False
+        LogMessage "Hifenização automática desativada", LOG_LEVEL_INFO
     End If
     
+    EnableHyphenation = True
     Exit Function
     
 ErrorHandler:
-    LogMessage "Erro ao ativar hifenização: " & Err.Description, LOG_LEVEL_ERROR
+    LogMessage "Erro ao desativar hifenização: " & Err.Description, LOG_LEVEL_ERROR
     EnableHyphenation = False
 End Function
 
