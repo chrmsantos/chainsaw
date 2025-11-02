@@ -959,11 +959,7 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     ' Limpeza e formatações otimizadas (logs reduzidos para performance)
     ClearAllFormatting doc
     CleanDocumentStructure doc
-    ValidatePropositionType doc
     FormatDocumentTitle doc
-    
-    ' Formata parágrafos especiais (Justificativa/Anexo/Vereador) ANTES das formatações principais
-    FormatJustificativaAnexoParagraphs doc
     
     ' Formatações principais
     If Not ApplyStdFont(doc) Then
@@ -988,7 +984,6 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     FormatConsiderandoParagraphs doc
     ApplyTextReplacements doc
     
-    EnableHyphenation doc
     RemoveWatermark doc
     InsertHeaderstamp doc
     
@@ -1780,27 +1775,6 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' DISABLE HYPHENATION
-'================================================================================
-Private Function EnableHyphenation(doc As Document) As Boolean
-    On Error GoTo ErrorHandler
-    
-    ' DESATIVA a hifenização automática em todo o documento
-    If doc.AutoHyphenation Then
-        doc.AutoHyphenation = False
-        doc.HyphenateCaps = False
-        LogMessage "Hifenização automática desativada", LOG_LEVEL_INFO
-    End If
-    
-    EnableHyphenation = True
-    Exit Function
-    
-ErrorHandler:
-    LogMessage "Erro ao desativar hifenização: " & Err.Description, LOG_LEVEL_ERROR
-    EnableHyphenation = False
-End Function
-
-'================================================================================
 ' REMOVE WATERMARK
 '================================================================================
 Private Function RemoveWatermark(doc As Document) As Boolean
@@ -2430,67 +2404,6 @@ Private Function HasVisualContent(para As Paragraph) As Boolean
 End Function
 
 '================================================================================
-' VALIDATE PROPOSITION TYPE
-'================================================================================
-Private Function ValidatePropositionType(doc As Document) As Boolean
-    On Error GoTo ErrorHandler
-    
-    Dim firstPara As Paragraph
-    Dim firstWord As String
-    Dim paraText As String
-    Dim i As Long
-    Dim userResponse As VbMsgBoxResult
-    
-    ' Encontra o primeiro parágrafo com texto
-    For i = 1 To doc.Paragraphs.count
-        Set firstPara = doc.Paragraphs(i)
-        paraText = Trim(Replace(Replace(firstPara.Range.text, vbCr, ""), vbLf, ""))
-        If paraText <> "" Then
-            Exit For
-        End If
-    Next i
-    
-    If paraText = "" Then
-        LogMessage "Documento não possui texto para validação", LOG_LEVEL_WARNING
-        ValidatePropositionType = True
-        Exit Function
-    End If
-    
-    ' Extrai a primeira palavra
-    Dim words() As String
-    words = Split(paraText, " ")
-    If UBound(words) >= 0 Then
-        firstWord = LCase(Trim(words(0)))
-    End If
-    
-    ' Verifica se é uma das proposituras válidas
-    If firstWord = "indicação" Or firstWord = "requerimento" Or firstWord = "moção" Then
-        LogMessage "Tipo de proposição validado: " & firstWord, LOG_LEVEL_INFO
-        ValidatePropositionType = True
-    Else
-        ' Informa sobre documento não-padrão e continua automaticamente
-        LogMessage "Primeira palavra não reconhecida como proposição padrão: " & firstWord & " - continuando processamento", LOG_LEVEL_WARNING
-        Application.StatusBar = "Aviso: Documento não é Indicação/Requerimento/Moção - processando mesmo assim"
-        
-        ' Pequena pausa para o usuário visualizar a mensagem
-        Dim startTime As Double
-        startTime = Timer
-        Do While Timer < startTime + 2  ' 2 segundos
-            DoEvents
-        Loop
-        
-        LogMessage "Processamento de documento não-padrão autorizado automaticamente: " & firstWord, LOG_LEVEL_INFO
-        ValidatePropositionType = True
-    End If
-    
-    Exit Function
-
-ErrorHandler:
-    LogMessage "Erro na validação do tipo de proposição: " & Err.Description, LOG_LEVEL_ERROR
-    ValidatePropositionType = False
-End Function
-
-'================================================================================
 ' FORMAT DOCUMENT TITLE
 '================================================================================
 Private Function FormatDocumentTitle(doc As Document) As Boolean
@@ -3002,163 +2915,6 @@ ErrorHandler:
     Application.ScreenUpdating = True
     LogMessage "Erro ao inserir linhas em branco: " & Err.Description, LOG_LEVEL_WARNING
 End Sub
-
-'================================================================================
-' FORMAT JUSTIFICATIVA/ANEXO PARAGRAPHS - FORMATAÇÃO ESPECÍFICA - #REFACTORED
-'================================================================================
-Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
-    On Error GoTo ErrorHandler
-    
-    Dim para As Paragraph
-    Dim paraText As String
-    Dim cleanText As String
-    Dim i As Long
-    Dim formattedCount As Long
-    Dim vereadorCount As Long
-    
-    ' Percorre todos os parágrafos do documento
-    For i = 1 To doc.Paragraphs.count
-        Set para = doc.Paragraphs(i)
-        
-        ' Não processa parágrafos com conteúdo visual
-        If Not HasVisualContent(para) Then
-            paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
-            
-            ' Remove pontuação final para análise mais precisa
-            cleanText = paraText
-            ' Remove pontos, vírgulas, dois-pontos, ponto-e-vírgula do final
-            Do While Len(cleanText) > 0 And (Right(cleanText, 1) = "." Or Right(cleanText, 1) = "," Or Right(cleanText, 1) = ":" Or Right(cleanText, 1) = ";")
-                cleanText = Left(cleanText, Len(cleanText) - 1)
-            Loop
-            cleanText = Trim(LCase(cleanText))
-            
-            ' REQUISITO 1: Formatação de "justificativa" (case insensitive)
-            If LCase(Trim(cleanText)) = JUSTIFICATIVA_TEXT Then
-                ' Padroniza o texto mantendo pontuação original se houver
-                Dim originalEnd As String
-                originalEnd = ""
-                If Len(paraText) > Len(cleanText) Then
-                    originalEnd = Right(paraText, Len(paraText) - Len(cleanText))
-                End If
-                para.Range.text = "Justificativa" & originalEnd & vbCrLf
-                
-                ' Aplica formatação específica para Justificativa (SEM negrito - será aplicado depois)
-                With para.Format
-                    .leftIndent = 0
-                    .firstLineIndent = 0
-                    .RightIndent = 0
-                    .alignment = wdAlignParagraphCenter
-                    .SpaceBefore = 0  ' Sem espaçamento - usaremos linhas vazias reais
-                    .SpaceAfter = 0   ' Sem espaçamento - usaremos linhas vazias reais
-                    .LineSpacingRule = wdLineSpacingMultiple
-                    .LineSpacing = LINE_SPACING
-                End With
-                
-                ' REFORÇO: Garante alinhamento centralizado com chamadas individuais
-                para.Format.alignment = wdAlignParagraphCenter
-                para.Format.leftIndent = 0
-                para.Format.firstLineIndent = 0
-                para.Format.RightIndent = 0
-                
-                LogMessage "Parágrafo 'Justificativa' formatado (centralizado, sem recuos, com 2 linhas antes e depois)", LOG_LEVEL_INFO
-                formattedCount = formattedCount + 1
-                
-            ' REQUISITO 1: Formatação de variações de "vereador"
-            ElseIf IsVereadorPattern(cleanText) Then
-                ' REQUISITO 2: Formatar parágrafo ANTERIOR a "vereador" PRIMEIRO
-                If i > 1 Then
-                    Dim paraPrev As Paragraph
-                    Set paraPrev = doc.Paragraphs(i - 1)
-                    
-                    ' Verifica se o parágrafo anterior não tem conteúdo visual
-                    If Not HasVisualContent(paraPrev) Then
-                        Dim prevText As String
-                        prevText = Trim(Replace(Replace(paraPrev.Range.text, vbCr, ""), vbLf, ""))
-                        
-                        ' Só formata se o parágrafo anterior tem conteúdo textual
-                        If prevText <> "" Then
-                            ' Aplica caixa alta ao parágrafo anterior PRIMEIRO
-                            paraPrev.Range.text = UCase(prevText) & vbCrLf
-                            
-                            ' Formatação do parágrafo anterior (SEM negrito - será aplicado depois)
-                            With paraPrev.Format
-                                .leftIndent = 0
-                                .firstLineIndent = 0
-                                .RightIndent = 0
-                                .alignment = wdAlignParagraphCenter
-                                .SpaceBefore = 0
-                                .SpaceAfter = 0
-                                .LineSpacingRule = wdLineSpacingMultiple
-                                .LineSpacing = LINE_SPACING
-                            End With
-                            
-                            LogMessage "Parágrafo anterior a '- Vereador -' formatado: " & Left(UCase(prevText), 30) & "...", LOG_LEVEL_INFO
-                        End If
-                    End If
-                End If
-                
-                ' Padroniza o texto PRIMEIRO
-                para.Range.text = "- Vereador -" & vbCrLf
-                
-                ' Formata o parágrafo "- Vereador -" (SEM negrito - será aplicado depois)
-                With para.Format
-                    .leftIndent = 0
-                    .firstLineIndent = 0
-                    .RightIndent = 0
-                    .alignment = wdAlignParagraphCenter
-                    .SpaceBefore = 0
-                    .SpaceAfter = 0
-                    .LineSpacingRule = wdLineSpacingMultiple
-                    .LineSpacing = LINE_SPACING
-                End With
-                
-                LogMessage "Parágrafo '- Vereador -' formatado (centralizado, sem recuos)", LOG_LEVEL_INFO
-                vereadorCount = vereadorCount + 1
-                formattedCount = formattedCount + 1
-                
-            ' REQUISITO 3: Formatação de variações de "anexo" ou "anexos"
-            ElseIf IsAnexoPattern(cleanText) Then
-                ' Padroniza o texto mantendo pontuação original se houver
-                Dim anexoEnd As String
-                anexoEnd = ""
-                If Len(paraText) > Len(cleanText) Then
-                    anexoEnd = Right(paraText, Len(paraText) - Len(cleanText))
-                End If
-                
-                Dim anexoText As String
-                If cleanText = "anexo" Then
-                    anexoText = "Anexo"
-                Else
-                    anexoText = "Anexos"
-                End If
-                para.Range.text = anexoText & anexoEnd & vbCrLf
-                
-                ' Aplica formatação específica para Anexo/Anexos (SEM negrito - será aplicado depois)
-                With para.Format
-                    .leftIndent = 0
-                    .firstLineIndent = 0
-                    .RightIndent = 0
-                    .alignment = wdAlignParagraphLeft
-                    .SpaceBefore = 0
-                    .SpaceAfter = 0
-                    .LineSpacingRule = wdLineSpacingMultiple
-                    .LineSpacing = LINE_SPACING
-                End With
-                
-                LogMessage "Parágrafo '" & anexoText & "' formatado (alinhado à esquerda, sem recuos)", LOG_LEVEL_INFO
-                formattedCount = formattedCount + 1
-            End If
-        End If
-    Next i
-    
-    LogMessage "Formatação especial concluída: " & formattedCount & " parágrafos formatados (incluindo " & vereadorCount & " '- Vereador -')", LOG_LEVEL_INFO
-    FormatJustificativaAnexoParagraphs = True
-    Exit Function
-
-ErrorHandler:
-    LogMessage "Erro na formatação de parágrafos especiais: " & Err.Description, LOG_LEVEL_ERROR
-    FormatJustificativaAnexoParagraphs = False
-End Function
 
 '================================================================================
 ' FUNÇÕES AUXILIARES PARA DETECÇÃO DE PADRÕES
