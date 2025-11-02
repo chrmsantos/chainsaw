@@ -752,14 +752,24 @@ End Sub
 Private Function InitializeLogging(doc As Document) As Boolean
     On Error GoTo ErrorHandler
     
-    If doc.Path <> "" Then
-        logFilePath = doc.Path & "\" & Format(Now, "yyyy-mm-dd") & "_" & _
-                     Replace(doc.Name, ".doc", "") & "_FormattingLog.txt"
-        logFilePath = Replace(logFilePath, ".docx", "") & "_FormattingLog.txt"
-        logFilePath = Replace(logFilePath, ".docm", "") & "_FormattingLog.txt"
-    Else
-        logFilePath = Environ("TEMP") & "\" & Format(Now, "yyyy-mm-dd") & "_DocumentFormattingLog.txt"
-    End If
+    ' Define o caminho do log em chainsaw-proposituras\logs\
+    Dim logFolder As String
+    logFolder = Environ("USERPROFILE") & "\Documents\chainsaw-proposituras\logs\"
+    
+    ' Cria a pasta logs se não existir
+    On Error Resume Next
+    MkDir Environ("USERPROFILE") & "\Documents\chainsaw-proposituras"
+    MkDir logFolder
+    On Error GoTo ErrorHandler
+    
+    ' Define o nome do arquivo de log
+    Dim docNameClean As String
+    docNameClean = doc.Name
+    docNameClean = Replace(docNameClean, ".doc", "")
+    docNameClean = Replace(docNameClean, ".docx", "")
+    docNameClean = Replace(docNameClean, ".docm", "")
+    
+    logFilePath = logFolder & Format(Now, "yyyy-mm-dd_HHmmss") & "_" & docNameClean & "_FormattingLog.txt"
     
     Open logFilePath For Output As #1
     Print #1, "========================================================"
@@ -1997,34 +2007,8 @@ Private Function InsertHeaderstamp(doc As Document) As Boolean
     Dim imgFound As Boolean
     Dim sectionsProcessed As Long
 
-    ' Resolve image file path using configuration if provided
-    'imgFile = Trim(config.headerImagePath)
-    If Len(imgFile) = 0 Then
-        ' No configured path; try common locations relative to document or repo folder
-        Dim baseFolder As String
-        On Error Resume Next
-        baseFolder = IIf(doc.Path <> "", doc.Path, Environ("USERPROFILE") & "\Documents")
-        On Error GoTo ErrorHandler
-        If Right(baseFolder, 1) <> "\" Then baseFolder = baseFolder & "\"
-        If Dir(baseFolder & "assets\stamp.png") <> "" Then
-            imgFile = baseFolder & "assets\stamp.png"
-        ElseIf Dir(Environ("USERPROFILE") & "\Documents\chainsaw\assets\stamp.png") <> "" Then
-            imgFile = Environ("USERPROFILE") & "\Documents\chainsaw\assets\stamp.png"
-        End If
-    Else
-        ' If relative path (no drive letter), try resolve from current document folder and repo root
-        If InStr(1, imgFile, ":", vbTextCompare) = 0 And Left(imgFile, 2) <> "\\" Then
-            On Error Resume Next
-            baseFolder = IIf(doc.Path <> "", doc.Path, Environ("USERPROFILE") & "\Documents")
-            On Error GoTo ErrorHandler
-            If Right(baseFolder, 1) <> "\" Then baseFolder = baseFolder & "\"
-            If Dir(baseFolder & imgFile) <> "" Then
-                imgFile = baseFolder & imgFile
-            ElseIf Dir(Environ("USERPROFILE") & "\Documents\chainsaw\" & imgFile) <> "" Then
-                imgFile = Environ("USERPROFILE") & "\Documents\chainsaw\" & imgFile
-            End If
-        End If
-    End If
+    ' Define o caminho da imagem do cabeçalho
+    imgFile = Environ("USERPROFILE") & "\Documents\chainsaw-proposituras\assets\stamp.png"
 
     If Dir(imgFile) = "" Then
         Application.StatusBar = "Warning: Header image not found"
