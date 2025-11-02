@@ -2043,6 +2043,12 @@ Private Function InsertHeaderstamp(doc As Document) As Boolean
             header.LinkToPrevious = False
             header.Range.Delete
             
+            ' Define fonte padrão para o cabeçalho: Arial 12
+            With header.Range.Font
+                .Name = STANDARD_FONT  ' Arial
+                .Size = STANDARD_FONT_SIZE  ' 12
+            End With
+            
             Set shp = header.Shapes.AddPicture( _
                 FileName:=imgFile, _
                 LinkToFile:=False, _
