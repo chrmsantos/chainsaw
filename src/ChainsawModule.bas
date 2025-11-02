@@ -5,101 +5,9 @@
 ' Sistema automatizado de padronização de documentos legislativos no Microsoft Word
 '
 ' Licença: Apache 2.0 modificada (ver LICENSE)
-' Versão: 1.0-beta1 | Data: 2025-11-02
+' Versão: 1.0 | Data: 2025-11-02
 ' Repositório: github.com/chrmsantos/chainsaw-fprops
 ' Autor: Christian Martin dos Santos <chrmsantos@gmail.com>
-'
-' =============================================================================
-' CHANGELOG v1.0-beta1 (2025-11-02):
-' =============================================================================
-'
-' ✅ MELHORIAS CRÍTICAS:
-'   - Refatoração completa da aplicação de negrito em parágrafos especiais
-'   - Nova função ApplyBoldToSpecialParagraphs() simplificada e otimizada
-'   - Removidos loops caractere-a-caractere desnecessários (melhoria de ~80% performance)
-'   - Aplicação única e atômica de negrito ao final do processamento
-'
-' ✅ CÓDIGO LIMPO:
-'   - Adicionadas funções auxiliares: ValidateDocument(), GetCleanParagraphText()
-'   - Constantes nomeadas para valores mágicos (CONSIDERANDO_PREFIX, etc.)
-'   - Modo DEBUG para desenvolvimento e troubleshooting
-'   - Mensagens de erro amigáveis ao usuário (ShowUserFriendlyError)
-'
-' ✅ MANUTENIBILIDADE:
-'   - Código duplicado reduzido em ~30%
-'   - Separação clara de responsabilidades (formatação vs. aplicação de negrito)
-'   - Logging aprimorado com suporte a Debug.Print
-'   - Documentação inline melhorada
-'
-' 🔄 REFATORAÇÕES:
-'   - FormatJustificativaAnexoParagraphs: removida aplicação de negrito
-'   - Fluxo principal simplificado: 3 chamadas → 2 chamadas
-'   - Validação de documento centralizada
-'
-' =============================================================================
-' FUNCIONALIDADES PRINCIPAIS:
-' =============================================================================
-'
-' • VERIFICAÇÕES DE SEGURANÇA E COMPATIBILIDADE:
-'   - Validação de versão do Word (mínimo: 2010)
-'   - Verificação de tipo e proteção do documento
-'   - Controle de espaço em disco e estrutura mínima
-'   - Proteção contra falhas e recuperação automática
-'
-' • SISTEMA DE BACKUP AUTOMÁTICO:
-'   - Backup automático antes de qualquer modificação
-'   - Pasta de backups organizada por documento
-'   - Limpeza automática de backups antigos (limite: 10 arquivos)
-'   - Subrotina pública para acesso à pasta de backups
-'
-' • SUBROTINA PÚBLICA PARA SALVAR E SAIR:
-'   - Verificação automática de todos os documentos abertos
-'   - Detecção de documentos com alterações não salvas
-'   - Interface profissional com opções claras ao usuário
-'   - Salvamento assistido com diálogos para novos arquivos
-'   - Confirmação dupla para fechamento sem salvar
-'   - Tratamento robusto de erros e recuperação
-'
-' • FORMATAÇÃO AUTOMATIZADA INSTITUCIONAL:
-'   - Limpeza completa de formatação ao iniciar
-'   - Remoção robusta de espaços múltiplos e tabs
-'   - Controle de linhas vazias (máximo 2 sequenciais)
-'   - PROTEÇÃO MÁXIMA: Sistema avançado de backup/restauração de imagens
-'   - PROTEÇÃO MÁXIMA: Preserva imagens inline, flutuantes e objetos
-'   - PROTEÇÃO MÁXIMA: Detecta e protege shapes ancoradas e campos visuais
-'   - Primeira linha: SEMPRE caixa alta, negrito, sublinhado, centralizada
-'   - Parágrafos 2°, 3° e 4°: recuo esquerdo 9cm, sem recuo primeira linha
-'   - "Considerando": caixa alta e negrito no início de parágrafos
-'   - "Justificativa": centralizada, sem recuos, negrito, capitalizada
-'   - "Anexo/Anexos": alinhado à esquerda, sem recuos, negrito, capitalizado
-'   - Configuração de margens e orientação (A4)
-'   - Fonte Arial 12pt com espaçamento 1.4
-'   - Recuos e alinhamento justificado
-'   - Cabeçalho com logotipo institucional
-'   - Rodapé com numeração centralizada
-'   - Visualização: zoom 110% (mantido), demais configurações preservadas
-'   - PROTEÇÃO TOTAL: Preserva réguas, modos de exibição e configurações originais
-'   - Remoção de marcas d'água e formatações manuais
-'
-' • SISTEMA DE LOGS E MONITORAMENTO:
-'   - Registro detalhado de operações
-'   - Controle de erros com fallback
-'   - Mensagens na barra de status
-'   - Histórico de execução
-'
-' • SISTEMA DE PROTEÇÃO DE CONFIGURAÇÕES DE VISUALIZAÇÃO:
-'   - Backup automático de todas as configurações de exibição
-'   - Preservação de réguas (horizontal e vertical)
-'   - Manutenção do modo de visualização original
-'   - Proteção de configurações de marcas de formatação
-'   - Restauração completa após processamento (exceto zoom)
-'   - Compatibilidade com todos os modos de exibição do Word
-'
-' • PERFORMANCE OTIMIZADA:
-'   - Processamento eficiente para documentos grandes
-'   - Desabilitação temporária de atualizações visuais
-'   - Gerenciamento inteligente de recursos
-'   - Sistema de logging otimizado (principais, warnings e erros)
 '
 ' =============================================================================
 
@@ -246,7 +154,7 @@ End Type
 Private originalViewSettings As ViewSettings
 
 '================================================================================
-' MAIN ENTRY POINT - #STABLE
+' MAIN ENTRY POINT
 '================================================================================
 Public Sub PadronizarDocumentoMain()
     On Error GoTo CriticalErrorHandler
@@ -366,10 +274,10 @@ CriticalErrorHandler:
 End Sub
 
 '================================================================================
-' EMERGENCY RECOVERY - #STABLE
+' EMERGENCY RECOVERY
 '================================================================================
 '================================================================================
-' USER-FRIENDLY ERROR HANDLER - #NEW
+' USER-FRIENDLY ERROR HANDLER
 '================================================================================
 Private Sub ShowUserFriendlyError(errNum As Long, errDesc As String)
     Dim msg As String
@@ -402,7 +310,7 @@ Private Sub ShowUserFriendlyError(errNum As Long, errDesc As String)
 End Sub
 
 '================================================================================
-' EMERGENCY RECOVERY - #STABLE
+' EMERGENCY RECOVERY
 '================================================================================
 Private Sub EmergencyRecovery()
     On Error Resume Next
@@ -430,7 +338,7 @@ Private Sub EmergencyRecovery()
 End Sub
 
 '================================================================================
-' SAFE CLEANUP - LIMPEZA SEGURA - #STABLE
+' SAFE CLEANUP
 '================================================================================
 Private Sub SafeCleanup()
     On Error Resume Next
@@ -441,7 +349,7 @@ Private Sub SafeCleanup()
 End Sub
 
 '================================================================================
-' RELEASE OBJECTS - #STABLE
+' RELEASE OBJECTS
 '================================================================================
 Private Sub ReleaseObjects()
     On Error Resume Next
@@ -456,7 +364,7 @@ Private Sub ReleaseObjects()
 End Sub
 
 '================================================================================
-' CLOSE ALL OPEN FILES - #STABLE
+' CLOSE ALL OPEN FILES
 '================================================================================
 Private Sub CloseAllOpenFiles()
     On Error Resume Next
@@ -470,10 +378,10 @@ Private Sub CloseAllOpenFiles()
 End Sub
 
 '================================================================================
-' VERSION COMPATIBILITY AND SAFETY CHECKS - #STABLE
+' VERSION COMPATIBILITY AND SAFETY CHECKS
 '================================================================================
 '================================================================================
-' VALIDATION HELPERS - #NEW
+' VALIDATION HELPERS
 '================================================================================
 Private Function ValidateDocument(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -499,7 +407,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' TEXT CLEANING HELPERS - #NEW
+' TEXT CLEANING HELPERS
 '================================================================================
 Private Function GetCleanParagraphText(para As Paragraph) As String
     On Error Resume Next
@@ -528,7 +436,7 @@ Private Function RemovePunctuation(text As String) As String
 End Function
 
 '================================================================================
-' VERSION CHECK - #STABLE
+' VERSION CHECK
 '================================================================================
 Private Function CheckWordVersion() As Boolean
     On Error GoTo ErrorHandler
@@ -554,7 +462,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' SAFE PROPERTY ACCESS FUNCTIONS - Compatibilidade total com Word 2010+
+' SAFE PROPERTY ACCESS FUNCTIONS
 '================================================================================
 Private Function SafeGetCharacterCount(targetRange As Range) As Long
     On Error GoTo FallbackMethod
@@ -645,7 +553,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' SAFE FIND/REPLACE OPERATIONS - Compatibilidade com todas as versões
+' SAFE FIND/REPLACE OPERATIONS
 '================================================================================
 Private Function SafeFindReplace(doc As Document, findText As String, replaceText As String, Optional useWildcards As Boolean = False) As Long
     On Error GoTo ErrorHandler
@@ -688,7 +596,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' SAFE CHARACTER ACCESS FUNCTIONS - Compatibilidade total
+' SAFE CHARACTER ACCESS FUNCTIONS
 '================================================================================
 Private Function SafeGetLastCharacter(rng As Range) As String
     On Error GoTo ErrorHandler
@@ -714,7 +622,7 @@ FinalFallback:
 End Function
 
 '================================================================================
-' UNDO GROUP MANAGEMENT - #STABLE
+' UNDO GROUP MANAGEMENT
 '================================================================================
 Private Sub StartUndoGroup(groupName As String)
     On Error GoTo ErrorHandler
@@ -747,7 +655,7 @@ ErrorHandler:
 End Sub
 
 '================================================================================
-' LOGGING MANAGEMENT - APRIMORADO COM DETALHES - #STABLE
+' LOGGING MANAGEMENT
 '================================================================================
 Private Function InitializeLogging(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -867,7 +775,7 @@ ErrorHandler:
 End Sub
 
 '================================================================================
-' UTILITY: GET PROTECTION TYPE - #STABLE
+' UTILITY: GET PROTECTION TYPE
 '================================================================================
 Private Function GetProtectionType(doc As Document) As String
     On Error Resume Next
@@ -883,7 +791,7 @@ Private Function GetProtectionType(doc As Document) As String
 End Function
 
 '================================================================================
-' UTILITY: GET DOCUMENT SIZE - #STABLE
+' UTILITY: GET DOCUMENT SIZE
 '================================================================================
 Private Function GetDocumentSize(doc As Document) As String
     On Error Resume Next
@@ -901,7 +809,7 @@ Private Function GetDocumentSize(doc As Document) As String
 End Function
 
 '================================================================================
-' APPLICATION STATE HANDLER - #STABLE
+' APPLICATION STATE HANDLER
 '================================================================================
 Private Function SetAppState(Optional ByVal enabled As Boolean = True, Optional ByVal statusMsg As String = "") As Boolean
     On Error GoTo ErrorHandler
@@ -946,7 +854,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' GLOBAL CHECKING - VERIFICAÇÕES ROBUSTAS
+' GLOBAL CHECKING
 '================================================================================
 Private Function PreviousChecking(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -1003,7 +911,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' DISK SPACE CHECK - VERIFICAÇÃO SIMPLIFICADA
+' DISK SPACE CHECK
 '================================================================================
 Private Function CheckDiskSpace(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -1036,7 +944,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' MAIN FORMATTING ROUTINE - #STABLE
+' MAIN FORMATTING ROUTINE
 '================================================================================
 Private Function PreviousFormatting(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -1121,7 +1029,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' PAGE SETUP - #STABLE
+' PAGE SETUP
 '================================================================================
 Private Function ApplyPageSetup(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -1147,7 +1055,7 @@ ErrorHandler:
 End Function
 
 ' ================================================================================
-' FONT FORMMATTING - #STABLE
+' FONT FORMMATTING
 ' ================================================================================
 Private Function ApplyStdFont(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -1205,7 +1113,6 @@ Private Function ApplyStdFont(doc As Document) As Boolean
                 skippedCount = skippedCount + 1
             End If
         End If
-        
         
         ' OTIMIZADO: Verificação consolidada de tipo de parágrafo - uma única leitura do texto
         Dim paraFullText As String
@@ -1331,7 +1238,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' FORMATAÇÃO CARACTERE POR CARACTERE CONSOLIDADA - #OPTIMIZED
+' FORMATAÇÃO CARACTERE POR CARACTERE CONSOLIDADA
 '================================================================================
 Private Sub FormatCharacterByCharacter(para As Paragraph, fontName As String, fontSize As Long, fontColor As Long, removeUnderline As Boolean, removeBold As Boolean)
     On Error Resume Next
@@ -1362,7 +1269,7 @@ Private Sub FormatCharacterByCharacter(para As Paragraph, fontName As String, fo
 End Sub
 
 '================================================================================
-' PARAGRAPH FORMATTING - #STABLE
+' PARAGRAPH FORMATTING
 '================================================================================
 Private Function ApplyStdParagraphs(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -1783,7 +1690,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' FORMAT FIRST PARAGRAPH - FORMATAÇÃO DO 1º PARÁGRAFO - #NEW
+' FORMAT FIRST PARAGRAPH
 '================================================================================
 Private Function FormatFirstParagraph(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -1873,7 +1780,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' ENABLE HYPHENATION - #STABLE
+' DISABLE HYPHENATION
 '================================================================================
 Private Function EnableHyphenation(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -1894,7 +1801,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' REMOVE WATERMARK - #STABLE
+' REMOVE WATERMARK
 '================================================================================
 Private Function RemoveWatermark(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -1951,7 +1858,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' HEADER IMAGE PATH MANAGEMENT - #STABLE
+' HEADER IMAGE PATH MANAGEMENT
 '================================================================================
 Private Function GetHeaderImagePath() As String
     On Error GoTo ErrorHandler
@@ -2072,7 +1979,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' INSERT FOOTER PAGE NUMBERS - #STABLE
+' INSERT FOOTER PAGE NUMBERS
 '================================================================================
 Private Function InsertFooterStamp(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -2124,7 +2031,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' UTILITY: CM TO POINTS - #STABLE
+' UTILITY: CM TO POINTS
 '================================================================================
 Private Function CentimetersToPoints(ByVal cm As Double) As Single
     On Error Resume Next
@@ -2135,7 +2042,7 @@ Private Function CentimetersToPoints(ByVal cm As Double) As Single
 End Function
 
 '================================================================================
-' UTILITY: SAFE USERNAME - #STABLE
+' UTILITY: SAFE USERNAME
 '================================================================================
 Private Function GetSafeUserName() As String
     On Error GoTo ErrorHandler
@@ -2176,7 +2083,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' VALIDATE DOCUMENT STRUCTURE - SIMPLIFICADO - #STABLE
+' VALIDATE DOCUMENT STRUCTURE
 '================================================================================
 Private Function ValidateDocumentStructure(doc As Document) As Boolean
     On Error Resume Next
@@ -2192,7 +2099,7 @@ End Function
 
 '================================================================================
 ' CRITICAL FIX: SAVE DOCUMENT BEFORE PROCESSING
-' TO PREVENT CRASHES ON NEW NON SAVED DOCUMENTS - #STABLE
+' TO PREVENT CRASHES ON NEW NON SAVED DOCUMENTS
 '================================================================================
 Private Function SaveDocumentFirst(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -2245,7 +2152,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' CLEAR ALL FORMATTING - LIMPEZA INICIAL COMPLETA - #NEW
+' CLEAR ALL FORMATTING
 '================================================================================
 Private Function ClearAllFormatting(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -2383,7 +2290,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' CLEAN DOCUMENT STRUCTURE - FUNCIONALIDADES 2, 6, 7 - #NEW
+' CLEAN DOCUMENT STRUCTURE
 '================================================================================
 Private Function CleanDocumentStructure(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -2398,7 +2305,6 @@ Private Function CleanDocumentStructure(doc As Document) As Boolean
     ' Cache da contagem total de parágrafos
     paraCount = doc.Paragraphs.count
     
-    ' OTIMIZADO: Funcionalidade 2 - Remove linhas em branco acima do título
     ' Busca otimizada do primeiro parágrafo com texto
     firstTextParaIndex = -1
     For i = 1 To paraCount
@@ -2440,7 +2346,6 @@ Private Function CleanDocumentStructure(doc As Document) As Boolean
         Next i
     End If
     
-    ' SUPER OTIMIZADO: Funcionalidade 7 - Remove espaços iniciais com regex
     ' Usa Find/Replace que é muito mais rápido que loop por parágrafo
     Dim rng As Range
     Set rng = doc.Range
@@ -2525,7 +2430,7 @@ Private Function HasVisualContent(para As Paragraph) As Boolean
 End Function
 
 '================================================================================
-' VALIDATE PROPOSITION TYPE - FUNCIONALIDADE 3 - #NEW
+' VALIDATE PROPOSITION TYPE
 '================================================================================
 Private Function ValidatePropositionType(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -2586,7 +2491,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' FORMAT DOCUMENT TITLE - FUNCIONALIDADES 4 e 5 - #NEW
+' FORMAT DOCUMENT TITLE
 '================================================================================
 Private Function FormatDocumentTitle(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -2679,7 +2584,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' FORMAT CONSIDERANDO PARAGRAPHS - OTIMIZADO E SIMPLIFICADO - FUNCIONALIDADE 8 - #NEW
+' FORMAT CONSIDERANDO PARAGRAPHS
 '================================================================================
 Private Function FormatConsiderandoParagraphs(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -2750,7 +2655,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' APPLY TEXT REPLACEMENTS - FUNCIONALIDADES 10 e 11 - #NEW
+' APPLY TEXT REPLACEMENTS
 '================================================================================
 Private Function ApplyTextReplacements(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -2801,43 +2706,6 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
                 replacementCount = replacementCount + 1
             Loop
         End With
-    Next i
-    
-    ' Funcionalidade 11: Substitui variantes de "- Vereador -"
-    Set rng = doc.Range
-    Dim vereadorVariants() As String
-    ReDim vereadorVariants(0 To 7)
-    
-    ' Variantes dos caracteres inicial e final
-    vereadorVariants(0) = "- Vereador -"    ' Original
-    vereadorVariants(1) = "– Vereador –"    ' Travessão
-    vereadorVariants(2) = "— Vereador —"    ' Em dash
-    vereadorVariants(3) = "- vereador -"    ' Minúscula
-    vereadorVariants(4) = "– vereador –"
-    vereadorVariants(5) = "— vereador —"
-    vereadorVariants(6) = "-Vereador-"      ' Sem espaços
-    vereadorVariants(7) = "–Vereador–"
-    
-    For i = 0 To UBound(vereadorVariants)
-        If vereadorVariants(i) <> "- Vereador -" Then
-            With rng.Find
-                .ClearFormatting
-                .text = vereadorVariants(i)
-                .Replacement.text = "- Vereador -"
-                .Forward = True
-                .Wrap = wdFindContinue
-                .Format = False
-                .MatchCase = False
-                .MatchWholeWord = False
-                .MatchWildcards = False
-                .MatchSoundsLike = False
-                .MatchAllWordForms = False
-                
-                Do While .Execute(Replace:=True)
-                    replacementCount = replacementCount + 1
-                Loop
-            End With
-        End If
     Next i
     
     LogMessage "Substituições de texto aplicadas: " & replacementCount & " substituições realizadas", LOG_LEVEL_INFO
