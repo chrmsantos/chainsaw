@@ -1,0 +1,25 @@
+========================================================
+LOG DE FORMATAÇÃO DE DOCUMENTO - SISTEMA DE REGISTRO
+========================================================
+Duração: 00:00:01
+Erros: 0 - 
+Status: INICIANDO
+--------------------------------------------------------
+Sessão: 2025-11-02 16:11:58
+Usuário: csantos
+Estação: NOTEPROCLEG07
+Versão Word: 16.0
+Documento: siscam_operacao_tapa_buraco_rua_noruegam2gve3j1x_backup_2025-10-31_173111_backup_2025-11-01_171929.docx
+Local: C:\Users\csantos\Documents\chainsaw-proposituras\backups
+Proteção: Sem proteção
+Tamanho: 1,2 KB
+========================================================
+2025-11-02 16:11:58 [INFO]  Iniciando padronização do documento: siscam_operacao_tapa_buraco_rua_noruegam2gve3j1x_backup_2025-10-31_173111_backup_2025-11-01_171929.docx
+2025-11-02 16:11:58 [INFO]  Verificações de segurança concluídas com sucesso
+2025-11-02 16:11:58 [INFO]  Backup criado com sucesso: siscam_operacao_tapa_buraco_rua_noruegam2gve3j1x_backup_2025-10-31_173111_backup_2025-11-01_171929_backup_2025-11-02_161158.docx
+2025-11-02 16:11:58 [INFO]  Backup das configurações de visualização concluído
+2025-11-02 16:11:59 [AVISO]  Primeira palavra não reconhecida como proposição padrão: indica��o - continuando processamento
+2025-11-02 16:12:01 [INFO]  Processamento de documento não-padrão autorizado automaticamente: indica��o
+2025-11-02 16:12:01 [INFO]  Primeira linha formatada como título: INDICA��O N� $NUMERO$/$ANO$ (centralizado, caixa alta, negrito, sublinhado)
+2025-11-02 16:12:03 [INFO]  2º parágrafo formatado com 2 linhas em branco antes e depois (posição: 4)
+2025-11-02 16:12:03 [INFO]  Formatação 'considerando' aplicada: 0 ocorrências em negrito e caixa alta

@@ -1,0 +1,39 @@
+========================================================
+LOG DE FORMATAÇÃO DE DOCUMENTO - SISTEMA DE REGISTRO
+========================================================
+Duração: 00:00:00
+Erros: 0 - 
+Status: INICIANDO
+--------------------------------------------------------
+Sessão: 2025-11-02 16:10:52
+Usuário: csantos
+Estação: NOTEPROCLEG07
+Versão Word: 16.0
+Documento: Doc1.docx
+Local: C:\Users\csantos\Documents
+Proteção: Sem proteção
+Tamanho: 0 bytes
+========================================================
+2025-11-02 16:10:52 [INFO]  Iniciando padronização do documento: Doc1.docx
+2025-11-02 16:10:52 [INFO]  Verificações de segurança concluídas com sucesso
+2025-11-02 16:10:52 [INFO]  Backup criado com sucesso: Doc1_backup_2025-11-02_161052.docx
+2025-11-02 16:10:52 [INFO]  Backup das configurações de visualização concluído
+2025-11-02 16:10:52 [AVISO]  Documento não possui texto para validação
+2025-11-02 16:10:52 [AVISO]  Nenhum texto encontrado para formatação do título
+2025-11-02 16:10:52 [AVISO]  1º parágrafo não encontrado para formatação
+2025-11-02 16:10:52 [AVISO]  2º parágrafo não encontrado para formatação
+2025-11-02 16:10:52 [INFO]  Formatação 'considerando' aplicada: 0 ocorrências em negrito e caixa alta
+2025-11-02 16:10:52 [INFO]  Substituições de texto aplicadas: 0 substituições realizadas
+2025-11-02 16:10:52 [INFO]  Formatação especial concluída: 0 parágrafos formatados (incluindo 0 '- Vereador -')
+2025-11-02 16:10:53 [AVISO]  Parágrafo de plenário não encontrado para substituição
+2025-11-02 16:10:53 [INFO]  Visualização configurada: zoom definido para 110%, demais configurações preservadas
+2025-11-02 16:10:53 [INFO]  Formatação completa aplicada
+2025-11-02 16:10:54 [INFO]  Configurações de visualização originais restauradas (zoom mantido em 110%)
+2025-11-02 16:10:54 [INFO]  Documento padronizado com sucesso
+2025-11-02 16:10:54 [INFO]  Variáveis de configurações de visualização limpas
+================================================
+FIM DA SESSÃO - 2025-11-02 16:10:54
+Duração: 00:00:02
+Erros: Nenhum
+Status: CONCLUÍDO
+================================================
