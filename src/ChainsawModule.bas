@@ -2657,8 +2657,7 @@ Private Sub ApplyBoldToSpecialParagraphs(doc As Document)
     Next para
     
     ' FASE 2: Aplicar negrito E reforçar alinhamento atomicamente
-    Application.ScreenUpdating = False
-    Application.DisplayAlerts = wdAlertsNone
+    ' Não controla ScreenUpdating aqui - deixa a função principal controlar
     
     Dim p As Variant
     Dim pCleanText As String
@@ -2697,15 +2696,10 @@ Private Sub ApplyBoldToSpecialParagraphs(doc As Document)
         End If
     Next p
     
-    Application.ScreenUpdating = True
-    Application.DisplayAlerts = wdAlertsAll
-    
     LogMessage "Negrito e alinhamento aplicados a " & specialParagraphs.Count & " parágrafos especiais", LOG_LEVEL_INFO
     Exit Sub
     
 ErrorHandler:
-    Application.ScreenUpdating = True
-    Application.DisplayAlerts = wdAlertsAll
     LogMessage "Erro ao aplicar negrito a parágrafos especiais: " & Err.Description, LOG_LEVEL_ERROR
 End Sub
 
@@ -2724,7 +2718,7 @@ Private Sub InsertJustificativaBlankLines(doc As Document)
     Dim justificativaIndex As Long
     Dim paraText As String
     
-    Application.ScreenUpdating = False
+    ' Não controla ScreenUpdating aqui - deixa a função principal controlar
     
     ' FASE 1: Localiza o parágrafo "Justificativa"
     justificativaIndex = 0
@@ -2742,7 +2736,6 @@ Private Sub InsertJustificativaBlankLines(doc As Document)
     Next i
     
     If justificativaIndex = 0 Then
-        Application.ScreenUpdating = True
         Exit Sub ' Não encontrou "Justificativa"
     End If
     
@@ -2908,11 +2901,9 @@ Private Sub InsertJustificativaBlankLines(doc As Document)
         LogMessage "2 linhas em branco inseridas após 'Excelentíssimo Senhor Prefeito Municipal,'", LOG_LEVEL_INFO
     End If
     
-    Application.ScreenUpdating = True
     Exit Sub
     
 ErrorHandler:
-    Application.ScreenUpdating = True
     LogMessage "Erro ao inserir linhas em branco: " & Err.Description, LOG_LEVEL_WARNING
 End Sub
 
