@@ -1098,6 +1098,9 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     ' APLICAÇÃO FINAL DE NEGRITO: Última operação para garantir negrito em parágrafos especiais
     ApplyBoldToSpecialParagraphs doc
     
+    ' INSERÇÃO FINAL DE LINHAS EM BRANCO: Insere linhas vazias após todas as limpezas
+    InsertJustificativaBlankLines doc
+    
     LogMessage "Formatação completa aplicada com sucesso", LOG_LEVEL_INFO
     PreviousFormatting = True
     Exit Function
@@ -2903,8 +2906,16 @@ Private Sub ApplyBoldToSpecialParagraphs(doc As Document)
         
         ' REFORÇO: Garante alinhamento correto baseado no tipo
         pCleanText = GetCleanParagraphText(para)
-        If pCleanText = JUSTIFICATIVA_TEXT Or IsVereadorPattern(pCleanText) Then
-            ' Justificativa e Vereador: centralizados
+        If pCleanText = JUSTIFICATIVA_TEXT Then
+            ' Justificativa: centralizado (linhas em branco serão inseridas depois)
+            para.Format.alignment = wdAlignParagraphCenter
+            para.Format.leftIndent = 0
+            para.Format.firstLineIndent = 0
+            para.Format.RightIndent = 0
+            para.Format.SpaceBefore = 0
+            para.Format.SpaceAfter = 0
+        ElseIf IsVereadorPattern(pCleanText) Then
+            ' Vereador: centralizado sem espaçamento extra
             para.Format.alignment = wdAlignParagraphCenter
             para.Format.leftIndent = 0
             para.Format.firstLineIndent = 0
@@ -2928,6 +2939,96 @@ ErrorHandler:
     Application.ScreenUpdating = True
     Application.DisplayAlerts = wdAlertsAll
     LogMessage "Erro ao aplicar negrito a parágrafos especiais: " & Err.Description, LOG_LEVEL_ERROR
+End Sub
+
+'================================================================================
+' INSERT JUSTIFICATIVA BLANK LINES - INSERE LINHAS EM BRANCO - #NEW
+'================================================================================
+Private Sub InsertJustificativaBlankLines(doc As Document)
+    On Error GoTo ErrorHandler
+    
+    If Not ValidateDocument(doc) Then Exit Sub
+    
+    Dim para As Paragraph
+    Dim cleanText As String
+    Dim i As Long
+    Dim justificativaIndex As Long
+    Dim paraText As String
+    
+    Application.ScreenUpdating = False
+    
+    ' FASE 1: Localiza o parágrafo "Justificativa"
+    justificativaIndex = 0
+    For i = 1 To doc.Paragraphs.Count
+        Set para = doc.Paragraphs(i)
+        
+        If Not HasVisualContent(para) Then
+            cleanText = GetCleanParagraphText(para)
+            
+            If cleanText = JUSTIFICATIVA_TEXT Then
+                justificativaIndex = i
+                Exit For
+            End If
+        End If
+    Next i
+    
+    If justificativaIndex = 0 Then
+        Application.ScreenUpdating = True
+        Exit Sub ' Não encontrou "Justificativa"
+    End If
+    
+    ' FASE 2: Remove TODAS as linhas vazias ANTES de "Justificativa"
+    i = justificativaIndex - 1
+    Do While i >= 1
+        Set para = doc.Paragraphs(i)
+        paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
+        
+        If paraText = "" And Not HasVisualContent(para) Then
+            ' Remove linha vazia
+            para.Range.Delete
+            justificativaIndex = justificativaIndex - 1 ' Ajusta índice
+            i = i - 1
+        Else
+            ' Encontrou conteúdo, para de remover
+            Exit Do
+        End If
+    Loop
+    
+    ' FASE 3: Remove TODAS as linhas vazias DEPOIS de "Justificativa"
+    i = justificativaIndex + 1
+    Do While i <= doc.Paragraphs.Count
+        Set para = doc.Paragraphs(i)
+        paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
+        
+        If paraText = "" And Not HasVisualContent(para) Then
+            ' Remove linha vazia
+            para.Range.Delete
+            ' Não incrementa i pois removemos o parágrafo
+        Else
+            ' Encontrou conteúdo, para de remover
+            Exit Do
+        End If
+    Loop
+    
+    ' FASE 4: Insere EXATAMENTE 2 linhas em branco ANTES
+    Set para = doc.Paragraphs(justificativaIndex)
+    para.Range.InsertParagraphBefore
+    para.Range.InsertParagraphBefore
+    
+    ' FASE 5: Insere EXATAMENTE 2 linhas em branco DEPOIS
+    ' Atualiza referência após inserções anteriores
+    Set para = doc.Paragraphs(justificativaIndex + 2) ' +2 porque inserimos 2 antes
+    para.Range.InsertParagraphAfter
+    para.Range.InsertParagraphAfter
+    
+    LogMessage "Linhas em branco ajustadas: exatamente 2 antes e 2 depois de 'Justificativa'", LOG_LEVEL_INFO
+    
+    Application.ScreenUpdating = True
+    Exit Sub
+    
+ErrorHandler:
+    Application.ScreenUpdating = True
+    LogMessage "Erro ao inserir linhas em branco para Justificativa: " & Err.Description, LOG_LEVEL_WARNING
 End Sub
 
 '================================================================================
@@ -2975,8 +3076,8 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
                     .firstLineIndent = 0
                     .RightIndent = 0
                     .alignment = wdAlignParagraphCenter
-                    .SpaceBefore = 0
-                    .SpaceAfter = 0
+                    .SpaceBefore = 0  ' Sem espaçamento - usaremos linhas vazias reais
+                    .SpaceAfter = 0   ' Sem espaçamento - usaremos linhas vazias reais
                     .LineSpacingRule = wdLineSpacingMultiple
                     .LineSpacing = LINE_SPACING
                 End With
@@ -2987,7 +3088,7 @@ Private Function FormatJustificativaAnexoParagraphs(doc As Document) As Boolean
                 para.Format.firstLineIndent = 0
                 para.Format.RightIndent = 0
                 
-                LogMessage "Parágrafo 'Justificativa' formatado (centralizado, sem recuos)", LOG_LEVEL_INFO
+                LogMessage "Parágrafo 'Justificativa' formatado (centralizado, sem recuos, com 2 linhas antes e depois)", LOG_LEVEL_INFO
                 formattedCount = formattedCount + 1
                 
             ' REQUISITO 1: Formatação de variações de "vereador"
