@@ -2943,6 +2943,7 @@ End Sub
 
 '================================================================================
 ' INSERT JUSTIFICATIVA BLANK LINES - INSERE LINHAS EM BRANCO - #NEW
+' Também cuida de "Excelentíssimo Senhor Prefeito Municipal,"
 '================================================================================
 Private Sub InsertJustificativaBlankLines(doc As Document)
     On Error GoTo ErrorHandler
@@ -3023,12 +3024,60 @@ Private Sub InsertJustificativaBlankLines(doc As Document)
     
     LogMessage "Linhas em branco ajustadas: exatamente 2 antes e 2 depois de 'Justificativa'", LOG_LEVEL_INFO
     
+    ' FASE 6: Processa "Excelentíssimo Senhor Prefeito Municipal,"
+    Dim prefeitoIndex As Long
+    Dim paraTextLower As String
+    
+    prefeitoIndex = 0
+    For i = 1 To doc.Paragraphs.Count
+        Set para = doc.Paragraphs(i)
+        
+        If Not HasVisualContent(para) Then
+            paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
+            paraTextLower = LCase(paraText)
+            
+            ' Procura por "Excelentíssimo Senhor Prefeito Municipal" (case insensitive)
+            If InStr(paraTextLower, "excelentíssimo") > 0 And _
+               InStr(paraTextLower, "senhor") > 0 And _
+               InStr(paraTextLower, "prefeito") > 0 And _
+               InStr(paraTextLower, "municipal") > 0 Then
+                prefeitoIndex = i
+                Exit For
+            End If
+        End If
+    Next i
+    
+    If prefeitoIndex > 0 Then
+        ' FASE 7: Remove TODAS as linhas vazias DEPOIS de "Excelentíssimo..."
+        i = prefeitoIndex + 1
+        Do While i <= doc.Paragraphs.Count
+            Set para = doc.Paragraphs(i)
+            paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
+            
+            If paraText = "" And Not HasVisualContent(para) Then
+                ' Remove linha vazia
+                para.Range.Delete
+                ' Não incrementa i pois removemos o parágrafo
+            Else
+                ' Encontrou conteúdo, para de remover
+                Exit Do
+            End If
+        Loop
+        
+        ' FASE 8: Insere EXATAMENTE 2 linhas em branco DEPOIS
+        Set para = doc.Paragraphs(prefeitoIndex)
+        para.Range.InsertParagraphAfter
+        para.Range.InsertParagraphAfter
+        
+        LogMessage "2 linhas em branco inseridas após 'Excelentíssimo Senhor Prefeito Municipal,'", LOG_LEVEL_INFO
+    End If
+    
     Application.ScreenUpdating = True
     Exit Sub
     
 ErrorHandler:
     Application.ScreenUpdating = True
-    LogMessage "Erro ao inserir linhas em branco para Justificativa: " & Err.Description, LOG_LEVEL_WARNING
+    LogMessage "Erro ao inserir linhas em branco: " & Err.Description, LOG_LEVEL_WARNING
 End Sub
 
 '================================================================================
