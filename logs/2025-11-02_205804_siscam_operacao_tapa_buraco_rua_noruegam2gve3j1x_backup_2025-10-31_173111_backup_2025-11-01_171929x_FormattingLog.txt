@@ -1,0 +1,47 @@
+========================================================
+LOG DE FORMATAÇÃO DE DOCUMENTO - SISTEMA DE REGISTRO
+========================================================
+Duração: 00:00:00
+Erros: 0 - 
+Status: INICIANDO
+--------------------------------------------------------
+Sessão: 2025-11-02 20:58:04
+Usuário: csantos
+Estação: NOTEPROCLEG07
+Versão Word: 16.0
+Documento: siscam_operacao_tapa_buraco_rua_noruegam2gve3j1x_backup_2025-10-31_173111_backup_2025-11-01_171929.docx
+Local: C:\Users\csantos\Documents\chainsaw-proposituras\backups
+Proteção: Sem proteção
+Tamanho: 1,2 KB
+========================================================
+2025-11-02 20:58:04 [INFO]  Iniciando padronização do documento: siscam_operacao_tapa_buraco_rua_noruegam2gve3j1x_backup_2025-10-31_173111_backup_2025-11-01_171929.docx
+2025-11-02 20:58:04 [INFO]  Verificações de segurança concluídas com sucesso
+2025-11-02 20:58:04 [ERRO]  Erro ao criar backup: Caminho não localizado
+2025-11-02 20:58:04 [AVISO]  Falha ao criar backup - continuando sem backup
+2025-11-02 20:58:04 [INFO]  Backup das configurações de visualização concluído
+2025-11-02 20:58:04 [INFO]  Backup de propriedades de imagens concluído: 0 imagens catalogadas
+2025-11-02 20:58:04 [INFO]  Formatação limpa: 26 parágrafos resetados
+2025-11-02 20:58:04 [INFO]  Título de proposição formatado: INDICAÇÃO Nº $NUMERO$/$ANO$ (centralizado, caixa alta, negrito, sublinhado)
+2025-11-02 20:58:05 [INFO]  2º parágrafo formatado com 2 linhas em branco antes e depois (posição: 4)
+2025-11-02 20:58:05 [INFO]  Formatação 'considerando' aplicada: 0 ocorrências em negrito e caixa alta
+2025-11-02 20:58:05 [ERRO]  Erro nas substituições de texto: Argumento ou chamada de procedimento inválida
+2025-11-02 20:58:05 [INFO]  Limpeza de espaços concluída: 0 correções aplicadas (com proteção CONSIDERANDO)
+2025-11-02 20:58:05 [INFO]  Controle de linhas vazias concluído em 2 passada(s): 7 linhas excedentes removidas (máximo 1 sequencial)
+2025-11-02 20:58:05 [INFO]  Linhas em branco do 2º parágrafo reforçadas (antes: 2, depois: 2)
+2025-11-02 20:58:05 [INFO]  Parágrafo de plenário substituído e formatado
+2025-11-02 20:58:05 [INFO]  Visualização configurada: zoom definido para 110%, demais configurações preservadas
+2025-11-02 20:58:05 [INFO]  Negrito e alinhamento aplicados a 3 parágrafos especiais
+2025-11-02 20:58:05 [INFO]  Linhas em branco ajustadas: exatamente 2 antes e 2 depois de 'Justificativa'
+2025-11-02 20:58:05 [INFO]  2 linhas em branco inseridas antes e depois de 'Plenário Dr. Tancredo Neves'
+2025-11-02 20:58:05 [INFO]  2 linhas em branco inseridas após 'Excelentíssimo Senhor Prefeito Municipal,'
+2025-11-02 20:58:05 [INFO]  Formatação completa aplicada com sucesso
+2025-11-02 20:58:06 [INFO]  Configurações de visualização originais restauradas (zoom mantido em 110%)
+2025-11-02 20:58:06 [INFO]  Documento padronizado com sucesso
+2025-11-02 20:58:06 [INFO]  Variáveis de proteção de imagens limpas
+2025-11-02 20:58:06 [INFO]  Variáveis de configurações de visualização limpas
+================================================
+FIM DA SESSÃO - 2025-11-02 20:58:06
+Duração: 00:00:02
+Erros: Nenhum
+Status: CONCLUÍDO
+================================================
