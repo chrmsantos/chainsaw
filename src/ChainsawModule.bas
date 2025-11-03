@@ -86,7 +86,7 @@ Private Const MAX_RETRY_ATTEMPTS As Long = 3
 Private Const RETRY_DELAY_MS As Long = 1000
 
 ' Backup constants
-Private Const BACKUP_FOLDER_NAME As String = "\chainsaw-proposituras\backups"
+Private Const BACKUP_FOLDER_NAME As String = "\backups"
 Private Const MAX_BACKUP_FILES As Long = 10
 
 ' Special paragraph constants
@@ -660,13 +660,13 @@ End Sub
 Private Function InitializeLogging(doc As Document) As Boolean
     On Error GoTo ErrorHandler
     
-    ' Define o caminho do log em chainsaw-proposituras\logs\
+    ' Define o caminho do log
     Dim logFolder As String
     logFolder = Environ("USERPROFILE") & "\Documents\logs\"
     
     ' Cria a pasta logs se não existir
     On Error Resume Next
-    MkDir Environ("USERPROFILE") & "\Documents\chainsaw-proposituras"
+    MkDir Environ("USERPROFILE") & "\Documents\logs\"
     MkDir logFolder
     On Error GoTo ErrorHandler
     
@@ -1886,7 +1886,7 @@ Private Function InsertHeaderstamp(doc As Document) As Boolean
     Dim sectionsProcessed As Long
 
     ' Define o caminho da imagem do cabeçalho
-    imgFile = Environ("USERPROFILE") & "\Documents\assets\stamp.png"
+    imgFile = Environ("USERPROFILE") & "\Documents\chainsaw-proposituras\assets\stamp.png"
 
     If Dir(imgFile) = "" Then
         Application.StatusBar = "Warning: Header image not found"
