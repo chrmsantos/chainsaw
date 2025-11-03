@@ -1397,7 +1397,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' FORMAT SECOND PARAGRAPH - FORMATAÇÃO APENAS DO 2º PARÁGRAFO - #NEW
+' FORMAT SECOND PARAGRAPH - FORMATAÇÃO APENAS DO 2º PARÁGRAFO
 '================================================================================
 Private Function FormatSecondParagraph(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -2396,7 +2396,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' SAFE CHECK FOR VISUAL CONTENT - VERIFICAÇÃO SEGURA DE CONTEÚDO VISUAL - #NEW
+' SAFE CHECK FOR VISUAL CONTENT - VERIFICAÇÃO SEGURA DE CONTEÚDO VISUAL
 '================================================================================
 Private Function HasVisualContent(para As Paragraph) As Boolean
     ' Usa a função segura implementada para compatibilidade total
@@ -2631,7 +2631,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' APPLY BOLD TO SPECIAL PARAGRAPHS - SIMPLIFIED & OPTIMIZED - #REFACTORED
+' APPLY BOLD TO SPECIAL PARAGRAPHS - SIMPLIFIED & OPTIMIZED
 '================================================================================
 Private Sub ApplyBoldToSpecialParagraphs(doc As Document)
     On Error GoTo ErrorHandler
@@ -2704,7 +2704,7 @@ ErrorHandler:
 End Sub
 
 '================================================================================
-' INSERT JUSTIFICATIVA BLANK LINES - INSERE LINHAS EM BRANCO - #NEW
+' INSERT JUSTIFICATIVA BLANK LINES - INSERE LINHAS EM BRANCO
 ' Também cuida de "Excelentíssimo Senhor Prefeito Municipal,"
 '================================================================================
 Private Sub InsertJustificativaBlankLines(doc As Document)
@@ -2936,7 +2936,7 @@ Private Function IsAnexoPattern(text As String) As Boolean
 End Function
 
 '================================================================================
-' SUBROTINA PÚBLICA: ABRIR PASTA DE LOGS - #NEW
+' SUBROTINA PÚBLICA: ABRIR PASTA DE LOGS
 '================================================================================
 Public Sub AbrirPastaLogs()
     On Error GoTo ErrorHandler
@@ -2988,7 +2988,7 @@ ErrorHandler:
     End If
 End Sub
 '================================================================================
-' SISTEMA DE BACKUP - FUNCIONALIDADE DE SEGURANÇA - #NEW
+' SISTEMA DE BACKUP - FUNCIONALIDADE DE SEGURANÇA
 '================================================================================
 Private Function CreateDocumentBackup(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -3053,7 +3053,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' LIMPEZA DE BACKUPS ANTIGOS - SIMPLIFICADO - #NEW
+' LIMPEZA DE BACKUPS ANTIGOS - SIMPLIFICADO
 '================================================================================
 Private Sub CleanOldBackups(backupFolder As String, docBaseName As String)
     On Error Resume Next
@@ -3075,7 +3075,7 @@ Private Sub CleanOldBackups(backupFolder As String, docBaseName As String)
 End Sub
 
 '================================================================================
-' SUBROTINA PÚBLICA: ABRIR PASTA DE BACKUPS - #NEW
+' SUBROTINA PÚBLICA: ABRIR PASTA DE BACKUPS
 '================================================================================
 Public Sub AbrirPastaBackups()
     On Error GoTo ErrorHandler
@@ -3136,7 +3136,7 @@ ErrorHandler:
 End Sub
 
 '================================================================================
-' CLEAN MULTIPLE SPACES - LIMPEZA FINAL DE ESPAÇOS MÚLTIPLOS - #NEW
+' CLEAN MULTIPLE SPACES - LIMPEZA FINAL DE ESPAÇOS MÚLTIPLOS
 '================================================================================
 Private Function CleanMultipleSpaces(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -3313,7 +3313,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' LIMIT SEQUENTIAL EMPTY LINES - CONTROLA LINHAS VAZIAS SEQUENCIAIS - #NEW
+' LIMIT SEQUENTIAL EMPTY LINES - CONTROLA LINHAS VAZIAS SEQUENCIAIS
 '================================================================================
 Private Function LimitSequentialEmptyLines(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -3459,7 +3459,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' CONFIGURE DOCUMENT VIEW - CONFIGURAÇÃO DE VISUALIZAÇÃO - #MODIFIED
+' CONFIGURE DOCUMENT VIEW - CONFIGURAÇÃO DE VISUALIZAÇÃO
 '================================================================================
 Private Function ConfigureDocumentView(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -3488,7 +3488,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' IMAGE PROTECTION SYSTEM - SISTEMA DE PROTEÇÃO DE IMAGENS - #NEW
+' IMAGE PROTECTION SYSTEM - SISTEMA DE PROTEÇÃO DE IMAGENS
 '================================================================================
 
 '================================================================================
@@ -3949,7 +3949,7 @@ ErrorHandler:
 End Sub
 
 '================================================================================
-' BACKUP DIRECTORY MANAGEMENT - #STABLE
+' BACKUP DIRECTORY MANAGEMENT
 '================================================================================
 Private Function EnsureBackupDirectory(doc As Document) As String
     On Error GoTo ErrorHandler
