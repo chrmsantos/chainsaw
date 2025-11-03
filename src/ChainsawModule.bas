@@ -1,4 +1,4 @@
-' =============================================================================
+﻿' =============================================================================
 ' PROJETO: CHAINSAW FOR PROPOSALS (CHAINSW-FPROPS)
 ' =============================================================================
 '
@@ -393,7 +393,7 @@ Private Function ValidateDocument(doc As Document) As Boolean
         Exit Function
     End If
     
-    If doc.Paragraphs.Count = 0 Then
+    If doc.Paragraphs.count = 0 Then
         LogMessage "Documento não tem parágrafos", LOG_LEVEL_WARNING
         Exit Function
     End If
@@ -662,7 +662,7 @@ Private Function InitializeLogging(doc As Document) As Boolean
     
     ' Define o caminho do log em chainsaw-proposituras\logs\
     Dim logFolder As String
-    logFolder = Environ("USERPROFILE") & "\Documents\chainsaw-proposituras\logs\"
+    logFolder = Environ("USERPROFILE") & "\Documents\logs\"
     
     ' Cria a pasta logs se não existir
     On Error Resume Next
@@ -1886,7 +1886,7 @@ Private Function InsertHeaderstamp(doc As Document) As Boolean
     Dim sectionsProcessed As Long
 
     ' Define o caminho da imagem do cabeçalho
-    imgFile = Environ("USERPROFILE") & "\Documents\chainsaw-proposituras\assets\stamp.png"
+    imgFile = Environ("USERPROFILE") & "\Documents\assets\stamp.png"
 
     If Dir(imgFile) = "" Then
         Application.StatusBar = "Warning: Header image not found"
@@ -1908,7 +1908,7 @@ Private Function InsertHeaderstamp(doc As Document) As Boolean
             ' Define fonte padrão para o cabeçalho: Arial 12
             With header.Range.Font
                 .Name = STANDARD_FONT  ' Arial
-                .Size = STANDARD_FONT_SIZE  ' 12
+                .size = STANDARD_FONT_SIZE  ' 12
             End With
             
             Set shp = header.Shapes.AddPicture( _
@@ -2696,7 +2696,7 @@ Private Sub ApplyBoldToSpecialParagraphs(doc As Document)
         End If
     Next p
     
-    LogMessage "Negrito e alinhamento aplicados a " & specialParagraphs.Count & " parágrafos especiais", LOG_LEVEL_INFO
+    LogMessage "Negrito e alinhamento aplicados a " & specialParagraphs.count & " parágrafos especiais", LOG_LEVEL_INFO
     Exit Sub
     
 ErrorHandler:
@@ -2722,7 +2722,7 @@ Private Sub InsertJustificativaBlankLines(doc As Document)
     
     ' FASE 1: Localiza o parágrafo "Justificativa"
     justificativaIndex = 0
-    For i = 1 To doc.Paragraphs.Count
+    For i = 1 To doc.Paragraphs.count
         Set para = doc.Paragraphs(i)
         
         If Not HasVisualContent(para) Then
@@ -2743,7 +2743,7 @@ Private Sub InsertJustificativaBlankLines(doc As Document)
     i = justificativaIndex - 1
     Do While i >= 1
         Set para = doc.Paragraphs(i)
-        paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
+        paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
         
         If paraText = "" And Not HasVisualContent(para) Then
             ' Remove linha vazia
@@ -2758,9 +2758,9 @@ Private Sub InsertJustificativaBlankLines(doc As Document)
     
     ' FASE 3: Remove TODAS as linhas vazias DEPOIS de "Justificativa"
     i = justificativaIndex + 1
-    Do While i <= doc.Paragraphs.Count
+    Do While i <= doc.Paragraphs.count
         Set para = doc.Paragraphs(i)
-        paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
+        paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
         
         If paraText = "" And Not HasVisualContent(para) Then
             ' Remove linha vazia
@@ -2790,11 +2790,11 @@ Private Sub InsertJustificativaBlankLines(doc As Document)
     Dim paraTextLower As String
     
     plenarioIndex = 0
-    For i = 1 To doc.Paragraphs.Count
+    For i = 1 To doc.Paragraphs.count
         Set para = doc.Paragraphs(i)
         
         If Not HasVisualContent(para) Then
-            paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
+            paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
             paraTextLower = LCase(paraText)
             
             ' Procura por "Plenário" e "Tancredo Neves" (case insensitive)
@@ -2812,7 +2812,7 @@ Private Sub InsertJustificativaBlankLines(doc As Document)
         i = plenarioIndex - 1
         Do While i >= 1
             Set para = doc.Paragraphs(i)
-            paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
+            paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
             
             If paraText = "" And Not HasVisualContent(para) Then
                 ' Remove linha vazia
@@ -2827,9 +2827,9 @@ Private Sub InsertJustificativaBlankLines(doc As Document)
         
         ' Remove TODAS as linhas vazias DEPOIS de "Plenário..."
         i = plenarioIndex + 1
-        Do While i <= doc.Paragraphs.Count
+        Do While i <= doc.Paragraphs.count
             Set para = doc.Paragraphs(i)
-            paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
+            paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
             
             If paraText = "" And Not HasVisualContent(para) Then
                 ' Remove linha vazia
@@ -2858,11 +2858,11 @@ Private Sub InsertJustificativaBlankLines(doc As Document)
     Dim prefeitoIndex As Long
     
     prefeitoIndex = 0
-    For i = 1 To doc.Paragraphs.Count
+    For i = 1 To doc.Paragraphs.count
         Set para = doc.Paragraphs(i)
         
         If Not HasVisualContent(para) Then
-            paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
+            paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
             paraTextLower = LCase(paraText)
             
             ' Procura por "Excelentíssimo Senhor Prefeito Municipal" (case insensitive)
@@ -2879,9 +2879,9 @@ Private Sub InsertJustificativaBlankLines(doc As Document)
     If prefeitoIndex > 0 Then
         ' FASE 8: Remove TODAS as linhas vazias DEPOIS de "Excelentíssimo..."
         i = prefeitoIndex + 1
-        Do While i <= doc.Paragraphs.Count
+        Do While i <= doc.Paragraphs.count
             Set para = doc.Paragraphs(i)
-            paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
+            paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
             
             If paraText = "" And Not HasVisualContent(para) Then
                 ' Remove linha vazia
@@ -4190,7 +4190,7 @@ Private Sub ReplacePlenarioDateParagraph(doc As Document)
                     ' Encontrou 2+ matches, faz a substituição
                     ' Usa Delete + InsertAfter para preservar o marcador de parágrafo
                     para.Range.Select
-                    Selection.MoveEnd Unit:=wdCharacter, Count:=-1 ' Exclui o marcador de parágrafo
+                    Selection.MoveEnd Unit:=wdCharacter, count:=-1 ' Exclui o marcador de parágrafo
                     Selection.Delete
                     Selection.InsertAfter "Plenário ""Dr. Tancredo Neves"", $DATAATUALEXTENSO$."
                     ' Aplica formatação: centralizado e sem recuos
