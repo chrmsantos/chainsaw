@@ -106,6 +106,8 @@ Private logFilePath As String
 Private formattingCancelled As Boolean
 Private executionStartTime As Date
 Private backupFilePath As String
+Private errorCount As Long
+Private warningCount As Long
 
 ' Image protection variables
 Private Type ImageInfo
@@ -727,12 +729,16 @@ Private Function InitializeLogging(doc As Document) As Boolean
     
     logFilePath = logFolder & Format(Now, "yyyy-mm-dd_HHmmss") & "_" & docNameClean & "_FormattingLog.txt"
     
+    ' Inicializa contadores
+    errorCount = 0
+    warningCount = 0
+    
     Open logFilePath For Output As #1
     Print #1, "========================================================"
     Print #1, "LOG DE FORMATAÇÃO DE DOCUMENTO - SISTEMA DE REGISTRO"
     Print #1, "========================================================"
-    Print #1, "Duração: " & Format(Now - executionStartTime, "HH:MM:ss")
-    Print #1, "Erros: " & Err.Number & " - " & Err.Description
+    Print #1, "Duração: 00:00:00"
+    Print #1, "Erros: 0"
     Print #1, "Status: INICIANDO"
     Print #1, "--------------------------------------------------------"
     Print #1, "Sessão: " & Format(Now, "yyyy-mm-dd HH:MM:ss")
@@ -776,9 +782,11 @@ Private Sub LogMessage(message As String, Optional level As Long = LOG_LEVEL_INF
         Case LOG_LEVEL_WARNING
             levelText = "AVISO"
             levelIcon = ""
+            warningCount = warningCount + 1
         Case LOG_LEVEL_ERROR
             levelText = "ERRO"
             levelIcon = ""
+            errorCount = errorCount + 1
         Case Else
             levelText = "OUTRO"
             levelIcon = ""
@@ -803,12 +811,44 @@ Private Sub SafeFinalizeLogging()
     On Error GoTo ErrorHandler
     
     If loggingEnabled Then
+        Dim statusText As String
+        Dim errorsText As String
+        
+        ' Determina o texto de erros
+        If errorCount = 0 Then
+            errorsText = "Nenhum"
+        ElseIf errorCount = 1 Then
+            errorsText = "1 erro"
+        Else
+            errorsText = errorCount & " erros"
+        End If
+        
+        ' Adiciona avisos se houver
+        If warningCount > 0 Then
+            If errorCount = 0 Then
+                errorsText = warningCount & IIf(warningCount = 1, " aviso", " avisos")
+            Else
+                errorsText = errorsText & ", " & warningCount & IIf(warningCount = 1, " aviso", " avisos")
+            End If
+        End If
+        
+        ' Determina o status final
+        If formattingCancelled Then
+            statusText = "CANCELADO"
+        ElseIf errorCount > 0 Then
+            statusText = "CONCLUÍDO COM ERROS"
+        ElseIf warningCount > 0 Then
+            statusText = "CONCLUÍDO COM AVISOS"
+        Else
+            statusText = "CONCLUÍDO"
+        End If
+        
         Open logFilePath For Append As #1
         Print #1, "================================================"
         Print #1, "FIM DA SESSÃO - " & Format(Now, "yyyy-mm-dd HH:MM:ss")
         Print #1, "Duração: " & Format(Now - executionStartTime, "HH:MM:ss")
-        Print #1, "Erros: " & IIf(Err.Number = 0, "Nenhum", Err.Number & " - " & Err.Description)
-        Print #1, "Status: " & IIf(formattingCancelled, "CANCELADO", "CONCLUÍDO")
+        Print #1, "Erros: " & errorsText
+        Print #1, "Status: " & statusText
         Print #1, "================================================"
         Close #1
     End If
@@ -3485,23 +3525,29 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
     dOesteVariants(15) = "D" & Chr(8220) & "o"
     
     For i = 0 To UBound(dOesteVariants)
+        Set rng = doc.Range
         With rng.Find
             .ClearFormatting
+            .Replacement.ClearFormatting
             .text = dOesteVariants(i) & "este"
             .Replacement.text = "d'Oeste"
             .Forward = True
-            .Wrap = wdFindContinue
+            .Wrap = wdFindStop
             .Format = False
             .MatchCase = False
             .MatchWholeWord = False
             .MatchWildcards = False
             .MatchSoundsLike = False
             .MatchAllWordForms = False
-            
-            Do While .Execute(Replace:=True)
-                replacementCount = replacementCount + 1
-            Loop
         End With
+        
+        ' Executa a substituição
+        Do While rng.Find.Execute
+            rng.text = "d'Oeste"
+            replacementCount = replacementCount + 1
+            Set rng = doc.Range
+            rng.Collapse wdCollapseEnd
+        Loop
     Next i
     
     ' Substituição de "tapa-buracos" (com aspas) por tapa-buracos (sem aspas)
@@ -3525,18 +3571,22 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
                 .text = tapaBuracosQuotes(q1) & "tapa-buracos" & tapaBuracosQuotes(q2)
                 .Replacement.text = "tapa-buracos"
                 .Forward = True
-                .Wrap = wdFindContinue
+                .Wrap = wdFindStop
                 .Format = False
                 .MatchCase = False
                 .MatchWholeWord = False
                 .MatchWildcards = False
                 .MatchSoundsLike = False
                 .MatchAllWordForms = False
-                
-                Do While .Execute(Replace:=True)
-                    replacementCount = replacementCount + 1
-                Loop
             End With
+            
+            ' Executa a substituição
+            Do While rng.Find.Execute
+                rng.text = "tapa-buracos"
+                replacementCount = replacementCount + 1
+                Set rng = doc.Range
+                rng.Collapse wdCollapseEnd
+            Loop
         Next q2
     Next q1
     
@@ -3548,18 +3598,22 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
         .text = "?;^p"  ' ?; seguido de quebra de parágrafo
         .Replacement.text = "?^p"  ' Apenas ? seguido de quebra de parágrafo
         .Forward = True
-        .Wrap = wdFindContinue
+        .Wrap = wdFindStop
         .Format = False
         .MatchCase = False
         .MatchWholeWord = False
         .MatchWildcards = False
         .MatchSoundsLike = False
         .MatchAllWordForms = False
-        
-        Do While .Execute(Replace:=True)
-            replacementCount = replacementCount + 1
-        Loop
     End With
+    
+    ' Executa a substituição
+    Do While rng.Find.Execute
+        rng.text = "?" & vbCr
+        replacementCount = replacementCount + 1
+        Set rng = doc.Range
+        rng.Collapse wdCollapseEnd
+    Loop
     
     LogMessage "Substituições de texto aplicadas: " & replacementCount & " substituições realizadas", LOG_LEVEL_INFO
     ApplyTextReplacements = True
@@ -3605,26 +3659,32 @@ Private Function ReplaceInLocoWithItalic(doc As Document) As Boolean
                 .ClearFormatting
                 .Replacement.ClearFormatting
                 .text = findPattern
-                .Replacement.text = "in loco"
-                .Replacement.Font.Italic = True
                 .Forward = True
-                .Wrap = wdFindContinue
-                .Format = True
+                .Wrap = wdFindStop
+                .Format = False
                 .MatchCase = False
                 .MatchWholeWord = False
                 .MatchWildcards = False
                 .MatchSoundsLike = False
                 .MatchAllWordForms = False
-                
-                Do While .Execute(Replace:=True)
-                    replacementCount = replacementCount + 1
-                    ' Limite de segurança
-                    If replacementCount > 1000 Then
-                        LogMessage "Limite de substituições 'in loco' atingido", LOG_LEVEL_WARNING
-                        Exit Do
-                    End If
-                Loop
             End With
+            
+            ' Executa a busca e substituição com formatação
+            Do While rng.Find.Execute
+                rng.text = "in loco"
+                rng.Font.Italic = True
+                replacementCount = replacementCount + 1
+                
+                ' Limite de segurança
+                If replacementCount > 1000 Then
+                    LogMessage "Limite de substituições 'in loco' atingido", LOG_LEVEL_WARNING
+                    Exit Do
+                End If
+                
+                ' Reinicia o range para continuar a busca
+                Set rng = doc.Range
+                rng.Collapse wdCollapseEnd
+            Loop
         Next j
     Next i
     
