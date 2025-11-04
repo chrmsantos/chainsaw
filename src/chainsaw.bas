@@ -2586,19 +2586,19 @@ Private Function ValidateAddressConsistency(doc As Document) As Boolean
     Dim para As Paragraph
     Dim textualParaCount As Long
     Dim secondTextualPara As Paragraph
-    Dim thirdTextualPara As Paragraph
+    Dim firstTextualParaBelowEmenta As Paragraph
     Dim para2Text As String
     Dim para3Text As String
     Dim ruaPosition As Long
-    Dim threeWords As String
-    Dim word1 As String, word2 As String, word3 As String
+    Dim twoWords As String
+    Dim word1 As String, word2 As String
     Dim i As Long
     
     textualParaCount = 0
     Set secondTextualPara = Nothing
-    Set thirdTextualPara = Nothing
+    Set firstTextualParaBelowEmenta = Nothing
     
-    ' Identifica o 2º e 3º parágrafos textuais (não vazios)
+    ' Identifica o 2º parágrafo textual (ementa) e o 1º abaixo dele
     For Each para In doc.Paragraphs
         If Len(Trim(para.Range.Text)) > 1 Then ' > 1 para ignorar apenas marca de parágrafo
             textualParaCount = textualParaCount + 1
@@ -2606,22 +2606,26 @@ Private Function ValidateAddressConsistency(doc As Document) As Boolean
             If textualParaCount = 2 Then
                 Set secondTextualPara = para
             ElseIf textualParaCount = 3 Then
-                Set thirdTextualPara = para
+                ' Pula o 3º (geralmente data/local)
+                ' Nada a fazer aqui
+            ElseIf textualParaCount = 4 Then
+                ' Este é o 1º parágrafo textual abaixo da ementa
+                Set firstTextualParaBelowEmenta = para
                 Exit For
             End If
         End If
     Next para
     
     ' Se não encontrou os parágrafos necessários, retorna True (sem verificação)
-    If secondTextualPara Is Nothing Or thirdTextualPara Is Nothing Then
+    If secondTextualPara Is Nothing Or firstTextualParaBelowEmenta Is Nothing Then
         ValidateAddressConsistency = True
         Exit Function
     End If
     
     para2Text = secondTextualPara.Range.Text
-    para3Text = thirdTextualPara.Range.Text
+    para3Text = firstTextualParaBelowEmenta.Range.Text
     
-    ' Procura pela palavra "Rua" (case insensitive) no segundo parágrafo
+    ' Procura pela palavra "Rua" (case insensitive) no segundo parágrafo (ementa)
     ruaPosition = InStr(1, para2Text, "rua", vbTextCompare)
     
     If ruaPosition = 0 Then
@@ -2653,56 +2657,89 @@ Private Function ValidateAddressConsistency(doc As Document) As Boolean
     Loop
     textAfterRua = Trim(textAfterRua)
     
-    ' Extrai as três primeiras palavras/números após "Rua"
+    ' Extrai as DUAS primeiras palavras/números após "Rua"
     Dim words() As String
     words = Split(textAfterRua, " ")
     
-    If UBound(words) < 2 Then
-        ' Não há três palavras subsequentes, não há o que verificar
+    If UBound(words) < 1 Then
+        ' Não há duas palavras subsequentes, não há o que verificar
         ValidateAddressConsistency = True
         Exit Function
     End If
     
-    word1 = words(0)
-    word2 = words(1)
-    word3 = words(2)
+    word1 = Trim(words(0))
+    word2 = Trim(words(1))
     
     ' Remove caracteres especiais das palavras
     word1 = Replace(word1, Chr(13), "")
+    word1 = Replace(word1, Chr(10), "")
     word2 = Replace(word2, Chr(13), "")
-    word3 = Replace(word3, Chr(13), "")
+    word2 = Replace(word2, Chr(10), "")
     
-    ' Verifica se as três palavras existem no terceiro parágrafo (case insensitive)
+    ' Ignora palavras muito curtas (preposições, artigos)
+    If Len(word1) <= 2 Then
+        ' Se a primeira palavra é muito curta (ex: "de", "do"), usa a próxima
+        If UBound(words) >= 2 Then
+            word1 = word2
+            word2 = Trim(words(2))
+            word2 = Replace(word2, Chr(13), "")
+            word2 = Replace(word2, Chr(10), "")
+        End If
+    End If
+    
+    ' Normaliza o texto do parágrafo textual para comparação mais flexível
+    Dim normalizedPara3Text As String
+    normalizedPara3Text = para3Text
+    normalizedPara3Text = Replace(normalizedPara3Text, "n.º", " ")
+    normalizedPara3Text = Replace(normalizedPara3Text, "nº", " ")
+    normalizedPara3Text = Replace(normalizedPara3Text, "n°", " ")
+    normalizedPara3Text = Replace(normalizedPara3Text, "número", " ")
+    normalizedPara3Text = Replace(normalizedPara3Text, ",", " ")
+    normalizedPara3Text = Replace(normalizedPara3Text, ".", " ")
+    
+    ' Verifica se as DUAS palavras existem no primeiro parágrafo textual abaixo da ementa (case insensitive)
     Dim foundWord1 As Boolean
     Dim foundWord2 As Boolean
-    Dim foundWord3 As Boolean
     
-    foundWord1 = InStr(1, para3Text, word1, vbTextCompare) > 0
-    foundWord2 = InStr(1, para3Text, word2, vbTextCompare) > 0
-    foundWord3 = InStr(1, para3Text, word3, vbTextCompare) > 0
+    ' Busca com contexto "Rua" próximo para reduzir falsos positivos
+    Dim ruaPosInPara3 As Long
+    ruaPosInPara3 = InStr(1, normalizedPara3Text, "rua", vbTextCompare)
     
-    ' Se as três palavras não foram encontradas no terceiro parágrafo, exibe recomendação
-    If Not (foundWord1 And foundWord2 And foundWord3) Then
+    If ruaPosInPara3 > 0 Then
+        ' Extrai contexto de 100 caracteres após "Rua" no parágrafo textual
+        Dim contextAfterRua As String
+        contextAfterRua = Mid(normalizedPara3Text, ruaPosInPara3, 100)
+        
+        ' Busca as palavras no contexto próximo a "Rua"
+        foundWord1 = InStr(1, contextAfterRua, word1, vbTextCompare) > 0
+        foundWord2 = InStr(1, contextAfterRua, word2, vbTextCompare) > 0
+    Else
+        ' Se não encontrou "Rua" no texto, busca as palavras em todo o parágrafo
+        foundWord1 = InStr(1, normalizedPara3Text, word1, vbTextCompare) > 0
+        foundWord2 = InStr(1, normalizedPara3Text, word2, vbTextCompare) > 0
+    End If
+    
+    ' Se as duas palavras não foram encontradas, exibe recomendação
+    If Not (foundWord1 And foundWord2) Then
         Dim msg As String
         msg = "RECOMENDAÇÃO DE VERIFICAÇÃO" & vbCrLf & vbCrLf
         msg = msg & "Foi detectada uma possível inconsistência entre endereços na ementa e no texto." & vbCrLf & vbCrLf
-        msg = msg & "Palavras após 'Rua' no 2º parágrafo: " & word1 & " " & word2 & " " & word3 & vbCrLf & vbCrLf
-        msg = msg & "Encontradas no 3º parágrafo:" & vbCrLf
+        msg = msg & "Palavras após 'Rua' na ementa (2º parágrafo): " & word1 & " " & word2 & vbCrLf & vbCrLf
+        msg = msg & "Encontradas no 1º parágrafo do texto:" & vbCrLf
         msg = msg & "  • " & word1 & ": " & IIf(foundWord1, "Sim", "NÃO") & vbCrLf
-        msg = msg & "  • " & word2 & ": " & IIf(foundWord2, "Sim", "NÃO") & vbCrLf
-        msg = msg & "  • " & word3 & ": " & IIf(foundWord3, "Sim", "NÃO") & vbCrLf & vbCrLf
+        msg = msg & "  • " & word2 & ": " & IIf(foundWord2, "Sim", "NÃO") & vbCrLf & vbCrLf
         msg = msg & "Por favor, verifique se os endereços estão corretos e consistentes."
         
         MsgBox msg, vbExclamation, "Verificação de Endereço"
         
-        LogMessage "Inconsistência de endereço detectada: '" & word1 & " " & word2 & " " & word3 & "' não encontrado completamente no 3º parágrafo", LOG_LEVEL_WARNING
+        LogMessage "Inconsistência de endereço detectada: '" & word1 & " " & word2 & "' não encontrado completamente no 1º parágrafo textual", LOG_LEVEL_WARNING
         
         ValidateAddressConsistency = False
         Exit Function
     End If
     
     ' Tudo OK, endereços consistentes
-    LogMessage "Endereços validados com sucesso entre 2º e 3º parágrafos", LOG_LEVEL_INFO
+    LogMessage "Endereços validados com sucesso: ementa x 1º parágrafo textual", LOG_LEVEL_INFO
     ValidateAddressConsistency = True
     Exit Function
 
@@ -4170,14 +4207,19 @@ ErrorHandler:
 End Sub
 
 '================================================================================
-' SUBROTINA PÚBLICA: ABRIR PASTA DE LOGS
+' SUBROTINA PÚBLICA: ABRIR PASTA DE LOGS E BACKUPS
 '================================================================================
-Public Sub AbrirPastaLogs()
+Public Sub AbrirPastaLogsEBackups()
     On Error GoTo ErrorHandler
     
     Dim doc As Document
-    Dim logsFolder As String
-    Dim defaultLogsFolder As String
+    Dim docFolder As String
+    Dim backupFolder As String
+    Dim fso As Object
+    Dim folderToOpen As String
+    Dim hasBackups As Boolean
+    
+    Set fso = CreateObject("Scripting.FileSystemObject")
     
     ' Tenta obter documento ativo
     Set doc = Nothing
@@ -4185,42 +4227,60 @@ Public Sub AbrirPastaLogs()
     Set doc = ActiveDocument
     On Error GoTo ErrorHandler
     
-    ' Define pasta de logs baseada no documento atual ou temp
-    If Not doc Is Nothing And doc.Path <> "" Then
-        logsFolder = doc.Path
-    Else
-        logsFolder = Environ("TEMP")
+    ' Verifica se há documento ativo salvo
+    If doc Is Nothing Or doc.Path = "" Then
+        Application.StatusBar = "Nenhum documento salvo ativo - abrindo pasta TEMP"
+        shell "explorer.exe """ & Environ("TEMP") & """", vbNormalFocus
+        Exit Sub
     End If
     
-    ' Verifica se a pasta existe
-    If Dir(logsFolder, vbDirectory) = "" Then
-        logsFolder = Environ("TEMP")
+    ' Obtém a pasta do documento ativo
+    docFolder = doc.Path
+    backupFolder = docFolder & "\" & BACKUP_FOLDER_NAME
+    
+    ' Verifica se existe pasta de backups
+    hasBackups = fso.FolderExists(backupFolder)
+    
+    ' Decide qual pasta abrir
+    If hasBackups Then
+        ' Se existe pasta de backups, abre ela (logs também estão na mesma pasta do documento)
+        folderToOpen = backupFolder
+        Application.StatusBar = "Pasta de backups aberta: " & folderToOpen
+    Else
+        ' Se não existe pasta de backups, abre a pasta do documento (onde estão os logs)
+        folderToOpen = docFolder
+        Application.StatusBar = "Pasta do documento aberta (logs e backups): " & folderToOpen
     End If
     
     ' Abre a pasta no Windows Explorer
-    shell "explorer.exe """ & logsFolder & """", vbNormalFocus
-    
-    Application.StatusBar = "Pasta de logs aberta: " & logsFolder
+    shell "explorer.exe """ & folderToOpen & """", vbNormalFocus
     
     ' Log da operação se sistema de log estiver ativo
     If loggingEnabled Then
-        LogMessage "Pasta de logs aberta pelo usuário: " & logsFolder, LOG_LEVEL_INFO
+        If hasBackups Then
+            LogMessage "Pasta de backups aberta pelo usuário: " & folderToOpen, LOG_LEVEL_INFO
+        Else
+            LogMessage "Pasta de logs/documento aberta pelo usuário: " & folderToOpen, LOG_LEVEL_INFO
+        End If
     End If
     
     Exit Sub
     
 ErrorHandler:
-    Application.StatusBar = "Erro ao abrir pasta de logs"
+    Application.StatusBar = "Erro ao abrir pasta"
+    LogMessage "Erro ao abrir pasta de logs/backups: " & Err.Description, LOG_LEVEL_ERROR
     
-    ' Fallback: tenta abrir pasta temporária
+    ' Fallback: tenta abrir pasta do documento ou TEMP
     On Error Resume Next
-    shell "explorer.exe """ & Environ("TEMP") & """", vbNormalFocus
-    If Err.Number = 0 Then
-        Application.StatusBar = "Pasta temporária aberta como alternativa"
+    If Not doc Is Nothing And doc.Path <> "" Then
+        shell "explorer.exe """ & doc.Path & """", vbNormalFocus
+        Application.StatusBar = "Pasta do documento aberta como alternativa"
     Else
-        Application.StatusBar = "Não foi possível abrir pasta de logs"
+        shell "explorer.exe """ & Environ("TEMP") & """", vbNormalFocus
+        Application.StatusBar = "Pasta temporária aberta como alternativa"
     End If
 End Sub
+
 '================================================================================
 ' SISTEMA DE BACKUP - FUNCIONALIDADE DE SEGURANÇA
 '================================================================================
@@ -4305,67 +4365,6 @@ Private Sub CleanOldBackups(backupFolder As String, docBaseName As String)
     ' Se há mais de 15 arquivos na pasta de backup, registra aviso
     If filesCount > 15 Then
         LogMessage "Muitos backups na pasta (" & filesCount & " arquivos) - considere limpeza manual", LOG_LEVEL_WARNING
-    End If
-End Sub
-
-'================================================================================
-' SUBROTINA PÚBLICA: ABRIR PASTA DE BACKUPS
-'================================================================================
-Public Sub AbrirPastaBackups()
-    On Error GoTo ErrorHandler
-    
-    Dim doc As Document
-    Dim backupFolder As String
-    Dim fso As Object
-    
-    Set fso = CreateObject("Scripting.FileSystemObject")
-    
-    ' Tenta obter documento ativo
-    Set doc = Nothing
-    On Error Resume Next
-    Set doc = ActiveDocument
-    On Error GoTo ErrorHandler
-    
-    ' Define pasta de backup baseada no documento atual
-    If Not doc Is Nothing And doc.Path <> "" Then
-        backupFolder = fso.GetParentFolderName(doc.Path) & "\" & BACKUP_FOLDER_NAME
-    Else
-        Application.StatusBar = "Nenhum documento salvo ativo para localizar pasta de backups"
-        Exit Sub
-    End If
-    
-    ' Verifica se a pasta de backup existe
-    If Not fso.FolderExists(backupFolder) Then
-        Application.StatusBar = "Pasta de backups não encontrada - nenhum backup foi criado ainda"
-        LogMessage "Pasta de backups não encontrada: " & backupFolder, LOG_LEVEL_WARNING
-        Exit Sub
-    End If
-    
-    ' Abre a pasta no Windows Explorer
-    shell "explorer.exe """ & backupFolder & """", vbNormalFocus
-    
-    Application.StatusBar = "Pasta de backups aberta: " & backupFolder
-    
-    ' Log da operação se sistema de log estiver ativo
-    If loggingEnabled Then
-        LogMessage "Pasta de backups aberta pelo usuário: " & backupFolder, LOG_LEVEL_INFO
-    End If
-    
-    Exit Sub
-    
-ErrorHandler:
-    Application.StatusBar = "Erro ao abrir pasta de backups"
-    LogMessage "Erro ao abrir pasta de backups: " & Err.Description, LOG_LEVEL_ERROR
-    
-    ' Fallback: tenta abrir pasta do documento
-    On Error Resume Next
-    If Not doc Is Nothing And doc.Path <> "" Then
-        Dim docFolder As String
-        docFolder = fso.GetParentFolderName(doc.Path)
-        shell "explorer.exe """ & docFolder & """", vbNormalFocus
-        Application.StatusBar = "Pasta do documento aberta como alternativa"
-    Else
-        Application.StatusBar = "Não foi possível abrir pasta de backups"
     End If
 End Sub
 
