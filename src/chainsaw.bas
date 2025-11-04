@@ -97,6 +97,11 @@ Private Const JUSTIFICATIVA_TEXT As String = "justificativa"
 ' Debug mode
 Private Const DEBUG_MODE As Boolean = False
 
+' Safety constants
+Private Const MAX_LOOP_ITERATIONS As Long = 1000
+Private Const MAX_INITIAL_PARAGRAPHS_TO_SCAN As Long = 50
+Private Const MAX_OPERATION_TIMEOUT_SECONDS As Long = 300
+
 '================================================================================
 ' GLOBAL VARIABLES
 '================================================================================
@@ -196,6 +201,14 @@ Public Sub PadronizarDocumentoMain()
         Exit Sub
     End If
     On Error GoTo CriticalErrorHandler
+    
+    ' Valida integridade do documento
+    If Not IsDocumentHealthy(doc) Then
+        Application.StatusBar = "Erro: Documento corrompido ou inacessível"
+        MsgBox "O documento parece estar corrompido ou inacessível." & vbCrLf & _
+               "Por favor, tente salvar uma cópia e reabrir.", vbCritical, "Erro de Documento"
+        Exit Sub
+    End If
     
     If Not InitializeLogging(doc) Then
         LogMessage "Falha ao inicializar sistema de logs", LOG_LEVEL_WARNING
@@ -457,6 +470,39 @@ ErrorHandler:
 End Function
 
 '================================================================================
+' IS DOCUMENT HEALTHY - Validação profunda da integridade do documento
+'================================================================================
+Private Function IsDocumentHealthy(doc As Document) As Boolean
+    On Error Resume Next
+    
+    IsDocumentHealthy = False
+    
+    ' Verifica acessibilidade básica
+    If doc Is Nothing Then Exit Function
+    If doc.Range Is Nothing Then Exit Function
+    If doc.Paragraphs.count = 0 Then Exit Function
+    
+    ' Verifica se documento está corrompido
+    Dim testAccess As Long
+    testAccess = doc.Range.End
+    If Err.Number <> 0 Then Exit Function
+    
+    ' Testa acesso a parágrafos
+    Dim testPara As Paragraph
+    Set testPara = doc.Paragraphs(1)
+    If Err.Number <> 0 Then Exit Function
+    
+    IsDocumentHealthy = True
+End Function
+
+'================================================================================
+' IS OPERATION TIMEOUT - Verifica timeout de operações longas
+'================================================================================
+Private Function IsOperationTimeout(startTime As Date) As Boolean
+    IsOperationTimeout = (DateDiff("s", startTime, Now) > MAX_OPERATION_TIMEOUT_SECONDS)
+End Function
+
+'================================================================================
 ' TEXT CLEANING HELPERS
 '================================================================================
 Private Function GetCleanParagraphText(para As Paragraph) As String
@@ -465,9 +511,12 @@ Private Function GetCleanParagraphText(para As Paragraph) As String
     Dim txt As String
     txt = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
     
-    ' Remove pontuação final
-    Do While Len(txt) > 0 And InStr(".,;:", Right(txt, 1)) > 0
+    ' Remove pontuação final com proteção contra loop infinito
+    Dim safetyCounter As Long
+    safetyCounter = 0
+    Do While Len(txt) > 0 And InStr(".,;:", Right(txt, 1)) > 0 And safetyCounter < 100
         txt = Left(txt, Len(txt) - 1)
+        safetyCounter = safetyCounter + 1
     Loop
     
     GetCleanParagraphText = Trim(LCase(txt))
@@ -477,9 +526,12 @@ Private Function RemovePunctuation(text As String) As String
     Dim result As String
     result = text
     
-    ' Remove pontuação final
-    Do While Len(result) > 0 And InStr(".,;:", Right(result, 1)) > 0
+    ' Remove pontuação final com proteção contra loop infinito
+    Dim safetyCounter As Long
+    safetyCounter = 0
+    Do While Len(result) > 0 And InStr(".,;:", Right(result, 1)) > 0 And safetyCounter < 100
         result = Left(result, Len(result) - 1)
+        safetyCounter = safetyCounter + 1
     Loop
     
     RemovePunctuation = Trim(result)
@@ -736,20 +788,22 @@ Private Function InitializeLogging(doc As Document) As Boolean
     errorCount = 0
     warningCount = 0
     
-    Open logFilePath For Output As #1
-    Print #1, "========================================================"
-    Print #1, "LOG DE FORMATAÇÃO DE DOCUMENTO - SISTEMA DE REGISTRO"
-    Print #1, "========================================================"
-    Print #1, "Sessão: " & Format(Now, "yyyy-mm-dd HH:MM:ss")
-    Print #1, "Usuário: " & Environ("USERNAME")
-    Print #1, "Estação: " & Environ("COMPUTERNAME")
-    Print #1, "Versão Word: " & Application.version
-    Print #1, "Documento: " & doc.Name
-    Print #1, "Local: " & IIf(doc.Path = "", "(Não salvo)", doc.Path)
-    Print #1, "Proteção: " & GetProtectionType(doc)
-    Print #1, "Tamanho: " & GetDocumentSize(doc)
-    Print #1, "========================================================"
-    Close #1
+    Dim fileNum As Integer
+    fileNum = FreeFile
+    Open logFilePath For Output As #fileNum
+    Print #fileNum, "========================================================"
+    Print #fileNum, "LOG DE FORMATAÇÃO DE DOCUMENTO - SISTEMA DE REGISTRO"
+    Print #fileNum, "========================================================"
+    Print #fileNum, "Sessão: " & Format(Now, "yyyy-mm-dd HH:MM:ss")
+    Print #fileNum, "Usuário: " & Environ("USERNAME")
+    Print #fileNum, "Estação: " & Environ("COMPUTERNAME")
+    Print #fileNum, "Versão Word: " & Application.version
+    Print #fileNum, "Documento: " & doc.Name
+    Print #fileNum, "Local: " & IIf(doc.Path = "", "(Não salvo)", doc.Path)
+    Print #fileNum, "Proteção: " & GetProtectionType(doc)
+    Print #fileNum, "Tamanho: " & GetDocumentSize(doc)
+    Print #fileNum, "========================================================"
+    Close #fileNum
     
     loggingEnabled = True
     InitializeLogging = True
@@ -757,6 +811,8 @@ Private Function InitializeLogging(doc As Document) As Boolean
     Exit Function
     
 ErrorHandler:
+    On Error Resume Next
+    Close #fileNum ' Garante fechamento
     loggingEnabled = False
     InitializeLogging = False
 End Function
@@ -773,6 +829,7 @@ Private Sub LogMessage(message As String, Optional level As Long = LOG_LEVEL_INF
     
     Dim levelText As String
     Dim levelIcon As String
+    Dim fileNum As Integer
     
     Select Case level
         Case LOG_LEVEL_INFO
@@ -794,15 +851,20 @@ Private Sub LogMessage(message As String, Optional level As Long = LOG_LEVEL_INF
     Dim formattedMessage As String
     formattedMessage = Format(Now, "yyyy-mm-dd HH:MM:ss") & " [" & levelText & "] " & levelIcon & " " & message
     
-    Open logFilePath For Append As #1
-    Print #1, formattedMessage
-    Close #1
+    ' Usa FreeFile para garantir número de arquivo único
+    fileNum = FreeFile
+    Open logFilePath For Append As #fileNum
+    Print #fileNum, formattedMessage
+    Close #fileNum
     
     Debug.Print "LOG: " & formattedMessage
     
     Exit Sub
     
 ErrorHandler:
+    ' Garante fechamento do arquivo em caso de erro
+    On Error Resume Next
+    Close #fileNum
     Debug.Print "FALHA NO LOGGING: " & message
 End Sub
 
@@ -842,14 +904,16 @@ Private Sub SafeFinalizeLogging()
             statusText = "CONCLUÍDO"
         End If
         
-        Open logFilePath For Append As #1
-        Print #1, "================================================"
-        Print #1, "FIM DA SESSÃO - " & Format(Now, "yyyy-mm-dd HH:MM:ss")
-        Print #1, "Duração: " & Format(Now - executionStartTime, "HH:MM:ss")
-        Print #1, "Erros: " & errorsText
-        Print #1, "Status: " & statusText
-        Print #1, "================================================"
-        Close #1
+        Dim fileNum As Integer
+        fileNum = FreeFile
+        Open logFilePath For Append As #fileNum
+        Print #fileNum, "================================================"
+        Print #fileNum, "FIM DA SESSÃO - " & Format(Now, "yyyy-mm-dd HH:MM:ss")
+        Print #fileNum, "Duração: " & Format(Now - executionStartTime, "HH:MM:ss")
+        Print #fileNum, "Erros: " & errorsText
+        Print #fileNum, "Status: " & statusText
+        Print #fileNum, "================================================"
+        Close #fileNum
     End If
     
     loggingEnabled = False
@@ -857,6 +921,8 @@ Private Sub SafeFinalizeLogging()
     Exit Sub
     
 ErrorHandler:
+    On Error Resume Next
+    Close #fileNum ' Garante fechamento
     Debug.Print "Erro ao finalizar logging: " & Err.Description
     loggingEnabled = False
 End Sub
@@ -1181,9 +1247,20 @@ Private Function ApplyStdFont(doc As Document) As Boolean
     Dim hasConsiderando As Boolean
     Dim needsUnderlineRemoval As Boolean
     Dim needsBoldRemoval As Boolean
+    Dim paraCount As Long
+    
+    ' Cache do count para performance
+    paraCount = doc.Paragraphs.count
 
-    For i = doc.Paragraphs.count To 1 Step -1
+    For i = paraCount To 1 Step -1
+        If i > doc.Paragraphs.count Then Exit For ' Proteção dinâmica
         Set para = doc.Paragraphs(i)
+        
+        ' Early exit se processou demais (proteção contra documentos gigantes)
+        If formattedCount > 50000 Then
+            LogMessage "Limite de processamento atingido em ApplyStdFont (50000 parágrafos)", LOG_LEVEL_WARNING
+            Exit For
+        End If
         hasInlineImage = False
         isTitle = False
         hasConsiderando = False
@@ -1247,9 +1324,12 @@ Private Function ApplyStdFont(doc As Document) As Boolean
             ' Verifica se é um parágrafo especial - otimizado
             Dim cleanParaText As String
             cleanParaText = paraFullText
-            ' Remove pontuação final para análise
-            Do While Len(cleanParaText) > 0 And (Right(cleanParaText, 1) = "." Or Right(cleanParaText, 1) = "," Or Right(cleanParaText, 1) = ":" Or Right(cleanParaText, 1) = ";")
+            ' Remove pontuação final para análise com proteção
+            Dim punctCounter As Long
+            punctCounter = 0
+            Do While Len(cleanParaText) > 0 And (Right(cleanParaText, 1) = "." Or Right(cleanParaText, 1) = "," Or Right(cleanParaText, 1) = ":" Or Right(cleanParaText, 1) = ";") And punctCounter < 50
                 cleanParaText = Left(cleanParaText, Len(cleanParaText) - 1)
+                punctCounter = punctCounter + 1
             Loop
             cleanParaText = Trim(LCase(cleanParaText))
             
@@ -1379,10 +1459,21 @@ Private Function ApplyStdParagraphs(doc As Document) As Boolean
     Dim prevPara As Paragraph
 
     rightMarginPoints = 0
+    
+    ' Cache do count para performance
+    Dim paraCount As Long
+    paraCount = doc.Paragraphs.count
 
-    For i = doc.Paragraphs.count To 1 Step -1
+    For i = paraCount To 1 Step -1
+        If i > doc.Paragraphs.count Then Exit For ' Proteção dinâmica
         Set para = doc.Paragraphs(i)
         hasInlineImage = False
+        
+        ' Early exit se processou demais
+        If formattedCount > 50000 Then
+            LogMessage "Limite de processamento atingido em ApplyStdParagraphs (50000 parágrafos)", LOG_LEVEL_WARNING
+            Exit For
+        End If
 
         If para.Range.InlineShapes.count > 0 Then
             hasInlineImage = True
@@ -1404,9 +1495,12 @@ Private Function ApplyStdParagraphs(doc As Document) As Boolean
         
         ' OTIMIZADO: Combinação de múltiplas operações de limpeza em um bloco
         If InStr(cleanText, "  ") > 0 Or InStr(cleanText, vbTab) > 0 Then
-            ' Remove múltiplos espaços consecutivos
-            Do While InStr(cleanText, "  ") > 0
+            ' Remove múltiplos espaços consecutivos com proteção
+            Dim cleanCounter As Long
+            cleanCounter = 0
+            Do While InStr(cleanText, "  ") > 0 And cleanCounter < MAX_LOOP_ITERATIONS
                 cleanText = Replace(cleanText, "  ", " ")
+                cleanCounter = cleanCounter + 1
             Loop
             
             ' Remove espaços antes/depois de quebras de linha
@@ -1415,15 +1509,19 @@ Private Function ApplyStdParagraphs(doc As Document) As Boolean
             cleanText = Replace(cleanText, " " & vbLf, vbLf)
             cleanText = Replace(cleanText, vbLf & " ", vbLf)
             
-            ' Remove tabs extras e converte para espaços
-            Do While InStr(cleanText, vbTab & vbTab) > 0
+            ' Remove tabs extras e converte para espaços com proteção
+            cleanCounter = 0
+            Do While InStr(cleanText, vbTab & vbTab) > 0 And cleanCounter < MAX_LOOP_ITERATIONS
                 cleanText = Replace(cleanText, vbTab & vbTab, vbTab)
+                cleanCounter = cleanCounter + 1
             Loop
             cleanText = Replace(cleanText, vbTab, " ")
             
-            ' Limpeza final de espaços múltiplos
-            Do While InStr(cleanText, "  ") > 0
+            ' Limpeza final de espaços múltiplos com proteção
+            cleanCounter = 0
+            Do While InStr(cleanText, "  ") > 0 And cleanCounter < MAX_LOOP_ITERATIONS
                 cleanText = Replace(cleanText, "  ", " ")
+                cleanCounter = cleanCounter + 1
             Loop
         End If
         
@@ -1433,9 +1531,12 @@ Private Function ApplyStdParagraphs(doc As Document) As Boolean
         
         Dim checkText As String
         checkText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
-        ' Remove pontuação final para análise
-        Do While Len(checkText) > 0 And (Right(checkText, 1) = "." Or Right(checkText, 1) = "," Or Right(checkText, 1) = ":" Or Right(checkText, 1) = ";")
+        ' Remove pontuação final para análise com proteção
+        Dim checkCounter As Long
+        checkCounter = 0
+        Do While Len(checkText) > 0 And (Right(checkText, 1) = "." Or Right(checkText, 1) = "," Or Right(checkText, 1) = ":" Or Right(checkText, 1) = ";") And checkCounter < 50
             checkText = Left(checkText, Len(checkText) - 1)
+            checkCounter = checkCounter + 1
         Loop
         checkText = Trim(LCase(checkText))
         
@@ -1510,8 +1611,14 @@ Private Function FormatSecondParagraph(doc As Document) As Boolean
     actualParaIndex = 0
     secondParaIndex = 0
     
+    ' Cache do count para performance
+    Dim paraCount As Long
+    paraCount = doc.Paragraphs.count
+    
     ' Encontra o 2º parágrafo com conteúdo (pula vazios)
-    For i = 1 To doc.Paragraphs.count
+    For i = 1 To paraCount
+        If i > paraCount Then Exit For ' Proteção dinâmica
+        
         Set para = doc.Paragraphs(i)
         paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
         
@@ -2537,9 +2644,12 @@ Private Function ValidateAddressConsistency(doc As Document) As Boolean
     textAfterRua = Replace(textAfterRua, ";", " ")
     textAfterRua = Replace(textAfterRua, ":", " ")
     
-    ' Remove múltiplos espaços
-    Do While InStr(textAfterRua, "  ") > 0
+    ' Remove múltiplos espaços com proteção
+    Dim spaceCounter As Long
+    spaceCounter = 0
+    Do While InStr(textAfterRua, "  ") > 0 And spaceCounter < MAX_LOOP_ITERATIONS
         textAfterRua = Replace(textAfterRua, "  ", " ")
+        spaceCounter = spaceCounter + 1
     Loop
     textAfterRua = Trim(textAfterRua)
     
@@ -3067,7 +3177,7 @@ Private Function CleanDocumentStructure(doc As Document) As Boolean
         End If
         
         ' Proteção contra documentos muito grandes
-        If i > 50 Then Exit For ' Limita busca aos primeiros 50 parágrafos
+        If i > MAX_INITIAL_PARAGRAPHS_TO_SCAN Then Exit For
     Next i
     
     ' OTIMIZADO: Remove linhas vazias ANTES do primeiro texto em uma única passada
@@ -3112,7 +3222,7 @@ Private Function CleanDocumentStructure(doc As Document) As Boolean
         Do While .Execute(Replace:=True)
             leadingSpacesRemoved = leadingSpacesRemoved + 1
             ' Proteção contra loop infinito
-            If leadingSpacesRemoved > 1000 Then Exit Do
+            If leadingSpacesRemoved > MAX_LOOP_ITERATIONS Then Exit Do
         Loop
         
         ' Remove tabs no início de linhas
@@ -3121,7 +3231,7 @@ Private Function CleanDocumentStructure(doc As Document) As Boolean
         
         Do While .Execute(Replace:=True)
             leadingSpacesRemoved = leadingSpacesRemoved + 1
-            If leadingSpacesRemoved > 1000 Then Exit Do
+            If leadingSpacesRemoved > MAX_LOOP_ITERATIONS Then Exit Do
         Loop
     End With
     
@@ -3370,12 +3480,16 @@ Private Function FormatDocumentTitle(doc As Document) As Boolean
     
     ' Se for proposição, substitui a última palavra por $NUMERO$/$ANO$
     If isProposition And UBound(words) >= 0 Then
-        ' Reconstrói o texto substituindo a última palavra
+        ' Reconstrói o texto substituindo a última palavra com validação
         newText = ""
-        For i = 0 To UBound(words) - 1
-            If i > 0 Then newText = newText & " "
-            newText = newText & words(i)
-        Next i
+        If UBound(words) > 0 Then ' Verifica se há palavras suficientes
+            For i = 0 To UBound(words) - 1
+                If i <= UBound(words) Then ' Validação adicional
+                    If i > 0 Then newText = newText & " "
+                    newText = newText & words(i)
+                End If
+            Next i
+        End If
         
         ' Adiciona $NUMERO$/$ANO$ no lugar da última palavra
         If newText <> "" Then newText = newText & " "
