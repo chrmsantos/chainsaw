@@ -1028,6 +1028,9 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     ' FORMATAÇÃO "DIANTE DO EXPOSTO": Aplica negrito e caixa alta quando no início de parágrafo
     FormatDianteDoExposto doc
     
+    ' GARANTIA FINAL: Garante linha em branco entre parágrafos longos (>10 palavras)
+    EnsureBlankLinesBetweenLongParagraphs doc
+    
     LogMessage "Formatação completa aplicada com sucesso", LOG_LEVEL_INFO
     PreviousFormatting = True
     Exit Function
@@ -1431,6 +1434,23 @@ Private Function FormatSecondParagraph(doc As Document) As Boolean
     ' Aplica formatação específica apenas ao 2º parágrafo
     If secondParaIndex > 0 And secondParaIndex <= doc.Paragraphs.count Then
         Set para = doc.Paragraphs(secondParaIndex)
+        
+        ' Remove ", neste município" se estiver no final do parágrafo
+        Dim paraFullText As String
+        paraFullText = para.Range.text
+        paraFullText = Trim(Replace(Replace(paraFullText, vbCr, ""), vbLf, ""))
+        
+        If Len(paraFullText) > 17 Then ' Tamanho mínimo para conter ", neste município"
+            Dim lowerText As String
+            lowerText = LCase(paraFullText)
+            
+            ' Verifica se termina com ", neste município"
+            If Right(lowerText, 17) = ", neste município" Then
+                ' Remove os últimos 17 caracteres
+                para.Range.text = Left(paraFullText, Len(paraFullText) - 17) & vbCr
+                LogMessage "String ', neste município' removida do 2º parágrafo", LOG_LEVEL_INFO
+            End If
+        End If
         
         ' PRIMEIRO: Adiciona 2 linhas em branco ANTES do 2º parágrafo
         Dim insertionPoint As Range
@@ -1836,6 +1856,89 @@ Private Function EnsureSingleBlankLineBetweenParagraphs(doc As Document) As Bool
 ErrorHandler:
     EnsureSingleBlankLineBetweenParagraphs = False
     LogMessage "Erro ao garantir linhas em branco entre parágrafos: " & Err.Description, LOG_LEVEL_WARNING
+End Function
+
+'================================================================================
+' ENSURE BLANK LINES BETWEEN LONG PARAGRAPHS - Garante linha em branco entre parágrafos com mais de 10 palavras
+'================================================================================
+Private Function EnsureBlankLinesBetweenLongParagraphs(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+    
+    Dim i As Long
+    Dim para As Paragraph
+    Dim nextPara As Paragraph
+    Dim paraText As String
+    Dim nextParaText As String
+    Dim paraWordCount As Long
+    Dim nextParaWordCount As Long
+    Dim insertionPoint As Range
+    Dim addedCount As Long
+    
+    addedCount = 0
+    
+    ' Percorre todos os parágrafos de trás para frente para não afetar os índices
+    For i = doc.Paragraphs.count - 1 To 1 Step -1
+        If i >= doc.Paragraphs.count Then Exit For ' Proteção dinâmica
+        
+        Set para = doc.Paragraphs(i)
+        
+        ' Verifica se há próximo parágrafo
+        If i + 1 <= doc.Paragraphs.count Then
+            Set nextPara = doc.Paragraphs(i + 1)
+        Else
+            Exit For
+        End If
+        
+        ' Obtém texto limpo dos parágrafos
+        paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+        nextParaText = Trim(Replace(Replace(nextPara.Range.text, vbCr, ""), vbLf, ""))
+        
+        ' Conta palavras (divide por espaços)
+        paraWordCount = 0
+        nextParaWordCount = 0
+        
+        If paraText <> "" Then
+            paraWordCount = UBound(Split(paraText, " ")) + 1
+        End If
+        
+        If nextParaText <> "" Then
+            nextParaWordCount = UBound(Split(nextParaText, " ")) + 1
+        End If
+        
+        ' Se ambos os parágrafos têm mais de 10 palavras
+        If paraWordCount > 10 And nextParaWordCount > 10 Then
+            ' Verifica se há linha em branco entre eles
+            Dim hasBlankBetween As Boolean
+            hasBlankBetween = False
+            
+            ' Verifica se eles são adjacentes (sem linha em branco entre)
+            ' Se i+1 é o próximo parágrafo e não está vazio, são adjacentes
+            If nextParaText <> "" Then
+                hasBlankBetween = False
+            Else
+                hasBlankBetween = True
+            End If
+            
+            ' Se não há linha em branco, adiciona uma
+            If Not hasBlankBetween Then
+                Set insertionPoint = nextPara.Range
+                insertionPoint.Collapse wdCollapseStart
+                insertionPoint.InsertBefore vbCrLf
+                addedCount = addedCount + 1
+            End If
+        End If
+    Next i
+    
+    If addedCount > 0 Then
+        LogMessage "Linhas em branco adicionadas entre parágrafos longos (>10 palavras): " & addedCount, LOG_LEVEL_INFO
+    End If
+    
+    EnsureBlankLinesBetweenLongParagraphs = True
+    Exit Function
+    
+ErrorHandler:
+    EnsureBlankLinesBetweenLongParagraphs = False
+    LogMessage "Erro ao garantir linhas em branco entre parágrafos longos: " & Err.Description, LOG_LEVEL_WARNING
 End Function
 
 '================================================================================
