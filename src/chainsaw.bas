@@ -241,6 +241,12 @@ Public Sub PadronizarDocumentoMain()
     If Not FormatImageParagraphsIndents(doc) Then
         LogMessage "Aviso: Falha ao formatar recuos de imagens", LOG_LEVEL_WARNING
     End If
+    
+    ' Centraliza imagem entre 5ª e 7ª linha após Plenário
+    Application.StatusBar = "Centralizando imagem após Plenário..."
+    If Not CenterImageAfterPlenario(doc) Then
+        LogMessage "Aviso: Falha ao centralizar imagem após Plenário", LOG_LEVEL_WARNING
+    End If
 
     ' Restaura configurações de visualização originais (exceto zoom)
     If Not RestoreViewSettings(doc) Then
@@ -4568,6 +4574,80 @@ Private Function FormatImageParagraphsIndents(doc As Document) As Boolean
 ErrorHandler:
     LogMessage "Erro ao formatar recuos de imagens: " & Err.Description, LOG_LEVEL_WARNING
     FormatImageParagraphsIndents = False
+End Function
+
+'================================================================================
+' CENTER IMAGE AFTER PLENARIO - Centraliza imagem entre 5ª e 7ª linha após Plenário
+'================================================================================
+Private Function CenterImageAfterPlenario(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+    
+    Dim para As Paragraph
+    Dim i As Long
+    Dim plenarioIndex As Long
+    Dim paraText As String
+    Dim paraTextLower As String
+    Dim lineCount As Long
+    Dim centeredCount As Long
+    
+    plenarioIndex = 0
+    centeredCount = 0
+    
+    ' Localiza o parágrafo "Plenário Dr. Tancredo Neves"
+    For i = 1 To doc.Paragraphs.count
+        Set para = doc.Paragraphs(i)
+        paraText = Trim(para.Range.Text)
+        paraTextLower = LCase(paraText)
+        
+        ' Procura por "Plenário" e "Tancredo Neves" com $DATAATUALEXTENSO$
+        If InStr(paraTextLower, "plenário") > 0 And _
+           InStr(paraTextLower, "tancredo neves") > 0 And _
+           InStr(paraText, "$DATAATUALEXTENSO$") > 0 Then
+            plenarioIndex = i
+            Exit For
+        End If
+    Next i
+    
+    ' Se não encontrou o parágrafo do Plenário, retorna
+    If plenarioIndex = 0 Then
+        LogMessage "Parágrafo do Plenário não encontrado para centralizar imagem", LOG_LEVEL_INFO
+        CenterImageAfterPlenario = True
+        Exit Function
+    End If
+    
+    ' Verifica as linhas 5, 6 e 7 após o Plenário (contando em branco e textuais)
+    lineCount = 0
+    For i = plenarioIndex + 1 To doc.Paragraphs.count
+        lineCount = lineCount + 1
+        
+        ' Verifica apenas entre a 5ª e 7ª linha
+        If lineCount >= 5 And lineCount <= 7 Then
+            Set para = doc.Paragraphs(i)
+            
+            ' Se o parágrafo contém imagem, centraliza
+            If para.Range.InlineShapes.count > 0 Then
+                para.Alignment = wdAlignParagraphCenter
+                centeredCount = centeredCount + 1
+                LogMessage "Imagem centralizada na linha " & lineCount & " após Plenário", LOG_LEVEL_INFO
+            End If
+        End If
+        
+        ' Para após a 7ª linha
+        If lineCount > 7 Then
+            Exit For
+        End If
+    Next i
+    
+    If centeredCount > 0 Then
+        LogMessage "Imagens centralizadas após Plenário: " & centeredCount, LOG_LEVEL_INFO
+    End If
+    
+    CenterImageAfterPlenario = True
+    Exit Function
+
+ErrorHandler:
+    LogMessage "Erro ao centralizar imagem após Plenário: " & Err.Description, LOG_LEVEL_WARNING
+    CenterImageAfterPlenario = False
 End Function
 
 '================================================================================
