@@ -958,6 +958,7 @@ Private Function PreviousFormatting(doc As Document) As Boolean
 
     ' Limpeza e formatações otimizadas (logs reduzidos para performance)
     ClearAllFormatting doc
+    ReplaceLineBreaksWithParagraphBreaks doc
     RemovePageNumberLines doc
     CleanDocumentStructure doc
     RemoveAllTabMarks doc
@@ -2731,6 +2732,57 @@ Private Function RemoveAllTabMarks(doc As Document) As Boolean
 ErrorHandler:
     LogMessage "Erro ao remover marcas de tabulação: " & Err.Description, LOG_LEVEL_ERROR
     RemoveAllTabMarks = False
+End Function
+
+'================================================================================
+' REPLACE LINE BREAKS WITH PARAGRAPH BREAKS - Substitui quebras de linha por quebras de parágrafo
+'================================================================================
+Private Function ReplaceLineBreaksWithParagraphBreaks(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+    
+    Dim rng As Range
+    Dim breaksReplaced As Long
+    breaksReplaced = 0
+    
+    Set rng = doc.Range
+    
+    ' Substitui todas as quebras de linha manuais (^l) por quebras de parágrafo (^p)
+    ' ^l = Shift+Enter (quebra de linha manual/soft return)
+    ' ^p = Enter (quebra de parágrafo/hard return)
+    With rng.Find
+        .ClearFormatting
+        .Replacement.ClearFormatting
+        .text = "^l"  ' ^l representa quebra de linha manual (Shift+Enter)
+        .Replacement.text = "^p"  ' ^p representa quebra de parágrafo (Enter)
+        .Forward = True
+        .Wrap = wdFindContinue
+        .Format = False
+        .MatchCase = False
+        .MatchWholeWord = False
+        .MatchWildcards = False
+        .MatchSoundsLike = False
+        .MatchAllWordForms = False
+        
+        Do While .Execute(Replace:=True)
+            breaksReplaced = breaksReplaced + 1
+            ' Proteção contra loop infinito
+            If breaksReplaced > 10000 Then
+                LogMessage "Limite de substituição de quebras de linha atingido", LOG_LEVEL_WARNING
+                Exit Do
+            End If
+        Loop
+    End With
+    
+    If breaksReplaced > 0 Then
+        LogMessage "Quebras de linha substituídas por quebras de parágrafo: " & breaksReplaced & " ocorrências", LOG_LEVEL_INFO
+    End If
+    
+    ReplaceLineBreaksWithParagraphBreaks = True
+    Exit Function
+
+ErrorHandler:
+    LogMessage "Erro ao substituir quebras de linha: " & Err.Description, LOG_LEVEL_ERROR
+    ReplaceLineBreaksWithParagraphBreaks = False
 End Function
 
 '================================================================================
