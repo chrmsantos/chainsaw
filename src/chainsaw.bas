@@ -260,6 +260,12 @@ Public Sub PadronizarDocumentoMain()
         LogMessage "Aviso: Algumas formatações de lista podem não ter sido restauradas", LOG_LEVEL_WARNING
     End If
     
+    ' Formata parágrafos iniciados com número (aplica recuo de lista numerada)
+    Application.StatusBar = "Formatando recuos de parágrafos numerados..."
+    If Not FormatNumberedParagraphsIndent(doc) Then
+        LogMessage "Aviso: Falha ao formatar recuos de parágrafos numerados", LOG_LEVEL_WARNING
+    End If
+    
     ' Formata recuos de parágrafos com imagens (zera recuo à esquerda)
     Application.StatusBar = "Formatando recuos de imagens..."
     If Not FormatImageParagraphsIndents(doc) Then
@@ -4835,6 +4841,63 @@ Private Function RestoreListFormats(doc As Document) As Boolean
 ErrorHandler:
     LogMessage "Erro ao restaurar formatações de lista: " & Err.Description, LOG_LEVEL_WARNING
     RestoreListFormats = False
+End Function
+
+'================================================================================
+' FORMAT NUMBERED PARAGRAPHS INDENT - Aplica recuo de lista em parágrafos iniciados com número
+'================================================================================
+Private Function FormatNumberedParagraphsIndent(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+    
+    Dim para As Paragraph
+    Dim paraText As String
+    Dim firstChar As String
+    Dim formattedCount As Long
+    Dim defaultIndent As Single
+    
+    formattedCount = 0
+    
+    ' Obtém o recuo padrão de uma lista numerada (aproximadamente 36 pontos ou 1.27 cm)
+    ' Esse é o recuo padrão do Word para listas numeradas
+    defaultIndent = 36 ' pontos
+    
+    ' Percorre todos os parágrafos
+    For Each para In doc.Paragraphs
+        paraText = Trim(para.Range.Text)
+        
+        ' Verifica se o parágrafo não está vazio
+        If Len(paraText) > 0 Then
+            ' Pega o primeiro caractere
+            firstChar = Left(paraText, 1)
+            
+            ' Verifica se o primeiro caractere é um algarismo (0-9)
+            If IsNumeric(firstChar) Then
+                ' Verifica se o parágrafo não tem formatação de lista já aplicada
+                ' (para não sobrescrever listas reais restauradas)
+                If para.Range.ListFormat.ListType = wdListNoNumbering Then
+                    ' Aplica o recuo à esquerda igual ao de uma lista numerada
+                    With para.Format
+                        .leftIndent = defaultIndent
+                        ' Também pode ajustar o firstLineIndent se necessário
+                        ' Para listas numeradas, geralmente é negativo para criar o "hanging indent"
+                        .firstLineIndent = 0
+                    End With
+                    formattedCount = formattedCount + 1
+                End If
+            End If
+        End If
+    Next para
+    
+    If formattedCount > 0 Then
+        LogMessage "Parágrafos iniciados com número formatados com recuo de lista: " & formattedCount, LOG_LEVEL_INFO
+    End If
+    
+    FormatNumberedParagraphsIndent = True
+    Exit Function
+
+ErrorHandler:
+    LogMessage "Erro ao formatar recuos de parágrafos numerados: " & Err.Description, LOG_LEVEL_WARNING
+    FormatNumberedParagraphsIndent = False
 End Function
 
 '================================================================================
