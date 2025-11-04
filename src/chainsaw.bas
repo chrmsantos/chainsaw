@@ -3498,6 +3498,7 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
     
     Dim rng As Range
     Dim replacementCount As Long
+    replacementCount = 0
     
     Set rng = doc.Range
     
@@ -3523,6 +3524,8 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
     dOesteVariants(13) = "D´o"
     dOesteVariants(14) = "D`o"
     dOesteVariants(15) = "D" & Chr(8220) & "o"
+    
+    On Error Resume Next ' Ignora erros de Find que não encontra nada
     
     For i = 0 To UBound(dOesteVariants)
         Set rng = doc.Range
@@ -3556,6 +3559,8 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
         Loop
     Next i
     
+    On Error GoTo ErrorHandler ' Volta a capturar erros críticos
+    
     ' Substituição de "tapa-buracos" (com aspas) por tapa-buracos (sem aspas)
     Dim tapaBuracosQuotes() As String
     ReDim tapaBuracosQuotes(0 To 5)
@@ -3565,6 +3570,8 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
     tapaBuracosQuotes(3) = Chr(171)     ' Aspas angulares «
     tapaBuracosQuotes(4) = Chr(187)     ' Aspas angulares »
     tapaBuracosQuotes(5) = Chr(96)      ' Acento grave `
+    
+    On Error Resume Next ' Ignora erros de Find que não encontra nada
     
     Dim q1 As Long
     Dim q2 As Long
@@ -3602,6 +3609,9 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
         Next q2
     Next q1
     
+    On Error GoTo ErrorHandler ' Volta a capturar erros críticos
+    On Error Resume Next ' Ignora erros de Find que não encontra nada
+    
     ' Substituição de "?;" no final de parágrafos por "?"
     Set rng = doc.Range
     
@@ -3633,12 +3643,19 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
         End If
     Loop
     
-    LogMessage "Substituições de texto aplicadas: " & replacementCount & " substituições realizadas", LOG_LEVEL_INFO
+    On Error GoTo ErrorHandler ' Volta a capturar erros críticos
+    
+    If replacementCount > 0 Then
+        LogMessage "Substituições de texto aplicadas: " & replacementCount & " substituições realizadas", LOG_LEVEL_INFO
+    Else
+        LogMessage "Substituições de texto: nenhuma ocorrência encontrada para substituir", LOG_LEVEL_INFO
+    End If
+    
     ApplyTextReplacements = True
     Exit Function
 
 ErrorHandler:
-    LogMessage "Erro nas substituições de texto: " & Err.Description, LOG_LEVEL_ERROR
+    LogMessage "Erro crítico nas substituições de texto: " & Err.Description, LOG_LEVEL_ERROR
     ApplyTextReplacements = False
 End Function
 
@@ -3661,6 +3678,8 @@ Private Function ReplaceInLocoWithItalic(doc As Document) As Boolean
     quoteVariants(3) = Chr(171)     ' Aspas angulares «
     quoteVariants(4) = Chr(187)     ' Aspas angulares »
     quoteVariants(5) = Chr(96)      ' Acento grave `
+    
+    On Error Resume Next ' Ignora erros de Find que não encontra nada
     
     ' Percorre todas as combinações possíveis de aspas
     Dim i As Long
@@ -3710,15 +3729,19 @@ Private Function ReplaceInLocoWithItalic(doc As Document) As Boolean
         Next j
     Next i
     
+    On Error GoTo ErrorHandler ' Volta a capturar erros críticos
+    
     If replacementCount > 0 Then
         LogMessage "Substituições 'in loco': " & replacementCount & " ocorrências formatadas em itálico", LOG_LEVEL_INFO
+    Else
+        LogMessage "Substituições 'in loco': nenhuma ocorrência encontrada", LOG_LEVEL_INFO
     End If
     
     ReplaceInLocoWithItalic = True
     Exit Function
 
 ErrorHandler:
-    LogMessage "Erro ao substituir 'in loco': " & Err.Description, LOG_LEVEL_ERROR
+    LogMessage "Erro crítico ao substituir 'in loco': " & Err.Description, LOG_LEVEL_ERROR
     ReplaceInLocoWithItalic = False
 End Function
 
