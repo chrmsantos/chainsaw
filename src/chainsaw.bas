@@ -952,6 +952,11 @@ Private Function PreviousChecking(doc As Document) As Boolean
     If Not ValidateAddressConsistency(doc) Then
         LogMessage "Recomendação para verificar endereços foi exibida ao usuário", LOG_LEVEL_INFO
     End If
+    
+    ' Verifica presença de possíveis dados sensíveis
+    If Not CheckSensitiveData(doc) Then
+        LogMessage "Aviso de dados sensíveis foi exibido ao usuário", LOG_LEVEL_INFO
+    End If
 
     LogMessage "Verificações de segurança concluídas com sucesso", LOG_LEVEL_INFO
     PreviousChecking = True
@@ -2556,6 +2561,111 @@ Private Function ValidateAddressConsistency(doc As Document) As Boolean
 ErrorHandler:
     LogMessage "Erro ao validar consistência de endereços: " & Err.Description, LOG_LEVEL_WARNING
     ValidateAddressConsistency = True ' Retorna True para não bloquear o processamento
+End Function
+
+'================================================================================
+' CHECK SENSITIVE DATA - Verifica presença de possíveis dados sensíveis
+'================================================================================
+Private Function CheckSensitiveData(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+    
+    Dim docText As String
+    Dim lowerText As String
+    Dim foundItems As String
+    Dim itemCount As Long
+    
+    ' Obtém todo o texto do documento
+    docText = doc.Range.Text
+    lowerText = LCase(docText)
+    
+    foundItems = ""
+    itemCount = 0
+    
+    ' Array com as strings sensíveis a serem verificadas (em minúsculas)
+    Dim sensitiveStrings() As String
+    Dim sensitiveLabels() As String
+    Dim i As Long
+    
+    ' Define as strings a serem buscadas e seus rótulos para exibição
+    ReDim sensitiveStrings(11)
+    ReDim sensitiveLabels(11)
+    
+    sensitiveStrings(0) = "cpf:"
+    sensitiveLabels(0) = "CPF:"
+    
+    sensitiveStrings(1) = "cpf n°"
+    sensitiveLabels(1) = "CPF n°"
+    
+    sensitiveStrings(2) = "rg:"
+    sensitiveLabels(2) = "RG:"
+    
+    sensitiveStrings(3) = "rg n°"
+    sensitiveLabels(3) = "RG n°"
+    
+    sensitiveStrings(4) = "nome da mãe:"
+    sensitiveLabels(4) = "Nome da mãe:"
+    
+    sensitiveStrings(5) = "nascimento:"
+    sensitiveLabels(5) = "Nascimento:"
+    
+    sensitiveStrings(6) = "naturalidade:"
+    sensitiveLabels(6) = "Naturalidade:"
+    
+    sensitiveStrings(7) = "estado civil:"
+    sensitiveLabels(7) = "Estado civil:"
+    
+    sensitiveStrings(8) = "placa:"
+    sensitiveLabels(8) = "Placa:"
+    
+    sensitiveStrings(9) = "placa n°"
+    sensitiveLabels(9) = "Placa n°"
+    
+    sensitiveStrings(10) = "renavam:"
+    sensitiveLabels(10) = "Renavam:"
+    
+    sensitiveStrings(11) = "renavam n°"
+    sensitiveLabels(11) = "Renavam n°"
+    
+    ' Verifica cada string sensível
+    For i = LBound(sensitiveStrings) To UBound(sensitiveStrings)
+        If InStr(1, lowerText, sensitiveStrings(i), vbTextCompare) > 0 Then
+            If foundItems <> "" Then
+                foundItems = foundItems & ", "
+            End If
+            foundItems = foundItems & sensitiveLabels(i)
+            itemCount = itemCount + 1
+        End If
+    Next i
+    
+    ' Se encontrou dados sensíveis, exibe mensagem de aviso
+    If itemCount > 0 Then
+        Dim msg As String
+        msg = "AVISO: POSSÍVEIS DADOS SENSÍVEIS DETECTADOS" & vbCrLf & vbCrLf
+        msg = msg & "Foi detectada a presença de possíveis dados sensíveis no documento." & vbCrLf & vbCrLf
+        msg = msg & "Campos encontrados (" & itemCount & "):" & vbCrLf
+        msg = msg & foundItems & vbCrLf & vbCrLf
+        msg = msg & "RECOMENDAÇÃO:" & vbCrLf
+        msg = msg & "Verifique se há dados pessoais sensíveis (CPF, RG, filiação, etc.) " & vbCrLf
+        msg = msg & "que devam ser removidos ou anonimizados antes da publicação." & vbCrLf & vbCrLf
+        msg = msg & "Conforme LGPD (Lei Geral de Proteção de Dados), dados pessoais " & vbCrLf
+        msg = msg & "sensíveis devem ser tratados com cuidado especial."
+        
+        MsgBox msg, vbExclamation, "Verificação de Dados Sensíveis"
+        
+        LogMessage "Possíveis dados sensíveis detectados: " & foundItems, LOG_LEVEL_WARNING
+        
+        CheckSensitiveData = False ' Retorna False para indicar que dados foram encontrados
+        Exit Function
+    End If
+    
+    ' Nenhum dado sensível encontrado
+    LogMessage "Verificação de dados sensíveis concluída - nenhum campo sensível detectado", LOG_LEVEL_INFO
+    CheckSensitiveData = True
+    Exit Function
+
+ErrorHandler:
+    LogMessage "Erro ao verificar dados sensíveis: " & Err.Description, LOG_LEVEL_WARNING
+    CheckSensitiveData = True ' Retorna True para não bloquear o processamento
 End Function
 
 '================================================================================
