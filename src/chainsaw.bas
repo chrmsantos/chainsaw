@@ -153,6 +153,18 @@ End Type
 
 Private originalViewSettings As ViewSettings
 
+' List format backup variables
+Private Type ListFormatInfo
+    paraIndex As Long
+    HasList As Boolean
+    ListType As Long ' wdListBullet = 2, wdListSimpleNumbering = 1, wdListListNumOnly = 3, etc.
+    ListLevelNumber As Long
+    ListString As String
+End Type
+
+Private savedListFormats() As ListFormatInfo
+Private listFormatCount As Long
+
 '================================================================================
 ' MAIN ENTRY POINT
 '================================================================================
@@ -225,6 +237,12 @@ Public Sub PadronizarDocumentoMain()
     If Not BackupAllImages(doc) Then
         LogMessage "Aviso: Falha no backup de imagens - continuando com proteção básica", LOG_LEVEL_WARNING
     End If
+    
+    ' Backup de formatações de lista antes das formatações
+    Application.StatusBar = "Salvando formatações de lista..."
+    If Not BackupListFormats(doc) Then
+        LogMessage "Aviso: Falha no backup de listas - formatações de lista podem ser perdidas", LOG_LEVEL_WARNING
+    End If
 
     If Not PreviousFormatting(doc) Then
         GoTo CleanUp
@@ -234,6 +252,12 @@ Public Sub PadronizarDocumentoMain()
     Application.StatusBar = "Verificando integridade das imagens..."
     If Not RestoreAllImages(doc) Then
         LogMessage "Aviso: Algumas imagens podem ter sido afetadas durante o processamento", LOG_LEVEL_WARNING
+    End If
+    
+    ' Restaura formatações de lista após formatações
+    Application.StatusBar = "Restaurando formatações de lista..."
+    If Not RestoreListFormats(doc) Then
+        LogMessage "Aviso: Algumas formatações de lista podem não ter sido restauradas", LOG_LEVEL_WARNING
     End If
     
     ' Formata recuos de parágrafos com imagens (zera recuo à esquerda)
@@ -4648,6 +4672,169 @@ Private Function CenterImageAfterPlenario(doc As Document) As Boolean
 ErrorHandler:
     LogMessage "Erro ao centralizar imagem após Plenário: " & Err.Description, LOG_LEVEL_WARNING
     CenterImageAfterPlenario = False
+End Function
+
+'================================================================================
+' BACKUP LIST FORMATS - Salva formatações de lista antes do processamento
+'================================================================================
+Private Function BackupListFormats(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+    
+    Dim para As Paragraph
+    Dim i As Long
+    Dim tempListInfo As ListFormatInfo
+    
+    listFormatCount = 0
+    ReDim savedListFormats(0)
+    
+    ' Conta quantos parágrafos têm formatação de lista
+    Dim totalLists As Long
+    totalLists = 0
+    For Each para In doc.Paragraphs
+        If para.Range.ListFormat.ListType <> wdListNoNumbering Then
+            totalLists = totalLists + 1
+        End If
+    Next para
+    
+    If totalLists = 0 Then
+        LogMessage "Nenhuma lista encontrada no documento", LOG_LEVEL_INFO
+        BackupListFormats = True
+        Exit Function
+    End If
+    
+    ' Aloca array com tamanho adequado
+    ReDim savedListFormats(totalLists - 1)
+    
+    ' Salva informações de cada parágrafo com lista
+    i = 1
+    For Each para In doc.Paragraphs
+        If para.Range.ListFormat.ListType <> wdListNoNumbering Then
+            With tempListInfo
+                .paraIndex = i
+                .HasList = True
+                .ListType = para.Range.ListFormat.ListType
+                
+                ' Salva o nível da lista se aplicável
+                On Error Resume Next
+                .ListLevelNumber = para.Range.ListFormat.ListLevelNumber
+                If Err.Number <> 0 Then
+                    .ListLevelNumber = 1
+                    Err.Clear
+                End If
+                On Error GoTo ErrorHandler
+                
+                ' Salva a string da lista (marcador ou número)
+                On Error Resume Next
+                .ListString = para.Range.ListFormat.ListString
+                If Err.Number <> 0 Then
+                    .ListString = ""
+                    Err.Clear
+                End If
+                On Error GoTo ErrorHandler
+            End With
+            
+            savedListFormats(listFormatCount) = tempListInfo
+            listFormatCount = listFormatCount + 1
+            
+            If listFormatCount >= UBound(savedListFormats) + 1 Then Exit For
+        End If
+        i = i + 1
+    Next para
+    
+    LogMessage "Formatações de lista salvas: " & listFormatCount & " parágrafos com lista", LOG_LEVEL_INFO
+    BackupListFormats = True
+    Exit Function
+
+ErrorHandler:
+    LogMessage "Erro ao salvar formatações de lista: " & Err.Description, LOG_LEVEL_WARNING
+    BackupListFormats = False
+End Function
+
+'================================================================================
+' RESTORE LIST FORMATS - Restaura formatações de lista após o processamento
+'================================================================================
+Private Function RestoreListFormats(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+    
+    If listFormatCount = 0 Then
+        RestoreListFormats = True
+        Exit Function
+    End If
+    
+    Dim i As Long
+    Dim restoredCount As Long
+    Dim para As Paragraph
+    
+    restoredCount = 0
+    
+    For i = 0 To listFormatCount - 1
+        On Error Resume Next
+        
+        With savedListFormats(i)
+            If .HasList And .paraIndex <= doc.Paragraphs.count Then
+                Set para = doc.Paragraphs(.paraIndex)
+                
+                ' Remove qualquer formatação de lista existente primeiro
+                para.Range.ListFormat.RemoveNumbers
+                
+                ' Aplica a formatação de lista original
+                Select Case .ListType
+                    Case wdListBullet
+                        ' Lista com marcadores
+                        para.Range.ListFormat.ApplyBulletDefault
+                        
+                    Case wdListSimpleNumbering, wdListListNumOnly
+                        ' Lista numerada simples
+                        para.Range.ListFormat.ApplyNumberDefault
+                        
+                    Case wdListMixedNumbering
+                        ' Lista com numeração mista
+                        para.Range.ListFormat.ApplyNumberDefault
+                        
+                    Case wdListOutlineNumbering
+                        ' Lista com numeração de tópicos
+                        para.Range.ListFormat.ApplyOutlineNumberDefault
+                        
+                    Case Else
+                        ' Tenta aplicar formatação padrão
+                        If InStr(.ListString, ".") > 0 Or IsNumeric(Left(.ListString, 1)) Then
+                            para.Range.ListFormat.ApplyNumberDefault
+                        Else
+                            para.Range.ListFormat.ApplyBulletDefault
+                        End If
+                End Select
+                
+                ' Tenta restaurar o nível da lista
+                If .ListLevelNumber > 0 And .ListLevelNumber <= 9 Then
+                    para.Range.ListFormat.ListLevelNumber = .ListLevelNumber
+                End If
+                
+                If Err.Number = 0 Then
+                    restoredCount = restoredCount + 1
+                Else
+                    LogMessage "Aviso: Não foi possível restaurar lista no parágrafo " & .paraIndex & ": " & Err.Description, LOG_LEVEL_WARNING
+                    Err.Clear
+                End If
+            End If
+        End With
+        
+        On Error GoTo ErrorHandler
+    Next i
+    
+    If restoredCount > 0 Then
+        LogMessage "Formatações de lista restauradas: " & restoredCount & " parágrafos", LOG_LEVEL_INFO
+    End If
+    
+    ' Limpa o array
+    ReDim savedListFormats(0)
+    listFormatCount = 0
+    
+    RestoreListFormats = True
+    Exit Function
+
+ErrorHandler:
+    LogMessage "Erro ao restaurar formatações de lista: " & Err.Description, LOG_LEVEL_WARNING
+    RestoreListFormats = False
 End Function
 
 '================================================================================
