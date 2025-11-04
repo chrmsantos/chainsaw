@@ -3526,27 +3526,33 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
     
     For i = 0 To UBound(dOesteVariants)
         Set rng = doc.Range
-        With rng.Find
-            .ClearFormatting
-            .Replacement.ClearFormatting
-            .text = dOesteVariants(i) & "este"
-            .Replacement.text = "d'Oeste"
-            .Forward = True
-            .Wrap = wdFindStop
-            .Format = False
-            .MatchCase = False
-            .MatchWholeWord = False
-            .MatchWildcards = False
-            .MatchSoundsLike = False
-            .MatchAllWordForms = False
-        End With
         
-        ' Executa a substituição
-        Do While rng.Find.Execute
-            rng.text = "d'Oeste"
-            replacementCount = replacementCount + 1
-            Set rng = doc.Range
-            rng.Collapse wdCollapseEnd
+        Do While True
+            With rng.Find
+                .ClearFormatting
+                .Replacement.ClearFormatting
+                .text = dOesteVariants(i) & "este"
+                .Replacement.text = "d'Oeste"
+                .Forward = True
+                .Wrap = wdFindStop
+                .Format = False
+                .MatchCase = False
+                .MatchWholeWord = False
+                .MatchWildcards = False
+                .MatchSoundsLike = False
+                .MatchAllWordForms = False
+            End With
+            
+            If rng.Find.Execute Then
+                rng.text = "d'Oeste"
+                replacementCount = replacementCount + 1
+                ' Move para o fim do texto substituído
+                rng.Collapse wdCollapseEnd
+                ' Expande até o final do documento para continuar buscando
+                rng.End = doc.Range.End
+            Else
+                Exit Do
+            End If
         Loop
     Next i
     
@@ -3565,54 +3571,66 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
     For q1 = 0 To UBound(tapaBuracosQuotes)
         For q2 = 0 To UBound(tapaBuracosQuotes)
             Set rng = doc.Range
-            With rng.Find
-                .ClearFormatting
-                .Replacement.ClearFormatting
-                .text = tapaBuracosQuotes(q1) & "tapa-buracos" & tapaBuracosQuotes(q2)
-                .Replacement.text = "tapa-buracos"
-                .Forward = True
-                .Wrap = wdFindStop
-                .Format = False
-                .MatchCase = False
-                .MatchWholeWord = False
-                .MatchWildcards = False
-                .MatchSoundsLike = False
-                .MatchAllWordForms = False
-            End With
             
-            ' Executa a substituição
-            Do While rng.Find.Execute
-                rng.text = "tapa-buracos"
-                replacementCount = replacementCount + 1
-                Set rng = doc.Range
-                rng.Collapse wdCollapseEnd
+            Do While True
+                With rng.Find
+                    .ClearFormatting
+                    .Replacement.ClearFormatting
+                    .text = tapaBuracosQuotes(q1) & "tapa-buracos" & tapaBuracosQuotes(q2)
+                    .Replacement.text = "tapa-buracos"
+                    .Forward = True
+                    .Wrap = wdFindStop
+                    .Format = False
+                    .MatchCase = False
+                    .MatchWholeWord = False
+                    .MatchWildcards = False
+                    .MatchSoundsLike = False
+                    .MatchAllWordForms = False
+                End With
+                
+                If rng.Find.Execute Then
+                    rng.text = "tapa-buracos"
+                    replacementCount = replacementCount + 1
+                    ' Move para o fim do texto substituído
+                    rng.Collapse wdCollapseEnd
+                    ' Expande até o final do documento para continuar buscando
+                    rng.End = doc.Range.End
+                Else
+                    Exit Do
+                End If
             Loop
         Next q2
     Next q1
     
     ' Substituição de "?;" no final de parágrafos por "?"
     Set rng = doc.Range
-    With rng.Find
-        .ClearFormatting
-        .Replacement.ClearFormatting
-        .text = "?;^p"  ' ?; seguido de quebra de parágrafo
-        .Replacement.text = "?^p"  ' Apenas ? seguido de quebra de parágrafo
-        .Forward = True
-        .Wrap = wdFindStop
-        .Format = False
-        .MatchCase = False
-        .MatchWholeWord = False
-        .MatchWildcards = False
-        .MatchSoundsLike = False
-        .MatchAllWordForms = False
-    End With
     
-    ' Executa a substituição
-    Do While rng.Find.Execute
-        rng.text = "?" & vbCr
-        replacementCount = replacementCount + 1
-        Set rng = doc.Range
-        rng.Collapse wdCollapseEnd
+    Do While True
+        With rng.Find
+            .ClearFormatting
+            .Replacement.ClearFormatting
+            .text = "?;^p"  ' ?; seguido de quebra de parágrafo
+            .Replacement.text = "?^p"  ' Apenas ? seguido de quebra de parágrafo
+            .Forward = True
+            .Wrap = wdFindStop
+            .Format = False
+            .MatchCase = False
+            .MatchWholeWord = False
+            .MatchWildcards = False
+            .MatchSoundsLike = False
+            .MatchAllWordForms = False
+        End With
+        
+        If rng.Find.Execute Then
+            rng.text = "?" & vbCr
+            replacementCount = replacementCount + 1
+            ' Move para o fim do texto substituído
+            rng.Collapse wdCollapseEnd
+            ' Expande até o final do documento para continuar buscando
+            rng.End = doc.Range.End
+        Else
+            Exit Do
+        End If
     Loop
     
     LogMessage "Substituições de texto aplicadas: " & replacementCount & " substituições realizadas", LOG_LEVEL_INFO
@@ -3655,35 +3673,39 @@ Private Function ReplaceInLocoWithItalic(doc As Document) As Boolean
             ' Reinicia o range para cada busca
             Set rng = doc.Range
             
-            With rng.Find
-                .ClearFormatting
-                .Replacement.ClearFormatting
-                .text = findPattern
-                .Forward = True
-                .Wrap = wdFindStop
-                .Format = False
-                .MatchCase = False
-                .MatchWholeWord = False
-                .MatchWildcards = False
-                .MatchSoundsLike = False
-                .MatchAllWordForms = False
-            End With
-            
             ' Executa a busca e substituição com formatação
-            Do While rng.Find.Execute
-                rng.text = "in loco"
-                rng.Font.Italic = True
-                replacementCount = replacementCount + 1
+            Do While True
+                With rng.Find
+                    .ClearFormatting
+                    .Replacement.ClearFormatting
+                    .text = findPattern
+                    .Forward = True
+                    .Wrap = wdFindStop
+                    .Format = False
+                    .MatchCase = False
+                    .MatchWholeWord = False
+                    .MatchWildcards = False
+                    .MatchSoundsLike = False
+                    .MatchAllWordForms = False
+                End With
                 
-                ' Limite de segurança
-                If replacementCount > 1000 Then
-                    LogMessage "Limite de substituições 'in loco' atingido", LOG_LEVEL_WARNING
+                If rng.Find.Execute Then
+                    rng.text = "in loco"
+                    rng.Font.Italic = True
+                    replacementCount = replacementCount + 1
+                    
+                    ' Limite de segurança
+                    If replacementCount > 1000 Then
+                        LogMessage "Limite de substituições 'in loco' atingido", LOG_LEVEL_WARNING
+                        Exit Do
+                    End If
+                    
+                    ' Move para o fim do texto substituído e expande até o final
+                    rng.Collapse wdCollapseEnd
+                    rng.End = doc.Range.End
+                Else
                     Exit Do
                 End If
-                
-                ' Reinicia o range para continuar a busca
-                Set rng = doc.Range
-                rng.Collapse wdCollapseEnd
             Loop
         Next j
     Next i
