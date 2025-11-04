@@ -737,10 +737,6 @@ Private Function InitializeLogging(doc As Document) As Boolean
     Print #1, "========================================================"
     Print #1, "LOG DE FORMATAÇÃO DE DOCUMENTO - SISTEMA DE REGISTRO"
     Print #1, "========================================================"
-    Print #1, "Duração: 00:00:00"
-    Print #1, "Erros: 0"
-    Print #1, "Status: INICIANDO"
-    Print #1, "--------------------------------------------------------"
     Print #1, "Sessão: " & Format(Now, "yyyy-mm-dd HH:MM:ss")
     Print #1, "Usuário: " & Environ("USERNAME")
     Print #1, "Estação: " & Environ("COMPUTERNAME")
@@ -1085,7 +1081,6 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     ' Formatações específicas (sem verificação de retorno para performance)
     FormatConsiderandoParagraphs doc
     ApplyTextReplacements doc
-    ReplaceInLocoWithItalic doc
     
     RemoveWatermark doc
     InsertHeaderstamp doc
@@ -3657,92 +3652,6 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
 ErrorHandler:
     LogMessage "Erro crítico nas substituições de texto: " & Err.Description, LOG_LEVEL_ERROR
     ApplyTextReplacements = False
-End Function
-
-'================================================================================
-' REPLACE IN LOCO WITH ITALIC - Substitui "in loco" (com aspas) por in loco (itálico)
-'================================================================================
-Private Function ReplaceInLocoWithItalic(doc As Document) As Boolean
-    On Error GoTo ErrorHandler
-    
-    Dim rng As Range
-    Dim replacementCount As Long
-    replacementCount = 0
-    
-    ' Variantes de aspas a serem consideradas
-    Dim quoteVariants() As String
-    ReDim quoteVariants(0 To 5)
-    quoteVariants(0) = Chr(34)      ' Aspas duplas retas normais "
-    quoteVariants(1) = Chr(8220)    ' Aspas duplas curvas à esquerda "
-    quoteVariants(2) = Chr(8221)    ' Aspas duplas curvas à direita "
-    quoteVariants(3) = Chr(171)     ' Aspas angulares «
-    quoteVariants(4) = Chr(187)     ' Aspas angulares »
-    quoteVariants(5) = Chr(96)      ' Acento grave `
-    
-    On Error Resume Next ' Ignora erros de Find que não encontra nada
-    
-    ' Percorre todas as combinações possíveis de aspas
-    Dim i As Long
-    Dim j As Long
-    For i = 0 To UBound(quoteVariants)
-        For j = 0 To UBound(quoteVariants)
-            Dim findPattern As String
-            findPattern = quoteVariants(i) & "in loco" & quoteVariants(j)
-            
-            ' Reinicia o range para cada busca
-            Set rng = doc.Range
-            
-            ' Executa a busca e substituição com formatação
-            Do While True
-                With rng.Find
-                    .ClearFormatting
-                    .Replacement.ClearFormatting
-                    .text = findPattern
-                    .Forward = True
-                    .Wrap = wdFindStop
-                    .Format = False
-                    .MatchCase = False
-                    .MatchWholeWord = False
-                    .MatchWildcards = False
-                    .MatchSoundsLike = False
-                    .MatchAllWordForms = False
-                End With
-                
-                If rng.Find.Execute Then
-                    rng.text = "in loco"
-                    rng.Font.Italic = True
-                    replacementCount = replacementCount + 1
-                    
-                    ' Limite de segurança
-                    If replacementCount > 1000 Then
-                        LogMessage "Limite de substituições 'in loco' atingido", LOG_LEVEL_WARNING
-                        Exit Do
-                    End If
-                    
-                    ' Move para o fim do texto substituído e expande até o final
-                    rng.Collapse wdCollapseEnd
-                    rng.End = doc.Range.End
-                Else
-                    Exit Do
-                End If
-            Loop
-        Next j
-    Next i
-    
-    On Error GoTo ErrorHandler ' Volta a capturar erros críticos
-    
-    If replacementCount > 0 Then
-        LogMessage "Substituições 'in loco': " & replacementCount & " ocorrências formatadas em itálico", LOG_LEVEL_INFO
-    Else
-        LogMessage "Substituições 'in loco': nenhuma ocorrência encontrada", LOG_LEVEL_INFO
-    End If
-    
-    ReplaceInLocoWithItalic = True
-    Exit Function
-
-ErrorHandler:
-    LogMessage "Erro crítico ao substituir 'in loco': " & Err.Description, LOG_LEVEL_ERROR
-    ReplaceInLocoWithItalic = False
 End Function
 
 '================================================================================
