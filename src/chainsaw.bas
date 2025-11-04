@@ -3544,10 +3544,10 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
             If rng.Find.Execute Then
                 rng.text = "d'Oeste"
                 replacementCount = replacementCount + 1
-                ' Move para o fim do texto substituído
-                rng.Collapse wdCollapseEnd
-                ' Expande até o final do documento para continuar buscando
-                rng.End = doc.Range.End
+                ' Recria o range a partir da posição atual até o final
+                Dim startPos As Long
+                startPos = rng.End
+                Set rng = doc.Range(startPos, doc.Range.End)
             Else
                 Exit Do
             End If
@@ -3593,50 +3593,16 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
                 If rng.Find.Execute Then
                     rng.text = "tapa-buracos"
                     replacementCount = replacementCount + 1
-                    ' Move para o fim do texto substituído
-                    rng.Collapse wdCollapseEnd
-                    ' Expande até o final do documento para continuar buscando
-                    rng.End = doc.Range.End
+                    ' Recria o range a partir da posição atual até o final
+                    Dim startPos2 As Long
+                    startPos2 = rng.End
+                    Set rng = doc.Range(startPos2, doc.Range.End)
                 Else
                     Exit Do
                 End If
             Loop
         Next q2
     Next q1
-    
-    On Error GoTo ErrorHandler ' Volta a capturar erros críticos
-    On Error Resume Next ' Ignora erros de Find que não encontra nada
-    
-    ' Substituição de "?;" no final de parágrafos por "?"
-    Set rng = doc.Range
-    
-    Do While True
-        With rng.Find
-            .ClearFormatting
-            .Replacement.ClearFormatting
-            .text = "?;^p"  ' ?; seguido de quebra de parágrafo
-            .Replacement.text = "?^p"  ' Apenas ? seguido de quebra de parágrafo
-            .Forward = True
-            .Wrap = wdFindStop
-            .Format = False
-            .MatchCase = False
-            .MatchWholeWord = False
-            .MatchWildcards = False
-            .MatchSoundsLike = False
-            .MatchAllWordForms = False
-        End With
-        
-        If rng.Find.Execute Then
-            rng.text = "?" & vbCr
-            replacementCount = replacementCount + 1
-            ' Move para o fim do texto substituído
-            rng.Collapse wdCollapseEnd
-            ' Expande até o final do documento para continuar buscando
-            rng.End = doc.Range.End
-        Else
-            Exit Do
-        End If
-    Loop
     
     On Error GoTo ErrorHandler ' Volta a capturar erros críticos
     
