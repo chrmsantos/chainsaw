@@ -3520,41 +3520,34 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
     dOesteVariants(14) = "D`o"
     dOesteVariants(15) = "D" & Chr(8220) & "o"
     
-    On Error Resume Next ' Ignora erros de Find que não encontra nada
+    ' Usa abordagem mais segura com ReplaceAll para evitar erros de range
+    On Error Resume Next
     
     For i = 0 To UBound(dOesteVariants)
         Set rng = doc.Range
-        
-        Do While True
-            With rng.Find
-                .ClearFormatting
-                .Replacement.ClearFormatting
-                .text = dOesteVariants(i) & "este"
-                .Replacement.text = "d'Oeste"
-                .Forward = True
-                .Wrap = wdFindStop
-                .Format = False
-                .MatchCase = False
-                .MatchWholeWord = False
-                .MatchWildcards = False
-                .MatchSoundsLike = False
-                .MatchAllWordForms = False
-            End With
+        With rng.Find
+            .ClearFormatting
+            .Replacement.ClearFormatting
+            .text = dOesteVariants(i) & "este"
+            .Replacement.text = "d'Oeste"
+            .Forward = True
+            .Wrap = wdFindStop
+            .Format = False
+            .MatchCase = False
+            .MatchWholeWord = False
+            .MatchWildcards = False
+            .MatchSoundsLike = False
+            .MatchAllWordForms = False
             
-            If rng.Find.Execute Then
-                rng.text = "d'Oeste"
+            ' Usa Execute com Replace para fazer todas de uma vez
+            Do While .Execute(Replace:=wdReplaceOne)
                 replacementCount = replacementCount + 1
-                ' Recria o range a partir da posição atual até o final
-                Dim startPos As Long
-                startPos = rng.End
-                Set rng = doc.Range(startPos, doc.Range.End)
-            Else
-                Exit Do
-            End If
-        Loop
+                If replacementCount > 10000 Then Exit Do ' Proteção
+            Loop
+        End With
     Next i
     
-    On Error GoTo ErrorHandler ' Volta a capturar erros críticos
+    On Error GoTo ErrorHandler
     
     ' Substituição de "tapa-buracos" (com aspas) por tapa-buracos (sem aspas)
     Dim tapaBuracosQuotes() As String
@@ -3566,45 +3559,37 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
     tapaBuracosQuotes(4) = Chr(187)     ' Aspas angulares »
     tapaBuracosQuotes(5) = Chr(96)      ' Acento grave `
     
-    On Error Resume Next ' Ignora erros de Find que não encontra nada
+    On Error Resume Next
     
     Dim q1 As Long
     Dim q2 As Long
     For q1 = 0 To UBound(tapaBuracosQuotes)
         For q2 = 0 To UBound(tapaBuracosQuotes)
             Set rng = doc.Range
-            
-            Do While True
-                With rng.Find
-                    .ClearFormatting
-                    .Replacement.ClearFormatting
-                    .text = tapaBuracosQuotes(q1) & "tapa-buracos" & tapaBuracosQuotes(q2)
-                    .Replacement.text = "tapa-buracos"
-                    .Forward = True
-                    .Wrap = wdFindStop
-                    .Format = False
-                    .MatchCase = False
-                    .MatchWholeWord = False
-                    .MatchWildcards = False
-                    .MatchSoundsLike = False
-                    .MatchAllWordForms = False
-                End With
+            With rng.Find
+                .ClearFormatting
+                .Replacement.ClearFormatting
+                .text = tapaBuracosQuotes(q1) & "tapa-buracos" & tapaBuracosQuotes(q2)
+                .Replacement.text = "tapa-buracos"
+                .Forward = True
+                .Wrap = wdFindStop
+                .Format = False
+                .MatchCase = False
+                .MatchWholeWord = False
+                .MatchWildcards = False
+                .MatchSoundsLike = False
+                .MatchAllWordForms = False
                 
-                If rng.Find.Execute Then
-                    rng.text = "tapa-buracos"
+                ' Usa Execute com Replace para fazer todas de uma vez
+                Do While .Execute(Replace:=wdReplaceOne)
                     replacementCount = replacementCount + 1
-                    ' Recria o range a partir da posição atual até o final
-                    Dim startPos2 As Long
-                    startPos2 = rng.End
-                    Set rng = doc.Range(startPos2, doc.Range.End)
-                Else
-                    Exit Do
-                End If
-            Loop
+                    If replacementCount > 10000 Then Exit Do ' Proteção
+                Loop
+            End With
         Next q2
     Next q1
     
-    On Error GoTo ErrorHandler ' Volta a capturar erros críticos
+    On Error GoTo ErrorHandler
     
     If replacementCount > 0 Then
         LogMessage "Substituições de texto aplicadas: " & replacementCount & " substituições realizadas", LOG_LEVEL_INFO
@@ -5552,3 +5537,4 @@ ErrorHandler:
     ' Retorna pasta TEMP como fallback
     EnsureBackupDirectory = Environ("TEMP")
 End Function
+
