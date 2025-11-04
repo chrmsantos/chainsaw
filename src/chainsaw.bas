@@ -266,6 +266,12 @@ Public Sub PadronizarDocumentoMain()
         LogMessage "Aviso: Falha ao formatar recuos de parágrafos numerados", LOG_LEVEL_WARNING
     End If
     
+    ' Formata parágrafos iniciados com marcador (aplica recuo de lista com marcadores)
+    Application.StatusBar = "Formatando recuos de parágrafos com marcadores..."
+    If Not FormatBulletedParagraphsIndent(doc) Then
+        LogMessage "Aviso: Falha ao formatar recuos de parágrafos com marcadores", LOG_LEVEL_WARNING
+    End If
+    
     ' Formata recuos de parágrafos com imagens (zera recuo à esquerda)
     Application.StatusBar = "Formatando recuos de imagens..."
     If Not FormatImageParagraphsIndents(doc) Then
@@ -941,6 +947,11 @@ Private Function PreviousChecking(doc As Document) As Boolean
     If Not ValidateDocumentStructure(doc) Then
         LogMessage "Estrutura do documento validada com avisos", LOG_LEVEL_WARNING
     End If
+    
+    ' Verifica consistência de endereços entre 2º e 3º parágrafos
+    If Not ValidateAddressConsistency(doc) Then
+        LogMessage "Recomendação para verificar endereços foi exibida ao usuário", LOG_LEVEL_INFO
+    End If
 
     LogMessage "Verificações de segurança concluídas com sucesso", LOG_LEVEL_INFO
     PreviousChecking = True
@@ -1480,8 +1491,51 @@ Private Function FormatSecondParagraph(doc As Document) As Boolean
     If secondParaIndex > 0 And secondParaIndex <= doc.Paragraphs.count Then
         Set para = doc.Paragraphs(secondParaIndex)
         
-        ' Remove ", neste município" se estiver no final do parágrafo
+        ' Substitui palavras iniciais conforme regras específicas
         Dim paraFullText As String
+        paraFullText = para.Range.text
+        paraFullText = Trim(Replace(Replace(paraFullText, vbCr, ""), vbLf, ""))
+        
+        Dim lowerStart As String
+        Dim wasReplaced As Boolean
+        wasReplaced = False
+        
+        ' Verifica se inicia com "Solicita" (case insensitive)
+        If Len(paraFullText) >= 8 Then
+            lowerStart = LCase(Left(paraFullText, 8))
+            If lowerStart = "solicita" Then
+                para.Range.text = "Requer" & Mid(paraFullText, 9) & vbCr
+                LogMessage "Palavra inicial 'Solicita' substituída por 'Requer' no 2º parágrafo", LOG_LEVEL_INFO
+                wasReplaced = True
+            End If
+        End If
+        
+        ' Verifica se inicia com "Pede" (case insensitive)
+        If Not wasReplaced And Len(paraFullText) >= 4 Then
+            lowerStart = LCase(Left(paraFullText, 4))
+            If lowerStart = "pede" Then
+                para.Range.text = "Requer" & Mid(paraFullText, 5) & vbCr
+                LogMessage "Palavra inicial 'Pede' substituída por 'Requer' no 2º parágrafo", LOG_LEVEL_INFO
+                wasReplaced = True
+            End If
+        End If
+        
+        ' Verifica se inicia com "Sugere" (case insensitive)
+        If Not wasReplaced And Len(paraFullText) >= 6 Then
+            lowerStart = LCase(Left(paraFullText, 6))
+            If lowerStart = "sugere" Then
+                para.Range.text = "Indica" & Mid(paraFullText, 7) & vbCr
+                LogMessage "Palavra inicial 'Sugere' substituída por 'Indica' no 2º parágrafo", LOG_LEVEL_INFO
+                wasReplaced = True
+            End If
+        End If
+        
+        ' Atualiza o texto do parágrafo se houve substituição
+        If wasReplaced Then
+            paraFullText = para.Range.text
+        End If
+        
+        ' Remove ", neste município" se estiver no final do parágrafo
         paraFullText = para.Range.text
         paraFullText = Trim(Replace(Replace(paraFullText, vbCr, ""), vbLf, ""))
         
@@ -2371,6 +2425,137 @@ Private Function ValidateDocumentStructure(doc As Document) As Boolean
         LogMessage "Documento com estrutura inconsistente", LOG_LEVEL_WARNING
         ValidateDocumentStructure = False
     End If
+End Function
+
+'================================================================================
+' VALIDATE ADDRESS CONSISTENCY - Verifica consistência de endereços entre parágrafos
+'================================================================================
+Private Function ValidateAddressConsistency(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+    
+    Dim para As Paragraph
+    Dim textualParaCount As Long
+    Dim secondTextualPara As Paragraph
+    Dim thirdTextualPara As Paragraph
+    Dim para2Text As String
+    Dim para3Text As String
+    Dim ruaPosition As Long
+    Dim threeWords As String
+    Dim word1 As String, word2 As String, word3 As String
+    Dim i As Long
+    
+    textualParaCount = 0
+    Set secondTextualPara = Nothing
+    Set thirdTextualPara = Nothing
+    
+    ' Identifica o 2º e 3º parágrafos textuais (não vazios)
+    For Each para In doc.Paragraphs
+        If Len(Trim(para.Range.Text)) > 1 Then ' > 1 para ignorar apenas marca de parágrafo
+            textualParaCount = textualParaCount + 1
+            
+            If textualParaCount = 2 Then
+                Set secondTextualPara = para
+            ElseIf textualParaCount = 3 Then
+                Set thirdTextualPara = para
+                Exit For
+            End If
+        End If
+    Next para
+    
+    ' Se não encontrou os parágrafos necessários, retorna True (sem verificação)
+    If secondTextualPara Is Nothing Or thirdTextualPara Is Nothing Then
+        ValidateAddressConsistency = True
+        Exit Function
+    End If
+    
+    para2Text = secondTextualPara.Range.Text
+    para3Text = thirdTextualPara.Range.Text
+    
+    ' Procura pela palavra "Rua" (case insensitive) no segundo parágrafo
+    ruaPosition = InStr(1, para2Text, "rua", vbTextCompare)
+    
+    If ruaPosition = 0 Then
+        ' Não encontrou "Rua", não há o que verificar
+        ValidateAddressConsistency = True
+        Exit Function
+    End If
+    
+    ' Extrai o texto após "Rua"
+    Dim textAfterRua As String
+    textAfterRua = Mid(para2Text, ruaPosition + 3) ' +3 para pular "Rua"
+    textAfterRua = Trim(textAfterRua)
+    
+    ' Remove caracteres de pontuação e quebras de linha
+    textAfterRua = Replace(textAfterRua, vbCr, " ")
+    textAfterRua = Replace(textAfterRua, vbLf, " ")
+    textAfterRua = Replace(textAfterRua, vbTab, " ")
+    textAfterRua = Replace(textAfterRua, ",", " ")
+    textAfterRua = Replace(textAfterRua, ".", " ")
+    textAfterRua = Replace(textAfterRua, ";", " ")
+    textAfterRua = Replace(textAfterRua, ":", " ")
+    
+    ' Remove múltiplos espaços
+    Do While InStr(textAfterRua, "  ") > 0
+        textAfterRua = Replace(textAfterRua, "  ", " ")
+    Loop
+    textAfterRua = Trim(textAfterRua)
+    
+    ' Extrai as três primeiras palavras/números após "Rua"
+    Dim words() As String
+    words = Split(textAfterRua, " ")
+    
+    If UBound(words) < 2 Then
+        ' Não há três palavras subsequentes, não há o que verificar
+        ValidateAddressConsistency = True
+        Exit Function
+    End If
+    
+    word1 = words(0)
+    word2 = words(1)
+    word3 = words(2)
+    
+    ' Remove caracteres especiais das palavras
+    word1 = Replace(word1, Chr(13), "")
+    word2 = Replace(word2, Chr(13), "")
+    word3 = Replace(word3, Chr(13), "")
+    
+    ' Verifica se as três palavras existem no terceiro parágrafo (case insensitive)
+    Dim foundWord1 As Boolean
+    Dim foundWord2 As Boolean
+    Dim foundWord3 As Boolean
+    
+    foundWord1 = InStr(1, para3Text, word1, vbTextCompare) > 0
+    foundWord2 = InStr(1, para3Text, word2, vbTextCompare) > 0
+    foundWord3 = InStr(1, para3Text, word3, vbTextCompare) > 0
+    
+    ' Se as três palavras não foram encontradas no terceiro parágrafo, exibe recomendação
+    If Not (foundWord1 And foundWord2 And foundWord3) Then
+        Dim msg As String
+        msg = "RECOMENDAÇÃO DE VERIFICAÇÃO" & vbCrLf & vbCrLf
+        msg = msg & "Foi detectada uma possível inconsistência entre endereços na ementa e no texto." & vbCrLf & vbCrLf
+        msg = msg & "Palavras após 'Rua' no 2º parágrafo: " & word1 & " " & word2 & " " & word3 & vbCrLf & vbCrLf
+        msg = msg & "Encontradas no 3º parágrafo:" & vbCrLf
+        msg = msg & "  • " & word1 & ": " & IIf(foundWord1, "Sim", "NÃO") & vbCrLf
+        msg = msg & "  • " & word2 & ": " & IIf(foundWord2, "Sim", "NÃO") & vbCrLf
+        msg = msg & "  • " & word3 & ": " & IIf(foundWord3, "Sim", "NÃO") & vbCrLf & vbCrLf
+        msg = msg & "Por favor, verifique se os endereços estão corretos e consistentes."
+        
+        MsgBox msg, vbExclamation, "Verificação de Endereço"
+        
+        LogMessage "Inconsistência de endereço detectada: '" & word1 & " " & word2 & " " & word3 & "' não encontrado completamente no 3º parágrafo", LOG_LEVEL_WARNING
+        
+        ValidateAddressConsistency = False
+        Exit Function
+    End If
+    
+    ' Tudo OK, endereços consistentes
+    LogMessage "Endereços validados com sucesso entre 2º e 3º parágrafos", LOG_LEVEL_INFO
+    ValidateAddressConsistency = True
+    Exit Function
+
+ErrorHandler:
+    LogMessage "Erro ao validar consistência de endereços: " & Err.Description, LOG_LEVEL_WARNING
+    ValidateAddressConsistency = True ' Retorna True para não bloquear o processamento
 End Function
 
 '================================================================================
@@ -4898,6 +5083,75 @@ Private Function FormatNumberedParagraphsIndent(doc As Document) As Boolean
 ErrorHandler:
     LogMessage "Erro ao formatar recuos de parágrafos numerados: " & Err.Description, LOG_LEVEL_WARNING
     FormatNumberedParagraphsIndent = False
+End Function
+
+'================================================================================
+' FORMAT BULLETED PARAGRAPHS INDENT - Aplica recuo de lista em parágrafos iniciados com marcadores
+'================================================================================
+Private Function FormatBulletedParagraphsIndent(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+    
+    Dim para As Paragraph
+    Dim paraText As String
+    Dim firstChar As String
+    Dim formattedCount As Long
+    Dim defaultIndent As Single
+    Dim i As Long
+    
+    formattedCount = 0
+    
+    ' Obtém o recuo padrão de uma lista com marcadores (aproximadamente 36 pontos ou 1.27 cm)
+    defaultIndent = 36 ' pontos
+    
+    ' Array com os marcadores mais comuns
+    Dim bulletMarkers() As String
+    bulletMarkers = Split("*,-,•,○,●,■,□,▪,▫,–,—,►,>,+,~,·,◦,⬧", ",")
+    
+    ' Percorre todos os parágrafos
+    For Each para In doc.Paragraphs
+        paraText = Trim(para.Range.Text)
+        
+        ' Verifica se o parágrafo não está vazio
+        If Len(paraText) > 0 Then
+            ' Pega o primeiro caractere
+            firstChar = Left(paraText, 1)
+            
+            ' Verifica se o primeiro caractere é um marcador comum
+            Dim isBullet As Boolean
+            isBullet = False
+            
+            For i = LBound(bulletMarkers) To UBound(bulletMarkers)
+                If firstChar = bulletMarkers(i) Then
+                    isBullet = True
+                    Exit For
+                End If
+            Next i
+            
+            If isBullet Then
+                ' Verifica se o parágrafo não tem formatação de lista já aplicada
+                ' (para não sobrescrever listas reais restauradas)
+                If para.Range.ListFormat.ListType = wdListNoNumbering Then
+                    ' Aplica o recuo à esquerda igual ao de uma lista com marcadores
+                    With para.Format
+                        .leftIndent = defaultIndent
+                        .firstLineIndent = 0
+                    End With
+                    formattedCount = formattedCount + 1
+                End If
+            End If
+        End If
+    Next para
+    
+    If formattedCount > 0 Then
+        LogMessage "Parágrafos iniciados com marcador formatados com recuo de lista: " & formattedCount, LOG_LEVEL_INFO
+    End If
+    
+    FormatBulletedParagraphsIndent = True
+    Exit Function
+
+ErrorHandler:
+    LogMessage "Erro ao formatar recuos de parágrafos com marcadores: " & Err.Description, LOG_LEVEL_WARNING
+    FormatBulletedParagraphsIndent = False
 End Function
 
 '================================================================================
