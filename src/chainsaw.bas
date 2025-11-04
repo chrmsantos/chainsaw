@@ -959,6 +959,7 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     ' Limpeza e formatações otimizadas (logs reduzidos para performance)
     ClearAllFormatting doc
     ReplaceLineBreaksWithParagraphBreaks doc
+    RemovePageBreaks doc
     RemovePageNumberLines doc
     CleanDocumentStructure doc
     RemoveAllTabMarks doc
@@ -2783,6 +2784,55 @@ Private Function ReplaceLineBreaksWithParagraphBreaks(doc As Document) As Boolea
 ErrorHandler:
     LogMessage "Erro ao substituir quebras de linha: " & Err.Description, LOG_LEVEL_ERROR
     ReplaceLineBreaksWithParagraphBreaks = False
+End Function
+
+'================================================================================
+' REMOVE PAGE BREAKS - Remove todas as quebras de página do documento
+'================================================================================
+Private Function RemovePageBreaks(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+    
+    Dim rng As Range
+    Dim breaksRemoved As Long
+    breaksRemoved = 0
+    
+    Set rng = doc.Range
+    
+    ' Remove quebras de página manuais (^m)
+    With rng.Find
+        .ClearFormatting
+        .Replacement.ClearFormatting
+        .text = "^m"  ' ^m representa quebra de página manual
+        .Replacement.text = ""  ' Substitui por nada (remove)
+        .Forward = True
+        .Wrap = wdFindContinue
+        .Format = False
+        .MatchCase = False
+        .MatchWholeWord = False
+        .MatchWildcards = False
+        .MatchSoundsLike = False
+        .MatchAllWordForms = False
+        
+        Do While .Execute(Replace:=True)
+            breaksRemoved = breaksRemoved + 1
+            ' Proteção contra loop infinito
+            If breaksRemoved > 1000 Then
+                LogMessage "Limite de remoção de quebras de página atingido", LOG_LEVEL_WARNING
+                Exit Do
+            End If
+        Loop
+    End With
+    
+    If breaksRemoved > 0 Then
+        LogMessage "Quebras de página removidas: " & breaksRemoved & " ocorrências", LOG_LEVEL_INFO
+    End If
+    
+    RemovePageBreaks = True
+    Exit Function
+
+ErrorHandler:
+    LogMessage "Erro ao remover quebras de página: " & Err.Description, LOG_LEVEL_ERROR
+    RemovePageBreaks = False
 End Function
 
 '================================================================================
