@@ -1002,6 +1002,9 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     ' Substituição de datas no parágrafo de plenário
     ReplacePlenarioDateParagraph doc
     
+    ' REFORÇO: Garante que o Plenário mantenha suas 2 linhas em branco antes e depois
+    EnsurePlenarioBlankLines doc
+    
     ' Configuração final da visualização
     ConfigureDocumentView doc
     
@@ -1013,6 +1016,9 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     
     ' APLICAÇÃO FINAL DE NEGRITO: Última operação para garantir negrito em parágrafos especiais
     ApplyBoldToSpecialParagraphs doc
+    
+    ' FORMATAÇÃO "VEREADOR": Remove negrito e centraliza linhas adjacentes
+    FormatVereadorParagraphs doc
     
     ' INSERÇÃO FINAL DE LINHAS EM BRANCO: Insere linhas vazias após todas as limpezas
     InsertJustificativaBlankLines doc
@@ -1143,33 +1149,15 @@ Private Function ApplyStdFont(doc As Document) As Boolean
             Loop
             cleanParaText = Trim(LCase(cleanParaText))
             
-            If cleanParaText = "justificativa" Or IsVereadorPattern(cleanParaText) Or IsAnexoPattern(cleanParaText) Then
+            ' Vereador NÃO é mais tratado como parágrafo especial (negrito deve ser removido)
+            If cleanParaText = "justificativa" Or IsAnexoPattern(cleanParaText) Then
                 isSpecialParagraph = True
                 LogMessage "Parágrafo especial detectado em ApplyStdFont (negrito preservado): " & cleanParaText, LOG_LEVEL_INFO
             End If
             
-            ' Verifica se é o parágrafo ANTERIOR a "- vereador -" (também deve preservar negrito)
+            ' O parágrafo ANTERIOR a "vereador" não precisa mais preservar negrito
             Dim isBeforeVereador As Boolean
             isBeforeVereador = False
-            If i < doc.Paragraphs.count Then
-                Dim nextPara As Paragraph
-                Set nextPara = doc.Paragraphs(i + 1)
-                If Not HasVisualContent(nextPara) Then
-                    Dim nextParaText As String
-                    nextParaText = Trim(Replace(Replace(nextPara.Range.text, vbCr, ""), vbLf, ""))
-                    ' Remove pontuação final para análise
-                    Dim nextCleanText As String
-                    nextCleanText = nextParaText
-                    Do While Len(nextCleanText) > 0 And (Right(nextCleanText, 1) = "." Or Right(nextCleanText, 1) = "," Or Right(nextCleanText, 1) = ":" Or Right(nextCleanText, 1) = ";")
-                        nextCleanText = Left(nextCleanText, Len(nextCleanText) - 1)
-                    Loop
-                    nextCleanText = Trim(LCase(nextCleanText))
-                    
-                    If IsVereadorPattern(nextCleanText) Then
-                        isBeforeVereador = True
-                    End If
-                End If
-            End If
         End If
 
         ' FORMATAÇÃO PRINCIPAL - Só executa se necessário
@@ -1688,6 +1676,88 @@ Private Function EnsureSecondParagraphBlankLines(doc As Document) As Boolean
 ErrorHandler:
     EnsureSecondParagraphBlankLines = False
     LogMessage "Erro ao garantir linhas em branco do 2º parágrafo: " & Err.Description, LOG_LEVEL_WARNING
+End Function
+
+'================================================================================
+' ENSURE PLENARIO BLANK LINES - Garante 2 linhas em branco antes e depois do Plenário
+'================================================================================
+Private Function EnsurePlenarioBlankLines(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+    
+    Dim para As Paragraph
+    Dim paraText As String
+    Dim paraTextLower As String
+    Dim i As Long
+    Dim plenarioIndex As Long
+    
+    plenarioIndex = 0
+    
+    ' Localiza o parágrafo "Plenário Dr. Tancredo Neves"
+    For i = 1 To doc.Paragraphs.count
+        Set para = doc.Paragraphs(i)
+        
+        If Not HasVisualContent(para) Then
+            paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+            paraTextLower = LCase(paraText)
+            
+            ' Procura por "Plenário" e "Tancredo Neves"
+            If InStr(paraTextLower, "plenário") > 0 And _
+               InStr(paraTextLower, "tancredo") > 0 And _
+               InStr(paraTextLower, "neves") > 0 Then
+                plenarioIndex = i
+                Exit For
+            End If
+        End If
+    Next i
+    
+    If plenarioIndex > 0 Then
+        ' Remove linhas vazias ANTES
+        i = plenarioIndex - 1
+        Do While i >= 1
+            Set para = doc.Paragraphs(i)
+            paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+            
+            If paraText = "" And Not HasVisualContent(para) Then
+                para.Range.Delete
+                plenarioIndex = plenarioIndex - 1
+                i = i - 1
+            Else
+                Exit Do
+            End If
+        Loop
+        
+        ' Remove linhas vazias DEPOIS
+        i = plenarioIndex + 1
+        Do While i <= doc.Paragraphs.count
+            Set para = doc.Paragraphs(i)
+            paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+            
+            If paraText = "" And Not HasVisualContent(para) Then
+                para.Range.Delete
+            Else
+                Exit Do
+            End If
+        Loop
+        
+        ' Insere EXATAMENTE 2 linhas em branco ANTES
+        Set para = doc.Paragraphs(plenarioIndex)
+        para.Range.InsertParagraphBefore
+        para.Range.InsertParagraphBefore
+        
+        ' Insere EXATAMENTE 2 linhas em branco DEPOIS
+        Set para = doc.Paragraphs(plenarioIndex + 2) ' +2 porque inserimos 2 antes
+        para.Range.InsertParagraphAfter
+        para.Range.InsertParagraphAfter
+        
+        LogMessage "Linhas em branco do Plenário reforçadas: 2 antes e 2 depois", LOG_LEVEL_INFO
+    End If
+    
+    EnsurePlenarioBlankLines = True
+    Exit Function
+    
+ErrorHandler:
+    EnsurePlenarioBlankLines = False
+    LogMessage "Erro ao garantir linhas em branco do Plenário: " & Err.Description, LOG_LEVEL_WARNING
 End Function
 
 '================================================================================
@@ -3022,9 +3092,9 @@ Private Sub ApplyBoldToSpecialParagraphs(doc As Document)
         If Not HasVisualContent(para) Then
             cleanText = GetCleanParagraphText(para)
             
+            ' Adiciona apenas Justificativa e Anexo (Vereador não recebe negrito)
             If cleanText = JUSTIFICATIVA_TEXT Or _
-               IsAnexoPattern(cleanText) Or _
-               IsVereadorPattern(cleanText) Then
+               IsAnexoPattern(cleanText) Then
                 specialParagraphs.Add para
             End If
         End If
@@ -3055,12 +3125,6 @@ Private Sub ApplyBoldToSpecialParagraphs(doc As Document)
             para.Format.RightIndent = 0
             para.Format.SpaceBefore = 0
             para.Format.SpaceAfter = 0
-        ElseIf IsVereadorPattern(pCleanText) Then
-            ' Vereador: centralizado sem espaçamento extra
-            para.Format.alignment = wdAlignParagraphCenter
-            para.Format.leftIndent = 0
-            para.Format.firstLineIndent = 0
-            para.Format.RightIndent = 0
         ElseIf IsAnexoPattern(pCleanText) Then
             ' Anexo/Anexos: alinhado à esquerda
             para.Format.alignment = wdAlignParagraphLeft
@@ -3075,6 +3139,97 @@ Private Sub ApplyBoldToSpecialParagraphs(doc As Document)
     
 ErrorHandler:
     LogMessage "Erro ao aplicar negrito a parágrafos especiais: " & Err.Description, LOG_LEVEL_ERROR
+End Sub
+
+'================================================================================
+' FORMAT VEREADOR PARAGRAPHS - Formata parágrafo com "vereador" e adjacentes
+'================================================================================
+Private Sub FormatVereadorParagraphs(doc As Document)
+    On Error GoTo ErrorHandler
+    
+    If Not ValidateDocument(doc) Then Exit Sub
+    
+    Dim para As Paragraph
+    Dim prevPara As Paragraph
+    Dim nextPara As Paragraph
+    Dim cleanText As String
+    Dim i As Long
+    Dim formattedCount As Long
+    
+    formattedCount = 0
+    
+    ' Procura por parágrafos com "vereador"
+    For i = 1 To doc.Paragraphs.count
+        Set para = doc.Paragraphs(i)
+        
+        If Not HasVisualContent(para) Then
+            cleanText = GetCleanParagraphText(para)
+            
+            If IsVereadorPattern(cleanText) Then
+                ' Remove negrito do parágrafo "vereador"
+                With para.Range.Font
+                    .Bold = False
+                    .Name = STANDARD_FONT
+                    .size = STANDARD_FONT_SIZE
+                End With
+                
+                ' Centraliza e zera recuo do próprio parágrafo "vereador"
+                With para.Format
+                    .alignment = wdAlignParagraphCenter
+                    .leftIndent = 0
+                    .firstLineIndent = 0
+                    .RightIndent = 0
+                End With
+                
+                ' Formata linha ACIMA (se existir): centraliza, zera recuo, aplica caixa alta e negrito
+                If i > 1 Then
+                    Set prevPara = doc.Paragraphs(i - 1)
+                    If Not HasVisualContent(prevPara) Then
+                        ' Aplica caixa alta e negrito na fonte
+                        With prevPara.Range.Font
+                            .AllCaps = True
+                            .Bold = True
+                            .Name = STANDARD_FONT
+                            .size = STANDARD_FONT_SIZE
+                        End With
+                        
+                        ' Centraliza e zera recuos
+                        With prevPara.Format
+                            .alignment = wdAlignParagraphCenter
+                            .leftIndent = 0
+                            .firstLineIndent = 0
+                            .RightIndent = 0
+                        End With
+                    End If
+                End If
+                
+                ' Formata linha ABAIXO (se existir)
+                If i < doc.Paragraphs.count Then
+                    Set nextPara = doc.Paragraphs(i + 1)
+                    If Not HasVisualContent(nextPara) Then
+                        With nextPara.Format
+                            .alignment = wdAlignParagraphCenter
+                            .leftIndent = 0
+                            .firstLineIndent = 0
+                            .RightIndent = 0
+                        End With
+                    End If
+                End If
+                
+                formattedCount = formattedCount + 1
+                LogMessage "Parágrafo 'Vereador' formatado (sem negrito) com linhas adjacentes centralizadas (posição: " & i & ")", LOG_LEVEL_INFO
+            End If
+        End If
+    Next i
+    
+    If formattedCount > 0 Then
+        LogMessage "Formatação 'Vereador': " & formattedCount & " ocorrências formatadas", LOG_LEVEL_INFO
+    End If
+    
+    Exit Sub
+    
+ErrorHandler:
+    LogMessage "Erro ao formatar parágrafos 'Vereador': " & Err.Description, LOG_LEVEL_ERROR
 End Sub
 
 '================================================================================
