@@ -1028,6 +1028,9 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     ' FORMATAÇÃO "DIANTE DO EXPOSTO": Aplica negrito e caixa alta quando no início de parágrafo
     FormatDianteDoExposto doc
     
+    ' FORMATAÇÃO "REQUEIRO": Aplica negrito e caixa alta a parágrafos que começam com "requeiro"
+    FormatRequeiroParagraphs doc
+    
     ' GARANTIA FINAL: Garante linha em branco entre parágrafos longos (>10 palavras)
     EnsureBlankLinesBetweenLongParagraphs doc
     
@@ -3200,6 +3203,27 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
         Next q2
     Next q1
     
+    ' Substituição de "?;" no final de parágrafos por "?"
+    Set rng = doc.Range
+    With rng.Find
+        .ClearFormatting
+        .Replacement.ClearFormatting
+        .text = "?;^p"  ' ?; seguido de quebra de parágrafo
+        .Replacement.text = "?^p"  ' Apenas ? seguido de quebra de parágrafo
+        .Forward = True
+        .Wrap = wdFindContinue
+        .Format = False
+        .MatchCase = False
+        .MatchWholeWord = False
+        .MatchWildcards = False
+        .MatchSoundsLike = False
+        .MatchAllWordForms = False
+        
+        Do While .Execute(Replace:=True)
+            replacementCount = replacementCount + 1
+        Loop
+    End With
+    
     LogMessage "Substituições de texto aplicadas: " & replacementCount & " substituições realizadas", LOG_LEVEL_INFO
     ApplyTextReplacements = True
     Exit Function
@@ -3718,6 +3742,54 @@ Private Sub FormatDianteDoExposto(doc As Document)
     
 ErrorHandler:
     LogMessage "Erro ao formatar 'Diante do exposto': " & Err.Description, LOG_LEVEL_WARNING
+End Sub
+
+'================================================================================
+' FORMAT REQUEIRO PARAGRAPHS - Formata parágrafos que começam com "requeiro"
+'================================================================================
+Private Sub FormatRequeiroParagraphs(doc As Document)
+    On Error GoTo ErrorHandler
+    
+    If Not ValidateDocument(doc) Then Exit Sub
+    
+    Dim para As Paragraph
+    Dim paraText As String
+    Dim cleanText As String
+    Dim formattedCount As Long
+    formattedCount = 0
+    
+    ' Procura por parágrafos que começam com "requeiro" (case insensitive)
+    For Each para In doc.Paragraphs
+        If Not HasVisualContent(para) Then
+            ' Obtém o texto do parágrafo
+            paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+            cleanText = LCase(paraText)
+            
+            ' Verifica se começa com "requeiro" (8 caracteres)
+            If Len(paraText) >= 8 Then
+                If Left(cleanText, 8) = "requeiro" Then
+                    ' Aplica formatação a TODO o parágrafo: negrito e caixa alta
+                    With para.Range.Font
+                        .Bold = True
+                        .AllCaps = True
+                        .Name = STANDARD_FONT
+                        .size = STANDARD_FONT_SIZE
+                    End With
+                    
+                    formattedCount = formattedCount + 1
+                End If
+            End If
+        End If
+    Next para
+    
+    If formattedCount > 0 Then
+        LogMessage "Formatação 'Requeiro': " & formattedCount & " parágrafos formatados em negrito e caixa alta", LOG_LEVEL_INFO
+    End If
+    
+    Exit Sub
+    
+ErrorHandler:
+    LogMessage "Erro ao formatar parágrafos 'Requeiro': " & Err.Description, LOG_LEVEL_WARNING
 End Sub
 
 '================================================================================
