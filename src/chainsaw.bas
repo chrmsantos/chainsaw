@@ -710,14 +710,17 @@ End Sub
 Private Function InitializeLogging(doc As Document) As Boolean
     On Error GoTo ErrorHandler
     
-    ' Define o caminho do log
+    ' Define o caminho do log na mesma pasta do documento ativo
     Dim logFolder As String
-    logFolder = Environ("USERPROFILE") & "\Documents\logs\"
+    If doc.Path <> "" Then
+        ' Documento já foi salvo - usa a pasta do documento
+        logFolder = doc.Path & "\"
+    Else
+        ' Documento ainda não salvo - usa pasta TEMP como fallback
+        logFolder = Environ("TEMP") & "\"
+    End If
     
-    ' Cria a pasta logs se não existir
-    On Error Resume Next
-    MkDir Environ("USERPROFILE") & "\Documents\logs\"
-    MkDir logFolder
+    ' Não precisa criar pasta pois já existe (é a pasta do documento)
     On Error GoTo ErrorHandler
     
     ' Define o nome do arquivo de log
@@ -3549,48 +3552,6 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
     
     On Error GoTo ErrorHandler
     
-    ' Substituição de "tapa-buracos" (com aspas) por tapa-buracos (sem aspas)
-    Dim tapaBuracosQuotes() As String
-    ReDim tapaBuracosQuotes(0 To 5)
-    tapaBuracosQuotes(0) = Chr(34)      ' Aspas duplas retas normais "
-    tapaBuracosQuotes(1) = Chr(8220)    ' Aspas duplas curvas à esquerda "
-    tapaBuracosQuotes(2) = Chr(8221)    ' Aspas duplas curvas à direita "
-    tapaBuracosQuotes(3) = Chr(171)     ' Aspas angulares «
-    tapaBuracosQuotes(4) = Chr(187)     ' Aspas angulares »
-    tapaBuracosQuotes(5) = Chr(96)      ' Acento grave `
-    
-    On Error Resume Next
-    
-    Dim q1 As Long
-    Dim q2 As Long
-    For q1 = 0 To UBound(tapaBuracosQuotes)
-        For q2 = 0 To UBound(tapaBuracosQuotes)
-            Set rng = doc.Range
-            With rng.Find
-                .ClearFormatting
-                .Replacement.ClearFormatting
-                .text = tapaBuracosQuotes(q1) & "tapa-buracos" & tapaBuracosQuotes(q2)
-                .Replacement.text = "tapa-buracos"
-                .Forward = True
-                .Wrap = wdFindStop
-                .Format = False
-                .MatchCase = False
-                .MatchWholeWord = False
-                .MatchWildcards = False
-                .MatchSoundsLike = False
-                .MatchAllWordForms = False
-                
-                ' Usa Execute com Replace para fazer todas de uma vez
-                Do While .Execute(Replace:=wdReplaceOne)
-                    replacementCount = replacementCount + 1
-                    If replacementCount > 10000 Then Exit Do ' Proteção
-                Loop
-            End With
-        Next q2
-    Next q1
-    
-    On Error GoTo ErrorHandler
-    
     If replacementCount > 0 Then
         LogMessage "Substituições de texto aplicadas: " & replacementCount & " substituições realizadas", LOG_LEVEL_INFO
     Else
@@ -5516,10 +5477,12 @@ Private Function EnsureBackupDirectory(doc As Document) As String
     
     Set fso = CreateObject("Scripting.FileSystemObject")
     
-    ' Define o caminho base para backups (mesmo diretório do documento ou TEMP)
+    ' Define o caminho base para backups na mesma pasta do documento
     If doc.Path <> "" Then
+        ' Documento salvo - cria subpasta "backups" na mesma pasta do documento
         backupPath = doc.Path & "\" & BACKUP_FOLDER_NAME
     Else
+        ' Documento não salvo - usa TEMP como fallback
         backupPath = Environ("TEMP") & "\" & BACKUP_FOLDER_NAME
     End If
     
@@ -5534,7 +5497,11 @@ Private Function EnsureBackupDirectory(doc As Document) As String
     
 ErrorHandler:
     LogMessage "Erro ao criar pasta de backup: " & Err.Description, LOG_LEVEL_ERROR
-    ' Retorna pasta TEMP como fallback
-    EnsureBackupDirectory = Environ("TEMP")
+    ' Retorna pasta do documento ou TEMP como fallback
+    If doc.Path <> "" Then
+        EnsureBackupDirectory = doc.Path
+    Else
+        EnsureBackupDirectory = Environ("TEMP")
+    End If
 End Function
 
