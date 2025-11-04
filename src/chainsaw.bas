@@ -1685,6 +1685,82 @@ ErrorHandler:
 End Function
 
 '================================================================================
+' ENSURE SINGLE BLANK LINE BETWEEN PARAGRAPHS - Garante pelo menos 1 linha em branco entre parágrafos
+'================================================================================
+Private Function EnsureSingleBlankLineBetweenParagraphs(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+    
+    Dim i As Long
+    Dim para As Paragraph
+    Dim nextPara As Paragraph
+    Dim paraText As String
+    Dim nextParaText As String
+    Dim insertionPoint As Range
+    Dim addedCount As Long
+    
+    addedCount = 0
+    
+    ' Percorre todos os parágrafos de trás para frente para não afetar os índices
+    For i = doc.Paragraphs.count - 1 To 1 Step -1
+        Set para = doc.Paragraphs(i)
+        Set nextPara = doc.Paragraphs(i + 1)
+        
+        ' Obtém texto limpo dos parágrafos
+        paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+        nextParaText = Trim(Replace(Replace(nextPara.Range.text, vbCr, ""), vbLf, ""))
+        
+        ' Se ambos os parágrafos têm conteúdo (texto ou imagem)
+        If (paraText <> "" Or HasVisualContent(para)) And _
+           (nextParaText <> "" Or HasVisualContent(nextPara)) Then
+            
+            ' Verifica se há pelo menos uma linha em branco entre eles
+            Dim hasBlankBetween As Boolean
+            hasBlankBetween = False
+            
+            ' Verifica se o próximo parágrafo é imediatamente adjacente
+            ' Isso seria indicado se não há parágrafo vazio entre eles
+            If i + 1 <= doc.Paragraphs.count Then
+                ' Se o índice do próximo parágrafo é i+1, eles são adjacentes
+                ' e precisamos verificar se há linha em branco
+                Dim checkIndex As Long
+                For checkIndex = i + 1 To i + 1
+                    If checkIndex <= doc.Paragraphs.count Then
+                        Dim checkPara As Paragraph
+                        Set checkPara = doc.Paragraphs(checkIndex)
+                        Dim checkText As String
+                        checkText = Trim(Replace(Replace(checkPara.Range.text, vbCr, ""), vbLf, ""))
+                        
+                        ' Se o parágrafo entre eles está vazio, há linha em branco
+                        If checkText = "" And Not HasVisualContent(checkPara) Then
+                            hasBlankBetween = True
+                        End If
+                    End If
+                Next checkIndex
+            End If
+            
+            ' Se não há linha em branco, adiciona uma
+            If Not hasBlankBetween Then
+                Set insertionPoint = nextPara.Range
+                insertionPoint.Collapse wdCollapseStart
+                insertionPoint.InsertBefore vbCrLf
+                addedCount = addedCount + 1
+            End If
+        End If
+    Next i
+    
+    If addedCount > 0 Then
+        LogMessage "Linhas em branco adicionadas entre parágrafos: " & addedCount, LOG_LEVEL_INFO
+    End If
+    
+    EnsureSingleBlankLineBetweenParagraphs = True
+    Exit Function
+    
+ErrorHandler:
+    EnsureSingleBlankLineBetweenParagraphs = False
+    LogMessage "Erro ao garantir linhas em branco entre parágrafos: " & Err.Description, LOG_LEVEL_WARNING
+End Function
+
+'================================================================================
 ' FORMAT FIRST PARAGRAPH
 '================================================================================
 Private Function FormatFirstParagraph(doc As Document) As Boolean
