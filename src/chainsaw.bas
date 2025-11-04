@@ -235,6 +235,12 @@ Public Sub PadronizarDocumentoMain()
     If Not RestoreAllImages(doc) Then
         LogMessage "Aviso: Algumas imagens podem ter sido afetadas durante o processamento", LOG_LEVEL_WARNING
     End If
+    
+    ' Formata recuos de parágrafos com imagens (zera recuo à esquerda)
+    Application.StatusBar = "Formatando recuos de imagens..."
+    If Not FormatImageParagraphsIndents(doc) Then
+        LogMessage "Aviso: Falha ao formatar recuos de imagens", LOG_LEVEL_WARNING
+    End If
 
     ' Restaura configurações de visualização originais (exceto zoom)
     If Not RestoreViewSettings(doc) Then
@@ -4527,6 +4533,41 @@ Private Function RestoreAllImages(doc As Document) As Boolean
 ErrorHandler:
     LogMessage "Erro ao verificar imagens: " & Err.Description, LOG_LEVEL_WARNING
     RestoreAllImages = False
+End Function
+
+'================================================================================
+' FORMAT IMAGE PARAGRAPHS INDENTS - Formata recuos de parágrafos com imagens
+'================================================================================
+Private Function FormatImageParagraphsIndents(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+    
+    Dim para As Paragraph
+    Dim formattedCount As Long
+    formattedCount = 0
+    
+    ' Percorre todos os parágrafos
+    For Each para In doc.Paragraphs
+        ' Verifica se o parágrafo contém imagens inline
+        If para.Range.InlineShapes.count > 0 Then
+            ' Zera o recuo à esquerda
+            With para.Format
+                .leftIndent = 0
+                .firstLineIndent = 0
+            End With
+            formattedCount = formattedCount + 1
+        End If
+    Next para
+    
+    If formattedCount > 0 Then
+        LogMessage "Recuos de parágrafos com imagens formatados: " & formattedCount & " parágrafos", LOG_LEVEL_INFO
+    End If
+    
+    FormatImageParagraphsIndents = True
+    Exit Function
+
+ErrorHandler:
+    LogMessage "Erro ao formatar recuos de imagens: " & Err.Description, LOG_LEVEL_WARNING
+    FormatImageParagraphsIndents = False
 End Function
 
 '================================================================================
