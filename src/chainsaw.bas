@@ -958,7 +958,9 @@ Private Function PreviousFormatting(doc As Document) As Boolean
 
     ' Limpeza e formatações otimizadas (logs reduzidos para performance)
     ClearAllFormatting doc
+    RemovePageNumberLines doc
     CleanDocumentStructure doc
+    RemoveAllTabMarks doc
     FormatDocumentTitle doc
     
     ' Formatações principais
@@ -983,6 +985,7 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     ' Formatações específicas (sem verificação de retorno para performance)
     FormatConsiderandoParagraphs doc
     ApplyTextReplacements doc
+    ReplaceInLocoWithItalic doc
     
     RemoveWatermark doc
     InsertHeaderstamp doc
@@ -1013,6 +1016,9 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     
     ' INSERÇÃO FINAL DE LINHAS EM BRANCO: Insere linhas vazias após todas as limpezas
     InsertJustificativaBlankLines doc
+    
+    ' FORMATAÇÃO "DIANTE DO EXPOSTO": Aplica negrito e caixa alta quando no início de parágrafo
+    FormatDianteDoExposto doc
     
     LogMessage "Formatação completa aplicada com sucesso", LOG_LEVEL_INFO
     PreviousFormatting = True
@@ -2340,6 +2346,143 @@ ErrorHandler:
 End Function
 
 '================================================================================
+' REMOVE PAGE NUMBER LINES - Remove linhas com padrão $NUMERO$/$ANO$/Página N
+'================================================================================
+Private Function RemovePageNumberLines(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+    
+    Dim para As Paragraph
+    Dim nextPara As Paragraph
+    Dim paraText As String
+    Dim cleanText As String
+    Dim removedCount As Long
+    Dim i As Long
+    
+    removedCount = 0
+    
+    ' Percorre de trás para frente para não afetar índices ao deletar
+    For i = doc.Paragraphs.count To 1 Step -1
+        If i > doc.Paragraphs.count Then Exit For ' Proteção dinâmica
+        
+        Set para = doc.Paragraphs(i)
+        paraText = para.Range.text
+        cleanText = Trim(Replace(Replace(paraText, vbCr, ""), vbLf, ""))
+        
+        ' Verifica se a linha termina com o padrão desejado
+        If IsPageNumberLine(cleanText) Then
+            ' Verifica se existe uma próxima linha
+            Dim hasNextLine As Boolean
+            Dim nextLineIsEmpty As Boolean
+            hasNextLine = False
+            nextLineIsEmpty = False
+            
+            If i < doc.Paragraphs.count Then
+                hasNextLine = True
+                Set nextPara = doc.Paragraphs(i + 1)
+                Dim nextText As String
+                nextText = Trim(Replace(Replace(nextPara.Range.text, vbCr, ""), vbLf, ""))
+                
+                ' Verifica se a próxima linha está em branco
+                If nextText = "" And Not HasVisualContent(nextPara) Then
+                    nextLineIsEmpty = True
+                End If
+            End If
+            
+            ' Remove a linha com padrão de paginação
+            para.Range.Delete
+            removedCount = removedCount + 1
+            
+            ' Se a próxima linha estava em branco, remove também
+            If hasNextLine And nextLineIsEmpty Then
+                ' Atualiza a referência pois os índices mudaram
+                If i <= doc.Paragraphs.count Then
+                    Set nextPara = doc.Paragraphs(i)
+                    nextText = Trim(Replace(Replace(nextPara.Range.text, vbCr, ""), vbLf, ""))
+                    
+                    ' Confirma que ainda está vazia antes de deletar
+                    If nextText = "" And Not HasVisualContent(nextPara) Then
+                        nextPara.Range.Delete
+                        removedCount = removedCount + 1
+                    End If
+                End If
+            End If
+        End If
+        
+        ' Proteção contra processamento excessivo
+        If removedCount > 500 Then Exit For
+    Next i
+    
+    If removedCount > 0 Then
+        LogMessage "Linhas de paginação removidas: " & removedCount & " linhas", LOG_LEVEL_INFO
+    End If
+    
+    RemovePageNumberLines = True
+    Exit Function
+
+ErrorHandler:
+    LogMessage "Erro ao remover linhas de paginação: " & Err.Description, LOG_LEVEL_WARNING
+    RemovePageNumberLines = False
+End Function
+
+'================================================================================
+' IS PAGE NUMBER LINE - Verifica se texto termina com padrão de paginação
+'================================================================================
+Private Function IsPageNumberLine(text As String) As Boolean
+    On Error GoTo ErrorHandler
+    
+    IsPageNumberLine = False
+    
+    ' Verifica se está vazio
+    If Len(text) < 10 Then Exit Function
+    
+    ' Converte para minúsculas para comparação case-insensitive
+    Dim lowerText As String
+    lowerText = LCase(text)
+    
+    ' Verifica se contém o padrão base
+    If InStr(lowerText, "$numero$/$ano$/p") = 0 Then Exit Function
+    
+    ' Procura pelos padrões possíveis no final
+    Dim patterns() As String
+    ReDim patterns(0 To 1)
+    patterns(0) = "$numero$/$ano$/página"
+    patterns(1) = "$numero$/$ano$/pagina"
+    
+    Dim pattern As String
+    Dim i As Long
+    
+    For i = 0 To UBound(patterns)
+        pattern = patterns(i)
+        
+        ' Verifica se o padrão está presente
+        Dim patternPos As Long
+        patternPos = InStr(lowerText, pattern)
+        
+        If patternPos > 0 Then
+            ' Extrai o texto após o padrão
+            Dim afterPattern As String
+            afterPattern = Trim(Mid(text, patternPos + Len(pattern)))
+            
+            ' Remove espaços
+            afterPattern = Trim(afterPattern)
+            
+            ' Verifica se o que sobrou é apenas 1 ou 2 dígitos
+            If Len(afterPattern) >= 1 And Len(afterPattern) <= 2 Then
+                If IsNumeric(afterPattern) Then
+                    IsPageNumberLine = True
+                    Exit Function
+                End If
+            End If
+        End If
+    Next i
+    
+    Exit Function
+
+ErrorHandler:
+    IsPageNumberLine = False
+End Function
+
+'================================================================================
 ' CLEAN DOCUMENT STRUCTURE
 '================================================================================
 Private Function CleanDocumentStructure(doc As Document) As Boolean
@@ -2469,6 +2612,55 @@ Private Function CleanDocumentStructure(doc As Document) As Boolean
 ErrorHandler:
     LogMessage "Erro na limpeza da estrutura: " & Err.Description, LOG_LEVEL_ERROR
     CleanDocumentStructure = False
+End Function
+
+'================================================================================
+' REMOVE ALL TAB MARKS - Remove todas as marcas de tabulação do documento
+'================================================================================
+Private Function RemoveAllTabMarks(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+    
+    Dim rng As Range
+    Dim tabsRemoved As Long
+    tabsRemoved = 0
+    
+    Set rng = doc.Range
+    
+    ' Remove todas as tabulações substituindo por espaço simples
+    With rng.Find
+        .ClearFormatting
+        .Replacement.ClearFormatting
+        .text = "^t"  ' ^t representa tabulação
+        .Replacement.text = " "  ' Substitui por espaço simples
+        .Forward = True
+        .Wrap = wdFindContinue
+        .Format = False
+        .MatchCase = False
+        .MatchWholeWord = False
+        .MatchWildcards = False
+        .MatchSoundsLike = False
+        .MatchAllWordForms = False
+        
+        Do While .Execute(Replace:=True)
+            tabsRemoved = tabsRemoved + 1
+            ' Proteção contra loop infinito
+            If tabsRemoved > 10000 Then
+                LogMessage "Limite de remoção de tabulações atingido", LOG_LEVEL_WARNING
+                Exit Do
+            End If
+        Loop
+    End With
+    
+    If tabsRemoved > 0 Then
+        LogMessage "Marcas de tabulação removidas: " & tabsRemoved & " ocorrências", LOG_LEVEL_INFO
+    End If
+    
+    RemoveAllTabMarks = True
+    Exit Function
+
+ErrorHandler:
+    LogMessage "Erro ao remover marcas de tabulação: " & Err.Description, LOG_LEVEL_ERROR
+    RemoveAllTabMarks = False
 End Function
 
 '================================================================================
@@ -2697,6 +2889,42 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
         End With
     Next i
     
+    ' Substituição de "tapa-buracos" (com aspas) por tapa-buracos (sem aspas)
+    Dim tapaBuracosQuotes() As String
+    ReDim tapaBuracosQuotes(0 To 5)
+    tapaBuracosQuotes(0) = Chr(34)      ' Aspas duplas retas normais "
+    tapaBuracosQuotes(1) = Chr(8220)    ' Aspas duplas curvas à esquerda "
+    tapaBuracosQuotes(2) = Chr(8221)    ' Aspas duplas curvas à direita "
+    tapaBuracosQuotes(3) = Chr(171)     ' Aspas angulares «
+    tapaBuracosQuotes(4) = Chr(187)     ' Aspas angulares »
+    tapaBuracosQuotes(5) = Chr(96)      ' Acento grave `
+    
+    Dim q1 As Long
+    Dim q2 As Long
+    For q1 = 0 To UBound(tapaBuracosQuotes)
+        For q2 = 0 To UBound(tapaBuracosQuotes)
+            Set rng = doc.Range
+            With rng.Find
+                .ClearFormatting
+                .Replacement.ClearFormatting
+                .text = tapaBuracosQuotes(q1) & "tapa-buracos" & tapaBuracosQuotes(q2)
+                .Replacement.text = "tapa-buracos"
+                .Forward = True
+                .Wrap = wdFindContinue
+                .Format = False
+                .MatchCase = False
+                .MatchWholeWord = False
+                .MatchWildcards = False
+                .MatchSoundsLike = False
+                .MatchAllWordForms = False
+                
+                Do While .Execute(Replace:=True)
+                    replacementCount = replacementCount + 1
+                Loop
+            End With
+        Next q2
+    Next q1
+    
     LogMessage "Substituições de texto aplicadas: " & replacementCount & " substituições realizadas", LOG_LEVEL_INFO
     ApplyTextReplacements = True
     Exit Function
@@ -2704,6 +2932,76 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
 ErrorHandler:
     LogMessage "Erro nas substituições de texto: " & Err.Description, LOG_LEVEL_ERROR
     ApplyTextReplacements = False
+End Function
+
+'================================================================================
+' REPLACE IN LOCO WITH ITALIC - Substitui "in loco" (com aspas) por in loco (itálico)
+'================================================================================
+Private Function ReplaceInLocoWithItalic(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+    
+    Dim rng As Range
+    Dim replacementCount As Long
+    replacementCount = 0
+    
+    ' Variantes de aspas a serem consideradas
+    Dim quoteVariants() As String
+    ReDim quoteVariants(0 To 5)
+    quoteVariants(0) = Chr(34)      ' Aspas duplas retas normais "
+    quoteVariants(1) = Chr(8220)    ' Aspas duplas curvas à esquerda "
+    quoteVariants(2) = Chr(8221)    ' Aspas duplas curvas à direita "
+    quoteVariants(3) = Chr(171)     ' Aspas angulares «
+    quoteVariants(4) = Chr(187)     ' Aspas angulares »
+    quoteVariants(5) = Chr(96)      ' Acento grave `
+    
+    ' Percorre todas as combinações possíveis de aspas
+    Dim i As Long
+    Dim j As Long
+    For i = 0 To UBound(quoteVariants)
+        For j = 0 To UBound(quoteVariants)
+            Dim findPattern As String
+            findPattern = quoteVariants(i) & "in loco" & quoteVariants(j)
+            
+            ' Reinicia o range para cada busca
+            Set rng = doc.Range
+            
+            With rng.Find
+                .ClearFormatting
+                .Replacement.ClearFormatting
+                .text = findPattern
+                .Replacement.text = "in loco"
+                .Replacement.Font.Italic = True
+                .Forward = True
+                .Wrap = wdFindContinue
+                .Format = True
+                .MatchCase = False
+                .MatchWholeWord = False
+                .MatchWildcards = False
+                .MatchSoundsLike = False
+                .MatchAllWordForms = False
+                
+                Do While .Execute(Replace:=True)
+                    replacementCount = replacementCount + 1
+                    ' Limite de segurança
+                    If replacementCount > 1000 Then
+                        LogMessage "Limite de substituições 'in loco' atingido", LOG_LEVEL_WARNING
+                        Exit Do
+                    End If
+                Loop
+            End With
+        Next j
+    Next i
+    
+    If replacementCount > 0 Then
+        LogMessage "Substituições 'in loco': " & replacementCount & " ocorrências formatadas em itálico", LOG_LEVEL_INFO
+    End If
+    
+    ReplaceInLocoWithItalic = True
+    Exit Function
+
+ErrorHandler:
+    LogMessage "Erro ao substituir 'in loco': " & Err.Description, LOG_LEVEL_ERROR
+    ReplaceInLocoWithItalic = False
 End Function
 
 '================================================================================
@@ -3010,6 +3308,57 @@ Private Function IsAnexoPattern(text As String) As Boolean
     cleanText = LCase(Trim(text))
     IsAnexoPattern = (cleanText = "anexo" Or cleanText = "anexos")
 End Function
+
+'================================================================================
+' FORMAT DIANTE DO EXPOSTO - Formata "Diante do exposto" no início de parágrafos
+'================================================================================
+Private Sub FormatDianteDoExposto(doc As Document)
+    On Error GoTo ErrorHandler
+    
+    If Not ValidateDocument(doc) Then Exit Sub
+    
+    Dim para As Paragraph
+    Dim paraText As String
+    Dim cleanText As String
+    Dim formattedCount As Long
+    formattedCount = 0
+    
+    ' Procura por parágrafos que começam com "Diante do exposto"
+    For Each para In doc.Paragraphs
+        If Not HasVisualContent(para) Then
+            ' Obtém o texto do parágrafo
+            paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+            cleanText = LCase(paraText)
+            
+            ' Verifica se começa com "diante do exposto"
+            If Left(cleanText, 17) = "diante do exposto" Then
+                ' Encontra a posição exata da frase (primeiros 17 caracteres)
+                Dim targetRange As Range
+                Set targetRange = para.Range
+                targetRange.End = targetRange.Start + 17
+                
+                ' Aplica formatação: negrito e caixa alta
+                With targetRange.Font
+                    .Bold = True
+                    .AllCaps = True
+                    .Name = STANDARD_FONT
+                    .size = STANDARD_FONT_SIZE
+                End With
+                
+                formattedCount = formattedCount + 1
+            End If
+        End If
+    Next para
+    
+    If formattedCount > 0 Then
+        LogMessage "Formatação 'Diante do exposto': " & formattedCount & " ocorrências formatadas em negrito e caixa alta", LOG_LEVEL_INFO
+    End If
+    
+    Exit Sub
+    
+ErrorHandler:
+    LogMessage "Erro ao formatar 'Diante do exposto': " & Err.Description, LOG_LEVEL_WARNING
+End Sub
 
 '================================================================================
 ' SUBROTINA PÚBLICA: ABRIR PASTA DE LOGS
