@@ -42,7 +42,7 @@
 [CmdletBinding()]
 param(
     [Parameter()]
-    [string]$SourcePath = "\\strqnapmain\Dir. Legislativa\_Christian261\chainsaw",
+    [string]$SourcePath = "",
     
     [Parameter()]
     [switch]$Force,
@@ -53,6 +53,15 @@ param(
     [Parameter(DontShow)]
     [switch]$BypassedExecution
 )
+
+# Define o caminho padrão como a pasta onde o script está localizado
+if ([string]::IsNullOrWhiteSpace($SourcePath)) {
+    $SourcePath = $PSScriptRoot
+    if ([string]::IsNullOrWhiteSpace($SourcePath)) {
+        # Fallback se PSScriptRoot não estiver disponível
+        $SourcePath = Split-Path -Parent $MyInvocation.MyCommand.Path
+    }
+}
 
 # =============================================================================
 # AUTO-RELANÇAMENTO COM BYPASS DE EXECUÇÃO
@@ -99,9 +108,7 @@ if (-not $BypassedExecution) {
         )
         
         # Adiciona parâmetros originais
-        if ($SourcePath -ne "\\strqnapmain\Dir. Legislativa\_Christian261\chainsaw") {
-            $arguments += @("-SourcePath", "`"$SourcePath`"")
-        }
+        # SourcePath é sempre definido automaticamente, então não precisa passar
         if ($Force) {
             $arguments += "-Force"
         }
@@ -430,6 +437,16 @@ function Copy-StampFile {
     Write-Log "Destino: $destFile" -Level INFO
     
     try {
+        # Verifica se origem e destino são o mesmo arquivo
+        $sourceFullPath = (Resolve-Path $SourceFile).Path
+        $destFullPath = if (Test-Path $destFile) { (Resolve-Path $destFile).Path } else { $null }
+        
+        if ($sourceFullPath -eq $destFullPath) {
+            Write-Log "Arquivo já está no local correto (origem = destino), pulando cópia" -Level INFO
+            Write-Log "Arquivo stamp.png já está instalado ✓" -Level SUCCESS
+            return $true
+        }
+        
         # Cria pasta de destino se não existir
         if (-not (Test-Path $destFolder)) {
             New-Item -Path $destFolder -ItemType Directory -Force | Out-Null
@@ -482,6 +499,16 @@ function Copy-TemplatesFolder {
     Write-Log "Destino: $DestFolder" -Level INFO
     
     try {
+        # Verifica se origem e destino são o mesmo local
+        $sourceFullPath = (Resolve-Path $SourceFolder).Path.TrimEnd('\')
+        $destFullPath = if (Test-Path $DestFolder) { (Resolve-Path $DestFolder).Path.TrimEnd('\') } else { $null }
+        
+        if ($sourceFullPath -eq $destFullPath) {
+            Write-Log "A pasta Templates já está no local correto (origem = destino), pulando cópia" -Level INFO
+            Write-Log "Pasta Templates já está instalada ✓" -Level SUCCESS
+            return $true
+        }
+        
         # Cria pasta de destino
         if (-not (Test-Path $DestFolder)) {
             New-Item -Path $DestFolder -ItemType Directory -Force | Out-Null

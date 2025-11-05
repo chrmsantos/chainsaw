@@ -79,10 +79,10 @@ O script agora possui um **mecanismo de auto-relançamento seguro** que elimina 
 
 ### Uso
 
-Simplesmente execute o script normalmente:
+Simplesmente execute o script normalmente a partir da pasta Documentos:
 
 ```powershell
-cd "\\strqnapmain\Dir. Legislativa\_Christian261\chainsaw"
+cd "$env:USERPROFILE\Documents\chainsaw"
 .\install.ps1
 ```
 
@@ -128,7 +128,7 @@ Se necessário, o script se relançará automaticamente. Você verá:
 Antes de instalar, execute o script de teste de permissões:
 
 ```powershell
-cd "\\strqnapmain\Dir. Legislativa\_Christian261\chainsaw"
+cd "$env:USERPROFILE\Documents\chainsaw"
 .\test-permissions.ps1
 ```
 
@@ -143,7 +143,7 @@ Este script verifica:
 Para verificar pré-requisitos sem modificar nada:
 
 ```powershell
-cd "\\strqnapmain\Dir. Legislativa\_Christian261\chainsaw"
+cd "$env:USERPROFILE\Documents\chainsaw"
 .\test-install.ps1
 ```
 
@@ -152,14 +152,14 @@ cd "\\strqnapmain\Dir. Legislativa\_Christian261\chainsaw"
 **Método Recomendado - Usando o Launcher Seguro:**
 
 ```cmd
-cd "\\strqnapmain\Dir. Legislativa\_Christian261\chainsaw"
+cd "%USERPROFILE%\Documents\chainsaw"
 install.cmd
 ```
 
 **Alternativa - Execução Direta do PowerShell:**
 
 ```powershell
-cd "\\strqnapmain\Dir. Legislativa\_Christian261\chainsaw"
+cd "$env:USERPROFILE\Documents\chainsaw"
 .\install.ps1
 ```
 
@@ -205,8 +205,10 @@ install.cmd -NoBackup
 
 ### Instalação com Caminho Customizado
 
+Se os arquivos estiverem em outro local:
+
 ```cmd
-install.cmd -SourcePath "\\outro-servidor\caminho\chainsaw"
+install.cmd -SourcePath "C:\outro\caminho\chainsaw"
 ```
 
 ## 📊 Exemplo de Execução
@@ -225,8 +227,8 @@ install.cmd -SourcePath "\\outro-servidor\caminho\chainsaw"
 ℹ Verificando pré-requisitos...
 ✓ Sistema operacional: Windows 10.0 ✓
 ✓ PowerShell versão: 5.1.19041.4894 ✓
-ℹ Verificando acesso ao caminho de rede: \\strqnapmain\Dir. Legislativa\_Christian261\chainsaw
-✓ Acesso ao caminho de rede confirmado ✓
+ℹ Verificando arquivos de origem: C:\Users\csantos\Documents\chainsaw
+✓ Arquivos de origem encontrados ✓
 ✓ Permissões de escrita no perfil do usuário confirmadas ✓
 
 [... mais output ...]
@@ -253,7 +255,7 @@ Usuário: csantos
 Computador: DESKTOP-ABC123
 Sistema: Microsoft Windows NT 10.0.19045.0
 PowerShell: 5.1.19041.4894
-Caminho de Origem: \\strqnapmain\Dir. Legislativa\_Christian261\chainsaw
+Caminho de Origem: C:\Users\csantos\Documents\chainsaw
 ================================================================================
 
 [2025-11-05 14:30:22] [INFO] === INÍCIO DA INSTALAÇÃO ===
@@ -296,19 +298,21 @@ Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 
 ⚠️ **Nota:** A solução automática é mais segura, pois não altera permanentemente as configurações do sistema.
 
-### Erro: Caminho de rede não acessível
+### Erro: Arquivos de origem não encontrados
 
-**Problema:** "Não foi possível acessar o caminho de rede"
+**Problema:** "Arquivos de origem não encontrados" ou "Não foi possível acessar o caminho"
 
 **Possíveis causas:**
-1. Não está conectado à VPN/rede corporativa
-2. Credenciais de rede expiradas
-3. Caminho incorreto ou servidor offline
+1. Pasta `chainsaw` não está na pasta Documentos
+2. Arquivos `stamp.png` ou pasta `Templates` ausentes
+3. Caminho incorreto especificado
 
 **Solução:**
-1. Conecte-se à VPN/rede corporativa
-2. Teste o acesso manualmente: `explorer "\\strqnapmain\Dir. Legislativa\_Christian261\chainsaw"`
-3. Verifique suas credenciais de rede
+1. Verifique se a pasta está em: `%USERPROFILE%\Documents\chainsaw`
+2. Certifique-se que os arquivos necessários estão presentes:
+   - `assets\stamp.png`
+   - `configs\Templates\`
+3. Se os arquivos estão em outro local, use: `install.cmd -SourcePath "C:\caminho\correto"`
 
 ### Erro: Permissões insuficientes
 

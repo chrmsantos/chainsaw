@@ -23,22 +23,25 @@ O sistema Chainsaw inclui um script automatizado de instalação que configura t
 
 #### Pré-requisitos
 
-- Acesso ao caminho de rede: `\\strqnapmain\Dir. Legislativa\_Christian261\chainsaw`
+- Pasta `chainsaw` na pasta Documentos do usuário com todos os arquivos necessários
 - Permissões de escrita no perfil do usuário (`%USERPROFILE%`)
 - Word deve estar fechado durante a instalação
 
 #### Como Executar
 
-1. **Abra o PowerShell** (não é necessário executar como Administrador)
+1. **Copie a pasta `chainsaw` para sua pasta Documentos**
+   - Caminho típico: `C:\Users\[seu_usuario]\Documents\chainsaw`
+
+2. **Abra o PowerShell** (não é necessário executar como Administrador)
    - Pressione `Win + X` e selecione "Windows PowerShell"
 
-2. **Navegue até a pasta do script**
+3. **Navegue até a pasta do script**
 
    ```powershell
-   cd "\\strqnapmain\Dir. Legislativa\_Christian261\chainsaw"
+   cd "$env:USERPROFILE\Documents\chainsaw"
    ```
 
-3. **Execute o script de instalação**
+4. **Execute o script de instalação**
 
    🔒 **Método Recomendado - Bypass Automático Seguro:**
 
@@ -64,10 +67,9 @@ O sistema Chainsaw inclui um script automatizado de instalação que configura t
    ```cmd
    install.cmd -Force          # Modo automático (sem confirmação)
    install.cmd -NoBackup       # Sem criar backup (não recomendado)
-   install.cmd -SourcePath "\\outro-servidor\caminho"  # Caminho customizado
    ```
 
-4. **Aguarde a conclusão**
+5. **Aguarde a conclusão**
    - O script exibirá o progresso de cada etapa
    - Se necessário, o script se relançará automaticamente (você verá uma mensagem explicativa)
    - Um arquivo de log será criado em `%USERPROFILE%\chainsaw\logs\`
