@@ -1622,6 +1622,10 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     FormatAnteOExpostoParagraphs doc
     LogStepComplete "Formatação de 'ante o exposto'"
     
+    LogStepStart "Formatação de 'por todas as razões aqui expostas'"
+    FormatPorTodasRazoesParagraphs doc
+    LogStepComplete "Formatação de 'por todas as razões aqui expostas'"
+    
     LogStepStart "Aplicação de substituições de texto"
     ApplyTextReplacements doc
     LogStepComplete "Aplicação de substituições de texto"
@@ -4528,6 +4532,59 @@ Private Function FormatAnteOExpostoParagraphs(doc As Document) As Boolean
 ErrorHandler:
     LogMessage "Erro na formatação 'ante o exposto': " & Err.Description, LOG_LEVEL_ERROR
     FormatAnteOExpostoParagraphs = False
+End Function
+
+'================================================================================
+' FORMATAÇÃO DE "POR TODAS AS RAZÕES AQUI EXPOSTAS"
+'================================================================================
+Private Function FormatPorTodasRazoesParagraphs(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+    
+    Dim para As Paragraph
+    Dim paraText As String
+    Dim i As Long
+    Dim totalFormatted As Long
+    
+    totalFormatted = 0
+    
+    ' Procura parágrafos que começam com "Por todas as razões aqui expostas"
+    For i = 1 To doc.Paragraphs.count
+        Set para = doc.Paragraphs(i)
+        paraText = Trim(para.Range.text)
+        
+        ' Remove marcador de parágrafo para análise
+        If Right(paraText, 1) = vbCr Or Right(paraText, 1) = vbLf Then
+            paraText = Left(paraText, Len(paraText) - 1)
+            paraText = Trim(paraText)
+        End If
+        
+        ' Verifica se começa com "Por todas as razões aqui expostas" (case insensitive)
+        If Len(paraText) >= 35 Then
+            Dim firstPart As String
+            firstPart = Left(LCase(paraText), 35)
+            
+            If firstPart = "por todas as razões aqui expostas" Or _
+               firstPart = "por todas as razoes aqui expostas" Then
+                ' Aplica negrito ao parágrafo inteiro
+                With para.Range.Font
+                    .Bold = True
+                End With
+                totalFormatted = totalFormatted + 1
+                LogMessage "Negrito aplicado em parágrafo 'Por todas as razões aqui expostas' (parágrafo " & i & ")", LOG_LEVEL_INFO
+            End If
+        End If
+    Next i
+    
+    If totalFormatted > 0 Then
+        LogMessage "Formatação 'Por todas as razões aqui expostas' aplicada: " & totalFormatted & " parágrafo(s) em negrito", LOG_LEVEL_INFO
+    End If
+    
+    FormatPorTodasRazoesParagraphs = True
+    Exit Function
+
+ErrorHandler:
+    LogMessage "Erro na formatação 'Por todas as razões aqui expostas': " & Err.Description, LOG_LEVEL_ERROR
+    FormatPorTodasRazoesParagraphs = False
 End Function
 
 '================================================================================
