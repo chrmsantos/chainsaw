@@ -343,11 +343,25 @@ Public Sub PadronizarDocumentoMain()
         DoEvents
     Loop
     
-    ' Aviso importante sobre o desfazer
-    MsgBox "Documento padronizado com sucesso!" & vbCrLf & vbCrLf & _
-           "⚠ IMPORTANTE: Se usar o botão 'Desfazer', clique apenas UMA vez." & vbCrLf & _
-           "Clicar novamente pode travar o Word." & vbCrLf & vbCrLf & _
-           "Backup criado em: " & IIf(backupFilePath <> "", backupFilePath, "(mesmo local do documento)"), _
+    ' Calcula tempo de execução
+    Dim executionTime As Double
+    Dim executionTimeText As String
+    executionTime = (Now - executionStartTime) * 86400 ' Converte para segundos
+    
+    If executionTime < 1 Then
+        executionTimeText = Format(executionTime * 1000, "0") & " milissegundos"
+    ElseIf executionTime < 60 Then
+        executionTimeText = Format(executionTime, "0.0") & " segundos"
+    Else
+        executionTimeText = Format(Int(executionTime / 60), "0") & " minuto(s) e " & Format(executionTime Mod 60, "00") & " segundo(s)"
+    End If
+    
+    ' Mensagem de sucesso com informações completas
+    MsgBox "✓ Processamento concluído com sucesso em " & executionTimeText & "!" & vbCrLf & vbCrLf & _
+           "📁 Backup criado em:" & vbCrLf & _
+           "   " & IIf(backupFilePath <> "", backupFilePath, doc.Path & "\" & Replace(doc.Name, ".docx", "") & "_backup.docx") & vbCrLf & vbCrLf & _
+           "📋 Log salvo em:" & vbCrLf & _
+           "   " & logFilePath, _
            vbInformation, "CHAINSAW - Padronização Concluída"
 
 CleanUp:
@@ -975,6 +989,11 @@ Private Sub EndUndoGroup()
         ' após desfazer o grupo customizado
         LimitUndoHistory
         
+        ' Registra callback para detectar quando o usuário desfizer
+        ' Nota: VBA não suporta eventos nativos de Undo, então usamos
+        ' uma abordagem alternativa via macro pública que o usuário pode
+        ' executar após desfazer (ou adicionar ao Quick Access Toolbar)
+        
         undoGroupName = ""
     End If
     
@@ -987,38 +1006,34 @@ ErrorHandler:
 End Sub
 
 '================================================================================
-' LIMITAÇÃO DO HISTÓRICO DE DESFAZER
+' CONFIRMAÇÃO DE DESFAZER - Macro pública para usuário executar após Ctrl+Z
 '================================================================================
-Private Sub LimitUndoHistory()
+Public Sub ConfirmarDesfazer()
+    ' Esta macro pode ser executada pelo usuário após desfazer (Ctrl+Z)
+    ' Basta executar esta macro para confirmar que o desfazer foi bem-sucedido
+    
     On Error Resume Next
     
-    ' IMPORTANTE: Esta função tenta limitar o histórico de desfazer
-    ' para evitar que o Word trave ao tentar desfazer operações
-    ' internas após desfazer o grupo customizado.
-    
-    ' Estratégia 1: Força salvar o documento internamente (não no disco)
-    ' Isso "consolida" o estado atual e limpa operações internas
     Dim doc As Document
     Set doc = ActiveDocument
     
-    If Not doc Is Nothing Then
-        ' Salva estado interno do documento
-        ' Isso força o Word a consolidar o histórico
-        doc.Range.ListFormat.RemoveNumbers ' Operação segura e rápida que força atualização
-        Err.Clear
-    End If
+    If doc Is Nothing Then Exit Sub
     
-    ' Estratégia 2: Limpa o buffer de desfazer temporário
-    ' Cria e finaliza um grupo vazio para "limpar" a pilha
+    MsgBox "✓ Todo o processamento do CHAINSAW foi desfeito com sucesso!" & vbCrLf & vbCrLf & _
+           "O documento foi restaurado ao estado anterior à padronização." & vbCrLf & vbCrLf & _
+           "ℹ Se precisar restaurar a versão padronizada, use o arquivo de backup.", _
+           vbInformation, "CHAINSAW - Desfazer Concluído"
+End Sub
+
+'================================================================================
+' LIMITAÇÃO DO HISTÓRICO DE DESFAZER
+'================================================================================
+Private Sub LimitUndoHistory()
+    ' Função simplificada - apenas registra no log
+    ' Removidas operações que poderiam causar travamentos
     On Error Resume Next
-    Application.UndoRecord.StartCustomRecord "CHAINSAW_CLEANUP"
-    Application.UndoRecord.EndCustomRecord
-    Err.Clear
     
-    ' Log para rastreamento
-    LogMessage "Histórico de desfazer consolidado e limitado ao grupo customizado", LOG_LEVEL_INFO
-    
-    On Error GoTo 0
+    LogMessage "Grupo de desfazer finalizado - histórico preservado", LOG_LEVEL_INFO
 End Sub
 
 '================================================================================

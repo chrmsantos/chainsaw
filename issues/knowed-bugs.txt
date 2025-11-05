@@ -1,0 +1,1 @@
+não desfaz e trava o word no segundo desfazer
