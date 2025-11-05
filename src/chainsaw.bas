@@ -218,6 +218,13 @@ Public Sub PadronizarDocumentoMain()
     
     LogMessage "Iniciando padronização do documento: " & doc.Name, LOG_LEVEL_INFO
     
+    ' Valida o tipo de documento (INDICAÇÃO, REQUERIMENTO ou MOÇÃO)
+    If Not ValidateDocumentType(doc) Then
+        Application.StatusBar = "Cancelado: tipo de documento não reconhecido"
+        LogMessage "Processamento cancelado pelo usuário após validação de tipo", LOG_LEVEL_INFO
+        Exit Sub
+    End If
+    
     ' Inicializa barra de progresso (15 etapas principais)
     InitializeProgress 15
     
@@ -2199,6 +2206,89 @@ Private Function GetFirstWordOfDocument(doc As Document) As String
 ErrorHandler:
     LogMessage "Erro ao obter primeira palavra do documento: " & Err.Description, LOG_LEVEL_WARNING
     GetFirstWordOfDocument = ""
+End Function
+
+'================================================================================
+' VALIDATE DOCUMENT TYPE - VALIDAÇÃO DO TIPO DE DOCUMENTO
+'================================================================================
+' Valida se o documento é do tipo esperado (INDICAÇÃO, REQUERIMENTO ou MOÇÃO)
+' Retorna True para prosseguir, False para cancelar
+Private Function ValidateDocumentType(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+    
+    Dim firstWord As String
+    Dim userResponse As VbMsgBoxResult
+    Dim validTypes As String
+    
+    ' Valor padrão: assume cancelamento
+    ValidateDocumentType = False
+    
+    ' Obtém a primeira palavra do documento
+    firstWord = GetFirstWordOfDocument(doc)
+    
+    ' Se não conseguiu obter a primeira palavra, alerta o usuário
+    If Len(firstWord) = 0 Then
+        userResponse = MsgBox( _
+            "Não foi possível identificar o tipo do documento." & vbCrLf & vbCrLf & _
+            "O documento parece estar vazio ou sem texto válido." & vbCrLf & vbCrLf & _
+            "Deseja cancelar ou prosseguir mesmo assim?", _
+            vbExclamation + vbYesNo, _
+            "Tipo de Documento Não Identificado")
+        
+        If userResponse = vbYes Then
+            LogMessage "Usuário optou por prosseguir com documento de tipo não identificado", LOG_LEVEL_WARNING
+            ValidateDocumentType = True
+        Else
+            LogMessage "Usuário cancelou - documento de tipo não identificado", LOG_LEVEL_INFO
+            ValidateDocumentType = False
+        End If
+        Exit Function
+    End If
+    
+    ' Verifica se é um dos tipos válidos (case insensitive)
+    If firstWord = "INDICAÇÃO" Or firstWord = "REQUERIMENTO" Or firstWord = "MOÇÃO" Then
+        ' Tipo válido - prossegue
+        LogMessage "Documento identificado como: " & firstWord, LOG_LEVEL_INFO
+        ValidateDocumentType = True
+        Exit Function
+    End If
+    
+    ' Tipo não reconhecido - pergunta ao usuário
+    validTypes = "• INDICAÇÃO" & vbCrLf & "• REQUERIMENTO" & vbCrLf & "• MOÇÃO"
+    
+    userResponse = MsgBox( _
+        "O documento parece não ser uma Indicação, Requerimento ou Moção." & vbCrLf & vbCrLf & _
+        "Primeira palavra identificada: " & Chr(34) & firstWord & Chr(34) & vbCrLf & vbCrLf & _
+        "Tipos válidos esperados:" & vbCrLf & validTypes & vbCrLf & vbCrLf & _
+        "Possíveis causas:" & vbCrLf & _
+        "• Erro de grafia no título da propositura" & vbCrLf & _
+        "• Documento de tipo diferente" & vbCrLf & _
+        "• Formatação incorreta do título" & vbCrLf & vbCrLf & _
+        "Deseja cancelar ou prosseguir mesmo assim?", _
+        vbExclamation + vbYesNo, _
+        "Tipo de Documento Não Reconhecido")
+    
+    If userResponse = vbYes Then
+        LogMessage "Usuário optou por prosseguir com documento tipo: " & firstWord, LOG_LEVEL_WARNING
+        ValidateDocumentType = True
+    Else
+        LogMessage "Usuário cancelou processamento - tipo de documento não reconhecido: " & firstWord, LOG_LEVEL_INFO
+        ValidateDocumentType = False
+    End If
+    
+    Exit Function
+
+ErrorHandler:
+    LogMessage "Erro na validação do tipo de documento: " & Err.Description, LOG_LEVEL_ERROR
+    ' Em caso de erro, pergunta ao usuário se quer continuar
+    userResponse = MsgBox( _
+        "Erro ao validar o tipo de documento:" & vbCrLf & _
+        Err.Description & vbCrLf & vbCrLf & _
+        "Deseja cancelar ou prosseguir?", _
+        vbCritical + vbYesNo, _
+        "Erro na Validação")
+    
+    ValidateDocumentType = (userResponse = vbYes)
 End Function
 
 '================================================================================
