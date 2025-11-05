@@ -359,6 +359,19 @@ function Test-SourceFiles {
 }
 
 # =============================================================================
+# FUNÇÕES AUXILIARES
+# =============================================================================
+
+function Test-WordRunning {
+    <#
+    .SYNOPSIS
+        Verifica se o Microsoft Word está em execução.
+    #>
+    $wordProcesses = Get-Process -Name "WINWORD" -ErrorAction SilentlyContinue
+    return ($null -ne $wordProcesses -and $wordProcesses.Count -gt 0)
+}
+
+# =============================================================================
 # FUNÇÕES DE BACKUP
 # =============================================================================
 
@@ -377,6 +390,35 @@ function Backup-TemplatesFolder {
         return $null
     }
     
+    # Verifica se o Word está aberto
+    if (Test-WordRunning) {
+        Write-Host ""
+        Write-Host "╔════════════════════════════════════════════════════════════════╗" -ForegroundColor Yellow
+        Write-Host "║                  ⚠ MICROSOFT WORD ABERTO ⚠                    ║" -ForegroundColor Yellow
+        Write-Host "╚════════════════════════════════════════════════════════════════╝" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "O Microsoft Word está em execução e deve ser fechado antes de" -ForegroundColor Yellow
+        Write-Host "continuar com a instalação." -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "Por favor:" -ForegroundColor White
+        Write-Host "  1. Salve todos os documentos abertos no Word" -ForegroundColor Gray
+        Write-Host "  2. Feche completamente o Microsoft Word" -ForegroundColor Gray
+        Write-Host "  3. Pressione qualquer tecla para continuar" -ForegroundColor Gray
+        Write-Host ""
+        
+        Write-Log "Aguardando fechamento do Word..." -Level WARNING
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+        
+        # Verifica novamente
+        if (Test-WordRunning) {
+            Write-Log "Word ainda está aberto - abortando instalação" -Level ERROR
+            throw "Microsoft Word deve ser fechado antes da instalação."
+        }
+        
+        Write-Host "✓ Word fechado, continuando..." -ForegroundColor Green
+        Write-Host ""
+    }
+    
     $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
     $backupName = "Templates_backup_$timestamp"
     $backupPath = Join-Path (Split-Path $SourceFolder -Parent) $backupName
@@ -386,10 +428,32 @@ function Backup-TemplatesFolder {
     Write-Log "Destino: $backupPath" -Level INFO
     
     try {
-        # Renomeia a pasta existente
+        # Tenta usar Rename-Item primeiro (mais rápido)
         Rename-Item -Path $SourceFolder -NewName $backupName -Force -ErrorAction Stop
         Write-Log "Backup criado com sucesso: $backupName ✓" -Level SUCCESS
         return $backupPath
+    }
+    catch [System.IO.IOException] {
+        Write-Log "Erro de acesso ao renomear (possível arquivo em uso)" -Level WARNING
+        Write-Log "Tentando método alternativo (cópia)..." -Level INFO
+        
+        try {
+            # Método alternativo: copiar e depois deletar
+            Copy-Item -Path $SourceFolder -Destination $backupPath -Recurse -Force -ErrorAction Stop
+            
+            # Aguarda um pouco para liberar arquivos
+            Start-Sleep -Seconds 1
+            
+            # Remove a pasta original
+            Remove-Item -Path $SourceFolder -Recurse -Force -ErrorAction Stop
+            
+            Write-Log "Backup criado com sucesso (método cópia): $backupName ✓" -Level SUCCESS
+            return $backupPath
+        }
+        catch {
+            Write-Log "Erro ao criar backup com método alternativo: $_" -Level ERROR
+            throw "Não foi possível criar backup. Certifique-se de que o Word está fechado e que não há arquivos em uso na pasta Templates."
+        }
     }
     catch {
         Write-Log "Erro ao criar backup: $_" -Level ERROR
@@ -576,11 +640,6 @@ function Copy-TemplatesFolder {
 # =============================================================================
 # FUNÇÕES DE IMPORTAÇÃO DE PERSONALIZAÇÕES
 # =============================================================================
-
-function Test-WordRunning {
-    $wordProcesses = Get-Process -Name "WINWORD" -ErrorAction SilentlyContinue
-    return ($null -ne $wordProcesses -and $wordProcesses.Count -gt 0)
-}
 
 function Test-CustomizationsAvailable {
     param([string]$ImportPath)
