@@ -1,7 +1,7 @@
 ﻿# =============================================================================
 # CHAINSAW - Script de Instalação de Configurações do Word
 # =============================================================================
-# Versão: 1.0.0
+# Versão: 2.0.0
 # Licença: GNU GPLv3 (https://www.gnu.org/licenses/gpl-3.0.html)
 # Compatibilidade: Windows 10+, PowerShell 5.1+
 # Autor: Christian Martin dos Santos (chrmsantos@protonmail.com)
@@ -13,19 +13,27 @@
 
 .DESCRIPTION
     Este script realiza as seguintes operações:
-    1. Copia o arquivo stamp.png da rede para a pasta do usuário
+    1. Copia o arquivo stamp.png para a pasta do usuário
     2. Faz backup da pasta Templates atual
-    3. Copia os novos Templates da rede
-    4. Registra todas as operações em arquivo de log
+    3. Copia os novos Templates
+    4. Detecta e importa personalizações do Word (se encontradas)
+    5. Registra todas as operações em arquivo de log
+    
+    Se uma pasta 'exported-config' for encontrada no diretório do script,
+    as personalizações do Word (Ribbon, Partes Rápidas, etc.) serão 
+    automaticamente importadas.
 
 .PARAMETER SourcePath
-    Caminho de rede base. Padrão: \\strqnapmain\Dir. Legislativa\_Christian261\chainsaw
+    Caminho base dos arquivos. Padrão: pasta onde o script está localizado
 
 .PARAMETER Force
     Força a instalação sem confirmação do usuário.
 
 .PARAMETER NoBackup
     Não cria backup da pasta Templates existente (não recomendado).
+
+.PARAMETER SkipCustomizations
+    Não importa personalizações do Word mesmo se encontradas.
 
 .EXAMPLE
     .\install.ps1
@@ -35,8 +43,13 @@
     .\install.ps1 -Force
     Executa a instalação sem confirmação.
 
+.EXAMPLE
+    .\install.ps1 -SkipCustomizations
+    Instala apenas Templates, sem importar personalizações.
+
 .NOTES
-    Requer permissões de leitura no caminho de rede e escrita nas pastas do usuário.
+    Requer permissões de escrita nas pastas do usuário.
+    Não requer privilégios de administrador.
 #>
 
 [CmdletBinding()]
@@ -49,6 +62,9 @@ param(
     
     [Parameter()]
     [switch]$NoBackup,
+    
+    [Parameter()]
+    [switch]$SkipCustomizations,
     
     [Parameter(DontShow)]
     [switch]$BypassedExecution
@@ -558,6 +574,427 @@ function Copy-TemplatesFolder {
 }
 
 # =============================================================================
+# FUNÇÕES DE IMPORTAÇÃO DE PERSONALIZAÇÕES
+# =============================================================================
+
+function Test-WordRunning {
+    $wordProcesses = Get-Process -Name "WINWORD" -ErrorAction SilentlyContinue
+    return ($null -ne $wordProcesses -and $wordProcesses.Count -gt 0)
+}
+
+function Test-CustomizationsAvailable {
+    param([string]$ImportPath)
+    
+    if (-not (Test-Path $ImportPath)) {
+        return $false
+    }
+    
+    # Verifica se há um manifesto ou arquivos para importar
+    $manifestPath = Join-Path $ImportPath "MANIFEST.json"
+    $hasManifest = Test-Path $manifestPath
+    
+    if ($hasManifest) {
+        try {
+            $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
+            Write-Log "Manifesto encontrado: $($manifest.TotalItems) itens" -Level INFO
+            Write-Log "Exportado em: $($manifest.ExportDate) por $($manifest.UserName)" -Level INFO
+        }
+        catch {
+            Write-Log "Erro ao ler manifesto: $_" -Level WARNING
+        }
+    }
+    
+    return $true
+}
+
+function Backup-WordCustomizations {
+    param([string]$BackupReason = "pré-importação")
+    
+    if ($NoBackup) {
+        Write-Log "Backup de personalizações desabilitado (-NoBackup)" -Level WARNING
+        return $null
+    }
+    
+    Write-Log "Criando backup das personalizações do Word ($BackupReason)..." -Level INFO
+    
+    $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
+    $backupPath = Join-Path $env:USERPROFILE "chainsaw\backups\word-customizations_$timestamp"
+    
+    try {
+        if (-not (Test-Path $backupPath)) {
+            New-Item -Path $backupPath -ItemType Directory -Force | Out-Null
+        }
+        
+        $templatesPath = Join-Path $env:APPDATA "Microsoft\Templates"
+        $localAppDataPath = $env:LOCALAPPDATA
+        
+        # Backup do Normal.dotm
+        $normalPath = Join-Path $templatesPath "Normal.dotm"
+        if (Test-Path $normalPath) {
+            $destNormal = Join-Path $backupPath "Templates"
+            New-Item -Path $destNormal -ItemType Directory -Force | Out-Null
+            Copy-Item -Path $normalPath -Destination $destNormal -Force
+            Write-Log "Normal.dotm backup criado" -Level INFO
+        }
+        
+        # Backup de personalizações UI
+        $uiPath = Join-Path $localAppDataPath "Microsoft\Office"
+        $uiFiles = Get-ChildItem -Path $uiPath -Filter "*.officeUI" -Recurse -ErrorAction SilentlyContinue
+        if ($uiFiles.Count -gt 0) {
+            $destUI = Join-Path $backupPath "OfficeCustomUI"
+            New-Item -Path $destUI -ItemType Directory -Force | Out-Null
+            foreach ($file in $uiFiles) {
+                Copy-Item -Path $file.FullName -Destination (Join-Path $destUI $file.Name) -Force
+            }
+            Write-Log "Personalizações UI backup criado: $($uiFiles.Count) arquivos" -Level INFO
+        }
+        
+        Write-Log "Backup de personalizações criado em: $backupPath ✓" -Level SUCCESS
+        return $backupPath
+    }
+    catch {
+        Write-Log "Erro ao criar backup de personalizações: $_" -Level ERROR
+        return $null
+    }
+}
+
+function Import-NormalTemplate {
+    param([string]$ImportPath)
+    
+    Write-Log "Importando Normal.dotm..." -Level INFO
+    
+    $sourcePath = Join-Path $ImportPath "Templates\Normal.dotm"
+    $templatesPath = Join-Path $env:APPDATA "Microsoft\Templates"
+    $destPath = Join-Path $templatesPath "Normal.dotm"
+    
+    if (-not (Test-Path $sourcePath)) {
+        Write-Log "Normal.dotm não encontrado no pacote de importação" -Level WARNING
+        return $false
+    }
+    
+    try {
+        if (-not (Test-Path $templatesPath)) {
+            New-Item -Path $templatesPath -ItemType Directory -Force | Out-Null
+        }
+        
+        Copy-Item -Path $sourcePath -Destination $destPath -Force
+        Write-Log "Normal.dotm importado com sucesso ✓" -Level SUCCESS
+        return $true
+    }
+    catch {
+        Write-Log "Erro ao importar Normal.dotm: $_" -Level ERROR
+        return $false
+    }
+}
+
+function Import-BuildingBlocks {
+    param([string]$ImportPath)
+    
+    Write-Log "Importando Building Blocks..." -Level INFO
+    
+    $templatesPath = Join-Path $env:APPDATA "Microsoft\Templates"
+    $sourceManaged = Join-Path $ImportPath "Templates\LiveContent\16\Managed\Word Document Building Blocks"
+    $sourceUser = Join-Path $ImportPath "Templates\LiveContent\16\User\Word Document Building Blocks"
+    
+    $destManaged = Join-Path $templatesPath "LiveContent\16\Managed\Word Document Building Blocks"
+    $destUser = Join-Path $templatesPath "LiveContent\16\User\Word Document Building Blocks"
+    
+    $importedCount = 0
+    
+    # Importa Building Blocks gerenciados
+    if (Test-Path $sourceManaged) {
+        try {
+            if (-not (Test-Path $destManaged)) {
+                New-Item -Path $destManaged -ItemType Directory -Force | Out-Null
+            }
+            
+            $files = Get-ChildItem -Path $sourceManaged -Recurse -File
+            foreach ($file in $files) {
+                $relativePath = $file.FullName.Substring($sourceManaged.Length + 1)
+                $destFile = Join-Path $destManaged $relativePath
+                $destDir = Split-Path $destFile -Parent
+                
+                if (-not (Test-Path $destDir)) {
+                    New-Item -Path $destDir -ItemType Directory -Force | Out-Null
+                }
+                
+                Copy-Item -Path $file.FullName -Destination $destFile -Force
+                $importedCount++
+            }
+            
+            Write-Log "Building Blocks gerenciados importados: $($files.Count) arquivos" -Level INFO
+        }
+        catch {
+            Write-Log "Erro ao importar Building Blocks gerenciados: $_" -Level WARNING
+        }
+    }
+    
+    # Importa Building Blocks do usuário
+    if (Test-Path $sourceUser) {
+        try {
+            if (-not (Test-Path $destUser)) {
+                New-Item -Path $destUser -ItemType Directory -Force | Out-Null
+            }
+            
+            $files = Get-ChildItem -Path $sourceUser -Recurse -File
+            foreach ($file in $files) {
+                $relativePath = $file.FullName.Substring($sourceUser.Length + 1)
+                $destFile = Join-Path $destUser $relativePath
+                $destDir = Split-Path $destFile -Parent
+                
+                if (-not (Test-Path $destDir)) {
+                    New-Item -Path $destDir -ItemType Directory -Force | Out-Null
+                }
+                
+                Copy-Item -Path $file.FullName -Destination $destFile -Force
+                $importedCount++
+            }
+            
+            Write-Log "Building Blocks do usuário importados: $($files.Count) arquivos" -Level INFO
+        }
+        catch {
+            Write-Log "Erro ao importar Building Blocks do usuário: $_" -Level WARNING
+        }
+    }
+    
+    if ($importedCount -gt 0) {
+        Write-Log "Building Blocks importados: $importedCount arquivos ✓" -Level SUCCESS
+        return $true
+    }
+    else {
+        Write-Log "Nenhum Building Block para importar" -Level INFO
+        return $false
+    }
+}
+
+function Import-DocumentThemes {
+    param([string]$ImportPath)
+    
+    Write-Log "Importando temas de documentos..." -Level INFO
+    
+    $templatesPath = Join-Path $env:APPDATA "Microsoft\Templates"
+    $sourceManaged = Join-Path $ImportPath "Templates\LiveContent\16\Managed\Document Themes"
+    $sourceUser = Join-Path $ImportPath "Templates\LiveContent\16\User\Document Themes"
+    
+    $destManaged = Join-Path $templatesPath "LiveContent\16\Managed\Document Themes"
+    $destUser = Join-Path $templatesPath "LiveContent\16\User\Document Themes"
+    
+    $importedCount = 0
+    
+    # Temas gerenciados
+    if (Test-Path $sourceManaged) {
+        try {
+            if (-not (Test-Path $destManaged)) {
+                New-Item -Path $destManaged -ItemType Directory -Force | Out-Null
+            }
+            
+            $files = Get-ChildItem -Path $sourceManaged -Recurse -File
+            foreach ($file in $files) {
+                $relativePath = $file.FullName.Substring($sourceManaged.Length + 1)
+                $destFile = Join-Path $destManaged $relativePath
+                $destDir = Split-Path $destFile -Parent
+                
+                if (-not (Test-Path $destDir)) {
+                    New-Item -Path $destDir -ItemType Directory -Force | Out-Null
+                }
+                
+                Copy-Item -Path $file.FullName -Destination $destFile -Force
+                $importedCount++
+            }
+        }
+        catch {
+            Write-Log "Erro ao importar temas gerenciados: $_" -Level WARNING
+        }
+    }
+    
+    # Temas do usuário
+    if (Test-Path $sourceUser) {
+        try {
+            if (-not (Test-Path $destUser)) {
+                New-Item -Path $destUser -ItemType Directory -Force | Out-Null
+            }
+            
+            $files = Get-ChildItem -Path $sourceUser -Recurse -File
+            foreach ($file in $files) {
+                $relativePath = $file.FullName.Substring($sourceUser.Length + 1)
+                $destFile = Join-Path $destUser $relativePath
+                $destDir = Split-Path $destFile -Parent
+                
+                if (-not (Test-Path $destDir)) {
+                    New-Item -Path $destDir -ItemType Directory -Force | Out-Null
+                }
+                
+                Copy-Item -Path $file.FullName -Destination $destFile -Force
+                $importedCount++
+            }
+        }
+        catch {
+            Write-Log "Erro ao importar temas do usuário: $_" -Level WARNING
+        }
+    }
+    
+    if ($importedCount -gt 0) {
+        Write-Log "Temas importados: $importedCount arquivos ✓" -Level SUCCESS
+        return $true
+    }
+    else {
+        Write-Log "Nenhum tema para importar" -Level INFO
+        return $false
+    }
+}
+
+function Import-RibbonCustomization {
+    param([string]$ImportPath)
+    
+    Write-Log "Importando personalização da Faixa de Opções..." -Level INFO
+    
+    $sourcePath = Join-Path $ImportPath "RibbonCustomization"
+    
+    if (-not (Test-Path $sourcePath)) {
+        Write-Log "Nenhuma personalização do Ribbon para importar" -Level INFO
+        return $false
+    }
+    
+    try {
+        $files = Get-ChildItem -Path $sourcePath -Filter "*.officeUI" -ErrorAction SilentlyContinue
+        
+        if ($files.Count -eq 0) {
+            Write-Log "Nenhum arquivo de personalização Ribbon encontrado" -Level INFO
+            return $false
+        }
+        
+        foreach ($file in $files) {
+            # Tenta os locais possíveis
+            $possibleDests = @(
+                (Join-Path $env:LOCALAPPDATA "Microsoft\Office"),
+                (Join-Path $env:APPDATA "Microsoft\Office")
+            )
+            
+            foreach ($destPath in $possibleDests) {
+                if (-not (Test-Path $destPath)) {
+                    New-Item -Path $destPath -ItemType Directory -Force | Out-Null
+                }
+                
+                $destFile = Join-Path $destPath $file.Name
+                Copy-Item -Path $file.FullName -Destination $destFile -Force
+                Write-Log "Ribbon importado para: $destFile" -Level INFO
+            }
+        }
+        
+        Write-Log "Personalização do Ribbon importada: $($files.Count) arquivos ✓" -Level SUCCESS
+        return $true
+    }
+    catch {
+        Write-Log "Erro ao importar Ribbon: $_" -Level ERROR
+        return $false
+    }
+}
+
+function Import-OfficeCustomUI {
+    param([string]$ImportPath)
+    
+    Write-Log "Importando personalizações da interface..." -Level INFO
+    
+    $sourcePath = Join-Path $ImportPath "OfficeCustomUI"
+    
+    if (-not (Test-Path $sourcePath)) {
+        Write-Log "Nenhuma personalização UI para importar" -Level INFO
+        return $false
+    }
+    
+    try {
+        $files = Get-ChildItem -Path $sourcePath -Filter "*.officeUI" -ErrorAction SilentlyContinue
+        
+        if ($files.Count -eq 0) {
+            Write-Log "Nenhum arquivo de personalização UI encontrado" -Level INFO
+            return $false
+        }
+        
+        $destPath = Join-Path $env:LOCALAPPDATA "Microsoft\Office"
+        if (-not (Test-Path $destPath)) {
+            New-Item -Path $destPath -ItemType Directory -Force | Out-Null
+        }
+        
+        foreach ($file in $files) {
+            $destFile = Join-Path $destPath $file.Name
+            Copy-Item -Path $file.FullName -Destination $destFile -Force
+        }
+        
+        Write-Log "Personalizações UI importadas: $($files.Count) arquivos ✓" -Level SUCCESS
+        return $true
+    }
+    catch {
+        Write-Log "Erro ao importar personalizações UI: $_" -Level ERROR
+        return $false
+    }
+}
+
+function Import-WordCustomizations {
+    param([string]$ImportPath)
+    
+    Write-Log "=== Iniciando importação de personalizações ===" -Level INFO
+    
+    # Verifica se o Word está em execução
+    if (Test-WordRunning) {
+        Write-Host ""
+        Write-Host "╔════════════════════════════════════════════════════════════════╗" -ForegroundColor Yellow
+        Write-Host "║                  ⚠ MICROSOFT WORD ABERTO ⚠                    ║" -ForegroundColor Yellow
+        Write-Host "╚════════════════════════════════════════════════════════════════╝" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "O Microsoft Word está em execução e deve ser fechado antes de" -ForegroundColor Yellow
+        Write-Host "importar as personalizações." -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "Por favor:" -ForegroundColor White
+        Write-Host "  1. Salve todos os documentos abertos no Word" -ForegroundColor Gray
+        Write-Host "  2. Feche completamente o Microsoft Word" -ForegroundColor Gray
+        Write-Host "  3. Execute este script novamente" -ForegroundColor Gray
+        Write-Host ""
+        
+        Write-Log "Importação abortada: Word está em execução" -Level WARNING
+        return $false
+    }
+    
+    # Cria backup
+    $backupPath = Backup-WordCustomizations -BackupReason "pré-importação de personalizações"
+    if ($null -eq $backupPath -and -not $NoBackup) {
+        Write-Host ""
+        Write-Host "⚠ Falha ao criar backup das personalizações atuais." -ForegroundColor Yellow
+        
+        if (-not $Force) {
+            $response = Read-Host "Continuar mesmo assim? (S/N)"
+            if ($response -notmatch '^[Ss]$') {
+                Write-Log "Importação cancelada: falha no backup" -Level WARNING
+                return $false
+            }
+        }
+    }
+    
+    Write-Host ""
+    Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+    Write-Host "  ETAPA 6: Importação de Personalizações do Word" -ForegroundColor White
+    Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+    Write-Host ""
+    
+    # Importações
+    $importedCount = 0
+    
+    if (Import-NormalTemplate -ImportPath $ImportPath) { $importedCount++ }
+    if (Import-BuildingBlocks -ImportPath $ImportPath) { $importedCount++ }
+    if (Import-DocumentThemes -ImportPath $ImportPath) { $importedCount++ }
+    if (Import-RibbonCustomization -ImportPath $ImportPath) { $importedCount++ }
+    if (Import-OfficeCustomUI -ImportPath $ImportPath) { $importedCount++ }
+    
+    if ($importedCount -gt 0) {
+        Write-Log "Total de categorias de personalizações importadas: $importedCount ✓" -Level SUCCESS
+        return $true
+    }
+    else {
+        Write-Log "Nenhuma personalização foi importada" -Level WARNING
+        return $false
+    }
+}
+
+# =============================================================================
 # FUNÇÃO PRINCIPAL
 # =============================================================================
 
@@ -669,6 +1106,69 @@ function Install-ChainsawConfig {
         Write-Host ""
         
         Copy-TemplatesFolder -SourceFolder $sourceTemplatesFolder -DestFolder $templatesPath | Out-Null
+        
+        # 7. Detectar e importar personalizações (se disponíveis)
+        if (-not $SkipCustomizations) {
+            $exportedConfigPath = Join-Path $SourcePath "exported-config"
+            
+            if (Test-CustomizationsAvailable -ImportPath $exportedConfigPath) {
+                Write-Host ""
+                Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
+                Write-Host "  PERSONALIZAÇÕES DO WORD DETECTADAS!" -ForegroundColor White
+                Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
+                Write-Host ""
+                Write-Host "✨ Personalizações exportadas foram encontradas em:" -ForegroundColor Cyan
+                Write-Host "   $exportedConfigPath" -ForegroundColor Gray
+                Write-Host ""
+                Write-Host "📦 Conteúdo que será importado:" -ForegroundColor White
+                Write-Host "   • Faixa de Opções Personalizada (Ribbon)" -ForegroundColor Gray
+                Write-Host "   • Partes Rápidas (Quick Parts)" -ForegroundColor Gray
+                Write-Host "   • Blocos de Construção (Building Blocks)" -ForegroundColor Gray
+                Write-Host "   • Temas de Documentos" -ForegroundColor Gray
+                Write-Host "   • Template Normal.dotm" -ForegroundColor Gray
+                Write-Host ""
+                
+                $importCustomizations = $true
+                if (-not $Force) {
+                    $response = Read-Host "Deseja importar estas personalizações agora? (S/N)"
+                    $importCustomizations = ($response -match '^[Ss]$')
+                }
+                
+                if ($importCustomizations) {
+                    Write-Log "Iniciando importação de personalizações..." -Level INFO
+                    $imported = Import-WordCustomizations -ImportPath $exportedConfigPath
+                    
+                    if ($imported) {
+                        Write-Host ""
+                        Write-Host "✓ Personalizações importadas com sucesso!" -ForegroundColor Green
+                        Write-Host ""
+                        Write-Host "ℹ IMPORTANTE:" -ForegroundColor Cyan
+                        Write-Host "   As personalizações serão visíveis na próxima vez" -ForegroundColor Yellow
+                        Write-Host "   que você abrir o Microsoft Word." -ForegroundColor Yellow
+                        Write-Host ""
+                    }
+                    else {
+                        Write-Host ""
+                        Write-Host "⚠ Personalizações não foram importadas completamente." -ForegroundColor Yellow
+                        Write-Host "  Verifique o log para mais detalhes." -ForegroundColor Yellow
+                        Write-Host ""
+                    }
+                }
+                else {
+                    Write-Host ""
+                    Write-Host "ℹ Importação de personalizações ignorada." -ForegroundColor Cyan
+                    Write-Host "  Para importar mais tarde, execute: .\install.ps1" -ForegroundColor Gray
+                    Write-Host ""
+                    Write-Log "Importação de personalizações ignorada pelo usuário" -Level INFO
+                }
+            }
+            else {
+                Write-Log "Pasta 'exported-config' não encontrada - pulando importação" -Level INFO
+            }
+        }
+        else {
+            Write-Log "Importação de personalizações desabilitada (-SkipCustomizations)" -Level INFO
+        }
         
         # Sucesso!
         $endTime = Get-Date

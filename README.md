@@ -81,11 +81,11 @@ O script de instalação realiza automaticamente as seguintes operações:
 1. **Verificação de Pré-requisitos**
    - Valida versão do Windows (10+)
    - Valida versão do PowerShell (5.1+)
-   - Verifica acesso ao caminho de rede
+   - Verifica existência dos arquivos necessários
    - Confirma permissões de escrita
 
 2. **Cópia do Arquivo de Imagem**
-   - Copia `stamp.png` da rede para `%USERPROFILE%\chainsaw\assets\`
+   - Copia `stamp.png` para `%USERPROFILE%\chainsaw\assets\`
    - Verifica integridade do arquivo copiado
 
 3. **Backup Automático**
@@ -94,10 +94,21 @@ O script de instalação realiza automaticamente as seguintes operações:
    - Remove backups antigos (mantém os 5 mais recentes)
 
 4. **Instalação dos Templates**
-   - Copia todos os templates da rede para `%APPDATA%\Microsoft\Templates`
+   - Copia todos os templates para `%APPDATA%\Microsoft\Templates`
    - Preserva estrutura de pastas e arquivos
 
-5. **Registro de Log**
+5. **Importação Automática de Personalizações** ✨ **NOVO**
+   - Detecta automaticamente a pasta `exported-config` (se existir)
+   - Importa personalizações da interface do Word:
+     - Faixa de Opções Personalizada (Ribbon)
+     - Partes Rápidas (Quick Parts)
+     - Blocos de Construção (Building Blocks)
+     - Temas de Documentos
+     - Template Normal.dotm
+   - Solicita confirmação antes de importar (modo interativo)
+   - Cria backup automático das personalizações existentes
+
+6. **Registro de Log**
    - Cria log detalhado em `%USERPROFILE%\chainsaw\logs\`
    - Registra todas as operações, avisos e erros
    - Formato do log: `install_AAAAMMDD_HHMMSS.log`
