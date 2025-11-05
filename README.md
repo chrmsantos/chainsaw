@@ -175,6 +175,30 @@ Caso não seja possível executar o script automatizado:
 4. Selecione `PadronizarDocumentoMain` e clique em `Executar`
 5. Aguarde a conclusão do processamento
 
+## ✨ Novo: Exportação e Importação de Personalizações
+
+O Chainsaw agora permite **exportar e importar** todas as suas personalizações do Word:
+
+- 🎨 **Faixa de Opções** - Abas customizadas
+- 📦 **Blocos de Construção** - Building Blocks e Partes Rápidas
+- 🎭 **Temas** - Temas e estilos personalizados
+- ⚡ **Barra de Acesso Rápido** - Botões customizados
+- 📝 **Normal.dotm** - Template global com macros
+
+### Como Usar
+
+**Exportar (máquina de origem):**
+```cmd
+export-config.cmd
+```
+
+**Importar (máquina de destino):**
+```cmd
+import-config.cmd
+```
+
+📖 **Documentação completa:** `docs\EXPORTACAO_IMPORTACAO.md`
+
 ## Funcionalidades
 
 ### 1. **Configuração de Página**
