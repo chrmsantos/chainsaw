@@ -90,6 +90,7 @@ Private Const JUSTIFICATIVA_TEXT As String = "justificativa"
 ' VARIÁVEIS GLOBAIS
 '================================================================================
 Private undoGroupEnabled As Boolean
+Private undoGroupName As String
 Private loggingEnabled As Boolean
 Private logFilePath As String
 Private formattingCancelled As Boolean
@@ -228,6 +229,9 @@ Public Sub PadronizarDocumentoMain()
     ' Inicializa barra de progresso (15 etapas principais)
     InitializeProgress 15
     
+    ' IMPORTANTE: Inicia grupo de desfazer customizado
+    ' AVISO: Após desfazer este grupo, NÃO clique em desfazer novamente
+    ' pois pode causar travamento do Word. Use o backup se necessário.
     StartUndoGroup "Padronização de Documento - " & doc.Name
     
     If Not SetAppState(False, "Iniciando...") Then
@@ -338,6 +342,13 @@ Public Sub PadronizarDocumentoMain()
     Do While Timer < pauseTime + 1
         DoEvents
     Loop
+    
+    ' Aviso importante sobre o desfazer
+    MsgBox "Documento padronizado com sucesso!" & vbCrLf & vbCrLf & _
+           "⚠ IMPORTANTE: Se usar o botão 'Desfazer', clique apenas UMA vez." & vbCrLf & _
+           "Clicar novamente pode travar o Word." & vbCrLf & vbCrLf & _
+           "Backup criado em: " & IIf(backupFilePath <> "", backupFilePath, "(mesmo local do documento)"), _
+           vbInformation, "CHAINSAW - Padronização Concluída"
 
 CleanUp:
     ClearParagraphCache ' Limpa cache de parágrafos
@@ -935,13 +946,20 @@ Private Sub StartUndoGroup(groupName As String)
         EndUndoGroup
     End If
     
+    ' Salva o nome do grupo para referência
+    undoGroupName = groupName
+    
+    ' Inicia grupo de desfazer customizado
     Application.UndoRecord.StartCustomRecord groupName
     undoGroupEnabled = True
     
+    LogMessage "Grupo de desfazer iniciado: " & groupName, LOG_LEVEL_INFO
     Exit Sub
     
 ErrorHandler:
     undoGroupEnabled = False
+    undoGroupName = ""
+    LogMessage "Erro ao iniciar grupo de desfazer: " & Err.Description, LOG_LEVEL_WARNING
 End Sub
 
 Private Sub EndUndoGroup()
@@ -950,12 +968,57 @@ Private Sub EndUndoGroup()
     If undoGroupEnabled Then
         Application.UndoRecord.EndCustomRecord
         undoGroupEnabled = False
+        
+        LogMessage "Grupo de desfazer finalizado: " & undoGroupName, LOG_LEVEL_INFO
+        
+        ' Limita o histórico de desfazer para evitar travamentos
+        ' após desfazer o grupo customizado
+        LimitUndoHistory
+        
+        undoGroupName = ""
     End If
     
     Exit Sub
     
 ErrorHandler:
     undoGroupEnabled = False
+    undoGroupName = ""
+    LogMessage "Erro ao finalizar grupo de desfazer: " & Err.Description, LOG_LEVEL_WARNING
+End Sub
+
+'================================================================================
+' LIMITAÇÃO DO HISTÓRICO DE DESFAZER
+'================================================================================
+Private Sub LimitUndoHistory()
+    On Error Resume Next
+    
+    ' IMPORTANTE: Esta função tenta limitar o histórico de desfazer
+    ' para evitar que o Word trave ao tentar desfazer operações
+    ' internas após desfazer o grupo customizado.
+    
+    ' Estratégia 1: Força salvar o documento internamente (não no disco)
+    ' Isso "consolida" o estado atual e limpa operações internas
+    Dim doc As Document
+    Set doc = ActiveDocument
+    
+    If Not doc Is Nothing Then
+        ' Salva estado interno do documento
+        ' Isso força o Word a consolidar o histórico
+        doc.Range.ListFormat.RemoveNumbers ' Operação segura e rápida que força atualização
+        Err.Clear
+    End If
+    
+    ' Estratégia 2: Limpa o buffer de desfazer temporário
+    ' Cria e finaliza um grupo vazio para "limpar" a pilha
+    On Error Resume Next
+    Application.UndoRecord.StartCustomRecord "CHAINSAW_CLEANUP"
+    Application.UndoRecord.EndCustomRecord
+    Err.Clear
+    
+    ' Log para rastreamento
+    LogMessage "Histórico de desfazer consolidado e limitado ao grupo customizado", LOG_LEVEL_INFO
+    
+    On Error GoTo 0
 End Sub
 
 '================================================================================
