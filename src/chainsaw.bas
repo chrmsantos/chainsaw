@@ -5099,6 +5099,103 @@ ErrorHandler:
 End Sub
 
 '================================================================================
+' ABRIR README - COPIA README.MD PARA TEMP E ABRE NO NOTEPAD
+'================================================================================
+Public Sub AbrirReadme()
+    On Error GoTo ErrorHandler
+    
+    Dim fso As Object
+    Dim sourceFile As String
+    Dim tempFolder As String
+    Dim destFile As String
+    Dim notepadPath As String
+    
+    ' Cria objeto FileSystemObject
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    
+    ' Define caminhos
+    sourceFile = Environ("USERPROFILE") & "\chainsaw\README.md"
+    tempFolder = Environ("USERPROFILE") & "\AppData\Local\Temp"
+    destFile = tempFolder & "\chainsaw_README.md"
+    notepadPath = Environ("WINDIR") & "\notepad.exe"
+    
+    ' Verifica se o arquivo de origem existe
+    If Not fso.FileExists(sourceFile) Then
+        Application.StatusBar = "Erro: README.md não encontrado"
+        MsgBox "Arquivo README.md não encontrado em:" & vbCrLf & vbCrLf & _
+               sourceFile & vbCrLf & vbCrLf & _
+               "Verifique se a instalação foi feita corretamente.", _
+               vbExclamation, "Arquivo Não Encontrado"
+        
+        LogMessage "README.md não encontrado em: " & sourceFile, LOG_LEVEL_ERROR
+        Exit Sub
+    End If
+    
+    ' Verifica se a pasta Temp existe (deve sempre existir)
+    If Not fso.FolderExists(tempFolder) Then
+        Application.StatusBar = "Erro: Pasta Temp não encontrada"
+        MsgBox "Pasta temporária não encontrada:" & vbCrLf & vbCrLf & _
+               tempFolder & vbCrLf & vbCrLf & _
+               "Erro crítico do sistema.", _
+               vbCritical, "Erro do Sistema"
+        
+        LogMessage "Pasta Temp não encontrada: " & tempFolder, LOG_LEVEL_ERROR
+        Exit Sub
+    End If
+    
+    ' Remove arquivo de destino se já existir (para garantir cópia atualizada)
+    If fso.FileExists(destFile) Then
+        On Error Resume Next
+        fso.DeleteFile destFile, True
+        On Error GoTo ErrorHandler
+    End If
+    
+    ' Copia o arquivo para Temp
+    Application.StatusBar = "Copiando README.md..."
+    fso.CopyFile sourceFile, destFile, True
+    
+    ' Verifica se a cópia foi bem-sucedida
+    If Not fso.FileExists(destFile) Then
+        Application.StatusBar = "Erro ao copiar README.md"
+        MsgBox "Não foi possível copiar o arquivo para a pasta temporária." & vbCrLf & vbCrLf & _
+               "Destino: " & destFile, _
+               vbExclamation, "Erro na Cópia"
+        
+        LogMessage "Falha ao copiar README.md para: " & destFile, LOG_LEVEL_ERROR
+        Exit Sub
+    End If
+    
+    ' Abre o arquivo com Notepad
+    Application.StatusBar = "Abrindo README.md no Notepad..."
+    shell notepadPath & " """ & destFile & """", vbNormalFocus
+    
+    Application.StatusBar = "README.md aberto com sucesso"
+    
+    ' Log da operação
+    If loggingEnabled Then
+        LogMessage "README.md copiado para Temp e aberto no Notepad: " & destFile, LOG_LEVEL_INFO
+    End If
+    
+    Exit Sub
+    
+ErrorHandler:
+    Application.StatusBar = "Erro ao abrir README.md"
+    
+    Dim errorMsg As String
+    errorMsg = "Erro ao abrir o arquivo README.md:" & vbCrLf & vbCrLf & _
+               "Erro: " & Err.Description & vbCrLf & _
+               "Número: " & Err.Number
+    
+    MsgBox errorMsg, vbCritical, "Erro"
+    
+    LogMessage "Erro ao abrir README.md: " & Err.Description & " (Erro #" & Err.Number & ")", LOG_LEVEL_ERROR
+    
+    ' Limpeza
+    On Error Resume Next
+    Set fso = Nothing
+End Sub
+
+'================================================================================
 ' SISTEMA DE BACKUP
 '================================================================================
 Private Function CreateDocumentBackup(doc As Document) As Boolean
