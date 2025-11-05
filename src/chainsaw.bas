@@ -2145,6 +2145,63 @@ ErrorHandler:
 End Function
 
 '================================================================================
+' GET FIRST WORD OF DOCUMENT - OBTEM PRIMEIRA PALAVRA DO DOCUMENTO
+'================================================================================
+' Função auxiliar que retorna a primeira palavra do documento (case insensitive)
+' Usada para determinar o tipo de documento (INDICAÇÃO, REQUERIMENTO, etc)
+Private Function GetFirstWordOfDocument(doc As Document) As String
+    On Error GoTo ErrorHandler
+    
+    Dim para As Paragraph
+    Dim paraText As String
+    Dim firstWord As String
+    Dim i As Long
+    
+    ' Valor padrão vazio
+    GetFirstWordOfDocument = ""
+    
+    ' Verifica se o documento tem parágrafos
+    If doc.Paragraphs.count = 0 Then Exit Function
+    
+    ' Procura o primeiro parágrafo com conteúdo (pula vazios)
+    For i = 1 To doc.Paragraphs.count
+        If i > 10 Then Exit For ' Proteção: analisa apenas os primeiros 10 parágrafos
+        
+        Set para = doc.Paragraphs(i)
+        paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+        
+        ' Se encontrou um parágrafo com texto
+        If Len(paraText) > 0 Then
+            ' Extrai a primeira palavra (tudo antes do primeiro espaço)
+            Dim spacePos As Long
+            spacePos = InStr(paraText, " ")
+            
+            If spacePos > 0 Then
+                firstWord = Left(paraText, spacePos - 1)
+            Else
+                firstWord = paraText ' Parágrafo tem apenas uma palavra
+            End If
+            
+            ' Remove pontuação comum no final da palavra
+            firstWord = Replace(firstWord, ":", "")
+            firstWord = Replace(firstWord, ",", "")
+            firstWord = Replace(firstWord, ".", "")
+            firstWord = Replace(firstWord, ";", "")
+            
+            ' Retorna em maiúsculas para comparação case insensitive
+            GetFirstWordOfDocument = UCase(Trim(firstWord))
+            Exit Function
+        End If
+    Next i
+    
+    Exit Function
+
+ErrorHandler:
+    LogMessage "Erro ao obter primeira palavra do documento: " & Err.Description, LOG_LEVEL_WARNING
+    GetFirstWordOfDocument = ""
+End Function
+
+'================================================================================
 ' FORMAT SECOND PARAGRAPH - FORMATAÇÃO APENAS DO 2º PARÁGRAFO
 '================================================================================
 Private Function FormatSecondParagraph(doc As Document) As Boolean
@@ -2197,35 +2254,54 @@ Private Function FormatSecondParagraph(doc As Document) As Boolean
         
         Dim lowerStart As String
         Dim wasReplaced As Boolean
+        Dim docFirstWord As String
         wasReplaced = False
         
+        ' Obtém a primeira palavra do documento para determinar o tipo
+        docFirstWord = GetFirstWordOfDocument(doc)
+        
         ' Verifica se inicia com "Solicita" (case insensitive)
+        ' CONDICIONAL: Só substitui se a 1ª palavra do documento for "REQUERIMENTO"
         If Len(paraFullText) >= 8 Then
             lowerStart = LCase(Left(paraFullText, 8))
             If lowerStart = "solicita" Then
-                para.Range.text = "Requer" & Mid(paraFullText, 9) & vbCr
-                LogMessage "Palavra inicial 'Solicita' substituída por 'Requer' no 2º parágrafo", LOG_LEVEL_INFO
-                wasReplaced = True
+                If docFirstWord = "REQUERIMENTO" Then
+                    para.Range.text = "Requer" & Mid(paraFullText, 9) & vbCr
+                    LogMessage "Palavra inicial 'Solicita' substituída por 'Requer' no 2º parágrafo (documento tipo REQUERIMENTO)", LOG_LEVEL_INFO
+                    wasReplaced = True
+                Else
+                    LogMessage "Palavra inicial 'Solicita' não substituída (documento não é REQUERIMENTO, é: " & docFirstWord & ")", LOG_LEVEL_INFO
+                End If
             End If
         End If
         
         ' Verifica se inicia com "Pede" (case insensitive)
+        ' CONDICIONAL: Só substitui se a 1ª palavra do documento for "REQUERIMENTO"
         If Not wasReplaced And Len(paraFullText) >= 4 Then
             lowerStart = LCase(Left(paraFullText, 4))
             If lowerStart = "pede" Then
-                para.Range.text = "Requer" & Mid(paraFullText, 5) & vbCr
-                LogMessage "Palavra inicial 'Pede' substituída por 'Requer' no 2º parágrafo", LOG_LEVEL_INFO
-                wasReplaced = True
+                If docFirstWord = "REQUERIMENTO" Then
+                    para.Range.text = "Requer" & Mid(paraFullText, 5) & vbCr
+                    LogMessage "Palavra inicial 'Pede' substituída por 'Requer' no 2º parágrafo (documento tipo REQUERIMENTO)", LOG_LEVEL_INFO
+                    wasReplaced = True
+                Else
+                    LogMessage "Palavra inicial 'Pede' não substituída (documento não é REQUERIMENTO, é: " & docFirstWord & ")", LOG_LEVEL_INFO
+                End If
             End If
         End If
         
         ' Verifica se inicia com "Sugere" (case insensitive)
+        ' CONDICIONAL: Só substitui se a 1ª palavra do documento for "INDICAÇÃO"
         If Not wasReplaced And Len(paraFullText) >= 6 Then
             lowerStart = LCase(Left(paraFullText, 6))
             If lowerStart = "sugere" Then
-                para.Range.text = "Indica" & Mid(paraFullText, 7) & vbCr
-                LogMessage "Palavra inicial 'Sugere' substituída por 'Indica' no 2º parágrafo", LOG_LEVEL_INFO
-                wasReplaced = True
+                If docFirstWord = "INDICAÇÃO" Then
+                    para.Range.text = "Indica" & Mid(paraFullText, 7) & vbCr
+                    LogMessage "Palavra inicial 'Sugere' substituída por 'Indica' no 2º parágrafo (documento tipo INDICAÇÃO)", LOG_LEVEL_INFO
+                    wasReplaced = True
+                Else
+                    LogMessage "Palavra inicial 'Sugere' não substituída (documento não é INDICAÇÃO, é: " & docFirstWord & ")", LOG_LEVEL_INFO
+                End If
             End If
         End If
         
@@ -4192,85 +4268,197 @@ End Function
 Private Function ApplyTextReplacements(doc As Document) As Boolean
     On Error GoTo ErrorHandler
     
+    ' ========== VALIDAÇÕES INICIAIS ==========
+    ' Validação de documento
+    If doc Is Nothing Then
+        LogMessage "Erro: Documento inválido em ApplyTextReplacements", LOG_LEVEL_ERROR
+        ApplyTextReplacements = False
+        Exit Function
+    End If
+    
+    ' Validação de acesso ao Range
+    On Error Resume Next
+    Dim testRange As Range
+    Set testRange = doc.Range
+    If Err.Number <> 0 Or testRange Is Nothing Then
+        On Error GoTo ErrorHandler
+        LogMessage "Erro: Não foi possível acessar o Range do documento", LOG_LEVEL_ERROR
+        ApplyTextReplacements = False
+        Exit Function
+    End If
+    Set testRange = Nothing
+    On Error GoTo ErrorHandler
+    
+    ' ========== VARIÁVEIS DE CONTROLE ==========
     Dim rng As Range
-    Dim replacementCount As Long
-    Dim totalReplacements As Long
-    totalReplacements = 0
-    
-    ' Funcionalidade 10: Substitui variantes de "d'Oeste"
-    Dim dOesteVariants() As String
+    Dim totalActualReplacements As Long  ' Conta substituições REAIS, não variantes
+    Dim variantProcessedCount As Long     ' Conta variantes processadas
     Dim i As Long
+    Dim safetyCounter As Long
+    Dim searchText As String
+    Dim replacementText As String
+    Dim executeResult As Boolean
     
-    ' Define as variantes possíveis dos 3 primeiros caracteres de "d'Oeste"
-    ReDim dOesteVariants(0 To 15)
-    dOesteVariants(0) = "d'O"   ' Original
-    dOesteVariants(1) = "d´O"   ' Acento agudo
-    dOesteVariants(2) = "d`O"   ' Acento grave
-    dOesteVariants(3) = "d" & Chr(8220) & "O"   ' Aspas curvas esquerda
-    dOesteVariants(4) = "d'o"   ' Minúscula
-    dOesteVariants(5) = "d´o"
-    dOesteVariants(6) = "d`o"
-    dOesteVariants(7) = "d" & Chr(8220) & "o"
-    dOesteVariants(8) = "D'O"   ' Maiúscula no D
-    dOesteVariants(9) = "D´O"
-    dOesteVariants(10) = "D`O"
-    dOesteVariants(11) = "D" & Chr(8220) & "O"
-    dOesteVariants(12) = "D'o"
-    dOesteVariants(13) = "D´o"
-    dOesteVariants(14) = "D`o"
-    dOesteVariants(15) = "D" & Chr(8220) & "o"
+    totalActualReplacements = 0
+    variantProcessedCount = 0
+    safetyCounter = 0
     
-    ' Processa cada variante de forma segura
-    For i = 0 To UBound(dOesteVariants)
+    ' ========== DEFINIÇÃO DE VARIANTES ==========
+    ' Funcionalidade: Substitui variantes de "d'Oeste" por formato padronizado
+    Dim dOesteVariants() As String
+    ReDim dOesteVariants(0 To 13)  ' 14 variantes (0-13)
+    
+    ' Variantes com diferentes tipos de apóstrofos e capitalizações
+    dOesteVariants(0) = "d'O"    ' Apóstrofo padrão (U+0027)
+    dOesteVariants(1) = "d´O"    ' Acento agudo (U+00B4)
+    dOesteVariants(2) = "d`O"    ' Acento grave (U+0060)
+    dOesteVariants(3) = "d'O"    ' Apóstrofo tipográfico direito (U+2019)
+    dOesteVariants(4) = "d'o"    ' Minúscula com apóstrofo padrão
+    dOesteVariants(5) = "d´o"    ' Minúscula com acento agudo
+    dOesteVariants(6) = "d`o"    ' Minúscula com acento grave
+    dOesteVariants(7) = "d'o"    ' Minúscula com apóstrofo tipográfico
+    dOesteVariants(8) = "D'O"    ' Maiúscula no D com apóstrofo padrão
+    dOesteVariants(9) = "D´O"    ' Maiúscula no D com acento agudo
+    dOesteVariants(10) = "D`O"   ' Maiúscula no D com acento grave
+    dOesteVariants(11) = "D'O"   ' Maiúscula no D com apóstrofo tipográfico
+    dOesteVariants(12) = "doO"   ' Sem apóstrofo (erro comum)
+    dOesteVariants(13) = "DOO"   ' Tudo maiúsculo sem apóstrofo
+    
+    ' Texto de substituição padronizado (sempre o mesmo)
+    replacementText = "d'Oeste"
+    
+    ' ========== PROCESSAMENTO DE VARIANTES ==========
+    LogMessage "Iniciando substituições de texto: processando " & (UBound(dOesteVariants) + 1) & " variantes", LOG_LEVEL_INFO
+    
+    For i = LBound(dOesteVariants) To UBound(dOesteVariants)
+        ' Proteção contra loops infinitos
+        safetyCounter = safetyCounter + 1
+        If safetyCounter > 100 Then
+            LogMessage "AVISO: Limite de segurança atingido em ApplyTextReplacements", LOG_LEVEL_WARNING
+            Exit For
+        End If
+        
+        ' Construção segura do texto de busca
+        On Error Resume Next
+        searchText = dOesteVariants(i) & "este"
+        If Err.Number <> 0 Then
+            LogMessage "Erro ao construir texto de busca para variante #" & i, LOG_LEVEL_WARNING
+            Err.Clear
+            GoTo NextVariant
+        End If
+        On Error GoTo ErrorHandler
+        
+        ' Validação do texto de busca
+        If Len(searchText) < 5 Or Len(searchText) > 20 Then
+            LogMessage "Texto de busca inválido para variante #" & i & ": '" & searchText & "'", LOG_LEVEL_WARNING
+            GoTo NextVariant
+        End If
+        
+        ' ===== EXECUÇÃO DA SUBSTITUIÇÃO COM PROTEÇÃO MÁXIMA =====
         On Error Resume Next
         
-        ' Cria novo range para cada busca
+        ' Cria novo range SEMPRE (nunca reutiliza)
+        Set rng = Nothing
         Set rng = doc.Range
         
-        ' Configura os parâmetros de busca e substituição
+        ' Validação crítica do range
+        If rng Is Nothing Then
+            LogMessage "Erro: Range inválido para variante #" & i, LOG_LEVEL_WARNING
+            Err.Clear
+            GoTo NextVariant
+        End If
+        
+        ' Limpa erro anterior
+        Err.Clear
+        
+        ' Configuração COMPLETA e EXPLÍCITA de todos os parâmetros Find
         With rng.Find
+            ' Limpa formatações anteriores
             .ClearFormatting
             .Replacement.ClearFormatting
-            .text = dOesteVariants(i) & "este"
-            .Replacement.text = "d'Oeste"
+            
+            ' Parâmetros de busca
+            .text = searchText
+            .Replacement.text = replacementText
+            
+            ' Direção e escopo
             .Forward = True
-            .Wrap = wdFindContinue
+            .Wrap = wdFindContinue  ' Continua do início se necessário
+            
+            ' Opções de formatação
             .Format = False
-            .MatchCase = False
-            .MatchWholeWord = False
+            .MatchCase = False      ' Case-insensitive (já definido nas variantes)
+            .MatchWholeWord = False ' Busca em qualquer parte
+            
+            ' Opções avançadas (TODAS explícitas para segurança)
             .MatchWildcards = False
             .MatchSoundsLike = False
             .MatchAllWordForms = False
+            .MatchPrefix = False
+            .MatchSuffix = False
+            .IgnoreSpace = False
+            .IgnorePunct = False
             
-            ' Executa a substituição e conta
-            replacementCount = .Execute(Replace:=wdReplaceAll)
+            ' Executa a substituição
+            executeResult = .Execute(Replace:=wdReplaceAll)
             
-            ' Verifica se houve erro
-            If Err.Number = 0 Then
-                ' Conta quantas substituições foram feitas
-                If replacementCount Then
-                    totalReplacements = totalReplacements + 1
-                End If
-            Else
-                LogMessage "Aviso ao substituir variante #" & i & " ('" & dOesteVariants(i) & "este'): " & Err.Description, LOG_LEVEL_WARNING
+            ' Verifica resultado da execução
+            If Err.Number <> 0 Then
+                LogMessage "Erro ao executar substituição #" & i & " ('" & searchText & "'): " & Err.Description & " (Código: " & Err.Number & ")", LOG_LEVEL_WARNING
                 Err.Clear
+                executeResult = False
             End If
         End With
         
+        ' Contabilização de sucesso
+        If executeResult = True Or executeResult = -1 Then
+            ' Execute retorna True/-1 se houve pelo menos 1 substituição
+            totalActualReplacements = totalActualReplacements + 1
+            variantProcessedCount = variantProcessedCount + 1
+            
+            ' Log detalhado apenas se houver substituições
+            If DEBUG_MODE Then
+                LogMessage "Variante #" & i & " substituída: '" & searchText & "' -> '" & replacementText & "'", LOG_LEVEL_INFO
+            End If
+        Else
+            ' Não houve substituições (não é erro, apenas não encontrou)
+            variantProcessedCount = variantProcessedCount + 1
+        End If
+        
+        ' Limpa o objeto range
+        Set rng = Nothing
+        
+NextVariant:
         On Error GoTo ErrorHandler
+        
+        ' Permite responsividade da interface
+        If i Mod 5 = 0 Then DoEvents
     Next i
     
-    If totalReplacements > 0 Then
-        LogMessage "Substituições de texto aplicadas: " & totalReplacements & " variante(s) substituída(s)", LOG_LEVEL_INFO
+    ' ========== LOG FINAL ==========
+    If totalActualReplacements > 0 Then
+        LogMessage "Substituições concluídas: " & totalActualReplacements & " variante(s) com ocorrências substituídas de " & variantProcessedCount & " processadas", LOG_LEVEL_INFO
     Else
-        LogMessage "Substituições de texto: nenhuma ocorrência encontrada", LOG_LEVEL_INFO
+        LogMessage "Substituições concluídas: nenhuma ocorrência encontrada em " & variantProcessedCount & " variantes processadas", LOG_LEVEL_INFO
     End If
+    
+    ' ========== LIMPEZA FINAL ==========
+    Set rng = Nothing
+    Set testRange = Nothing
     
     ApplyTextReplacements = True
     Exit Function
 
 ErrorHandler:
-    LogMessage "Erro crítico nas substituições de texto: " & Err.Description & " (Variante: " & i & ")", LOG_LEVEL_ERROR
+    ' Log detalhado do erro
+    LogMessage "ERRO CRÍTICO em ApplyTextReplacements: " & Err.Description & " (Código: " & Err.Number & ") [Variante: " & i & "/" & UBound(dOesteVariants) & "]", LOG_LEVEL_ERROR
+    
+    ' Limpeza de recursos mesmo em erro
+    On Error Resume Next
+    Set rng = Nothing
+    Set testRange = Nothing
+    On Error GoTo 0
+    
     ApplyTextReplacements = False
 End Function
 
