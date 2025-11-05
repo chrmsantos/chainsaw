@@ -2782,8 +2782,8 @@ Private Function EnsurePlenarioBlankLines(doc As Document) As Boolean
             End If
         Next j
         
-        ' FORMATA AS 3 LINHAS TEXTUAIS após as 2 linhas em branco (posições +5, +6, +7)
-        For j = plenarioIndex + 5 To plenarioIndex + 7
+        ' FORMATA AS 4 LINHAS TEXTUAIS após as 2 linhas em branco (posições +5, +6, +7, +8)
+        For j = plenarioIndex + 5 To plenarioIndex + 8
             If j <= doc.Paragraphs.count Then
                 Set para = doc.Paragraphs(j)
                 ' Só formata se NÃO for linha vazia e NÃO tiver conteúdo visual
@@ -2816,7 +2816,7 @@ Private Function EnsurePlenarioBlankLines(doc As Document) As Boolean
             End If
         Next j
         
-        LogMessage "Linhas em branco do Plenário reforçadas: 2 antes e 2 depois + 3 linhas textuais (centralizadas, recuos 0, sem lista)", LOG_LEVEL_INFO
+        LogMessage "Linhas em branco do Plenário reforçadas: 2 antes e 2 depois + 4 linhas textuais (centralizadas, recuos 0, sem lista)", LOG_LEVEL_INFO
     End If
     
     EnsurePlenarioBlankLines = True
