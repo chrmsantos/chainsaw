@@ -2803,6 +2803,15 @@ Private Function EnsurePlenarioBlankLines(doc As Document) As Boolean
                         .SpaceAfter = 0
                         .alignment = wdAlignParagraphCenter
                     End With
+                    
+                    ' PRIMEIRA linha textual após Plenário: aplica NEGRITO
+                    If j = plenarioIndex + 5 Then
+                        With para.Range.Font
+                            .Bold = True
+                            .Name = STANDARD_FONT
+                            .size = STANDARD_FONT_SIZE
+                        End With
+                    End If
                 End If
             End If
         Next j
@@ -5063,6 +5072,15 @@ Private Sub InsertJustificativaBlankLines(doc As Document)
                         .SpaceAfter = 0
                         .alignment = wdAlignParagraphCenter
                     End With
+                    
+                    ' PRIMEIRA linha textual após Plenário: aplica NEGRITO
+                    If i = plenarioIndex + 5 Then
+                        With para.Range.Font
+                            .Bold = True
+                            .Name = STANDARD_FONT
+                            .size = STANDARD_FONT_SIZE
+                        End With
+                    End If
                 End If
             End If
         Next i
