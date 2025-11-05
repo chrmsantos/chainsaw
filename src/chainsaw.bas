@@ -1618,6 +1618,10 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     FormatConsiderandoParagraphs doc
     LogStepComplete "Formatação de considerandos"
     
+    LogStepStart "Formatação de 'ante o exposto'"
+    FormatAnteOExpostoParagraphs doc
+    LogStepComplete "Formatação de 'ante o exposto'"
+    
     LogStepStart "Aplicação de substituições de texto"
     ApplyTextReplacements doc
     LogStepComplete "Aplicação de substituições de texto"
@@ -2730,12 +2734,43 @@ Private Function EnsurePlenarioBlankLines(doc As Document) As Boolean
         para.Range.InsertParagraphBefore
         para.Range.InsertParagraphBefore
         
+        ' Formata as linhas em branco inseridas ANTES: centralizado e recuos 0
+        Dim j As Long
+        For j = plenarioIndex To plenarioIndex + 1
+            If j <= doc.Paragraphs.count Then
+                Set para = doc.Paragraphs(j)
+                With para.Format
+                    .leftIndent = 0
+                    .firstLineIndent = 0
+                    .RightIndent = 0
+                    .SpaceBefore = 0
+                    .SpaceAfter = 0
+                    .alignment = wdAlignParagraphCenter
+                End With
+            End If
+        Next j
+        
         ' Insere EXATAMENTE 2 linhas em branco DEPOIS
         Set para = doc.Paragraphs(plenarioIndex + 2) ' +2 porque inserimos 2 antes
         para.Range.InsertParagraphAfter
         para.Range.InsertParagraphAfter
         
-        LogMessage "Linhas em branco do Plenário reforçadas: 2 antes e 2 depois", LOG_LEVEL_INFO
+        ' Formata as linhas em branco inseridas DEPOIS: centralizado e recuos 0
+        For j = plenarioIndex + 3 To plenarioIndex + 4
+            If j <= doc.Paragraphs.count Then
+                Set para = doc.Paragraphs(j)
+                With para.Format
+                    .leftIndent = 0
+                    .firstLineIndent = 0
+                    .RightIndent = 0
+                    .SpaceBefore = 0
+                    .SpaceAfter = 0
+                    .alignment = wdAlignParagraphCenter
+                End With
+            End If
+        Next j
+        
+        LogMessage "Linhas em branco do Plenário reforçadas: 2 antes e 2 depois (centralizadas, recuos 0)", LOG_LEVEL_INFO
     End If
     
     EnsurePlenarioBlankLines = True
@@ -4353,6 +4388,77 @@ ErrorHandler:
 End Function
 
 '================================================================================
+' FORMAT "ANTE O EXPOSTO" PARAGRAPHS - Formata "ante o exposto" em caixa alta e negrito
+'================================================================================
+Private Function FormatAnteOExpostoParagraphs(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+    
+    Dim para As Paragraph
+    Dim paraText As String
+    Dim rng As Range
+    Dim totalFormatted As Long
+    Dim i As Long
+    
+    ' Percorre todos os parágrafos procurando por "ante o exposto" no início
+    For i = 1 To doc.Paragraphs.count
+        Set para = doc.Paragraphs(i)
+        paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+        
+        ' Verifica se o parágrafo começa com "ante o exposto" (ignorando maiúsculas/minúsculas)
+        If Len(paraText) >= 14 And LCase(Left(paraText, 14)) = "ante o exposto" Then
+            ' Verifica se após "ante o exposto" vem espaço, vírgula, ponto-e-vírgula ou fim da linha
+            Dim nextChar As String
+            If Len(paraText) > 14 Then
+                nextChar = Mid(paraText, 15, 1)
+                If nextChar = " " Or nextChar = "," Or nextChar = ";" Or nextChar = ":" Or nextChar = "." Then
+                    ' É realmente "ante o exposto" no início do parágrafo
+                    Set rng = para.Range
+                    
+                    ' Usa Find/Replace para preservar espaçamento
+                    With rng.Find
+                        .ClearFormatting
+                        .Replacement.ClearFormatting
+                        .text = "ante o exposto"
+                        .Replacement.text = "ANTE O EXPOSTO"
+                        .Replacement.Font.Bold = True
+                        .MatchCase = False
+                        .MatchWholeWord = False
+                        .Forward = True
+                        .Wrap = wdFindStop
+                        
+                        ' Limita a busca ao início do parágrafo
+                        rng.End = rng.Start + 20  ' Seleciona apenas o início para evitar múltiplas substituições
+                        
+                        If .Execute(Replace:=True) Then
+                            totalFormatted = totalFormatted + 1
+                        End If
+                    End With
+                End If
+            Else
+                ' Parágrafo contém apenas "ante o exposto"
+                Set rng = para.Range
+                rng.End = rng.Start + 14
+                
+                With rng
+                    .text = "ANTE O EXPOSTO"
+                    .Font.Bold = True
+                End With
+                
+                totalFormatted = totalFormatted + 1
+            End If
+        End If
+    Next i
+    
+    LogMessage "Formatação 'ante o exposto' aplicada: " & totalFormatted & " ocorrências em negrito e caixa alta", LOG_LEVEL_INFO
+    FormatAnteOExpostoParagraphs = True
+    Exit Function
+
+ErrorHandler:
+    LogMessage "Erro na formatação 'ante o exposto': " & Err.Description, LOG_LEVEL_ERROR
+    FormatAnteOExpostoParagraphs = False
+End Function
+
+'================================================================================
 ' APLICAÇÃO DE SUBSTITUIÇÕES DE TEXTO
 '================================================================================
 Private Function ApplyTextReplacements(doc As Document) As Boolean
@@ -4852,12 +4958,42 @@ Private Sub InsertJustificativaBlankLines(doc As Document)
         para.Range.InsertParagraphBefore
         para.Range.InsertParagraphBefore
         
+        ' Formata as linhas em branco inseridas ANTES: centralizado e recuos 0
+        For i = plenarioIndex To plenarioIndex + 1
+            If i <= doc.Paragraphs.count Then
+                Set para = doc.Paragraphs(i)
+                With para.Format
+                    .leftIndent = 0
+                    .firstLineIndent = 0
+                    .RightIndent = 0
+                    .SpaceBefore = 0
+                    .SpaceAfter = 0
+                    .alignment = wdAlignParagraphCenter
+                End With
+            End If
+        Next i
+        
         ' Insere EXATAMENTE 2 linhas em branco DEPOIS
         Set para = doc.Paragraphs(plenarioIndex + 2) ' +2 porque inserimos 2 antes
         para.Range.InsertParagraphAfter
         para.Range.InsertParagraphAfter
         
-        LogMessage "2 linhas em branco inseridas antes e depois de 'Plenário Dr. Tancredo Neves'", LOG_LEVEL_INFO
+        ' Formata as linhas em branco inseridas DEPOIS: centralizado e recuos 0
+        For i = plenarioIndex + 3 To plenarioIndex + 4
+            If i <= doc.Paragraphs.count Then
+                Set para = doc.Paragraphs(i)
+                With para.Format
+                    .leftIndent = 0
+                    .firstLineIndent = 0
+                    .RightIndent = 0
+                    .SpaceBefore = 0
+                    .SpaceAfter = 0
+                    .alignment = wdAlignParagraphCenter
+                End With
+            End If
+        Next i
+        
+        LogMessage "2 linhas em branco inseridas e formatadas (centralizadas, recuos 0) antes e depois de 'Plenário Dr. Tancredo Neves'", LOG_LEVEL_INFO
     End If
     
     ' FASE 7: Processa "Excelentíssimo Senhor Prefeito Municipal,"
