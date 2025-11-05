@@ -2739,6 +2739,12 @@ Private Function EnsurePlenarioBlankLines(doc As Document) As Boolean
         For j = plenarioIndex To plenarioIndex + 1
             If j <= doc.Paragraphs.count Then
                 Set para = doc.Paragraphs(j)
+                ' Remove formatação de lista
+                On Error Resume Next
+                para.Range.ListFormat.RemoveNumbers
+                Err.Clear
+                On Error GoTo ErrorHandler
+                
                 With para.Format
                     .leftIndent = 0
                     .firstLineIndent = 0
@@ -2759,6 +2765,12 @@ Private Function EnsurePlenarioBlankLines(doc As Document) As Boolean
         For j = plenarioIndex + 3 To plenarioIndex + 4
             If j <= doc.Paragraphs.count Then
                 Set para = doc.Paragraphs(j)
+                ' Remove formatação de lista
+                On Error Resume Next
+                para.Range.ListFormat.RemoveNumbers
+                Err.Clear
+                On Error GoTo ErrorHandler
+                
                 With para.Format
                     .leftIndent = 0
                     .firstLineIndent = 0
@@ -2770,7 +2782,32 @@ Private Function EnsurePlenarioBlankLines(doc As Document) As Boolean
             End If
         Next j
         
-        LogMessage "Linhas em branco do Plenário reforçadas: 2 antes e 2 depois (centralizadas, recuos 0)", LOG_LEVEL_INFO
+        ' FORMATA AS 3 LINHAS TEXTUAIS após as 2 linhas em branco (posições +5, +6, +7)
+        For j = plenarioIndex + 5 To plenarioIndex + 7
+            If j <= doc.Paragraphs.count Then
+                Set para = doc.Paragraphs(j)
+                ' Só formata se NÃO for linha vazia e NÃO tiver conteúdo visual
+                paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+                If paraText <> "" And Not HasVisualContent(para) Then
+                    ' CRÍTICO: Remove qualquer formatação de lista antes de zerar recuos
+                    On Error Resume Next
+                    para.Range.ListFormat.RemoveNumbers
+                    Err.Clear
+                    On Error GoTo ErrorHandler
+                    
+                    With para.Format
+                        .leftIndent = 0
+                        .firstLineIndent = 0
+                        .RightIndent = 0
+                        .SpaceBefore = 0
+                        .SpaceAfter = 0
+                        .alignment = wdAlignParagraphCenter
+                    End With
+                End If
+            End If
+        Next j
+        
+        LogMessage "Linhas em branco do Plenário reforçadas: 2 antes e 2 depois + 3 linhas textuais (centralizadas, recuos 0, sem lista)", LOG_LEVEL_INFO
     End If
     
     EnsurePlenarioBlankLines = True
@@ -4962,6 +4999,12 @@ Private Sub InsertJustificativaBlankLines(doc As Document)
         For i = plenarioIndex To plenarioIndex + 1
             If i <= doc.Paragraphs.count Then
                 Set para = doc.Paragraphs(i)
+                ' Remove formatação de lista
+                On Error Resume Next
+                para.Range.ListFormat.RemoveNumbers
+                Err.Clear
+                On Error GoTo ErrorHandler
+                
                 With para.Format
                     .leftIndent = 0
                     .firstLineIndent = 0
@@ -4982,6 +5025,12 @@ Private Sub InsertJustificativaBlankLines(doc As Document)
         For i = plenarioIndex + 3 To plenarioIndex + 4
             If i <= doc.Paragraphs.count Then
                 Set para = doc.Paragraphs(i)
+                ' Remove formatação de lista
+                On Error Resume Next
+                para.Range.ListFormat.RemoveNumbers
+                Err.Clear
+                On Error GoTo ErrorHandler
+                
                 With para.Format
                     .leftIndent = 0
                     .firstLineIndent = 0
@@ -4993,7 +5042,32 @@ Private Sub InsertJustificativaBlankLines(doc As Document)
             End If
         Next i
         
-        LogMessage "2 linhas em branco inseridas e formatadas (centralizadas, recuos 0) antes e depois de 'Plenário Dr. Tancredo Neves'", LOG_LEVEL_INFO
+        ' FORMATA AS 3 LINHAS TEXTUAIS após as 2 linhas em branco (posições +5, +6, +7)
+        For i = plenarioIndex + 5 To plenarioIndex + 7
+            If i <= doc.Paragraphs.count Then
+                Set para = doc.Paragraphs(i)
+                ' Só formata se NÃO for linha vazia e NÃO tiver conteúdo visual
+                paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+                If paraText <> "" And Not HasVisualContent(para) Then
+                    ' CRÍTICO: Remove qualquer formatação de lista antes de zerar recuos
+                    On Error Resume Next
+                    para.Range.ListFormat.RemoveNumbers
+                    Err.Clear
+                    On Error GoTo ErrorHandler
+                    
+                    With para.Format
+                        .leftIndent = 0
+                        .firstLineIndent = 0
+                        .RightIndent = 0
+                        .SpaceBefore = 0
+                        .SpaceAfter = 0
+                        .alignment = wdAlignParagraphCenter
+                    End With
+                End If
+            End If
+        Next i
+        
+        LogMessage "2 linhas em branco + 3 linhas textuais formatadas (centralizadas, recuos 0) após 'Plenário Dr. Tancredo Neves'", LOG_LEVEL_INFO
     End If
     
     ' FASE 7: Processa "Excelentíssimo Senhor Prefeito Municipal,"
@@ -5129,7 +5203,7 @@ ErrorHandler:
 End Sub
 
 '================================================================================
-' FORMAT REQUEIRO PARAGRAPHS - Formata parágrafos que começam com "requeiro"
+' FORMAT REQUEIRO PARAGRAPHS - Formata apenas a palavra "requeiro" no início
 '================================================================================
 Private Sub FormatRequeiroParagraphs(doc As Document)
     On Error GoTo ErrorHandler
@@ -5140,6 +5214,8 @@ Private Sub FormatRequeiroParagraphs(doc As Document)
     Dim paraText As String
     Dim cleanText As String
     Dim formattedCount As Long
+    Dim wordRange As Range
+    Dim endPos As Long
     formattedCount = 0
     
     ' Procura por parágrafos que começam com "requeiro" (case insensitive)
@@ -5152,8 +5228,18 @@ Private Sub FormatRequeiroParagraphs(doc As Document)
             ' Verifica se começa com "requeiro" (8 caracteres)
             If Len(paraText) >= 8 Then
                 If Left(cleanText, 8) = "requeiro" Then
-                    ' Aplica formatação a TODO o parágrafo: negrito e caixa alta
-                    With para.Range.Font
+                    ' Determina até onde formatar (palavra "requeiro" + vírgula se houver)
+                    endPos = 8 ' Tamanho de "requeiro"
+                    If Len(paraText) > 8 And Mid(paraText, 9, 1) = "," Then
+                        endPos = 9 ' Inclui a vírgula
+                    End If
+                    
+                    ' Cria range apenas para a palavra "REQUEIRO" (ou "REQUEIRO,")
+                    Set wordRange = para.Range
+                    wordRange.End = wordRange.Start + endPos
+                    
+                    ' Aplica formatação APENAS à palavra: negrito e caixa alta
+                    With wordRange.Font
                         .Bold = True
                         .AllCaps = True
                         .Name = STANDARD_FONT
@@ -5167,7 +5253,7 @@ Private Sub FormatRequeiroParagraphs(doc As Document)
     Next para
     
     If formattedCount > 0 Then
-        LogMessage "Formatação 'Requeiro': " & formattedCount & " parágrafos formatados em negrito e caixa alta", LOG_LEVEL_INFO
+        LogMessage "Formatação 'Requeiro': " & formattedCount & " ocorrências formatadas (apenas a palavra em negrito e caixa alta)", LOG_LEVEL_INFO
     End If
     
     Exit Sub
@@ -6147,10 +6233,14 @@ Private Function RestoreListFormats(doc As Document) As Boolean
     
     Dim i As Long
     Dim restoredCount As Long
+    Dim failedCount As Long
     Dim para As Paragraph
+    Dim prevPara As Paragraph
     
     restoredCount = 0
+    failedCount = 0
     
+    ' FASE 1: Restaura as listas em ordem sequencial para manter continuidade
     For i = 0 To listFormatCount - 1
         On Error Resume Next
         
@@ -6158,46 +6248,67 @@ Private Function RestoreListFormats(doc As Document) As Boolean
             If .HasList And .paraIndex <= doc.Paragraphs.count Then
                 Set para = doc.Paragraphs(.paraIndex)
                 
-                ' Remove qualquer formatação de lista existente primeiro
-                para.Range.ListFormat.RemoveNumbers
+                ' Verifica se o parágrafo ainda existe e tem conteúdo similar
+                Dim paraText As String
+                paraText = Trim(Replace(Replace(para.Range.Text, vbCr, ""), vbLf, ""))
                 
-                ' Aplica a formatação de lista original
-                Select Case .ListType
-                    Case wdListBullet
-                        ' Lista com marcadores
-                        para.Range.ListFormat.ApplyBulletDefault
-                        
-                    Case wdListSimpleNumbering, wdListListNumOnly
-                        ' Lista numerada simples
-                        para.Range.ListFormat.ApplyNumberDefault
-                        
-                    Case wdListMixedNumbering
-                        ' Lista com numeração mista
-                        para.Range.ListFormat.ApplyNumberDefault
-                        
-                    Case wdListOutlineNumbering
-                        ' Lista com numeração de tópicos
-                        para.Range.ListFormat.ApplyOutlineNumberDefault
-                        
-                    Case Else
-                        ' Tenta aplicar formatação padrão
-                        If InStr(.ListString, ".") > 0 Or IsNumeric(Left(.ListString, 1)) Then
-                            para.Range.ListFormat.ApplyNumberDefault
-                        Else
-                            para.Range.ListFormat.ApplyBulletDefault
-                        End If
-                End Select
-                
-                ' Tenta restaurar o nível da lista
-                If .ListLevelNumber > 0 And .ListLevelNumber <= 9 Then
-                    para.Range.ListFormat.ListLevelNumber = .ListLevelNumber
-                End If
-                
-                If Err.Number = 0 Then
-                    restoredCount = restoredCount + 1
-                Else
-                    LogMessage "Aviso: Não foi possível restaurar lista no parágrafo " & .paraIndex & ": " & Err.Description, LOG_LEVEL_WARNING
+                ' Só restaura se o parágrafo não estiver vazio
+                If Len(paraText) > 0 Then
+                    ' Remove qualquer formatação de lista existente primeiro
+                    para.Range.ListFormat.RemoveNumbers
                     Err.Clear
+                    
+                    ' Aplica a formatação de lista original
+                    Select Case .ListType
+                        Case wdListBullet
+                            ' Lista com marcadores
+                            para.Range.ListFormat.ApplyBulletDefault
+                            
+                        Case wdListSimpleNumbering, wdListListNumOnly
+                            ' Lista numerada simples
+                            para.Range.ListFormat.ApplyNumberDefault
+                            
+                        Case wdListMixedNumbering
+                            ' Lista com numeração mista
+                            para.Range.ListFormat.ApplyNumberDefault
+                            
+                        Case wdListOutlineNumbering
+                            ' Lista com numeração de tópicos
+                            para.Range.ListFormat.ApplyOutlineNumberDefault
+                            
+                        Case Else
+                            ' Tenta aplicar formatação padrão baseada na string original
+                            If InStr(.ListString, ".") > 0 Or IsNumeric(Left(.ListString, 1)) Then
+                                para.Range.ListFormat.ApplyNumberDefault
+                            Else
+                                para.Range.ListFormat.ApplyBulletDefault
+                            End If
+                    End Select
+                    
+                    ' Tenta restaurar o nível da lista
+                    If .ListLevelNumber > 0 And .ListLevelNumber <= 9 Then
+                        para.Range.ListFormat.ListLevelNumber = .ListLevelNumber
+                    End If
+                    
+                    ' FASE 2: Tenta continuar lista do parágrafo anterior se houver
+                    If i > 0 And .paraIndex > 1 Then
+                        Set prevPara = doc.Paragraphs(.paraIndex - 1)
+                        ' Se o parágrafo anterior tem lista do mesmo tipo, continua a numeração
+                        If prevPara.Range.ListFormat.ListType = .ListType Then
+                            On Error Resume Next
+                            para.Range.ListFormat.ContinuePreviousList
+                            Err.Clear
+                            On Error GoTo ErrorHandler
+                        End If
+                    End If
+                    
+                    If Err.Number = 0 Then
+                        restoredCount = restoredCount + 1
+                    Else
+                        failedCount = failedCount + 1
+                        LogMessage "Aviso: Falha ao restaurar lista no parágrafo " & .paraIndex & ": " & Err.Description, LOG_LEVEL_WARNING
+                        Err.Clear
+                    End If
                 End If
             End If
         End With
@@ -6206,7 +6317,11 @@ Private Function RestoreListFormats(doc As Document) As Boolean
     Next i
     
     If restoredCount > 0 Then
-        LogMessage "Formatações de lista restauradas: " & restoredCount & " parágrafos", LOG_LEVEL_INFO
+        LogMessage "Formatações de lista restauradas: " & restoredCount & " de " & listFormatCount & " parágrafos", LOG_LEVEL_INFO
+    End If
+    
+    If failedCount > 0 Then
+        LogMessage "Aviso: " & failedCount & " formatações de lista não puderam ser restauradas", LOG_LEVEL_WARNING
     End If
     
     ' Limpa o array
@@ -6229,7 +6344,8 @@ Private Function FormatNumberedParagraphsIndent(doc As Document) As Boolean
     
     Dim para As Paragraph
     Dim paraText As String
-    Dim firstChar As String
+    Dim cleanText As String
+    Dim firstChars As String
     Dim formattedCount As Long
     Dim defaultIndent As Single
     
@@ -6242,32 +6358,54 @@ Private Function FormatNumberedParagraphsIndent(doc As Document) As Boolean
     ' Percorre todos os parágrafos
     For Each para In doc.Paragraphs
         paraText = Trim(para.Range.Text)
+        cleanText = Trim(Replace(Replace(paraText, vbCr, ""), vbLf, ""))
         
-        ' Verifica se o parágrafo não está vazio
-        If Len(paraText) > 0 Then
-            ' Pega o primeiro caractere
-            firstChar = Left(paraText, 1)
+        ' Verifica se o parágrafo não está vazio e tem pelo menos 3 caracteres
+        If Len(cleanText) >= 3 Then
+            ' Pega os primeiros 3 caracteres para análise mais precisa
+            firstChars = Left(cleanText, 3)
             
-            ' Verifica se o primeiro caractere é um algarismo (0-9)
-            If IsNumeric(firstChar) Then
-                ' Verifica se o parágrafo não tem formatação de lista já aplicada
-                ' (para não sobrescrever listas reais restauradas)
-                If para.Range.ListFormat.ListType = wdListNoNumbering Then
-                    ' Aplica o recuo à esquerda igual ao de uma lista numerada
-                    With para.Format
-                        .leftIndent = defaultIndent
-                        ' Também pode ajustar o firstLineIndent se necessário
-                        ' Para listas numeradas, geralmente é negativo para criar o "hanging indent"
-                        .firstLineIndent = 0
-                    End With
-                    formattedCount = formattedCount + 1
+            ' Verifica se segue o padrão de lista numerada: "N." ou "N)" ou "N-"
+            ' onde N é um ou dois dígitos
+            Dim isListPattern As Boolean
+            isListPattern = False
+            
+            ' Padrão: 1. ou 10. ou 1) ou 10) ou 1- ou 10-
+            If IsNumeric(Left(firstChars, 1)) Then
+                Dim secondChar As String
+                secondChar = Mid(firstChars, 2, 1)
+                
+                ' Verifica padrões válidos de lista
+                If secondChar = "." Or secondChar = ")" Or secondChar = "-" Or secondChar = " " Then
+                    ' Padrão válido de 1 dígito (ex: "1.", "2)", "3-")
+                    isListPattern = True
+                ElseIf IsNumeric(secondChar) And Len(cleanText) >= 3 Then
+                    ' Pode ser 2 dígitos (ex: "10.", "25)")
+                    Dim thirdChar As String
+                    thirdChar = Mid(cleanText, 3, 1)
+                    If thirdChar = "." Or thirdChar = ")" Or thirdChar = "-" Or thirdChar = " " Then
+                        isListPattern = True
+                    End If
                 End If
+            End If
+            
+            ' Só formata se:
+            ' 1. Segue o padrão de lista numerada
+            ' 2. Não tem formatação de lista já aplicada (para não sobrescrever listas restauradas)
+            ' 3. Não tem conteúdo visual (imagens)
+            If isListPattern And para.Range.ListFormat.ListType = wdListNoNumbering And Not HasVisualContent(para) Then
+                ' Aplica o recuo à esquerda igual ao de uma lista numerada
+                With para.Format
+                    .leftIndent = defaultIndent
+                    .firstLineIndent = 0
+                End With
+                formattedCount = formattedCount + 1
             End If
         End If
     Next para
     
     If formattedCount > 0 Then
-        LogMessage "Parágrafos iniciados com número formatados com recuo de lista: " & formattedCount, LOG_LEVEL_INFO
+        LogMessage "Parágrafos com padrão de lista numerada formatados com recuo: " & formattedCount, LOG_LEVEL_INFO
     End If
     
     FormatNumberedParagraphsIndent = True
