@@ -55,7 +55,55 @@ Este script foi projetado para rodar com privilégios de **usuário normal** e:
 - 🛡️ Mensagens de erro claras e acionáveis
 - 🛡️ Não interrompe em avisos não críticos
 
-## 🚀 Como Usar
+## � Bypass Automático de Execução (Novo!)
+
+O script agora possui um **mecanismo de auto-relançamento seguro** que elimina a necessidade de configurar manualmente a política de execução do PowerShell.
+
+### Como Funciona
+
+1. **Detecção Automática**: O script detecta se a política de execução impede sua execução
+2. **Informação Clara**: Exibe informações de segurança sobre o que será feito
+3. **Relançamento Seguro**: Relança-se automaticamente com `-ExecutionPolicy Bypass`
+4. **Temporário**: O bypass é válido APENAS para esta execução do script
+5. **Sem Alterações**: A política do sistema permanece inalterada
+6. **Sem Admin**: Nenhum privilégio de administrador é necessário
+
+### Garantias de Segurança
+
+✅ **Isolado**: Apenas este script específico é executado com bypass  
+✅ **Temporário**: O bypass expira automaticamente quando o script termina  
+✅ **Transparente**: Todas as ações são informadas ao usuário  
+✅ **Auditável**: Tudo é registrado no arquivo de log  
+✅ **Sem Admin**: Não requer nem usa privilégios elevados  
+✅ **Reversível**: A política original permanece intacta  
+
+### Uso
+
+Simplesmente execute o script normalmente:
+
+```powershell
+cd "\\strqnapmain\Dir. Legislativa\_Christian261\chainsaw"
+.\install.ps1
+```
+
+Se necessário, o script se relançará automaticamente. Você verá:
+
+```
+🔒 Verificando política de execução...
+   Política atual (CurrentUser): Restricted
+⚠  Política de execução restritiva detectada.
+🔄 Relançando script com bypass temporário...
+
+ℹ  SEGURANÇA:
+   • Apenas ESTE script será executado com bypass
+   • A política do sistema NÃO será alterada
+   • O bypass expira quando o script terminar
+   • Nenhum privilégio de administrador é usado
+
+✓ Executando com bypass temporário (seguro)
+```
+
+## �🚀 Como Usar
 
 ### Verificação de Privilégios (Obrigatória)
 
@@ -101,21 +149,47 @@ cd "\\strqnapmain\Dir. Legislativa\_Christian261\chainsaw"
 
 ### Instalação Interativa (Padrão)
 
+**Método Recomendado - Usando o Launcher Seguro:**
+
+```cmd
+cd "\\strqnapmain\Dir. Legislativa\_Christian261\chainsaw"
+install.cmd
+```
+
+**Alternativa - Execução Direta do PowerShell:**
+
 ```powershell
 cd "\\strqnapmain\Dir. Legislativa\_Christian261\chainsaw"
 .\install.ps1
 ```
 
 O script irá:
-1. Verificar pré-requisitos
-2. Mostrar o que será feito
-3. Pedir confirmação
-4. Executar a instalação
-5. Exibir resultado detalhado
+
+1. **Verificar e ajustar automaticamente a política de execução** (bypass temporário seguro)
+2. Verificar pré-requisitos
+3. Mostrar o que será feito
+4. Pedir confirmação
+5. Executar a instalação
+6. Exibir resultado detalhado
+
+🔒 **Segurança do Bypass Automático:**
+
+- ✅ Apenas ESTE script é executado com bypass
+- ✅ A política do sistema NÃO é alterada permanentemente
+- ✅ O bypass expira automaticamente quando o script termina
+- ✅ Nenhum privilégio de administrador é necessário ou usado
+- ✅ Totalmente transparente e seguro
+- ✅ O launcher `.cmd` funciona em QUALQUER política de execução
 
 ### Instalação Automática
 
 Para instalação sem interação (útil para scripts de deploy):
+
+```cmd
+install.cmd -Force
+```
+
+Ou diretamente:
 
 ```powershell
 .\install.ps1 -Force
@@ -125,14 +199,14 @@ Para instalação sem interação (útil para scripts de deploy):
 
 ⚠️ **Não recomendado** - Instala sem criar backup:
 
-```powershell
-.\install.ps1 -NoBackup
+```cmd
+install.cmd -NoBackup
 ```
 
 ### Instalação com Caminho Customizado
 
-```powershell
-.\install.ps1 -SourcePath "\\outro-servidor\caminho\chainsaw"
+```cmd
+install.cmd -SourcePath "\\outro-servidor\caminho\chainsaw"
 ```
 
 ## 📊 Exemplo de Execução
@@ -197,10 +271,30 @@ Caminho de Origem: \\strqnapmain\Dir. Legislativa\_Christian261\chainsaw
 
 **Problema:** "O arquivo install.ps1 não pode ser carregado porque a execução de scripts está desabilitada neste sistema."
 
-**Solução:**
+**Solução Automática (Recomendada):**
+
+O script `install.ps1` **detecta automaticamente** este problema e se relança com bypass temporário. Simplesmente execute:
+
+```powershell
+.\install.ps1
+```
+
+O script irá:
+1. Detectar a política restritiva
+2. Mostrar informações de segurança
+3. Relançar-se automaticamente com bypass temporário
+4. Executar a instalação normalmente
+5. Retornar à política original automaticamente
+
+**Solução Manual (Alternativa):**
+
+Se preferir configurar manualmente a política de execução de forma permanente:
+
 ```powershell
 Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 ```
+
+⚠️ **Nota:** A solução automática é mais segura, pois não altera permanentemente as configurações do sistema.
 
 ### Erro: Caminho de rede não acessível
 

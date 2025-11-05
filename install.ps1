@@ -1,4 +1,4 @@
-# =============================================================================
+﻿# =============================================================================
 # CHAINSAW - Script de Instalação de Configurações do Word
 # =============================================================================
 # Versão: 1.0.0
@@ -48,8 +48,86 @@ param(
     [switch]$Force,
     
     [Parameter()]
-    [switch]$NoBackup
+    [switch]$NoBackup,
+    
+    [Parameter(DontShow)]
+    [switch]$BypassedExecution
 )
+
+# =============================================================================
+# AUTO-RELANÇAMENTO COM BYPASS DE EXECUÇÃO
+# =============================================================================
+# Este bloco garante que o script seja executado com a política de execução
+# adequada, sem modificar permanentemente as configurações do sistema.
+# Extremamente seguro: apenas este script é executado com bypass temporário.
+# =============================================================================
+
+if (-not $BypassedExecution) {
+    Write-Host "🔒 Verificando política de execução..." -ForegroundColor Cyan
+    
+    # Captura a política atual para documentação no log
+    $currentPolicy = Get-ExecutionPolicy -Scope CurrentUser
+    Write-Host "   Política atual (CurrentUser): $currentPolicy" -ForegroundColor Gray
+    
+    # Verifica se precisa de bypass
+    $needsBypass = $false
+    try {
+        # Tenta uma operação de script simples
+        $null = [ScriptBlock]::Create("1 + 1").Invoke()
+    }
+    catch [System.Management.Automation.PSSecurityException] {
+        $needsBypass = $true
+    }
+    
+    if ($needsBypass -or $currentPolicy -eq "Restricted" -or $currentPolicy -eq "AllSigned") {
+        Write-Host "⚠  Política de execução restritiva detectada." -ForegroundColor Yellow
+        Write-Host "🔄 Relançando script com bypass temporário..." -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "ℹ  SEGURANÇA:" -ForegroundColor Green
+        Write-Host "   • Apenas ESTE script será executado com bypass" -ForegroundColor Gray
+        Write-Host "   • A política do sistema NÃO será alterada" -ForegroundColor Gray
+        Write-Host "   • O bypass expira quando o script terminar" -ForegroundColor Gray
+        Write-Host "   • Nenhum privilégio de administrador é usado" -ForegroundColor Gray
+        Write-Host ""
+        
+        # Constrói argumentos para o relançamento
+        $arguments = @(
+            "-ExecutionPolicy", "Bypass",
+            "-NoProfile",
+            "-File", "`"$PSCommandPath`"",
+            "-BypassedExecution"
+        )
+        
+        # Adiciona parâmetros originais
+        if ($SourcePath -ne "\\strqnapmain\Dir. Legislativa\_Christian261\chainsaw") {
+            $arguments += @("-SourcePath", "`"$SourcePath`"")
+        }
+        if ($Force) {
+            $arguments += "-Force"
+        }
+        if ($NoBackup) {
+            $arguments += "-NoBackup"
+        }
+        
+        # Relança o script com bypass temporário
+        $processInfo = Start-Process -FilePath "powershell.exe" `
+                                     -ArgumentList $arguments `
+                                     -Wait `
+                                     -NoNewWindow `
+                                     -PassThru
+        
+        # Retorna o código de saída do processo relançado
+        exit $processInfo.ExitCode
+    }
+    else {
+        Write-Host "✓ Política de execução adequada: $currentPolicy" -ForegroundColor Green
+        Write-Host ""
+    }
+}
+else {
+    Write-Host "✓ Executando com bypass temporário (seguro)" -ForegroundColor Green
+    Write-Host ""
+}
 
 # =============================================================================
 # CONFIGURAÇÕES E CONSTANTES

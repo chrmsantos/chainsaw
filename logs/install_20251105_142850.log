@@ -1,0 +1,36 @@
+================================================================================
+CHAINSAW - Log de Instalação
+================================================================================
+Data/Hora Início: 05/11/2025 14:28:50
+Usuário: csantos
+Computador: NOTEPROCLEG01
+Sistema: Microsoft Windows NT 10.0.26100.0
+PowerShell: 5.1.26100.6899
+Caminho de Origem: \\strqnapmain\Dir. Legislativa\_Christian261\chainsaw
+================================================================================
+
+[2025-11-05 14:28:50] [INFO] === INÍCIO DA INSTALAÇÃO ===
+[2025-11-05 14:28:50] [INFO] Verificando pré-requisitos...
+[2025-11-05 14:28:50] [SUCCESS] Sistema operacional: Windows 10.0 ?
+[2025-11-05 14:28:50] [SUCCESS] PowerShell versão: 5.1.26100.6899 ?
+[2025-11-05 14:28:50] [INFO] Verificando acesso ao caminho de rede: \\strqnapmain\Dir. Legislativa\_Christian261\chainsaw
+[2025-11-05 14:28:50] [SUCCESS] Acesso ao caminho de rede confirmado ?
+[2025-11-05 14:28:50] [SUCCESS] Permissões de escrita no perfil do usuário confirmadas ?
+[2025-11-05 14:28:51] [INFO] Verificando arquivos de origem...
+[2025-11-05 14:28:51] [SUCCESS] Arquivo stamp.png encontrado ?
+[2025-11-05 14:28:51] [SUCCESS] Pasta Templates encontrada ?
+[2025-11-05 14:28:51] [INFO] Copiando arquivo stamp.png...
+[2025-11-05 14:28:51] [INFO] Origem: \\strqnapmain\Dir. Legislativa\_Christian261\chainsaw\assets\stamp.png
+[2025-11-05 14:28:51] [INFO] Destino: C:\Users\csantos\chainsaw\assets\stamp.png
+[2025-11-05 14:28:51] [SUCCESS] Arquivo stamp.png copiado com sucesso ?
+[2025-11-05 14:28:51] [INFO] Criando backup da pasta Templates...
+[2025-11-05 14:28:51] [INFO] Origem: C:\Users\csantos\AppData\Roaming\Microsoft\Templates
+[2025-11-05 14:28:51] [INFO] Destino: C:\Users\csantos\AppData\Roaming\Microsoft\Templates_backup_20251105_142851
+[2025-11-05 14:28:51] [SUCCESS] Backup criado com sucesso: Templates_backup_20251105_142851 ?
+[2025-11-05 14:28:51] [INFO] Copiando pasta Templates...
+[2025-11-05 14:28:51] [INFO] Origem: \\strqnapmain\Dir. Legislativa\_Christian261\chainsaw\configs\Templates
+[2025-11-05 14:28:51] [INFO] Destino: C:\Users\csantos\AppData\Roaming\Microsoft\Templates
+[2025-11-05 14:28:51] [INFO] Total de itens a copiar: 53
+[2025-11-05 14:28:51] [SUCCESS] Pasta Templates copiada com sucesso (37 arquivos) ?
+[2025-11-05 14:28:51] [SUCCESS] === INSTALAÇÃO CONCLUÍDA COM SUCESSO ===
+[2025-11-05 14:28:51] [INFO] Duração: 00:00

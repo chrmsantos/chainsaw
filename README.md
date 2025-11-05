@@ -40,26 +40,36 @@ O sistema Chainsaw inclui um script automatizado de instalação que configura t
 
 3. **Execute o script de instalação**
 
-   **Modo interativo (recomendado para primeira instalação):**
+   🔒 **Método Recomendado - Bypass Automático Seguro:**
+
+   ```cmd
+   install.cmd
+   ```
+
+   Este launcher automático:
+   - ✅ Funciona em QUALQUER política de execução
+   - ✅ Não requer configuração manual
+   - ✅ Usa bypass temporário apenas para este script
+   - ✅ Não altera configurações permanentes do sistema
+   - ✅ Totalmente seguro e transparente
+
+   **Alternativa - Executar diretamente (requer política adequada):**
 
    ```powershell
    .\install.ps1
    ```
 
-   **Modo automático (sem confirmação):**
+   **Com opções:**
 
-   ```powershell
-   .\install.ps1 -Force
-   ```
-
-   **Sem criar backup (não recomendado):**
-
-   ```powershell
-   .\install.ps1 -NoBackup
+   ```cmd
+   install.cmd -Force          # Modo automático (sem confirmação)
+   install.cmd -NoBackup       # Sem criar backup (não recomendado)
+   install.cmd -SourcePath "\\outro-servidor\caminho"  # Caminho customizado
    ```
 
 4. **Aguarde a conclusão**
    - O script exibirá o progresso de cada etapa
+   - Se necessário, o script se relançará automaticamente (você verá uma mensagem explicativa)
    - Um arquivo de log será criado em `%USERPROFILE%\chainsaw\logs\`
 
 #### O que o Script Faz
