@@ -2783,26 +2783,46 @@ Private Function EnsurePlenarioBlankLines(doc As Document) As Boolean
         Next j
         
         ' FORMATA AS 4 LINHAS TEXTUAIS após as 2 linhas em branco (posições +5, +6, +7, +8)
+        ' Salva estado da formatação automática
+        Dim autoFormatState As Boolean
+        On Error Resume Next
+        autoFormatState = Application.Options.AutoFormatAsYouTypeApplyBulletedLists
+        Application.Options.AutoFormatAsYouTypeApplyBulletedLists = False
+        Err.Clear
+        On Error GoTo ErrorHandler
+        
         For j = plenarioIndex + 5 To plenarioIndex + 8
             If j <= doc.Paragraphs.count Then
                 Set para = doc.Paragraphs(j)
                 ' Só formata se NÃO for linha vazia e NÃO tiver conteúdo visual
                 paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
                 If paraText <> "" And Not HasVisualContent(para) Then
-                    ' CRÍTICO: Remove qualquer formatação de lista antes de zerar recuos
+                    ' CRÍTICO: Remove TODAS as formatações de lista (incluindo bullet automático)
                     On Error Resume Next
                     para.Range.ListFormat.RemoveNumbers
+                    para.Range.ListFormat.RemoveNumbers ' Força remoção dupla
                     Err.Clear
                     On Error GoTo ErrorHandler
                     
+                    ' Seleciona o parágrafo e limpa formatação
+                    para.Range.Select
+                    
+                    ' Zera recuos de forma ABSOLUTA usando pontos (não cm)
                     With para.Format
                         .leftIndent = 0
                         .firstLineIndent = 0
                         .RightIndent = 0
                         .SpaceBefore = 0
                         .SpaceAfter = 0
-                        .alignment = wdAlignParagraphCenter
                     End With
+                    
+                    ' Define alinhamento DEPOIS de zerar recuos
+                    para.Format.alignment = wdAlignParagraphCenter
+                    
+                    ' FORÇA recuos a zero NOVAMENTE (tripla verificação para parágrafos com "-")
+                    para.Format.leftIndent = 0
+                    para.Format.firstLineIndent = 0
+                    para.Format.RightIndent = 0
                     
                     ' PRIMEIRA linha textual após Plenário: aplica NEGRITO
                     If j = plenarioIndex + 5 Then
@@ -2815,6 +2835,12 @@ Private Function EnsurePlenarioBlankLines(doc As Document) As Boolean
                 End If
             End If
         Next j
+        
+        ' Restaura formatação automática
+        On Error Resume Next
+        Application.Options.AutoFormatAsYouTypeApplyBulletedLists = autoFormatState
+        Err.Clear
+        On Error GoTo ErrorHandler
         
         LogMessage "Linhas em branco do Plenário reforçadas: 2 antes e 2 depois + 4 linhas textuais (centralizadas, recuos 0, sem lista)", LOG_LEVEL_INFO
     End If
