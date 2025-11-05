@@ -1,8 +1,8 @@
-# Guia de Instalação Unificada - Chainsaw
+# Guia de Instalação Unificada - CHAINSAW
 
 ## 🎯 Visão Geral
 
-A partir da **versão 2.0.0**, o processo de instalação do Chainsaw foi unificado em um único script que:
+A partir da **versão 2.0.0**, o processo de instalação do CHAINSAW foi unificado em um único script que:
 
 - ✅ Instala templates do Word
 - ✅ Detecta e importa personalizações automaticamente (se disponíveis)
@@ -14,15 +14,15 @@ A partir da **versão 2.0.0**, o processo de instalação do Chainsaw foi unific
 - Windows 10 ou superior
 - PowerShell 5.1 ou superior
 - Microsoft Word fechado durante a instalação
-- Pasta `chainsaw` na pasta Documentos do usuário
+- Pasta `CHAINSAW` na pasta Documentos do usuário
 
 ## 🚀 Instalação Rápida
 
 ### Passo 1: Copiar Arquivos
 
-Copie a pasta `chainsaw` completa para:
+Copie a pasta `CHAINSAW` completa para:
 ```
-C:\Users\[seu_usuario]\Documents\chainsaw
+C:\Users\[seu_usuario]\Documents\CHAINSAW
 ```
 
 ### Passo 2: Executar Instalação
@@ -30,13 +30,13 @@ C:\Users\[seu_usuario]\Documents\chainsaw
 **Método Recomendado** (funciona com qualquer política de execução):
 
 1. Abra o Explorador de Arquivos
-2. Navegue até `C:\Users\[seu_usuario]\Documents\chainsaw`
+2. Navegue até `C:\Users\[seu_usuario]\Documents\CHAINSAW`
 3. Dê um duplo-clique em: **`install.cmd`**
 
 **Método Alternativo** (via PowerShell):
 
 ```powershell
-cd "$env:USERPROFILE\Documents\chainsaw"
+cd "$env:USERPROFILE\Documents\CHAINSAW"
 .\install.ps1
 ```
 
@@ -57,7 +57,7 @@ ETAPA 6: Importação de Personalizações     ✓ (se disponível)
 
 ### Como Funciona
 
-Se a pasta `exported-config` for detectada dentro da pasta `chainsaw`, o instalador:
+Se a pasta `exported-config` for detectada dentro da pasta `CHAINSAW`, o instalador:
 
 1. **Detecta** automaticamente as personalizações exportadas
 2. **Informa** o conteúdo que será importado:
@@ -74,7 +74,7 @@ Se a pasta `exported-config` for detectada dentro da pasta `chainsaw`, o instala
 ### Estrutura Esperada
 
 ```
-C:\Users\[usuario]\Documents\chainsaw\
+C:\Users\[usuario]\Documents\CHAINSAW\
 ├── install.ps1
 ├── install.cmd
 ├── export-config.ps1
@@ -153,13 +153,13 @@ Isso criará a pasta `exported-config` com todas as suas personalizações.
 
 ### 2. Transferir para Máquina de Destino
 
-Copie a pasta `chainsaw` completa (incluindo `exported-config`) para a máquina de destino:
+Copie a pasta `CHAINSAW` completa (incluindo `exported-config`) para a máquina de destino:
 
 ```
-Origem:  C:\Users\[usuario_origem]\Documents\chainsaw\
+Origem:  C:\Users\[usuario_origem]\Documents\CHAINSAW\
          └── exported-config\  (gerado pelo export)
 
-Destino: C:\Users\[usuario_destino]\Documents\chainsaw\
+Destino: C:\Users\[usuario_destino]\Documents\CHAINSAW\
          └── exported-config\  (copiado da origem)
 ```
 
@@ -175,7 +175,7 @@ O instalador detectará automaticamente a pasta `exported-config` e oferecerá i
 
 Todos os logs são salvos em:
 ```
-%USERPROFILE%\chainsaw\logs\
+%USERPROFILE%\CHAINSAW\logs\
 ├── install_20240115_143022.log
 ├── export_20240115_142100.log
 └── (outros logs)
@@ -184,7 +184,7 @@ Todos os logs são salvos em:
 ### Verificar Último Log
 
 ```powershell
-notepad "$env:USERPROFILE\chainsaw\logs\$(Get-ChildItem $env:USERPROFILE\chainsaw\logs\install_*.log | Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty Name)"
+notepad "$env:USERPROFILE\CHAINSAW\logs\$(Get-ChildItem $env:USERPROFILE\CHAINSAW\logs\install_*.log | Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty Name)"
 ```
 
 ## ❓ Perguntas Frequentes
@@ -199,7 +199,7 @@ Sim! Cada execução cria um novo backup com timestamp. Os 5 backups mais recent
 
 ### Como saber se as personalizações foram importadas?
 
-1. Verifique o log em `%USERPROFILE%\chainsaw\logs\`
+1. Verifique o log em `%USERPROFILE%\CHAINSAW\logs\`
 2. Abra o Word e verifique suas abas personalizadas na Faixa de Opções
 3. Procure por "ETAPA 6: Importação de Personalizações" na saída do instalador
 
@@ -208,7 +208,7 @@ Sim! Cada execução cria um novo backup com timestamp. Os 5 backups mais recent
 Sim! Se você pulou a importação durante a instalação inicial, basta:
 
 1. Obter a pasta `exported-config` 
-2. Colocá-la em `C:\Users\[usuario]\Documents\chainsaw\`
+2. Colocá-la em `C:\Users\[usuario]\Documents\CHAINSAW\`
 3. Executar `install.cmd` novamente
 
 ### O que são os arquivos .cmd?
@@ -240,7 +240,7 @@ powershell.exe -ExecutionPolicy Bypass -NoProfile -File "script.ps1"
 
 Antes de qualquer modificação:
 - ✅ Templates atuais → `Templates_backup_[timestamp]`
-- ✅ Personalizações atuais → `chainsaw\backups\word-customizations_[timestamp]`
+- ✅ Personalizações atuais → `CHAINSAW\backups\word-customizations_[timestamp]`
 
 Para restaurar um backup manualmente:
 ```powershell
@@ -292,7 +292,7 @@ Os seguintes scripts foram consolidados ou removidos:
 ### Cenário 1: Instalação Nova (Sem Personalizações)
 
 ```cmd
-cd %USERPROFILE%\Documents\chainsaw
+cd %USERPROFILE%\Documents\CHAINSAW
 install.cmd
 ```
 
@@ -302,13 +302,13 @@ Resultado: Templates instalados, nenhuma personalização importada.
 
 ```cmd
 # Na máquina de origem
-cd %USERPROFILE%\Documents\chainsaw
+cd %USERPROFILE%\Documents\CHAINSAW
 export-config.cmd
 
-# Copiar pasta chainsaw completa para máquina de destino
+# Copiar pasta CHAINSAW completa para máquina de destino
 
 # Na máquina de destino
-cd %USERPROFILE%\Documents\chainsaw
+cd %USERPROFILE%\Documents\CHAINSAW
 install.cmd
 ```
 
@@ -317,7 +317,7 @@ Resultado: Templates + personalizações instalados.
 ### Cenário 3: Atualização de Templates (Preservar Personalizações)
 
 ```cmd
-cd %USERPROFILE%\Documents\chainsaw
+cd %USERPROFILE%\Documents\CHAINSAW
 install.cmd -SkipCustomizations
 ```
 
@@ -326,7 +326,7 @@ Resultado: Apenas templates atualizados, personalizações não tocadas.
 ### Cenário 4: Deploy Automatizado
 
 ```cmd
-cd %USERPROFILE%\Documents\chainsaw
+cd %USERPROFILE%\Documents\CHAINSAW
 install.cmd -Force
 ```
 

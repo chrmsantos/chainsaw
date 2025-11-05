@@ -56,7 +56,7 @@
 ┌─────────────┐
 │  Máquina B  │  (Destino - receberá personalizações)
 │             │
-│   1. 📁     │  Copie pasta 'chainsaw' para Documentos
+│   1. 📁     │  Copie pasta 'CHAINSAW' para Documentos
 │   2. ❌     │  FECHE o Word completamente
 │   3. 📥     │  Execute: import-config.cmd
 │   4. ✅     │  Abra o Word
@@ -70,7 +70,7 @@
 ### Exportar
 
 ```cmd
-cd "%USERPROFILE%\Documents\chainsaw"
+cd "%USERPROFILE%\Documents\CHAINSAW"
 export-config.cmd
 ```
 
@@ -83,7 +83,7 @@ export-config.cmd
 ### Importar
 
 ```cmd
-cd "%USERPROFILE%\Documents\chainsaw"
+cd "%USERPROFILE%\Documents\CHAINSAW"
 import-config.cmd
 ```
 
@@ -109,7 +109,7 @@ Você → Nova Máquina
 Master → Várias Máquinas
 1. Configurar Word master
 2. export-config.cmd
-3. Distribuir chainsaw completo
+3. Distribuir CHAINSAW completo
 4. Cada usuário: install.cmd ou import-config.cmd
 ```
 
@@ -228,7 +228,7 @@ Compactado (ZIP):      ~50 KB
 
 ## 📞 Precisa de Ajuda?
 
-1. **Logs**: `chainsaw\logs\`
+1. **Logs**: `CHAINSAW\logs\`
 2. **Documentação**: `docs\EXPORTACAO_IMPORTACAO.md`
 3. **Email**: chrmsantos@protonmail.com
 

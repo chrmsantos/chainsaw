@@ -1,4 +1,4 @@
-# Histórico de Mudanças - Chainsaw
+# Histórico de Mudanças - CHAINSAW
 
 ## [2.0.0] - 2024-01-15
 
@@ -104,7 +104,7 @@ install.cmd
 # Máquina de origem
 export-config.cmd
 
-# [Copiar pasta chainsaw completa]
+# [Copiar pasta CHAINSAW completa]
 
 # Máquina de destino
 install.cmd

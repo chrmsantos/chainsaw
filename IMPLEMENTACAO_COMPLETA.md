@@ -2,15 +2,15 @@
 
 ## 📋 Objetivo Cumprido
 
-Criar um script de instalação robusto para Windows 10+ que configure as configurações do Word para o sistema Chainsaw.
+Criar um script de instalação robusto para Windows 10+ que configure as configurações do Word para o sistema CHAINSAW.
 
 ## 🎯 Tarefas Completadas
 
 ### 1. ✅ Cópia do arquivo stamp.png
 **Implementado em:** `install.ps1` → função `Copy-StampFile`
 
-- ✅ Copia de: `\\strqnapmain\Dir. Legislativa\_Christian261\chainsaw\assets\stamp.png`
-- ✅ Para: `%USERPROFILE%\chainsaw\assets\stamp.png`
+- ✅ Copia de: `\\strqnapmain\Dir. Legislativa\_Christian261\CHAINSAW\assets\stamp.png`
+- ✅ Para: `%USERPROFILE%\CHAINSAW\assets\stamp.png`
 - ✅ Cria pasta de destino automaticamente se não existir
 - ✅ Verifica integridade (comparação de tamanho)
 
@@ -25,7 +25,7 @@ Criar um script de instalação robusto para Windows 10+ que configure as config
 ### 3. ✅ Cópia da pasta Templates
 **Implementado em:** `install.ps1` → função `Copy-TemplatesFolder`
 
-- ✅ Copia de: `\\strqnapmain\Dir. Legislativa\_Christian261\chainsaw\configs\Templates`
+- ✅ Copia de: `\\strqnapmain\Dir. Legislativa\_Christian261\CHAINSAW\configs\Templates`
 - ✅ Para: `%APPDATA%\Microsoft\Templates`
 - ✅ Preserva toda estrutura de pastas e arquivos
 - ✅ Progress bar durante cópia
@@ -34,7 +34,7 @@ Criar um script de instalação robusto para Windows 10+ que configure as config
 ### 4. ✅ Sistema de Log Completo
 **Implementado em:** `install.ps1` → funções `Initialize-LogFile` e `Write-Log`
 
-- ✅ Arquivo de log: `%USERPROFILE%\chainsaw\logs\install_YYYYMMDD_HHMMSS.log`
+- ✅ Arquivo de log: `%USERPROFILE%\CHAINSAW\logs\install_YYYYMMDD_HHMMSS.log`
 - ✅ Níveis de log: INFO, SUCCESS, WARNING, ERROR
 - ✅ Timestamps em cada entrada
 - ✅ Informações de contexto (usuário, computador, sistema)
@@ -152,7 +152,7 @@ Criar um script de instalação robusto para Windows 10+ que configure as config
 ║          CHAINSAW - Instalação de Configurações do Word       ║
 ╚════════════════════════════════════════════════════════════════╝
 
-📝 Arquivo de log: C:\Users\...\chainsaw\logs\install_20251105_143022.log
+📝 Arquivo de log: C:\Users\...\CHAINSAW\logs\install_20251105_143022.log
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   ETAPA 1: Verificação de Pré-requisitos
@@ -216,7 +216,7 @@ Todos os requisitos foram implementados com qualidade superior:
 ### Instalação Simples (Recomendado)
 
 ```powershell
-cd "\\strqnapmain\Dir. Legislativa\_Christian261\chainsaw"
+cd "\\strqnapmain\Dir. Legislativa\_Christian261\CHAINSAW"
 .\install.ps1
 ```
 

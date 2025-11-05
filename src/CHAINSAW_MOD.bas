@@ -58,7 +58,7 @@ Private Const RIGHT_MARGIN_CM As Double = 3
 Private Const HEADER_DISTANCE_CM As Double = 0.3
 Private Const FOOTER_DISTANCE_CM As Double = 0.9
 
-Private Const HEADER_IMAGE_RELATIVE_PATH As String = "\Documentos\chainsaw\assets\stamp.png"
+Private Const HEADER_IMAGE_RELATIVE_PATH As String = "\Documentos\CHAINSAW\assets\stamp.png"
 Private Const HEADER_IMAGE_MAX_WIDTH_CM As Double = 21
 Private Const HEADER_IMAGE_TOP_MARGIN_CM As Double = 0.7
 Private Const HEADER_IMAGE_HEIGHT_RATIO As Double = 0.19
@@ -395,7 +395,7 @@ Private Sub ShowUserFriendlyError(errNum As Long, errDesc As String)
                   "Verifique o log."
     End Select
     
-    MsgBox msg, vbCritical, "Chainsaw Proposituras v1.0-beta1"
+    MsgBox msg, vbCritical, "CHAINSAW Proposituras v1.0-beta1"
 End Sub
 
 '================================================================================
@@ -984,7 +984,7 @@ Private Function InitializeLogging(doc As Document) As Boolean
     docNameClean = SanitizeFileName(docNameClean)
     
     ' Define nome do arquivo de log com timestamp
-    logFilePath = logFolder & "chainsaw_" & Format(Now, "yyyymmdd_HHmmss") & "_" & docNameClean & ".log"
+    logFilePath = logFolder & "CHAINSAW_" & Format(Now, "yyyymmdd_HHmmss") & "_" & docNameClean & ".log"
     
     ' Inicializa contadores e controles
     errorCount = 0
@@ -3154,7 +3154,7 @@ Private Function GetHeaderImagePath() As String
     End If
 
     ' Constrói caminho absoluto para a imagem desejada
-    headerImagePath = documentsPath & "\Documentos\chainsaw\assets\stamp.png"
+    headerImagePath = documentsPath & "\Documentos\CHAINSAW\assets\stamp.png"
 
     ' Verifica se o arquivo existe
     If Not fso.FileExists(headerImagePath) Then
@@ -3188,7 +3188,7 @@ Private Function InsertHeaderstamp(doc As Document) As Boolean
     Dim sectionsProcessed As Long
 
     ' Define o caminho da imagem do cabeçalho
-    imgFile = Environ("USERPROFILE") & "\Documentos\chainsaw\assets\stamp.png"
+    imgFile = Environ("USERPROFILE") & "\Documentos\CHAINSAW\assets\stamp.png"
 
     If Dir(imgFile) = "" Then
         Application.StatusBar = "Aviso: Imagem não encontrada"
@@ -5354,9 +5354,9 @@ Public Sub AbrirReadme()
     Set fso = CreateObject("Scripting.FileSystemObject")
     
     ' Define caminhos
-    sourceFile = Environ("USERPROFILE") & "\chainsaw\README.md"
+    sourceFile = Environ("USERPROFILE") & "\CHAINSAW\README.md"
     tempFolder = Environ("USERPROFILE") & "\AppData\Local\Temp"
-    destFile = tempFolder & "\chainsaw_README.md"
+    destFile = tempFolder & "\CHAINSAW_README.md"
     notepadPath = Environ("WINDIR") & "\notepad.exe"
     
     ' Verifica se o arquivo de origem existe

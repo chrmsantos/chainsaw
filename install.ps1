@@ -9,7 +9,7 @@
 
 <#
 .SYNOPSIS
-    Instala as configurações do Word do sistema Chainsaw para o usuário atual.
+    Instala as configurações do Word do sistema CHAINSAW para o usuário atual.
 
 .DESCRIPTION
     Este script realiza as seguintes operações:
@@ -178,7 +178,7 @@ function Initialize-LogFile {
         Inicializa o arquivo de log.
     #>
     try {
-        $logDir = Join-Path $env:USERPROFILE "chainsaw\logs"
+        $logDir = Join-Path $env:USERPROFILE "CHAINSAW\logs"
         if (-not (Test-Path $logDir)) {
             New-Item -Path $logDir -ItemType Directory -Force | Out-Null
         }
@@ -305,7 +305,7 @@ function Test-Prerequisites {
     }
     
     # Verifica permissões de escrita no perfil do usuário
-    $testFile = Join-Path $env:USERPROFILE "chainsaw_test_$(Get-Date -Format 'yyyyMMddHHmmss').tmp"
+    $testFile = Join-Path $env:USERPROFILE "CHAINSAW_test_$(Get-Date -Format 'yyyyMMddHHmmss').tmp"
     try {
         [System.IO.File]::WriteAllText($testFile, "test")
         Remove-Item $testFile -Force -ErrorAction SilentlyContinue
@@ -509,7 +509,7 @@ function Copy-StampFile {
         [string]$SourceFile
     )
     
-    $destFolder = Join-Path $env:USERPROFILE "chainsaw\assets"
+    $destFolder = Join-Path $env:USERPROFILE "CHAINSAW\assets"
     $destFile = Join-Path $destFolder "stamp.png"
     
     Write-Log "Copiando arquivo stamp.png..." -Level INFO
@@ -677,7 +677,7 @@ function Backup-WordCustomizations {
     Write-Log "Criando backup das personalizações do Word ($BackupReason)..." -Level INFO
     
     $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
-    $backupPath = Join-Path $env:USERPROFILE "chainsaw\backups\word-customizations_$timestamp"
+    $backupPath = Join-Path $env:USERPROFILE "CHAINSAW\backups\word-customizations_$timestamp"
     
     try {
         if (-not (Test-Path $backupPath)) {
@@ -1057,7 +1057,7 @@ function Import-WordCustomizations {
 # FUNÇÃO PRINCIPAL
 # =============================================================================
 
-function Install-ChainsawConfig {
+function Install-CHAINSAWConfig {
     <#
     .SYNOPSIS
         Função principal de instalação.
@@ -1115,7 +1115,7 @@ function Install-ChainsawConfig {
             Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
             Write-Host ""
             Write-Host "As seguintes operações serão realizadas:" -ForegroundColor Yellow
-            Write-Host "  1. Copiar stamp.png para: $env:USERPROFILE\chainsaw\assets\" -ForegroundColor White
+            Write-Host "  1. Copiar stamp.png para: $env:USERPROFILE\CHAINSAW\assets\" -ForegroundColor White
             Write-Host "  2. Fazer backup da pasta Templates atual (se existir)" -ForegroundColor White
             Write-Host "  3. Copiar nova pasta Templates da rede" -ForegroundColor White
             Write-Host ""
@@ -1347,7 +1347,7 @@ if ($isAdmin) {
 
 # Executa instalação
 try {
-    Install-ChainsawConfig
+    Install-CHAINSAWConfig
 }
 catch {
     exit 1

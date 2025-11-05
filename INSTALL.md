@@ -1,8 +1,8 @@
-# Script de Instalação - Chainsaw
+# Script de Instalação - CHAINSAW
 
 ## 📋 Visão Geral
 
-O script `install.ps1` automatiza completamente a instalação das configurações do Word para o sistema Chainsaw, garantindo uma instalação segura e consistente para todos os usuários.
+O script `install.ps1` automatiza completamente a instalação das configurações do Word para o sistema CHAINSAW, garantindo uma instalação segura e consistente para todos os usuários.
 
 ## ⚠️ IMPORTANTE: Privilégios de Administrador
 
@@ -38,14 +38,14 @@ Este script foi projetado para rodar com privilégios de **usuário normal** e:
 - 🔒 Formato: `Templates_backup_YYYYMMDD_HHMMSS`
 
 ### 3. Instalação
-- 📁 Copia `stamp.png` para `%USERPROFILE%\chainsaw\assets\`
+- 📁 Copia `stamp.png` para `%USERPROFILE%\CHAINSAW\assets\`
 - 📁 Copia Templates para `%APPDATA%\Microsoft\Templates\`
 - 📁 Preserva toda estrutura de pastas e arquivos
 - 📁 Verifica integridade dos arquivos copiados
 
 ### 4. Sistema de Log
 - 📝 Registra todas as operações
-- 📝 Salva em `%USERPROFILE%\chainsaw\logs\`
+- 📝 Salva em `%USERPROFILE%\CHAINSAW\logs\`
 - 📝 Formato: `install_YYYYMMDD_HHMMSS.log`
 - 📝 Inclui timestamps, níveis e mensagens detalhadas
 
@@ -82,7 +82,7 @@ O script agora possui um **mecanismo de auto-relançamento seguro** que elimina 
 Simplesmente execute o script normalmente a partir da pasta Documentos:
 
 ```powershell
-cd "$env:USERPROFILE\Documents\chainsaw"
+cd "$env:USERPROFILE\Documents\CHAINSAW"
 .\install.ps1
 ```
 
@@ -128,7 +128,7 @@ Se necessário, o script se relançará automaticamente. Você verá:
 Antes de instalar, execute o script de teste de permissões:
 
 ```powershell
-cd "$env:USERPROFILE\Documents\chainsaw"
+cd "$env:USERPROFILE\Documents\CHAINSAW"
 .\test-permissions.ps1
 ```
 
@@ -143,7 +143,7 @@ Este script verifica:
 Para verificar pré-requisitos sem modificar nada:
 
 ```powershell
-cd "$env:USERPROFILE\Documents\chainsaw"
+cd "$env:USERPROFILE\Documents\CHAINSAW"
 .\test-install.ps1
 ```
 
@@ -152,14 +152,14 @@ cd "$env:USERPROFILE\Documents\chainsaw"
 **Método Recomendado - Usando o Launcher Seguro:**
 
 ```cmd
-cd "%USERPROFILE%\Documents\chainsaw"
+cd "%USERPROFILE%\Documents\CHAINSAW"
 install.cmd
 ```
 
 **Alternativa - Execução Direta do PowerShell:**
 
 ```powershell
-cd "$env:USERPROFILE\Documents\chainsaw"
+cd "$env:USERPROFILE\Documents\CHAINSAW"
 .\install.ps1
 ```
 
@@ -208,7 +208,7 @@ install.cmd -NoBackup
 Se os arquivos estiverem em outro local:
 
 ```cmd
-install.cmd -SourcePath "C:\outro\caminho\chainsaw"
+install.cmd -SourcePath "C:\outro\caminho\CHAINSAW"
 ```
 
 ## 📊 Exemplo de Execução
@@ -218,7 +218,7 @@ install.cmd -SourcePath "C:\outro\caminho\chainsaw"
 ║          CHAINSAW - Instalação de Configurações do Word       ║
 ╚════════════════════════════════════════════════════════════════╝
 
-📝 Arquivo de log: C:\Users\csantos\chainsaw\logs\install_20251105_143022.log
+📝 Arquivo de log: C:\Users\csantos\CHAINSAW\logs\install_20251105_143022.log
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   ETAPA 1: Verificação de Pré-requisitos
@@ -227,7 +227,7 @@ install.cmd -SourcePath "C:\outro\caminho\chainsaw"
 ℹ Verificando pré-requisitos...
 ✓ Sistema operacional: Windows 10.0 ✓
 ✓ PowerShell versão: 5.1.19041.4894 ✓
-ℹ Verificando arquivos de origem: C:\Users\csantos\Documents\chainsaw
+ℹ Verificando arquivos de origem: C:\Users\csantos\Documents\CHAINSAW
 ✓ Arquivos de origem encontrados ✓
 ✓ Permissões de escrita no perfil do usuário confirmadas ✓
 
@@ -255,7 +255,7 @@ Usuário: csantos
 Computador: DESKTOP-ABC123
 Sistema: Microsoft Windows NT 10.0.19045.0
 PowerShell: 5.1.19041.4894
-Caminho de Origem: C:\Users\csantos\Documents\chainsaw
+Caminho de Origem: C:\Users\csantos\Documents\CHAINSAW
 ================================================================================
 
 [2025-11-05 14:30:22] [INFO] === INÍCIO DA INSTALAÇÃO ===
@@ -303,12 +303,12 @@ Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 **Problema:** "Arquivos de origem não encontrados" ou "Não foi possível acessar o caminho"
 
 **Possíveis causas:**
-1. Pasta `chainsaw` não está na pasta Documentos
+1. Pasta `CHAINSAW` não está na pasta Documentos
 2. Arquivos `stamp.png` ou pasta `Templates` ausentes
 3. Caminho incorreto especificado
 
 **Solução:**
-1. Verifique se a pasta está em: `%USERPROFILE%\Documents\chainsaw`
+1. Verifique se a pasta está em: `%USERPROFILE%\Documents\CHAINSAW`
 2. Certifique-se que os arquivos necessários estão presentes:
    - `assets\stamp.png`
    - `configs\Templates\`
@@ -373,7 +373,7 @@ Após a instalação, a seguinte estrutura será criada:
 
 ```
 %USERPROFILE%\
-├─ chainsaw\
+├─ CHAINSAW\
 │  ├─ assets\
 │  │  └─ stamp.png              # Imagem do cabeçalho
 │  └─ logs\
@@ -407,7 +407,7 @@ Para atualizar uma instalação existente:
 
 Se encontrar problemas não listados aqui:
 
-1. Consulte o arquivo de log: `%USERPROFILE%\chainsaw\logs\install_*.log`
+1. Consulte o arquivo de log: `%USERPROFILE%\CHAINSAW\logs\install_*.log`
 2. Execute `.\test-install.ps1` para diagnóstico
 3. Verifique o README.md principal para documentação completa
 4. Entre em contato com Christian Martin (chrmsantos@protonmail.com)

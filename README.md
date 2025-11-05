@@ -1,4 +1,4 @@
-# Chainsaw - Sistema de Padronização de Proposituras Legislativas
+# CHAINSAW - Sistema de Padronização de Proposituras Legislativas
 
 Sistema automatizado para padronização de documentos legislativos no Microsoft Word, garantindo conformidade com normas de formatação institucional.
 
@@ -19,18 +19,18 @@ Sistema automatizado para padronização de documentos legislativos no Microsoft
 
 ### Instalação Automática (Recomendado)
 
-O sistema Chainsaw inclui um script automatizado de instalação que configura todos os componentes necessários.
+O sistema CHAINSAW inclui um script automatizado de instalação que configura todos os componentes necessários.
 
 #### Pré-requisitos
 
-- Pasta `chainsaw` na pasta Documentos do usuário com todos os arquivos necessários
+- Pasta `CHAINSAW` na pasta Documentos do usuário com todos os arquivos necessários
 - Permissões de escrita no perfil do usuário (`%USERPROFILE%`)
 - Word deve estar fechado durante a instalação
 
 #### Como Executar
 
-1. **Copie a pasta `chainsaw` para sua pasta Documentos**
-   - Caminho típico: `C:\Users\[seu_usuario]\Documents\chainsaw`
+1. **Copie a pasta `CHAINSAW` para sua pasta Documentos**
+   - Caminho típico: `C:\Users\[seu_usuario]\Documents\CHAINSAW`
 
 2. **Abra o PowerShell** (não é necessário executar como Administrador)
    - Pressione `Win + X` e selecione "Windows PowerShell"
@@ -38,7 +38,7 @@ O sistema Chainsaw inclui um script automatizado de instalação que configura t
 3. **Navegue até a pasta do script**
 
    ```powershell
-   cd "$env:USERPROFILE\Documents\chainsaw"
+   cd "$env:USERPROFILE\Documents\CHAINSAW"
    ```
 
 4. **Execute o script de instalação**
@@ -72,7 +72,7 @@ O sistema Chainsaw inclui um script automatizado de instalação que configura t
 5. **Aguarde a conclusão**
    - O script exibirá o progresso de cada etapa
    - Se necessário, o script se relançará automaticamente (você verá uma mensagem explicativa)
-   - Um arquivo de log será criado em `%USERPROFILE%\chainsaw\logs\`
+   - Um arquivo de log será criado em `%USERPROFILE%\CHAINSAW\logs\`
 
 #### O que o Script Faz
 
@@ -85,7 +85,7 @@ O script de instalação realiza automaticamente as seguintes operações:
    - Confirma permissões de escrita
 
 2. **Cópia do Arquivo de Imagem**
-   - Copia `stamp.png` para `%USERPROFILE%\chainsaw\assets\`
+   - Copia `stamp.png` para `%USERPROFILE%\CHAINSAW\assets\`
    - Verifica integridade do arquivo copiado
 
 3. **Backup Automático**
@@ -109,7 +109,7 @@ O script de instalação realiza automaticamente as seguintes operações:
    - Cria backup automático das personalizações existentes
 
 6. **Registro de Log**
-   - Cria log detalhado em `%USERPROFILE%\chainsaw\logs\`
+   - Cria log detalhado em `%USERPROFILE%\CHAINSAW\logs\`
    - Registra todas as operações, avisos e erros
    - Formato do log: `install_AAAAMMDD_HHMMSS.log`
 
@@ -135,7 +135,7 @@ Se precisar restaurar uma configuração anterior:
 ##### Erro: "Não foi possível acessar o caminho de rede"
 
 - Verifique conexão com a rede corporativa
-- Confirme que o caminho `\\strqnapmain\Dir. Legislativa\_Christian261\chainsaw` está acessível
+- Confirme que o caminho `\\strqnapmain\Dir. Legislativa\_Christian261\CHAINSAW` está acessível
 - Verifique suas credenciais de rede
 
 ##### Erro: "Permissões insuficientes"
@@ -152,7 +152,7 @@ Se precisar restaurar uma configuração anterior:
 ##### Consultar logs
 
 ```powershell
-notepad "$env:USERPROFILE\chainsaw\logs\install_*.log"
+notepad "$env:USERPROFILE\CHAINSAW\logs\install_*.log"
 ```
 
 ### Instalação Manual
@@ -160,22 +160,22 @@ notepad "$env:USERPROFILE\chainsaw\logs\install_*.log"
 Caso não seja possível executar o script automatizado:
 
 1. **Copiar arquivo de imagem**
-   - Copie `\\strqnapmain\Dir. Legislativa\_Christian261\chainsaw\assets\stamp.png`
-   - Para `%USERPROFILE%\chainsaw\assets\stamp.png`
+   - Copie `\\strqnapmain\Dir. Legislativa\_Christian261\CHAINSAW\assets\stamp.png`
+   - Para `%USERPROFILE%\CHAINSAW\assets\stamp.png`
 
 2. **Fazer backup dos Templates**
    - Renomeie `%APPDATA%\Microsoft\Templates`
    - Para `Templates_backup_AAAAMMDD`
 
 3. **Copiar Templates**
-   - Copie `\\strqnapmain\Dir. Legislativa\_Christian261\chainsaw\configs\Templates`
+   - Copie `\\strqnapmain\Dir. Legislativa\_Christian261\CHAINSAW\configs\Templates`
    - Para `%APPDATA%\Microsoft\Templates`
 
 4. **Importar macro VBA**
    - Abra o Microsoft Word
    - Pressione `Alt + F11` para abrir o Editor VBA
    - Vá em `Arquivo > Importar Arquivo`
-   - Selecione `chainsaw.bas` do caminho de rede
+   - Selecione `CHAINSAW.bas` do caminho de rede
    - Feche o Editor VBA
 
 ## Execução
@@ -188,7 +188,7 @@ Caso não seja possível executar o script automatizado:
 
 ## ✨ Novo: Exportação e Importação de Personalizações
 
-O Chainsaw agora permite **exportar e importar** todas as suas personalizações do Word:
+O CHAINSAW agora permite **exportar e importar** todas as suas personalizações do Word:
 
 - 🎨 **Faixa de Opções** - Abas customizadas
 - 📦 **Blocos de Construção** - Building Blocks e Partes Rápidas
@@ -339,14 +339,14 @@ import-config.cmd
 
 - Registro detalhado de todas as operações
 - Localização: **mesma pasta do documento sendo editado**
-- Formato: `chainsaw_AAAAMMDD_HHMMSS_nomedocumento.log`
+- Formato: `CHAINSAW_AAAAMMDD_HHMMSS_nomedocumento.log`
 - Níveis: INFO, WARNING, ERROR
 
 > **📍 Nota Importante sobre Localização:**  
 > Tanto os **backups** quanto os **logs** são salvos na **mesma pasta do documento sendo editado**. Isso facilita o gerenciamento e garante que os arquivos relacionados fiquem juntos. Por exemplo:
 > - Documento: `C:\Documentos\MinhaProposicao.docx`
 > - Backup: `C:\Documentos\MinhaProposicao_backup_2025-11-05_143022.docx`
-> - Log: `C:\Documentos\chainsaw_20251105_143022_MinhaProposicao.log`
+> - Log: `C:\Documentos\CHAINSAW_20251105_143022_MinhaProposicao.log`
 
 ### 17. **Recuperação de Erros**
 
