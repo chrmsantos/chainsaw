@@ -6308,13 +6308,18 @@ Private Function RestoreListFormats(doc As Document) As Boolean
                         para.Range.ListFormat.ListLevelNumber = .ListLevelNumber
                     End If
                     
-                    ' FASE 2: Tenta continuar lista do parágrafo anterior se houver
+                    ' FASE 2: Restaura nível de numeração baseado no parágrafo anterior
+                    ' (ContinuePreviousList não disponível em todas as versões)
                     If i > 0 And .paraIndex > 1 Then
                         Set prevPara = doc.Paragraphs(.paraIndex - 1)
-                        ' Se o parágrafo anterior tem lista do mesmo tipo, continua a numeração
+                        ' Se o parágrafo anterior tem lista do mesmo tipo, mantém a sequência
                         If prevPara.Range.ListFormat.ListType = .ListType Then
+                            ' A sequência já continua automaticamente pelo ApplyNumberDefault/ApplyBulletDefault
+                            ' Apenas garante que o nível está correto
                             On Error Resume Next
-                            para.Range.ListFormat.ContinuePreviousList
+                            If .ListLevelNumber > 0 And .ListLevelNumber <= 9 Then
+                                para.Range.ListFormat.ListLevelNumber = .ListLevelNumber
+                            End If
                             Err.Clear
                             On Error GoTo ErrorHandler
                         End If
