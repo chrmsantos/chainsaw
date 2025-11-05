@@ -103,6 +103,25 @@ Private logBufferEnabled As Boolean
 Private logBuffer As String
 Private lastFlushTime As Date
 
+' Cache de parágrafos para otimização
+Private Type ParagraphCache
+    index As Long
+    text As String
+    cleanText As String
+    hasImages As Boolean
+    isSpecial As Boolean
+    specialType As String
+    needsFormatting As Boolean
+End Type
+
+Private paragraphCache() As ParagraphCache
+Private cacheSize As Long
+Private cacheEnabled As Boolean
+
+' Barra de progresso
+Private totalSteps As Long
+Private currentStep As Long
+
 Private Type ImageInfo
     paraIndex As Long
     ImageIndex As Long
@@ -199,12 +218,16 @@ Public Sub PadronizarDocumentoMain()
     
     LogMessage "Iniciando padronização do documento: " & doc.Name, LOG_LEVEL_INFO
     
+    ' Inicializa barra de progresso (15 etapas principais)
+    InitializeProgress 15
+    
     StartUndoGroup "Padronização de Documento - " & doc.Name
     
-    If Not SetAppState(False, "Formatando documento...") Then
+    If Not SetAppState(False, "Iniciando...") Then
         LogMessage "Falha ao configurar estado da aplicação", LOG_LEVEL_WARNING
     End If
     
+    IncrementProgress "Verificando documento"
     If Not PreviousChecking(doc) Then
         GoTo CleanUp
     End If
@@ -218,71 +241,76 @@ Public Sub PadronizarDocumentoMain()
     End If
     
     ' Cria backup do documento antes de qualquer modificação
+    IncrementProgress "Criando backup"
     If Not CreateDocumentBackup(doc) Then
         LogMessage "Falha ao criar backup - continuando sem backup", LOG_LEVEL_WARNING
-        Application.StatusBar = "Processando sem backup"
-    Else
-        Application.StatusBar = "Formatando documento..."
     End If
     
     ' Backup das configurações de visualização originais
+    IncrementProgress "Salvando configurações"
     If Not BackupViewSettings(doc) Then
         LogMessage "Aviso: Falha no backup das configurações de visualização", LOG_LEVEL_WARNING
     End If
 
     ' Backup de imagens antes das formatações
-    Application.StatusBar = "Salvando imagens..."
+    IncrementProgress "Protegendo imagens"
     If Not BackupAllImages(doc) Then
         LogMessage "Aviso: Falha no backup de imagens - continuando com proteção básica", LOG_LEVEL_WARNING
     End If
     
     ' Backup de formatações de lista antes das formatações
-    Application.StatusBar = "Salvando listas..."
+    IncrementProgress "Protegendo listas"
     If Not BackupListFormats(doc) Then
         LogMessage "Aviso: Falha no backup de listas - formatações de lista podem ser perdidas", LOG_LEVEL_WARNING
     End If
+    
+    ' Constrói cache de parágrafos para otimização
+    IncrementProgress "Indexando parágrafos"
+    BuildParagraphCache doc
 
+    IncrementProgress "Formatando documento"
     If Not PreviousFormatting(doc) Then
         GoTo CleanUp
     End If
 
     ' Restaura imagens após formatações
-    Application.StatusBar = "Verificando imagens..."
+    IncrementProgress "Restaurando imagens"
     If Not RestoreAllImages(doc) Then
         LogMessage "Aviso: Algumas imagens podem ter sido afetadas durante o processamento", LOG_LEVEL_WARNING
     End If
     
     ' Restaura formatações de lista após formatações
-    Application.StatusBar = "Restaurando listas..."
+    IncrementProgress "Restaurando listas"
     If Not RestoreListFormats(doc) Then
         LogMessage "Aviso: Algumas formatações de lista podem não ter sido restauradas", LOG_LEVEL_WARNING
     End If
     
     ' Formata parágrafos iniciados com número (aplica recuo de lista numerada)
-    Application.StatusBar = "Formatando numeração..."
+    IncrementProgress "Ajustando numeração"
     If Not FormatNumberedParagraphsIndent(doc) Then
         LogMessage "Aviso: Falha ao formatar recuos de parágrafos numerados", LOG_LEVEL_WARNING
     End If
     
     ' Formata parágrafos iniciados com marcador (aplica recuo de lista com marcadores)
-    Application.StatusBar = "Formatando marcadores..."
+    IncrementProgress "Ajustando marcadores"
     If Not FormatBulletedParagraphsIndent(doc) Then
         LogMessage "Aviso: Falha ao formatar recuos de parágrafos com marcadores", LOG_LEVEL_WARNING
     End If
     
     ' Formata recuos de parágrafos com imagens (zera recuo à esquerda)
-    Application.StatusBar = "Ajustando imagens..."
+    IncrementProgress "Ajustando layout"
     If Not FormatImageParagraphsIndents(doc) Then
         LogMessage "Aviso: Falha ao formatar recuos de imagens", LOG_LEVEL_WARNING
     End If
     
     ' Centraliza imagem entre 5ª e 7ª linha após Plenário
-    Application.StatusBar = "Centralizando imagem..."
+    IncrementProgress "Centralizando elementos"
     If Not CenterImageAfterPlenario(doc) Then
         LogMessage "Aviso: Falha ao centralizar imagem após Plenário", LOG_LEVEL_WARNING
     End If
 
     ' Restaura configurações de visualização originais (exceto zoom)
+    IncrementProgress "Restaurando visualização"
     If Not RestoreViewSettings(doc) Then
         LogMessage "Aviso: Algumas configurações de visualização podem não ter sido restauradas", LOG_LEVEL_WARNING
     End If
@@ -291,10 +319,21 @@ Public Sub PadronizarDocumentoMain()
         GoTo CleanUp
     End If
 
-    Application.StatusBar = "Concluído!"
+    IncrementProgress "Finalizando"
     LogMessage "Documento padronizado com sucesso", LOG_LEVEL_INFO
+    
+    ' Mostra 100% por 1 segundo antes de limpar
+    UpdateProgress "Concluído!", 100
+    
+    ' Pausa de 1 segundo (Word VBA não tem Application.Wait)
+    Dim pauseTime As Double
+    pauseTime = Timer
+    Do While Timer < pauseTime + 1
+        DoEvents
+    Loop
 
 CleanUp:
+    ClearParagraphCache ' Limpa cache de parágrafos
     SafeCleanup
     CleanupImageProtection ' Nova função para limpar variáveis de proteção de imagens
     CleanupViewSettings    ' Nova função para limpar variáveis de configurações de visualização
@@ -513,6 +552,182 @@ Private Function RemovePunctuation(text As String) As String
     
     RemovePunctuation = Trim(result)
 End Function
+
+'================================================================================
+' NORMALIZAÇÃO OTIMIZADA DE TEXTO - Única passagem
+'================================================================================
+Private Function NormalizarTexto(text As String) As String
+    Dim result As String
+    result = text
+    
+    ' Remove caracteres de controle em uma única passagem
+    result = Replace(result, vbCr, "")
+    result = Replace(result, vbLf, "")
+    result = Replace(result, vbTab, " ")
+    
+    ' Remove espaços múltiplos
+    Do While InStr(result, "  ") > 0
+        result = Replace(result, "  ", " ")
+    Loop
+    
+    NormalizarTexto = Trim(LCase(result))
+End Function
+
+'================================================================================
+' DETECÇÃO DE TIPO DE PARÁGRAFO ESPECIAL
+'================================================================================
+Private Function DetectSpecialParagraph(cleanText As String, ByRef specialType As String) As Boolean
+    specialType = ""
+    
+    ' Remove pontuação final para análise
+    Dim textForAnalysis As String
+    textForAnalysis = cleanText
+    
+    Dim safetyCounter As Long
+    safetyCounter = 0
+    Do While Len(textForAnalysis) > 0 And InStr(".,;:", Right(textForAnalysis, 1)) > 0 And safetyCounter < 50
+        textForAnalysis = Left(textForAnalysis, Len(textForAnalysis) - 1)
+        safetyCounter = safetyCounter + 1
+    Loop
+    textForAnalysis = Trim(textForAnalysis)
+    
+    ' Verifica tipos especiais
+    If Left(textForAnalysis, CONSIDERANDO_MIN_LENGTH) = CONSIDERANDO_PREFIX Then
+        specialType = "considerando"
+        DetectSpecialParagraph = True
+    ElseIf textForAnalysis = JUSTIFICATIVA_TEXT Then
+        specialType = "justificativa"
+        DetectSpecialParagraph = True
+    ElseIf textForAnalysis = "vereador" Or textForAnalysis = "vereadora" Then
+        specialType = "vereador"
+        DetectSpecialParagraph = True
+    ElseIf Left(textForAnalysis, 17) = "diante do exposto" Then
+        specialType = "dianteexposto"
+        DetectSpecialParagraph = True
+    ElseIf textForAnalysis = "requeiro" Then
+        specialType = "requeiro"
+        DetectSpecialParagraph = True
+    ElseIf textForAnalysis = "anexo" Or textForAnalysis = "anexos" Then
+        specialType = "anexo"
+        DetectSpecialParagraph = True
+    Else
+        DetectSpecialParagraph = False
+    End If
+End Function
+
+'================================================================================
+' CONSTRUÇÃO DO CACHE DE PARÁGRAFOS - Otimização principal
+'================================================================================
+Private Sub BuildParagraphCache(doc As Document)
+    On Error GoTo ErrorHandler
+    
+    Dim startTime As Double
+    startTime = Timer
+    
+    LogMessage "Iniciando construção do cache de parágrafos...", LOG_LEVEL_INFO
+    
+    cacheSize = doc.Paragraphs.count
+    ReDim paragraphCache(1 To cacheSize)
+    
+    Dim i As Long
+    Dim para As Paragraph
+    Dim rawText As String
+    
+    For i = 1 To cacheSize
+        Set para = doc.Paragraphs(i)
+        
+        ' Captura o texto bruto uma única vez
+        On Error Resume Next
+        rawText = para.Range.text
+        On Error GoTo ErrorHandler
+        
+        With paragraphCache(i)
+            .index = i
+            .text = rawText
+            .cleanText = NormalizarTexto(rawText)
+            .hasImages = HasVisualContent(para)
+            .isSpecial = DetectSpecialParagraph(.cleanText, .specialType)
+            .needsFormatting = (Len(.cleanText) > 0) And (Not .hasImages)
+        End With
+        
+        ' Atualiza progresso a cada 100 parágrafos
+        If i Mod 100 = 0 Then
+            UpdateProgress "Indexando: " & i & "/" & cacheSize, 5 + (i * 5 \ cacheSize)
+        End If
+    Next i
+    
+    cacheEnabled = True
+    
+    Dim elapsed As Single
+    elapsed = Timer - startTime
+    
+    LogMessage "Cache construído: " & cacheSize & " parágrafos em " & Format(elapsed, "0.00") & "s", LOG_LEVEL_INFO
+    Exit Sub
+    
+ErrorHandler:
+    LogMessage "Erro ao construir cache: " & Err.Description, LOG_LEVEL_ERROR
+    cacheEnabled = False
+End Sub
+
+'================================================================================
+' LIMPEZA DO CACHE
+'================================================================================
+Private Sub ClearParagraphCache()
+    On Error Resume Next
+    Erase paragraphCache
+    cacheSize = 0
+    cacheEnabled = False
+End Sub
+
+'================================================================================
+' ATUALIZAÇÃO DA BARRA DE PROGRESSO
+'================================================================================
+Private Sub UpdateProgress(message As String, percentComplete As Long)
+    Dim progressBar As String
+    Dim barLength As Long
+    Dim filledLength As Long
+    
+    ' Limita entre 0 e 100
+    If percentComplete < 0 Then percentComplete = 0
+    If percentComplete > 100 Then percentComplete = 100
+    
+    ' Barra de 20 caracteres
+    barLength = 20
+    filledLength = CLng(barLength * percentComplete / 100)
+    
+    ' Constrói a barra visual
+    progressBar = "["
+    Dim i As Long
+    For i = 1 To barLength
+        If i <= filledLength Then
+            progressBar = progressBar & "█"
+        Else
+            progressBar = progressBar & "░"
+        End If
+    Next i
+    progressBar = progressBar & "] " & Format(percentComplete, "0") & "%"
+    
+    ' Atualiza StatusBar com mensagem e barra
+    Application.StatusBar = message & " " & progressBar
+    
+    ' Força atualização da tela
+    DoEvents
+End Sub
+
+'================================================================================
+' CÁLCULO DE PROGRESSO BASEADO EM ETAPAS
+'================================================================================
+Private Sub InitializeProgress(steps As Long)
+    totalSteps = steps
+    currentStep = 0
+End Sub
+
+Private Sub IncrementProgress(message As String)
+    currentStep = currentStep + 1
+    Dim percent As Long
+    percent = CLng((currentStep * 100) / totalSteps)
+    UpdateProgress message, percent
+End Sub
 
 '================================================================================
 ' VERIFICAÇÃO DE VERSÃO DO WORD
@@ -1354,12 +1569,23 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     FormatDocumentTitle doc
     LogStepComplete "Formatação de título"
     
-    ' Formatações principais
+    ' Formatações principais - Usa versão otimizada se cache disponível
     LogStepStart "Aplicação de fonte padrão"
-    If Not ApplyStdFont(doc) Then
-        LogMessage "Falha na formatação de fontes", LOG_LEVEL_ERROR
-        PreviousFormatting = False
-        Exit Function
+    If cacheEnabled Then
+        If Not ApplyStdFontOptimized(doc) Then
+            LogMessage "Falha na formatação de fontes (otimizada) - tentando método tradicional", LOG_LEVEL_WARNING
+            If Not ApplyStdFont(doc) Then
+                LogMessage "Falha na formatação de fontes", LOG_LEVEL_ERROR
+                PreviousFormatting = False
+                Exit Function
+            End If
+        End If
+    Else
+        If Not ApplyStdFont(doc) Then
+            LogMessage "Falha na formatação de fontes", LOG_LEVEL_ERROR
+            PreviousFormatting = False
+            Exit Function
+        End If
     End If
     LogStepComplete "Aplicação de fonte padrão", doc.Paragraphs.count & " parágrafos"
     
@@ -1473,7 +1699,86 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' FORMATAÇÃO DE FONTE
+' FORMATAÇÃO DE FONTE OTIMIZADA COM CACHE
+'================================================================================
+Private Function ApplyStdFontOptimized(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+    
+    If Not cacheEnabled Then
+        ' Fallback para método tradicional se cache não estiver disponível
+        ApplyStdFontOptimized = ApplyStdFont(doc)
+        Exit Function
+    End If
+    
+    Dim i As Long
+    Dim para As Paragraph
+    Dim cache As ParagraphCache
+    Dim formattedCount As Long
+    Dim startTime As Double
+    
+    startTime = Timer
+    formattedCount = 0
+    
+    LogMessage "Aplicando fonte padrão (modo otimizado com cache)...", LOG_LEVEL_INFO
+    
+    ' SINGLE PASS - Processa todos os parágrafos em uma passagem usando cache
+    For i = 1 To cacheSize
+        cache = paragraphCache(i)
+        
+        ' Pula parágrafos vazios ou com imagens
+        If Not cache.needsFormatting Then
+            GoTo NextParagraph
+        End If
+        
+        Set para = doc.Paragraphs(cache.index)
+        
+        ' Aplica fonte padrão
+        On Error Resume Next
+        With para.Range.Font
+            .Name = STANDARD_FONT
+            .size = STANDARD_FONT_SIZE
+            .Color = wdColorAutomatic
+            
+            ' Remove sublinhado exceto para título (primeiro parágrafo com texto)
+            If i > 3 Then
+                .Underline = wdUnderlineNone
+            End If
+            
+            ' Remove negrito exceto para parágrafos especiais
+            If Not cache.isSpecial Or cache.specialType = "vereador" Then
+                .Bold = False
+            End If
+        End With
+        
+        If Err.Number = 0 Then
+            formattedCount = formattedCount + 1
+        Else
+            LogMessage "Erro ao formatar parágrafo " & i & ": " & Err.Description, LOG_LEVEL_WARNING
+            Err.Clear
+        End If
+        On Error GoTo ErrorHandler
+        
+NextParagraph:
+        ' Atualiza progresso a cada 500 parágrafos
+        If i Mod 500 = 0 Then
+            DoEvents ' Permite cancelamento
+        End If
+    Next i
+    
+    Dim elapsed As Single
+    elapsed = Timer - startTime
+    
+    LogMessage "Fonte padrão aplicada: " & formattedCount & " parágrafos em " & Format(elapsed, "0.00") & "s", LOG_LEVEL_INFO
+    ApplyStdFontOptimized = True
+    Exit Function
+    
+ErrorHandler:
+    LogMessage "Erro em ApplyStdFontOptimized: " & Err.Description, LOG_LEVEL_ERROR
+    ApplyStdFontOptimized = False
+End Function
+
+'================================================================================
+' FORMATAÇÃO DE FONTE (MÉTODO TRADICIONAL - FALLBACK)
 '================================================================================
 Private Function ApplyStdFont(doc As Document) As Boolean
     On Error GoTo ErrorHandler
