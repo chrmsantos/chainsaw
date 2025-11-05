@@ -58,7 +58,7 @@ Private Const RIGHT_MARGIN_CM As Double = 3
 Private Const HEADER_DISTANCE_CM As Double = 0.3
 Private Const FOOTER_DISTANCE_CM As Double = 0.9
 
-Private Const HEADER_IMAGE_RELATIVE_PATH As String = "\chainsaw\assets\stamp.png"
+Private Const HEADER_IMAGE_RELATIVE_PATH As String = "\Documentos\chainsaw\assets\stamp.png"
 Private Const HEADER_IMAGE_MAX_WIDTH_CM As Double = 21
 Private Const HEADER_IMAGE_TOP_MARGIN_CM As Double = 0.7
 Private Const HEADER_IMAGE_HEIGHT_RATIO As Double = 0.19
@@ -3108,7 +3108,7 @@ Private Function GetHeaderImagePath() As String
     End If
 
     ' Constrói caminho absoluto para a imagem desejada
-    headerImagePath = documentsPath & "\chainsaw\assets\stamp.png"
+    headerImagePath = documentsPath & "\Documentos\chainsaw\assets\stamp.png"
 
     ' Verifica se o arquivo existe
     If Not fso.FileExists(headerImagePath) Then
@@ -3142,7 +3142,7 @@ Private Function InsertHeaderstamp(doc As Document) As Boolean
     Dim sectionsProcessed As Long
 
     ' Define o caminho da imagem do cabeçalho
-    imgFile = Environ("USERPROFILE") & "\chainsaw\assets\stamp.png"
+    imgFile = Environ("USERPROFILE") & "\Documentos\chainsaw\assets\stamp.png"
 
     If Dir(imgFile) = "" Then
         Application.StatusBar = "Aviso: Imagem não encontrada"
