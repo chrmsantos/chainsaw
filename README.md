@@ -284,16 +284,22 @@ Caso não seja possível executar o script automatizado:
 ### 15. **Sistema de Backup Automático**
 
 - Backup criado antes de qualquer modificação
-- Localização: pasta `chainsaw\backups\` no mesmo diretório do documento
+- Localização: **mesma pasta do documento sendo editado**
 - Formato: `nomedocumento_backup_AAAA-MM-DD_HHMMSS.docx`
 - Limpeza automática com aviso após 15 arquivos
 
 ### 16. **Sistema de Logs**
 
 - Registro detalhado de todas as operações
-- Localização: pasta `chainsaw\logs\`mesmo diretório do documento
-- Formato: `chainsaw_log_AAAA-MM-DD.txt`
+- Localização: **mesma pasta do documento sendo editado**
+- Formato: `chainsaw_AAAAMMDD_HHMMSS_nomedocumento.log`
 - Níveis: INFO, WARNING, ERROR
+
+> **📍 Nota Importante sobre Localização:**  
+> Tanto os **backups** quanto os **logs** são salvos na **mesma pasta do documento sendo editado**. Isso facilita o gerenciamento e garante que os arquivos relacionados fiquem juntos. Por exemplo:
+> - Documento: `C:\Documentos\MinhaProposicao.docx`
+> - Backup: `C:\Documentos\MinhaProposicao_backup_2025-11-05_143022.docx`
+> - Log: `C:\Documentos\chainsaw_20251105_143022_MinhaProposicao.log`
 
 ### 17. **Recuperação de Erros**
 

@@ -68,7 +68,7 @@ Private Const HEADER_IMAGE_HEIGHT_RATIO As Double = 0.19
 '================================================================================
 Private Const MIN_SUPPORTED_VERSION As Long = 14
 Private Const REQUIRED_STRING As String = "$NUMERO$/$ANO$"
-Private Const BACKUP_FOLDER_NAME As String = "backups"
+' BACKUP_FOLDER_NAME removida - backups são salvos na mesma pasta do documento
 Private Const MAX_BACKUP_FILES As Long = 10
 Private Const DEBUG_MODE As Boolean = False
 
@@ -683,6 +683,9 @@ End Sub
 ' ATUALIZAÇÃO DA BARRA DE PROGRESSO
 '================================================================================
 Private Sub UpdateProgress(message As String, percentComplete As Long)
+    ' Nota: parâmetro 'message' mantido por compatibilidade mas não é exibido
+    ' A barra de status mostra apenas a barra visual sem texto descritivo
+    
     Dim progressBar As String
     Dim barLength As Long
     Dim filledLength As Long
@@ -707,8 +710,8 @@ Private Sub UpdateProgress(message As String, percentComplete As Long)
     Next i
     progressBar = progressBar & "] " & Format(percentComplete, "0") & "%"
     
-    ' Atualiza StatusBar com mensagem e barra
-    Application.StatusBar = message & " " & progressBar
+    ' Atualiza StatusBar apenas com a barra visual (sem texto descritivo)
+    Application.StatusBar = progressBar
     
     ' Força atualização da tela
     DoEvents
@@ -1019,7 +1022,7 @@ Private Function InitializeLogging(doc As Document) As Boolean
     Print #fileNum, "[CONFIGURAÇÃO]"
     Print #fileNum, "  Debug: " & IIf(DEBUG_MODE, "Ativado", "Desativado")
     Print #fileNum, "  Log: " & logFilePath
-    Print #fileNum, "  Backup: " & IIf(doc.Path = "", "(Desabilitado)", doc.Path & "\backups\")
+    Print #fileNum, "  Backup: " & IIf(doc.Path = "", "(Desabilitado)", doc.Path & "\")
     Print #fileNum, ""
     Print #fileNum, String(80, "=")
     Print #fileNum, ""
@@ -4787,34 +4790,17 @@ Public Sub AbrirPastaLogsEBackups()
         Exit Sub
     End If
     
-    ' Obtém a pasta do documento ativo
+    ' Obtém a pasta do documento ativo (logs e backups ficam juntos)
     docFolder = doc.Path
-    backupFolder = docFolder & "\" & BACKUP_FOLDER_NAME
-    
-    ' Verifica se existe pasta de backups
-    hasBackups = fso.FolderExists(backupFolder)
-    
-    ' Decide qual pasta abrir
-    If hasBackups Then
-        ' Se existe pasta de backups, abre ela (logs também estão na mesma pasta do documento)
-        folderToOpen = backupFolder
-        Application.StatusBar = "Abrindo backups"
-    Else
-        ' Se não existe pasta de backups, abre a pasta do documento (onde estão os logs)
-        folderToOpen = docFolder
-        Application.StatusBar = "Abrindo pasta do documento"
-    End If
+    folderToOpen = docFolder
     
     ' Abre a pasta no Windows Explorer
+    Application.StatusBar = "Abrindo pasta do documento"
     shell "explorer.exe """ & folderToOpen & """", vbNormalFocus
     
     ' Log da operação se sistema de log estiver ativo
     If loggingEnabled Then
-        If hasBackups Then
-            LogMessage "Pasta de backups aberta pelo usuário: " & folderToOpen, LOG_LEVEL_INFO
-        Else
-            LogMessage "Pasta de logs/documento aberta pelo usuário: " & folderToOpen, LOG_LEVEL_INFO
-        End If
+        LogMessage "Pasta de logs/backups aberta pelo usuário: " & folderToOpen, LOG_LEVEL_INFO
     End If
     
     Exit Sub
@@ -4856,14 +4842,8 @@ Private Function CreateDocumentBackup(doc As Document) As Boolean
     
     Set fso = CreateObject("Scripting.FileSystemObject")
     
-    ' Define pasta de backup
-    backupFolder = fso.GetParentFolderName(doc.Path) & "\" & BACKUP_FOLDER_NAME
-    
-    ' Cria pasta de backup se não existir
-    If Not fso.FolderExists(backupFolder) Then
-        fso.CreateFolder backupFolder
-        LogMessage "Pasta de backup criada: " & backupFolder, LOG_LEVEL_INFO
-    End If
+    ' Define pasta de backup (mesma pasta do documento)
+    backupFolder = doc.Path
     
     ' Extrai nome e extensão do documento
     docName = fso.GetBaseName(doc.Name)
@@ -6138,24 +6118,15 @@ End Sub
 Private Function EnsureBackupDirectory(doc As Document) As String
     On Error GoTo ErrorHandler
     
-    Dim fso As Object
     Dim backupPath As String
     
-    Set fso = CreateObject("Scripting.FileSystemObject")
-    
-    ' Define o caminho base para backups na mesma pasta do documento
+    ' Define o caminho para backups (mesma pasta do documento)
     If doc.Path <> "" Then
-        ' Documento salvo - cria subpasta "backups" na mesma pasta do documento
-        backupPath = doc.Path & "\" & BACKUP_FOLDER_NAME
+        ' Documento salvo - backups na mesma pasta do documento
+        backupPath = doc.Path
     Else
         ' Documento não salvo - usa TEMP como fallback
-        backupPath = Environ("TEMP") & "\" & BACKUP_FOLDER_NAME
-    End If
-    
-    ' Cria o diretório se não existir
-    If Not fso.FolderExists(backupPath) Then
-        fso.CreateFolder backupPath
-        LogMessage "Pasta de backup criada: " & backupPath, LOG_LEVEL_INFO
+        backupPath = Environ("TEMP")
     End If
     
     EnsureBackupDirectory = backupPath
