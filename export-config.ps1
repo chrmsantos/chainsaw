@@ -122,10 +122,10 @@ function Write-Log {
     }
     
     switch ($Level) {
-        "SUCCESS" { Write-Host "✓ $Message" -ForegroundColor $ColorSuccess }
-        "WARNING" { Write-Host "⚠ $Message" -ForegroundColor $ColorWarning }
-        "ERROR"   { Write-Host "✗ $Message" -ForegroundColor $ColorError }
-        default   { Write-Host "ℹ $Message" -ForegroundColor $ColorInfo }
+        "SUCCESS" { Write-Host "[OK] $Message" -ForegroundColor $ColorSuccess }
+        "WARNING" { Write-Host "[!] $Message" -ForegroundColor $ColorWarning }
+        "ERROR"   { Write-Host "[X] $Message" -ForegroundColor $ColorError }
+        default   { Write-Host "[i] $Message" -ForegroundColor $ColorInfo }
     }
 }
 
@@ -257,7 +257,7 @@ function Confirm-CloseWord {
     
     Write-Host ""
     Write-Host "╔════════════════════════════════════════════════════════════════╗" -ForegroundColor Yellow
-    Write-Host "║                          ⚠ ATENÇÃO ⚠                          ║" -ForegroundColor Yellow
+    Write-Host "║                          [!] ATENÇÃO [!]                      ║" -ForegroundColor Yellow
     Write-Host "╚════════════════════════════════════════════════════════════════╝" -ForegroundColor Yellow
     Write-Host ""
     Write-Host "O Microsoft Word está atualmente em execução!" -ForegroundColor Yellow
@@ -831,12 +831,12 @@ function Export-WordCustomizations {
         Write-Host "║              EXPORTAÇÃO CONCLUÍDA COM SUCESSO!                 ║" -ForegroundColor Green
         Write-Host "╚════════════════════════════════════════════════════════════════╝" -ForegroundColor Green
         Write-Host ""
-        Write-Host "📊 Resumo:" -ForegroundColor Cyan
+        Write-Host "[CHART] Resumo:" -ForegroundColor Cyan
         Write-Host "   • Itens exportados: $($script:ExportedItems.Count)" -ForegroundColor White
         Write-Host "   • Caminho: $ExportPath" -ForegroundColor Gray
         Write-Host "   • Tempo decorrido: $($duration.ToString('mm\:ss'))" -ForegroundColor Gray
         Write-Host ""
-        Write-Host "📝 Log: $script:LogFile" -ForegroundColor Gray
+        Write-Host "[LOG] Log: $script:LogFile" -ForegroundColor Gray
         Write-Host ""
         
         Write-Log "=== EXPORTAÇÃO CONCLUÍDA COM SUCESSO ===" -Level SUCCESS
@@ -848,7 +848,7 @@ function Export-WordCustomizations {
         Write-Host "║                  ERRO NA EXPORTAÇÃO!                           ║" -ForegroundColor Red
         Write-Host "╚════════════════════════════════════════════════════════════════╝" -ForegroundColor Red
         Write-Host ""
-        Write-Host "❌ Erro: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "[X] Erro: $($_.Exception.Message)" -ForegroundColor Red
         Write-Host ""
         
         Write-Log "=== EXPORTAÇÃO FALHOU ===" -Level ERROR

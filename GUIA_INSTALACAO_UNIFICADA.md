@@ -1,22 +1,22 @@
 # Guia de Instalação Unificada - CHAINSAW
 
-## 🎯 Visão Geral
+## [*] Visão Geral
 
 A partir da **versão 2.0.0**, o processo de instalação do CHAINSAW foi unificado em um único script que:
 
-- ✅ Instala templates do Word
-- ✅ Detecta e importa personalizações automaticamente (se disponíveis)
-- ✅ Cria backups de segurança
-- ✅ Registra todas as operações em log
+- [OK] Instala templates do Word
+- [OK] Detecta e importa personalizações automaticamente (se disponíveis)
+- [OK] Cria backups de segurança
+- [OK] Registra todas as operações em log
 
-## 📋 Pré-requisitos
+## [INFO] Pré-requisitos
 
 - Windows 10 ou superior
 - PowerShell 5.1 ou superior
 - Microsoft Word fechado durante a instalação
 - Pasta `CHAINSAW` na pasta Documentos do usuário
 
-## 🚀 Instalação Rápida
+## [>>] Instalação Rápida
 
 ### Passo 1: Copiar Arquivos
 
@@ -53,7 +53,7 @@ ETAPA 5: Cópia da Pasta Templates          ✓
 ETAPA 6: Importação de Personalizações     ✓ (se disponível)
 ```
 
-## 🎨 Importação Automática de Personalizações
+## [ART] Importação Automática de Personalizações
 
 ### Como Funciona
 
@@ -93,7 +93,7 @@ C:\Users\[usuario]\Documents\CHAINSAW\
     └── stamp.png
 ```
 
-## 🔧 Opções de Instalação
+## [CFG] Opções de Instalação
 
 ### Instalação Padrão (Interativa)
 
@@ -139,7 +139,7 @@ install.cmd -NoBackup
 install.cmd -Force -SkipCustomizations
 ```
 
-## 📦 Exportar Personalizações (Máquina de Origem)
+## [PKG] Exportar Personalizações (Máquina de Origem)
 
 Para transferir suas personalizações do Word para outra máquina:
 
@@ -171,7 +171,7 @@ install.cmd
 
 O instalador detectará automaticamente a pasta `exported-config` e oferecerá importar as personalizações.
 
-## 📊 Logs e Diagnósticos
+## [CHART] Logs e Diagnósticos
 
 Todos os logs são salvos em:
 ```
@@ -187,7 +187,7 @@ Todos os logs são salvos em:
 notepad "$env:USERPROFILE\CHAINSAW\logs\$(Get-ChildItem $env:USERPROFILE\CHAINSAW\logs\install_*.log | Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty Name)"
 ```
 
-## ❓ Perguntas Frequentes
+## [?] Perguntas Frequentes
 
 ### O que acontece se eu executar install.cmd sem exported-config?
 
@@ -219,7 +219,7 @@ São launchers seguros que:
 - Não alteram configurações permanentes do sistema
 - São mais fáceis de usar (duplo-clique)
 
-## 🔒 Segurança
+## [SEC] Segurança
 
 ### Bypass de Política de Execução
 
@@ -229,7 +229,7 @@ Os arquivos `.cmd` usam bypass temporário:
 powershell.exe -ExecutionPolicy Bypass -NoProfile -File "script.ps1"
 ```
 
-**Isso é seguro?** ✅ SIM
+**Isso é seguro?** [OK] SIM
 
 - Apenas o script especificado é executado
 - Não há alteração permanente nas políticas do sistema
@@ -257,7 +257,7 @@ Rename-Item $backup "Templates"
 - **[INSTALL.md](INSTALL.md)** - Instruções detalhadas de instalação
 - **[GUIA_RAPIDO_EXPORT_IMPORT.md](GUIA_RAPIDO_EXPORT_IMPORT.md)** - Guia de exportação/importação
 
-## 🆕 Mudanças da Versão 2.0.0
+## [NEW] Mudanças da Versão 2.0.0
 
 ### O que mudou?
 
@@ -275,19 +275,19 @@ Rename-Item $backup "Templates"
 ### Scripts Removidos
 
 Os seguintes scripts foram consolidados ou removidos:
-- ❌ `import-config.ps1` (funcionalidade integrada ao `install.ps1`)
-- ❌ `import-config.cmd` (não é mais necessário)
-- ❌ `start-install.ps1` (substituído por `install.cmd`)
-- ❌ `test-*.ps1` (scripts de teste legados)
+- [X] `import-config.ps1` (funcionalidade integrada ao `install.ps1`)
+- [X] `import-config.cmd` (não é mais necessário)
+- [X] `start-install.ps1` (substituído por `install.cmd`)
+- [X] `test-*.ps1` (scripts de teste legados)
 
 ### Scripts Mantidos
 
-- ✅ `install.ps1` - **Instalador unificado** (agora com importação integrada)
-- ✅ `install.cmd` - Launcher seguro
-- ✅ `export-config.ps1` - Exportação de personalizações
-- ✅ `export-config.cmd` - Launcher seguro para exportação
+- [OK] `install.ps1` - **Instalador unificado** (agora com importação integrada)
+- [OK] `install.cmd` - Launcher seguro
+- [OK] `export-config.ps1` - Exportação de personalizações
+- [OK] `export-config.cmd` - Launcher seguro para exportação
 
-## 🎓 Exemplos de Uso
+## [ART] Exemplos de Uso
 
 ### Cenário 1: Instalação Nova (Sem Personalizações)
 
@@ -332,7 +332,7 @@ install.cmd -Force
 
 Resultado: Instalação completamente automática, sem interação do usuário.
 
-## 🔍 Troubleshooting
+## [?] Troubleshooting
 
 ### Erro: "Script não pode ser carregado"
 
@@ -358,13 +358,13 @@ Resultado: Instalação completamente automática, sem interação do usuário.
 
 ---
 
-## 💡 Dica Final
+## [i] Dica Final
 
 Para uma instalação mais rápida e fácil:
 
-1. ✅ Use `install.cmd` (duplo-clique)
-2. ✅ Mantenha a pasta `exported-config` se tiver personalizações
-3. ✅ Feche o Word antes de instalar
-4. ✅ Não execute como Administrador
+1. [OK] Use `install.cmd` (duplo-clique)
+2. [OK] Mantenha a pasta `exported-config` se tiver personalizações
+3. [OK] Feche o Word antes de instalar
+4. [OK] Não execute como Administrador
 
-**É isso! A instalação ficou muito mais simples.** 🎉
+**É isso! A instalação ficou muito mais simples.** [NEW]

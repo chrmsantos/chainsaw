@@ -13,21 +13,21 @@ Implementação de validação automática do tipo de documento antes do process
 A validação é executada **logo no início** do processamento, antes de qualquer modificação no documento:
 
 ```
-1. ✅ Verifica versão do Word
-2. ✅ Verifica integridade do documento
-3. ✅ Inicializa sistema de logs
-4. 🆕 VALIDA TIPO DE DOCUMENTO ← NOVA VALIDAÇÃO
-5. ✅ Cria backup
-6. ✅ Inicia formatação...
+1. [OK] Verifica versão do Word
+2. [OK] Verifica integridade do documento
+3. [OK] Inicializa sistema de logs
+4. [NEW] VALIDA TIPO DE DOCUMENTO ← NOVA VALIDAÇÃO
+5. [OK] Cria backup
+6. [OK] Inicia formatação...
 ```
 
 ### Tipos de Documento Válidos
 
 A validação aceita automaticamente documentos que iniciam com (case insensitive):
 
-- ✅ **INDICAÇÃO**
-- ✅ **REQUERIMENTO**
-- ✅ **MOÇÃO**
+- [OK] **INDICAÇÃO**
+- [OK] **REQUERIMENTO**
+- [OK] **MOÇÃO**
 
 ---
 
@@ -41,9 +41,9 @@ INDICAÇÃO N.º 123/2024
 ```
 
 **Resultado:**
-- ✅ Validação passa automaticamente
-- ✅ Log: "Documento identificado como: INDICAÇÃO"
-- ✅ Processamento continua normalmente
+- [OK] Validação passa automaticamente
+- [OK] Log: "Documento identificado como: INDICAÇÃO"
+- [OK] Processamento continua normalmente
 
 ---
 
@@ -55,9 +55,9 @@ REQUERIMENTO
 ```
 
 **Resultado:**
-- ✅ Validação passa automaticamente
-- ✅ Log: "Documento identificado como: REQUERIMENTO"
-- ✅ Processamento continua normalmente
+- [OK] Validação passa automaticamente
+- [OK] Log: "Documento identificado como: REQUERIMENTO"
+- [OK] Processamento continua normalmente
 
 ---
 
@@ -69,9 +69,9 @@ Moção n.º 45/2024
 ```
 
 **Resultado:**
-- ✅ Validação passa automaticamente (case insensitive)
-- ✅ Log: "Documento identificado como: MOÇÃO"
-- ✅ Processamento continua normalmente
+- [OK] Validação passa automaticamente (case insensitive)
+- [OK] Log: "Documento identificado como: MOÇÃO"
+- [OK] Processamento continua normalmente
 
 ---
 
@@ -83,7 +83,7 @@ PROJETO DE LEI N.º 789/2024
 ```
 
 **Resultado:**
-- ⚠️ Exibe mensagem ao usuário:
+- [!] Exibe mensagem ao usuário:
 
 ```
 ╔═══════════════════════════════════════════════════════════╗
@@ -112,13 +112,13 @@ PROJETO DE LEI N.º 789/2024
 ```
 
 **Se o usuário clicar em "Sim" (prosseguir):**
-- ⚠️ Log: "Usuário optou por prosseguir com documento tipo: PROJETO"
-- ✅ Processamento continua
+- [!] Log: "Usuário optou por prosseguir com documento tipo: PROJETO"
+- [OK] Processamento continua
 
 **Se o usuário clicar em "Não" (cancelar):**
-- ❌ Log: "Usuário cancelou processamento - tipo de documento não reconhecido: PROJETO"
-- ❌ Status bar: "Cancelado: tipo de documento não reconhecido"
-- ❌ Processamento é interrompido
+- [X] Log: "Usuário cancelou processamento - tipo de documento não reconhecido: PROJETO"
+- [X] Status bar: "Cancelado: tipo de documento não reconhecido"
+- [X] Processamento é interrompido
 
 ---
 

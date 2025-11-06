@@ -391,20 +391,20 @@ CleanUp:
         ' Monta mensagem com informações de erros/avisos
         Dim statusMsg As String
         If errorCount > 0 Then
-            statusMsg = vbCrLf & vbCrLf & "⚠️ ATENÇÃO: " & errorCount & " erro(s) detectado(s) durante a execução." & vbCrLf & _
+            statusMsg = vbCrLf & vbCrLf & "[!] ATENÇÃO: " & errorCount & " erro(s) detectado(s) durante a execução." & vbCrLf & _
                        "   Verifique o log para mais detalhes."
         ElseIf warningCount > 0 Then
-            statusMsg = vbCrLf & vbCrLf & "ℹ️ INFORMAÇÃO: " & warningCount & " aviso(s) registrado(s) durante a execução." & vbCrLf & _
+            statusMsg = vbCrLf & vbCrLf & "[i] INFORMAÇÃO: " & warningCount & " aviso(s) registrado(s) durante a execução." & vbCrLf & _
                        "   Verifique o log para mais detalhes."
         Else
-            statusMsg = vbCrLf & vbCrLf & "✓ Nenhum erro ou aviso detectado durante a execução."
+            statusMsg = vbCrLf & vbCrLf & "[OK] Nenhum erro ou aviso detectado durante a execução."
         End If
         
         ' Mensagem de sucesso com informações completas
-        MsgBox "✓ Processamento concluído com sucesso em " & executionTimeText & "!" & vbCrLf & vbCrLf & _
-               "📁 Backup criado em:" & vbCrLf & _
+        MsgBox "[OK] Processamento concluído com sucesso em " & executionTimeText & "!" & vbCrLf & vbCrLf & _
+               "[DIR] Backup criado em:" & vbCrLf & _
                "   " & IIf(backupFilePath <> "", backupFilePath, doc.Path & "\" & BACKUP_FOLDER_NAME & "\") & vbCrLf & vbCrLf & _
-               "📄 Log salvo em:" & vbCrLf & _
+               "[LOG] Log salvo em:" & vbCrLf & _
                "   " & logFilePath & statusMsg, _
                vbInformation, "CHAINSAW - Padronização Concluída"
     End If
@@ -5013,19 +5013,19 @@ Public Sub ConfirmarDesfazerPadronizacao()
     Dim undoMsg As String
     
     If changeCount > 0 Then
-        undoMsg = "↶ Padronização desfeita com sucesso!" & vbCrLf & vbCrLf & _
-                  "📊 Alterações revertidas:" & vbCrLf & _
+        undoMsg = "[<<] Padronização desfeita com sucesso!" & vbCrLf & vbCrLf & _
+                  "[CHART] Alterações revertidas:" & vbCrLf & _
                   "   • Parágrafos afetados: " & changeCount & vbCrLf & vbCrLf & _
-                  "📁 Documento:" & vbCrLf & _
+                  "[DIR] Documento:" & vbCrLf & _
                   "   " & docName & vbCrLf & vbCrLf & _
-                  "💡 DICA: O backup da padronização permanece disponível." & vbCrLf & _
+                  "[i] DICA: O backup da padronização permanece disponível." & vbCrLf & _
                   "   Use 'Abrir Pasta de Logs e Backups' para acessá-lo."
     Else
-        undoMsg = "↶ Desfazer executado!" & vbCrLf & vbCrLf & _
-                  "ℹ️ O documento foi revertido para o estado anterior." & vbCrLf & vbCrLf & _
-                  "📁 Documento:" & vbCrLf & _
+        undoMsg = "[<<] Desfazer executado!" & vbCrLf & vbCrLf & _
+                  "[i] O documento foi revertido para o estado anterior." & vbCrLf & vbCrLf & _
+                  "[DIR] Documento:" & vbCrLf & _
                   "   " & docName & vbCrLf & vbCrLf & _
-                  "💡 DICA: O backup da padronização permanece disponível." & vbCrLf & _
+                  "[i] DICA: O backup da padronização permanece disponível." & vbCrLf & _
                   "   Use 'Abrir Pasta de Logs e Backups' para acessá-lo."
     End If
     
@@ -5046,11 +5046,11 @@ ErrorHandler:
     
     ' Mensagem de erro genérica
     MsgBox "Não foi possível desfazer a operação." & vbCrLf & vbCrLf & _
-           "⚠️ Possíveis causas:" & vbCrLf & _
+           "[!] Possíveis causas:" & vbCrLf & _
            "   • Não há operações para desfazer" & vbCrLf & _
            "   • O documento foi fechado e reaberto" & vbCrLf & _
            "   • Limite de desfazer atingido" & vbCrLf & vbCrLf & _
-           "💡 SOLUÇÃO: Restaure manualmente a partir do backup." & vbCrLf & _
+           "[i] SOLUÇÃO: Restaure manualmente a partir do backup." & vbCrLf & _
            "   Use 'Abrir Pasta de Logs e Backups' para acessar os backups.", _
            vbExclamation, "CHAINSAW - Erro ao Desfazer"
     
@@ -5074,10 +5074,10 @@ Public Sub NotificarDesfazerPadronizacao()
     
     ' Cria mensagem de confirmação simplificada
     Dim msg As String
-    msg = "↶ Padronização desfeita!" & vbCrLf & vbCrLf & _
-          "✓ Todas as alterações da última padronização foram revertidas." & vbCrLf & vbCrLf & _
-          "📁 Documento: " & doc.Name & vbCrLf & vbCrLf & _
-          "💾 O backup continua disponível na pasta de backups." & vbCrLf & _
+    msg = "[<<] Padronização desfeita!" & vbCrLf & vbCrLf & _
+          "[OK] Todas as alterações da última padronização foram revertidas." & vbCrLf & vbCrLf & _
+          "[DIR] Documento: " & doc.Name & vbCrLf & vbCrLf & _
+          "[SAVE] O backup continua disponível na pasta de backups." & vbCrLf & _
           "   Use 'Abrir Pasta de Logs e Backups' para acessá-lo."
     
     ' Exibe notificação

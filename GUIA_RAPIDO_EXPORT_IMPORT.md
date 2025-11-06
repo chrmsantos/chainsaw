@@ -1,33 +1,33 @@
-# 🎯 Guia Rápido: Exportação e Importação de Personalizações
+# [*] Guia Rápido: Exportação e Importação de Personalizações
 
-## 📦 O que é exportado?
+## [PKG] O que é exportado?
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                    PERSONALIZAÇÕES DO WORD                      │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  🎨 Faixa de Opções (Ribbon)                                   │
+│  [ART] Faixa de Opções (Ribbon)                                │
 │     └─ Abas customizadas                                       │
 │     └─ Grupos personalizados                                   │
 │     └─ Botões adicionados/removidos                           │
 │                                                                 │
-│  📦 Blocos de Construção (Building Blocks)                     │
+│  [PKG] Blocos de Construção (Building Blocks)                  │
 │     └─ Partes Rápidas                                          │
 │     └─ Cabeçalhos e Rodapés                                    │
 │     └─ Páginas de Capa                                         │
 │     └─ Marcas d'água                                           │
 │                                                                 │
-│  🎭 Temas e Estilos                                            │
+│  [THEME] Temas e Estilos                                       │
 │     └─ Temas personalizados                                    │
 │     └─ Estilos customizados                                    │
 │     └─ Cores do documento                                      │
 │                                                                 │
-│  ⚡ Barra de Ferramentas de Acesso Rápido                      │
+│  [FAST] Barra de Ferramentas de Acesso Rápido                  │
 │     └─ Botões personalizados                                   │
 │     └─ Ordem dos comandos                                      │
 │                                                                 │
-│  📝 Normal.dotm                                                 │
+│  [LOG] Normal.dotm                                             │
 │     └─ Template global                                         │
 │     └─ Macros                                                  │
 │     └─ AutoTexto                                               │
@@ -36,7 +36,7 @@
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## 🚀 Fluxo Completo
+## [>>] Fluxo Completo
 
 ### Máquina A (Origem) → Máquina B (Destino)
 
@@ -44,10 +44,10 @@
 ┌─────────────┐
 │  Máquina A  │  (Origem - com personalizações)
 │             │
-│   1. ✅     │  Configure o Word como desejar
-│   2. 📤     │  Execute: export-config.cmd
-│   3. 📦     │  Pasta 'exported-config' criada
-│   4. 💾     │  Copie para USB/rede/email
+│   1. [OK]   │  Configure o Word como desejar
+│   2. [OUT]  │  Execute: export-config.cmd
+│   3. [PKG]  │  Pasta 'exported-config' criada
+│   4. [SAVE] │  Copie para USB/rede/email
 │             │
 └─────────────┘
        │
@@ -56,16 +56,16 @@
 ┌─────────────┐
 │  Máquina B  │  (Destino - receberá personalizações)
 │             │
-│   1. 📁     │  Copie pasta 'CHAINSAW' para Documentos
-│   2. ❌     │  FECHE o Word completamente
-│   3. 📥     │  Execute: import-config.cmd
-│   4. ✅     │  Abra o Word
-│   5. 🎉     │  Personalizações aplicadas!
+│   1. [DIR]  │  Copie pasta 'CHAINSAW' para Documentos
+│   2. [X]    │  FECHE o Word completamente
+│   3. [IN]   │  Execute: import-config.cmd
+│   4. [OK]   │  Abra o Word
+│   5. [NEW]  │  Personalizações aplicadas!
 │             │
 └─────────────┘
 ```
 
-## ⚡ Comandos Rápidos
+## [FAST] Comandos Rápidos
 
 ### Exportar
 
@@ -75,10 +75,10 @@ export-config.cmd
 ```
 
 **Resultado:**
-- ✅ Cria pasta `exported-config`
-- ✅ Manifesto JSON com metadata
-- ✅ README com instruções
-- ✅ Log detalhado
+- [OK] Cria pasta `exported-config`
+- [OK] Manifesto JSON com metadata
+- [OK] README com instruções
+- [OK] Log detalhado
 
 ### Importar
 
@@ -88,11 +88,11 @@ import-config.cmd
 ```
 
 **Requisitos:**
-- ❌ Word DEVE estar fechado
-- ✅ Pasta `exported-config` deve existir
-- ✅ Backup automático criado
+- [X] Word DEVE estar fechado
+- [OK] Pasta `exported-config` deve existir
+- [OK] Backup automático criado
 
-## 🎬 Cenários de Uso
+## [*] Cenários de Uso
 
 ### Cenário 1: Configurar Nova Máquina
 
@@ -132,7 +132,7 @@ Sandbox
 4. Se gostar: exportar novo padrão
 ```
 
-## 📋 Checklist de Exportação
+## [INFO] Checklist de Exportação
 
 - [ ] Word está aberto? (pode exportar, mas recomenda fechar)
 - [ ] Todas personalizações configuradas?
@@ -142,32 +142,32 @@ Sandbox
 - [ ] Verifique pasta `exported-config` criada
 - [ ] Copie para destino
 
-## 📋 Checklist de Importação
+## [INFO] Checklist de Importação
 
 - [ ] Pasta `exported-config` copiada?
-- [ ] Word está **COMPLETAMENTE FECHADO**? ⚠️
+- [ ] Word está **COMPLETAMENTE FECHADO**? [!]
 - [ ] Feche outros documentos Office
 - [ ] Execute: `import-config.cmd`
 - [ ] Aguarde conclusão
 - [ ] Abra Word
 - [ ] Verifique personalizações
 
-## ⚠️ Avisos Importantes
+## [!] Avisos Importantes
 
-### ✅ PODE fazer
+### [OK] PODE fazer
 
-- ✅ Exportar com Word aberto (não recomendado)
-- ✅ Exportar múltiplas vezes
-- ✅ Importar várias vezes
-- ✅ Ter backups de exports
+- [OK] Exportar com Word aberto (não recomendado)
+- [OK] Exportar múltiplas vezes
+- [OK] Importar várias vezes
+- [OK] Ter backups de exports
 
-### ❌ NÃO PODE fazer
+### [X] NÃO PODE fazer
 
-- ❌ Importar com Word aberto → Script aborta!
-- ❌ Importar sem `exported-config`
-- ❌ Pular o backup (use `-NoBackup` com cautela)
+- [X] Importar com Word aberto → Script aborta!
+- [X] Importar sem `exported-config`
+- [X] Pular o backup (use `-NoBackup` com cautela)
 
-## 🔧 Opções Avançadas
+## [CFG] Opções Avançadas
 
 ### Exportar com Registro
 
@@ -187,7 +187,7 @@ Sandbox
 .\import-config.ps1 -NoBackup
 ```
 
-⚠️ **Cuidado:** Não recomendado!
+[!] **Cuidado:** Não recomendado!
 
 ### Caminho Customizado
 
