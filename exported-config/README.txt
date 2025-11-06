@@ -1,50 +1,50 @@
-ï»¿================================================================================
-CHAINSAW - PersonalizaÃ§Ãµes Exportadas do Word
+================================================================================
+CHAINSAW - Personalizações Exportadas do Word
 ================================================================================
 
-Data de ExportaÃ§Ã£o: 06/11/2025 16:54:31
-UsuÃ¡rio: csantos
+Data de Exportação: 06/11/2025 16:54:31
+Usuário: csantos
 Computador: NOTEPROCLEG07
-VersÃ£o do Word: 16.0.19328.20178
+Versão do Word: 16.0.19328.20178
 
 Total de itens exportados: 5
 
-CONTEÃšDO:
+CONTEÚDO:
 ---------
 
 Templates/
-    - Normal.dotm: Template global do Word com macros e personalizaÃ§Ãµes
+    - Normal.dotm: Template global do Word com macros e personalizações
 
 RibbonCustomization/
-    - PersonalizaÃ§Ãµes da Faixa de OpÃ§Ãµes (abas customizadas)
+    - Personalizações da Faixa de Opções (abas customizadas)
 
 OfficeCustomUI/
-    - Arquivos de configuraÃ§Ã£o da interface do Office
+    - Arquivos de configuração da interface do Office
 
 Templates/LiveContent/16/
     Managed/Document Themes/
         - Temas de documentos gerenciados pelo sistema
     
     User/Document Themes/
-        - Temas personalizados pelo usuÃ¡rio
+        - Temas personalizados pelo usuário
     
     Managed/Word Document Building Blocks/
-        - Blocos de construÃ§Ã£o gerenciados
+        - Blocos de construção gerenciados
     
     User/Word Document Building Blocks/
-        - Blocos de construÃ§Ã£o e partes rÃ¡pidas do usuÃ¡rio
+        - Blocos de construção e partes rápidas do usuário
 
-Registry/ (se incluÃ­do)
-    - ConfiguraÃ§Ãµes do registro do Word
+Registry/ (se incluído)
+    - Configurações do registro do Word
 
 COMO IMPORTAR:
 --------------
 
-Para importar estas configuraÃ§Ãµes em outra mÃ¡quina:
+Para importar estas configurações em outra máquina:
 
-1. Copie toda esta pasta para a mÃ¡quina de destino
+1. Copie toda esta pasta para a máquina de destino
 
-2. Execute o script de importaÃ§Ã£o:
+2. Execute o script de importação:
    .\import-config.ps1
 
 Ou use o instalador principal:

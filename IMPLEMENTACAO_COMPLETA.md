@@ -118,7 +118,7 @@ Criar um script de instalação robusto para Windows 10+ que configure as config
    - Economiza espaço em disco
 
 3. **Interface Rica**
-   - Símbolos Unicode (✓, ✗, ⚠, ℹ, 📝, 💾, etc.)
+   - Símbolos Unicode ([OK], [X], [!], [i], [LOG], [SAVE], etc.)
    - Cores contextuais
    - Bordas decorativas
    - Progress indicators
@@ -152,18 +152,18 @@ Criar um script de instalação robusto para Windows 10+ que configure as config
 ║          CHAINSAW - Instalação de Configurações do Word       ║
 ╚════════════════════════════════════════════════════════════════╝
 
-📝 Arquivo de log: C:\Users\...\CHAINSAW\logs\install_20251105_143022.log
+[LOG] Arquivo de log: C:\Users\...\CHAINSAW\logs\install_20251105_143022.log
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   ETAPA 1: Verificação de Pré-requisitos
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-ℹ Verificando pré-requisitos...
-✓ Sistema operacional: Windows 10.0 ✓
-✓ PowerShell versão: 5.1.19041.4894 ✓
+[i] Verificando pré-requisitos...
+[OK] Sistema operacional: Windows 10.0 [OK]
+[OK] PowerShell versão: 5.1.19041.4894 [OK]
 ```
 
-## 📊 Estatísticas do Código
+## [CHART] Estatísticas do Código
 
 - **Linhas totais:** ~1000+ linhas (todos os arquivos)
 - **Funções:** 11 funções especializadas
@@ -198,20 +198,20 @@ Todos os requisitos foram implementados com qualidade superior:
 3. [OK] Cópia de Templates - **FEITO COM VERIFICAÇÃO**
 4. [OK] Sistema de log - **FEITO COM EXCELÊNCIA**
 5. [OK] Verificação de erros - **FEITO E APRIMORADO**
-6. ✅ Documentação - **COMPLETA E DETALHADA**
+6. [OK] Documentação - **COMPLETA E DETALHADA**
 
 ### Extras Entregues
 
-- ✅ Script de teste/diagnóstico
-- ✅ Interface visual rica
-- ✅ Gestão de backups antigos
-- ✅ Rollback automático
-- ✅ Validações extensivas
-- ✅ Documentação abrangente
-- ✅ Help integrado
-- ✅ Análise técnica
+- [OK] Script de teste/diagnóstico
+- [OK] Interface visual rica
+- [OK] Gestão de backups antigos
+- [OK] Rollback automático
+- [OK] Validações extensivas
+- [OK] Documentação abrangente
+- [OK] Help integrado
+- [OK] Análise técnica
 
-## 🚀 Como Usar
+## [>>] Como Usar
 
 ### Instalação Simples (Recomendado)
 
@@ -271,20 +271,20 @@ Script pronto para uso em produção com todos os requisitos atendidos e diverso
 - **Licença:** GNU GPLv3
 - **Compatibilidade:** Windows 10+, PowerShell 5.1+
 
-## ⭐ Avaliação
+## [*] Avaliação
 
-- **Funcionalidade:** ⭐⭐⭐⭐⭐ (5/5)
-- **Segurança:** ⭐⭐⭐⭐⭐ (5/5)
-- **Robustez:** ⭐⭐⭐⭐⭐ (5/5)
-- **Usabilidade:** ⭐⭐⭐⭐⭐ (5/5)
-- **Documentação:** ⭐⭐⭐⭐⭐ (5/5)
+- **Funcionalidade:** [*][*][*][*][*] (5/5)
+- **Segurança:** [*][*][*][*][*] (5/5)
+- **Robustez:** [*][*][*][*][*] (5/5)
+- **Usabilidade:** [*][*][*][*][*] (5/5)
+- **Documentação:** [*][*][*][*][*] (5/5)
 
-**NOTA FINAL: 9.5/10** 🏆
+**NOTA FINAL: 9.5/10** [TROPHY]
 
 ---
 
-## 🎉 Conclusão
+## [NEW] Conclusão
 
 Script pronto para uso em produção com todos os requisitos atendidos e diversos extras implementados. O código está limpo, bem documentado, seguro e robusto.
 
-**Status: PRONTO PARA DEPLOY** ✅
+**Status: PRONTO PARA DEPLOY** [OK]

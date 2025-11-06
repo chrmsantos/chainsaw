@@ -100,7 +100,7 @@ Se necessário, o script se relançará automaticamente. Você verá:
    • O bypass expira quando o script terminar
    • Nenhum privilégio de administrador é usado
 
-✓ Executando com bypass temporário (seguro)
+[OK] Executando com bypass temporário (seguro)
 ```
 
 ## [LOCK][>>] Como Usar
@@ -224,12 +224,12 @@ install.cmd -SourcePath "C:\outro\caminho\CHAINSAW"
   ETAPA 1: Verificação de Pré-requisitos
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-ℹ Verificando pré-requisitos...
-✓ Sistema operacional: Windows 10.0 ✓
-✓ PowerShell versão: 5.1.19041.4894 ✓
-ℹ Verificando arquivos de origem: C:\Users\csantos\Documents\CHAINSAW
-✓ Arquivos de origem encontrados ✓
-✓ Permissões de escrita no perfil do usuário confirmadas ✓
+[i] Verificando pré-requisitos...
+[OK] Sistema operacional: Windows 10.0 [OK]
+[OK] PowerShell versão: 5.1.19041.4894 [OK]
+[i] Verificando arquivos de origem: C:\Users\csantos\Documents\CHAINSAW
+[OK] Arquivos de origem encontrados [OK]
+[OK] Permissões de escrita no perfil do usuário confirmadas [OK]
 
 [... mais output ...]
 
@@ -237,7 +237,7 @@ install.cmd -SourcePath "C:\outro\caminho\CHAINSAW"
 ║              INSTALAÇÃO CONCLUÍDA COM SUCESSO!                 ║
 ╚════════════════════════════════════════════════════════════════╝
 
-📊 Resumo da Instalação:
+[CHART] Resumo da Instalação:
    • Operações bem-sucedidas: 5
    • Avisos: 0
    • Erros: 0
@@ -260,10 +260,10 @@ Caminho de Origem: C:\Users\csantos\Documents\CHAINSAW
 
 [2025-11-05 14:30:22] [INFO] === INÍCIO DA INSTALAÇÃO ===
 [2025-11-05 14:30:22] [INFO] Verificando pré-requisitos...
-[2025-11-05 14:30:22] [SUCCESS] Sistema operacional: Windows 10.0 ✓
-[2025-11-05 14:30:23] [SUCCESS] PowerShell versão: 5.1.19041.4894 ✓
+[2025-11-05 14:30:22] [SUCCESS] Sistema operacional: Windows 10.0 [OK]
+[2025-11-05 14:30:23] [SUCCESS] PowerShell versão: 5.1.19041.4894 [OK]
 [2025-11-05 14:30:23] [INFO] Verificando acesso ao caminho de rede: ...
-[2025-11-05 14:30:24] [SUCCESS] Acesso ao caminho de rede confirmado ✓
+[2025-11-05 14:30:24] [SUCCESS] Acesso ao caminho de rede confirmado [OK]
 ...
 ```
 

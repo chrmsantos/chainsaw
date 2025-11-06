@@ -120,7 +120,7 @@ install.cmd -SkipCustomizations
 install.cmd -Force
 ```
 
-### 📊 Estatísticas da Mudança
+### [CHART] Estatísticas da Mudança
 
 - **Linhas de Código Adicionadas**: ~450 (funções de importação integradas)
 - **Scripts Removidos**: 6

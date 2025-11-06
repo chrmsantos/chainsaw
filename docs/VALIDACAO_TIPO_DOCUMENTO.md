@@ -131,10 +131,10 @@ INDCAÇÃO N.º 123/2024
 (faltou a letra "I" em INDICAÇÃO)
 
 **Resultado:**
-- ⚠️ Primeira palavra identificada: "INDCAÇÃO"
-- ⚠️ Exibe mensagem ao usuário (similar ao Cenário 4)
+- [!] Primeira palavra identificada: "INDCAÇÃO"
+- [!] Exibe mensagem ao usuário (similar ao Cenário 4)
 - 🔍 Usuário pode perceber o erro e cancelar para corrigir
-- ✅ Ou pode prosseguir se for intencional
+- [OK] Ou pode prosseguir se for intencional
 
 ---
 
@@ -143,7 +143,7 @@ INDCAÇÃO N.º 123/2024
 **Documento sem conteúdo ou apenas parágrafos vazios**
 
 **Resultado:**
-- ⚠️ Exibe mensagem ao usuário:
+- [!] Exibe mensagem ao usuário:
 
 ```
 ╔═══════════════════════════════════════════════════════════╗
@@ -205,14 +205,14 @@ End If
 
 ## Características
 
-### ✅ Segurança
+### [OK] Segurança
 
 - Comparação **case insensitive** (aceita "INDICAÇÃO", "Indicação", "indicação")
 - Reutiliza função `GetFirstWordOfDocument` já validada
 - Remove pontuação automaticamente (`:`, `,`, `.`, `;`)
 - Tratamento completo de erros
 
-### ✅ User Experience
+### [OK] User Experience
 
 - Mensagens claras e informativas
 - Explica possíveis causas do problema
@@ -221,7 +221,7 @@ End If
 - Permite ao usuário decidir (não é bloqueante por padrão)
 - Status bar atualizada em caso de cancelamento
 
-### ✅ Logging
+### [OK] Logging
 
 - Log de tipo identificado (INFO)
 - Log de decisão do usuário (WARNING/INFO)
@@ -314,11 +314,11 @@ Esta validação trabalha em conjunto com as **substituições condicionais de t
 
 ## Status
 
-- ✅ Implementado
-- ✅ Testado (sem erros de sintaxe)
-- ✅ Documentado
-- ✅ Integrado com fluxo principal
-- ✅ Pronto para uso
+- [OK] Implementado
+- [OK] Testado (sem erros de sintaxe)
+- [OK] Documentado
+- [OK] Integrado com fluxo principal
+- [OK] Pronto para uso
 
 ---
 

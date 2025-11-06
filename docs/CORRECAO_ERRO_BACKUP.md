@@ -17,7 +17,7 @@ O erro ocorreu porque:
 2. **Arquivos bloqueados**: Alguns arquivos podem estar bloqueados por outros processos
 3. **Operação Rename-Item**: O método `Rename-Item` falha quando arquivos estão em uso
 
-## ✅ Correção Implementada
+## [OK] Correção Implementada
 
 ### 1. Verificação do Word Antes do Backup
 
@@ -67,7 +67,7 @@ Funções de Importação
 └── ...
 ```
 
-## 🎯 Como Funciona Agora
+## [*] Como Funciona Agora
 
 ### Fluxo de Backup Melhorado
 
@@ -77,23 +77,23 @@ Funções de Importação
    └── Se NÃO → Continuar
 
 2. Tentar Rename-Item (método rápido)
-   ├── Se SUCESSO → Backup criado ✓
+   ├── Se SUCESSO → Backup criado [OK]
    └── Se FALHA (arquivo em uso) → Ir para passo 3
 
 3. Método alternativo: Copy + Delete
    ├── Copiar pasta inteira
    ├── Aguardar 1 segundo
    ├── Deletar pasta original
-   └── Backup criado ✓
+   └── Backup criado [OK]
 ```
 
-## 📋 Mensagens ao Usuário
+## [INFO] Mensagens ao Usuário
 
 Quando o Word está aberto, o usuário verá:
 
 ```
 ╔════════════════════════════════════════════════════════════════╗
-║                  ⚠ MICROSOFT WORD ABERTO ⚠                    ║
+║                  [!] MICROSOFT WORD ABERTO [!]                    ║
 ╚════════════════════════════════════════════════════════════════╝
 
 O Microsoft Word está em execução e deve ser fechado antes de
@@ -154,7 +154,7 @@ Após executar, verifique o log em:
 [INFO] Criando backup da pasta Templates...
 [INFO] Origem: C:\Users\csantos\AppData\Roaming\Microsoft\Templates
 [INFO] Destino: C:\Users\csantos\AppData\Roaming\Microsoft\Templates_backup_20251105_152500
-[SUCCESS] Backup criado com sucesso: Templates_backup_20251105_152500 ✓
+[SUCCESS] Backup criado com sucesso: Templates_backup_20251105_152500 [OK]
 ```
 
 ### Log de Sucesso - Método Alternativo
@@ -163,7 +163,7 @@ Após executar, verifique o log em:
 [INFO] Criando backup da pasta Templates...
 [WARNING] Erro de acesso ao renomear (possível arquivo em uso)
 [INFO] Tentando método alternativo (cópia)...
-[SUCCESS] Backup criado com sucesso (método cópia): Templates_backup_20251105_152500 ✓
+[SUCCESS] Backup criado com sucesso (método cópia): Templates_backup_20251105_152500 [OK]
 ```
 
 ### Log com Word Aberto
@@ -172,32 +172,32 @@ Após executar, verifique o log em:
 [WARNING] Aguardando fechamento do Word...
 [INFO] Word fechado, continuando...
 [INFO] Criando backup da pasta Templates...
-[SUCCESS] Backup criado com sucesso: Templates_backup_20251105_152500 ✓
+[SUCCESS] Backup criado com sucesso: Templates_backup_20251105_152500 [OK]
 ```
 
-## 💡 Dicas para Evitar o Erro
+## [i] Dicas para Evitar o Erro
 
 ### Antes de Executar install.cmd
 
-1. ✅ **Feche o Microsoft Word completamente**
+1. [OK] **Feche o Microsoft Word completamente**
    - Salve todos os documentos
    - Feche todas as janelas do Word
    - Verifique no Gerenciador de Tarefas se `WINWORD.EXE` não está em execução
 
-2. ✅ **Feche outros aplicativos do Office**
+2. [OK] **Feche outros aplicativos do Office**
    - Outlook (se usa modelos do Word)
    - PowerPoint (se compartilha recursos)
    - Excel (se usa templates do Word)
 
-3. ✅ **Execute como usuário normal**
+3. [OK] **Execute como usuário normal**
    - NÃO use "Executar como administrador"
    - Use sua sessão de usuário normal
 
 ### Durante a Instalação
 
 - ⏳ Se solicitado, aguarde o script completar
-- 🚫 Não abra o Word durante a instalação
-- 📝 Acompanhe as mensagens na tela
+- [NO] Não abra o Word durante a instalação
+- [LOG] Acompanhe as mensagens na tela
 
 ## 🆘 Troubleshooting
 
@@ -232,11 +232,11 @@ takeown /f $templatesPath /r /d y
 icacls $templatesPath /grant "$env:USERNAME:(OI)(CI)F" /t
 ```
 
-## 📊 Mudanças no Código
+## [CHART] Mudanças no Código
 
 ### Arquivos Modificados
 
-- ✅ `install.ps1` - Versão 2.0.0
+- [OK] `install.ps1` - Versão 2.0.0
   - Função `Backup-TemplatesFolder` melhorada
   - Função `Test-WordRunning` movida
   - Método de backup alternativo adicionado
@@ -249,7 +249,7 @@ icacls $templatesPath /grant "$env:USERNAME:(OI)(CI)F" /t
 | `Test-WordRunning` | ~6 | Movida para antes de Backup |
 | `Backup-TemplatesFolder` | ~50 | Verificação de Word + método alternativo |
 
-## ✅ Status
+## [OK] Status
 
 - [x] Erro identificado
 - [x] Causa raiz determinada
@@ -258,7 +258,7 @@ icacls $templatesPath /grant "$env:USERNAME:(OI)(CI)F" /t
 - [x] Documentação criada
 - [ ] Teste em ambiente real (próximo passo)
 
-## 🚀 Próximo Passo
+## [>>] Próximo Passo
 
 Execute a instalação novamente:
 
@@ -277,4 +277,4 @@ Se o erro persistir, verifique:
 
 **Correção aplicada em:** 05/11/2025  
 **Versão do script:** 2.0.0  
-**Status:** ✅ Pronto para teste
+**Status:** [OK] Pronto para teste

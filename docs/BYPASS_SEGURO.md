@@ -1,10 +1,10 @@
 # Mecanismo de Bypass Automático Seguro
 
-## 📋 Visão Geral
+## [INFO] Visão Geral
 
 O script `install.ps1` implementa um mecanismo de auto-relançamento com bypass temporário da política de execução do PowerShell. Este documento detalha como funciona e por que é seguro.
 
-## 🔐 Arquitetura de Segurança
+## [SEC] Arquitetura de Segurança
 
 ### 1. Detecção da Política de Execução
 
@@ -65,7 +65,7 @@ $currentPolicy = Get-ExecutionPolicy -Scope CurrentUser
 2. O bypass é apenas para o processo, não para o usuário
 3. Quando o processo termina, o bypass desaparece
 
-## 🛡️ Camadas de Segurança
+## [SEC] Camadas de Segurança
 
 ### Camada 1: Detecção Precisa
 
@@ -88,12 +88,12 @@ catch [System.Management.Automation.PSSecurityException] {
 O script informa claramente ao usuário:
 
 ```
-🔒 Verificando política de execução...
+[SEC] Verificando política de execução...
    Política atual (CurrentUser): Restricted
-⚠  Política de execução restritiva detectada.
-🔄 Relançando script com bypass temporário...
+[!]  Política de execução restritiva detectada.
+[SYNC] Relançando script com bypass temporário...
 
-ℹ  SEGURANÇA:
+[i]  SEGURANÇA:
    • Apenas ESTE script será executado com bypass
    • A política do sistema NÃO será alterada
    • O bypass expira quando o script terminar
@@ -206,7 +206,7 @@ $arguments += @("-SourcePath", "`"$SourcePath`"")
 
 **Risco Residual**: Mínimo (requer privilégios que não temos)
 
-## ✅ Comparação com Alternativas
+## [OK] Comparação com Alternativas
 
 ### Alternativa 1: Set-ExecutionPolicy
 
@@ -215,16 +215,16 @@ Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 ```
 
 **Desvantagens**:
-- ❌ Altera permanentemente a política do usuário
-- ❌ Pode conflitar com políticas de grupo corporativas
-- ❌ Requer que usuário entenda o conceito de políticas de execução
-- ❌ Deixa o sistema mais permissivo permanentemente
+- [X] Altera permanentemente a política do usuário
+- [X] Pode conflitar com políticas de grupo corporativas
+- [X] Requer que usuário entenda o conceito de políticas de execução
+- [X] Deixa o sistema mais permissivo permanentemente
 
 **Vantagens do Bypass Automático**:
-- ✅ Temporário: expira automaticamente
-- ✅ Isolado: apenas este script
-- ✅ Automático: nenhuma ação manual necessária
-- ✅ Seguro: não deixa o sistema mais vulnerável
+- [OK] Temporário: expira automaticamente
+- [OK] Isolado: apenas este script
+- [OK] Automático: nenhuma ação manual necessária
+- [OK] Seguro: não deixa o sistema mais vulnerável
 
 ### Alternativa 2: Assinatura Digital
 
@@ -234,16 +234,16 @@ Set-AuthenticodeSignature -FilePath install.ps1 -Certificate $cert
 ```
 
 **Desvantagens**:
-- ❌ Requer infraestrutura de certificados
-- ❌ Custo de manutenção de certificados
-- ❌ Complexidade adicional
-- ❌ Usuários ainda precisam confiar no certificado
+- [X] Requer infraestrutura de certificados
+- [X] Custo de manutenção de certificados
+- [X] Complexidade adicional
+- [X] Usuários ainda precisam confiar no certificado
 
 **Vantagens do Bypass Automático**:
-- ✅ Zero configuração
-- ✅ Funciona imediatamente
-- ✅ Sem custo adicional
-- ✅ Simples de manter
+- [OK] Zero configuração
+- [OK] Funciona imediatamente
+- [OK] Sem custo adicional
+- [OK] Simples de manter
 
 ### Alternativa 3: Executar Manualmente com Bypass
 
@@ -252,30 +252,30 @@ powershell.exe -ExecutionPolicy Bypass -File install.ps1
 ```
 
 **Desvantagens**:
-- ❌ Usuário precisa lembrar o comando
-- ❌ Propenso a erros de digitação
-- ❌ Não funciona bem em documentação
-- ❌ Experiência de usuário ruim
+- [X] Usuário precisa lembrar o comando
+- [X] Propenso a erros de digitação
+- [X] Não funciona bem em documentação
+- [X] Experiência de usuário ruim
 
 **Vantagens do Bypass Automático**:
-- ✅ Transparente para o usuário
-- ✅ Comando simples: `.\install.ps1`
-- ✅ Menos propenso a erros
-- ✅ Melhor experiência de usuário
+- [OK] Transparente para o usuário
+- [OK] Comando simples: `.\install.ps1`
+- [OK] Menos propenso a erros
+- [OK] Melhor experiência de usuário
 
-## 📊 Matriz de Decisão
+## [CHART] Matriz de Decisão
 
 | Critério | Manual Set-Policy | Assinatura Digital | Bypass Automático |
 |----------|-------------------|--------------------|--------------------|
-| **Segurança** | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
-| **Usabilidade** | ⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
-| **Manutenção** | ⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐⭐⭐ |
-| **Custo** | ⭐⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐⭐⭐ |
-| **Temporário** | ❌ | ✅ | ✅ |
-| **Transparente** | ⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
-| **Total** | 14/30 | 16/30 | **24/30** ✅ |
+| **Segurança** | [*][*][*] | [*][*][*][*][*] | [*][*][*][*] |
+| **Usabilidade** | [*][*] | [*][*][*] | [*][*][*][*][*] |
+| **Manutenção** | [*][*][*][*] | [*][*] | [*][*][*][*][*] |
+| **Custo** | [*][*][*][*][*] | [*][*] | [*][*][*][*][*] |
+| **Temporário** | [X] | [OK] | [OK] |
+| **Transparente** | [*][*] | [*][*][*] | [*][*][*][*][*] |
+| **Total** | 14/30 | 16/30 | **24/30** [OK] |
 
-## 🎯 Casos de Uso
+## [*] Casos de Uso
 
 ### Caso 1: Primeiro Uso
 
@@ -290,7 +290,7 @@ powershell.exe -ExecutionPolicy Bypass -File install.ps1
 6. Instalação completa com sucesso
 7. Política permanece `Restricted`
 
-**Resultado**: ✅ Sucesso sem intervenção manual
+**Resultado**: [OK] Sucesso sem intervenção manual
 
 ### Caso 2: Política Corporativa
 
@@ -303,7 +303,7 @@ powershell.exe -ExecutionPolicy Bypass -File install.ps1
 4. Instalação funciona normalmente
 5. Conformidade com GPO mantida
 
-**Resultado**: ✅ Funciona mesmo com GPO restritiva
+**Resultado**: [OK] Funciona mesmo com GPO restritiva
 
 ### Caso 3: Política Permissiva
 
@@ -316,9 +316,9 @@ powershell.exe -ExecutionPolicy Bypass -File install.ps1
 4. Instalação prossegue diretamente
 5. Nenhum relançamento necessário
 
-**Resultado**: ✅ Eficiente - não relança quando desnecessário
+**Resultado**: [OK] Eficiente - não relança quando desnecessário
 
-## 📝 Conclusão
+## [LOG] Conclusão
 
 O mecanismo de bypass automático oferece:
 

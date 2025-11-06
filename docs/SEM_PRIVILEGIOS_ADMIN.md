@@ -1,6 +1,6 @@
-# 🔐 Garantia de Execução sem Privilégios de Administrador
+# [SEC] Garantia de Execução sem Privilégios de Administrador
 
-## ✅ Confirmação
+## [OK] Confirmação
 
 O script de instalação do Chainsaw (`install.ps1`) **FUNCIONA COMPLETAMENTE** sem privilégios de administrador e foi projetado especificamente para isso.
 
@@ -27,23 +27,23 @@ O script opera EXCLUSIVAMENTE nas seguintes áreas do perfil do usuário:
   - Copiar toda estrutura de arquivos e pastas
   - Manter backups antigos
 
-## 🚫 O que o Script NÃO Faz
+## [NO] O que o Script NÃO Faz
 
 O script foi projetado para **NÃO** realizar nenhuma das seguintes operações que requerem privilégios elevados:
 
-- ❌ Não modifica `C:\Windows\`
-- ❌ Não modifica `C:\Program Files\`
-- ❌ Não modifica `C:\Program Files (x86)\`
-- ❌ Não modifica o Registro do Windows
-- ❌ Não cria serviços do Windows
-- ❌ Não instala drivers
-- ❌ Não modifica políticas de grupo
-- ❌ Não modifica configurações de firewall
-- ❌ Não acessa pastas de outros usuários
-- ❌ Não modifica permissões de arquivos
-- ❌ Não executa comandos do sistema
+- [X] Não modifica `C:\Windows\`
+- [X] Não modifica `C:\Program Files\`
+- [X] Não modifica `C:\Program Files (x86)\`
+- [X] Não modifica o Registro do Windows
+- [X] Não cria serviços do Windows
+- [X] Não instala drivers
+- [X] Não modifica políticas de grupo
+- [X] Não modifica configurações de firewall
+- [X] Não acessa pastas de outros usuários
+- [X] Não modifica permissões de arquivos
+- [X] Não executa comandos do sistema
 
-## 🛡️ Proteções Implementadas
+## [SEC] Proteções Implementadas
 
 ### 1. Verificação Ativa
 O script verifica se está sendo executado como administrador e:
@@ -54,26 +54,26 @@ O script verifica se está sendo executado como administrador e:
 
 ### 2. Teste de Permissões
 Script `test-permissions.ps1` verifica:
-- ✅ Modo de execução (deve ser usuário normal)
-- ✅ Permissões de escrita em `%USERPROFILE%`
-- ✅ Permissões de escrita em `%APPDATA%`
-- ✅ Criação de diretórios
-- ✅ Renomeação de pastas
-- ✅ Cópia de arquivos
-- ✅ Cópia recursiva de diretórios
+- [OK] Modo de execução (deve ser usuário normal)
+- [OK] Permissões de escrita em `%USERPROFILE%`
+- [OK] Permissões de escrita em `%APPDATA%`
+- [OK] Criação de diretórios
+- [OK] Renomeação de pastas
+- [OK] Cópia de arquivos
+- [OK] Cópia recursiva de diretórios
 
 ## ⚙️ Operações Realizadas e Permissões Necessárias
 
 | Operação | Local | Permissão Necessária | Admin? |
 |----------|-------|---------------------|--------|
-| Criar pasta `chainsaw` | `%USERPROFILE%` | Escrita no perfil | ❌ NÃO |
-| Copiar `stamp.png` | `%USERPROFILE%\chainsaw\assets` | Escrita no perfil | ❌ NÃO |
-| Criar logs | `%USERPROFILE%\chainsaw\logs` | Escrita no perfil | ❌ NÃO |
-| Renomear Templates | `%APPDATA%\Microsoft` | Escrita em AppData | ❌ NÃO |
-| Copiar Templates | `%APPDATA%\Microsoft` | Escrita em AppData | ❌ NÃO |
-| Ler da rede | `\\servidor\caminho` | Acesso à rede | ❌ NÃO |
+| Criar pasta `chainsaw` | `%USERPROFILE%` | Escrita no perfil | [X] NÃO |
+| Copiar `stamp.png` | `%USERPROFILE%\chainsaw\assets` | Escrita no perfil | [X] NÃO |
+| Criar logs | `%USERPROFILE%\chainsaw\logs` | Escrita no perfil | [X] NÃO |
+| Renomear Templates | `%APPDATA%\Microsoft` | Escrita em AppData | [X] NÃO |
+| Copiar Templates | `%APPDATA%\Microsoft` | Escrita em AppData | [X] NÃO |
+| Ler da rede | `\\servidor\caminho` | Acesso à rede | [X] NÃO |
 
-## ❌ Por Que NÃO Executar como Administrador?
+## [X] Por Que NÃO Executar como Administrador?
 
 ### Problema 1: Propriedade de Arquivos
 Se executado como administrador:
@@ -92,7 +92,7 @@ Se executado como administrador:
 - Aumenta superfície de ataque
 - Não há necessidade real
 
-## ✅ Como Garantir Execução Correta
+## [OK] Como Garantir Execução Correta
 
 ### Passo 1: Abrir PowerShell Corretamente
 
@@ -130,7 +130,7 @@ cd "\\strqnapmain\Dir. Legislativa\_Christian261\chainsaw"
 .\test-permissions.ps1
 ```
 
-Todos os testes devem passar ✓
+Todos os testes devem passar [OK]
 
 ### Passo 4: Executar Instalação
 
@@ -140,72 +140,72 @@ Todos os testes devem passar ✓
 
 O script verificará automaticamente e avisará se detectar privilégios de administrador.
 
-## 📊 Validação Técnica
+## [CHART] Validação Técnica
 
 ### Comandos Utilizados
 
 Todos os comandos do PowerShell utilizados no script funcionam sem privilégios de administrador:
 
-- ✅ `New-Item` - Criar pastas/arquivos no perfil do usuário
-- ✅ `Copy-Item` - Copiar arquivos/pastas
-- ✅ `Rename-Item` - Renomear pastas
-- ✅ `Remove-Item` - Remover arquivos/pastas do usuário
-- ✅ `Test-Path` - Verificar existência de arquivos
-- ✅ `Get-ChildItem` - Listar arquivos/pastas
-- ✅ `Get-FileHash` - Calcular hash de arquivos
-- ✅ `Write-Host` - Escrever na tela
-- ✅ `Add-Content` - Adicionar conteúdo a arquivos
-- ✅ `Join-Path` - Construir caminhos
-- ✅ `Split-Path` - Dividir caminhos
-- ✅ `Get-Date` - Obter data/hora
+- [OK] `New-Item` - Criar pastas/arquivos no perfil do usuário
+- [OK] `Copy-Item` - Copiar arquivos/pastas
+- [OK] `Rename-Item` - Renomear pastas
+- [OK] `Remove-Item` - Remover arquivos/pastas do usuário
+- [OK] `Test-Path` - Verificar existência de arquivos
+- [OK] `Get-ChildItem` - Listar arquivos/pastas
+- [OK] `Get-FileHash` - Calcular hash de arquivos
+- [OK] `Write-Host` - Escrever na tela
+- [OK] `Add-Content` - Adicionar conteúdo a arquivos
+- [OK] `Join-Path` - Construir caminhos
+- [OK] `Split-Path` - Dividir caminhos
+- [OK] `Get-Date` - Obter data/hora
 
 ### Variáveis de Ambiente
 
 Todas as variáveis de ambiente utilizadas são acessíveis ao usuário normal:
 
-- ✅ `$env:USERPROFILE` - Perfil do usuário atual
-- ✅ `$env:APPDATA` - AppData\Roaming do usuário
-- ✅ `$env:USERNAME` - Nome do usuário
-- ✅ `$env:COMPUTERNAME` - Nome do computador
-- ✅ `$env:TEMP` - Pasta temporária do usuário
+- [OK] `$env:USERPROFILE` - Perfil do usuário atual
+- [OK] `$env:APPDATA` - AppData\Roaming do usuário
+- [OK] `$env:USERNAME` - Nome do usuário
+- [OK] `$env:COMPUTERNAME` - Nome do computador
+- [OK] `$env:TEMP` - Pasta temporária do usuário
 
 ### .NET Framework Classes
 
 Todas as classes .NET utilizadas são acessíveis:
 
-- ✅ `[System.IO.File]` - Operações com arquivos
-- ✅ `[System.IO.Directory]` - Operações com diretórios
-- ✅ `[Environment]` - Informações do ambiente
-- ✅ `[Security.Principal.WindowsPrincipal]` - Verificação de identidade
+- [OK] `[System.IO.File]` - Operações com arquivos
+- [OK] `[System.IO.Directory]` - Operações com diretórios
+- [OK] `[Environment]` - Informações do ambiente
+- [OK] `[Security.Principal.WindowsPrincipal]` - Verificação de identidade
 
 ## 🧪 Testes Realizados
 
 Todos os seguintes testes foram implementados em `test-permissions.ps1`:
 
-1. ✅ Verificação de modo de execução (não admin)
-2. ✅ Escrita em `%USERPROFILE%`
-3. ✅ Criação de diretórios em `%USERPROFILE%`
-4. ✅ Escrita em `%APPDATA%`
-5. ✅ Renomeação de pastas em `%APPDATA%`
-6. ✅ Cópia de arquivos individuais
-7. ✅ Cópia recursiva de diretórios com estrutura
-8. ✅ Acesso a informações do sistema
+1. [OK] Verificação de modo de execução (não admin)
+2. [OK] Escrita em `%USERPROFILE%`
+3. [OK] Criação de diretórios em `%USERPROFILE%`
+4. [OK] Escrita em `%APPDATA%`
+5. [OK] Renomeação de pastas em `%APPDATA%`
+6. [OK] Cópia de arquivos individuais
+7. [OK] Cópia recursiva de diretórios com estrutura
+8. [OK] Acesso a informações do sistema
 
-## 📝 Conclusão
+## [LOG] Conclusão
 
 O script de instalação do Chainsaw:
 
-✅ **GARANTE** execução sem privilégios de administrador
-✅ **OPERA** exclusivamente no perfil do usuário
-✅ **VERIFICA** ativamente se está sendo executado como admin
-✅ **AVISA** claramente sobre problemas de execução elevada
-✅ **TESTA** todas as permissões necessárias
-✅ **DOCUMENTA** completamente todos os requisitos
-✅ **IMPLEMENTA** todas as melhores práticas de segurança
+[OK] **GARANTE** execução sem privilégios de administrador
+[OK] **OPERA** exclusivamente no perfil do usuário
+[OK] **VERIFICA** ativamente se está sendo executado como admin
+[OK] **AVISA** claramente sobre problemas de execução elevada
+[OK] **TESTA** todas as permissões necessárias
+[OK] **DOCUMENTA** completamente todos os requisitos
+[OK] **IMPLEMENTA** todas as melhores práticas de segurança
 
 ---
 
-**Status:** ✅ CERTIFICADO PARA EXECUÇÃO SEM PRIVILÉGIOS DE ADMINISTRADOR
+**Status:** [OK] CERTIFICADO PARA EXECUÇÃO SEM PRIVILÉGIOS DE ADMINISTRADOR
 
 **Versão:** 1.0.0  
 **Data:** 05/11/2025  

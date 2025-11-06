@@ -1,24 +1,24 @@
 # Instalação Local - Chainsaw
 
-## 📋 Mudança Importante
+## [INFO] Mudança Importante
 
 O sistema Chainsaw agora funciona a partir da **pasta Documentos do usuário**, eliminando a necessidade de acesso à rede corporativa durante a instalação.
 
-## 🎯 Benefícios
+## [*] Benefícios
 
 ### Antes (Rede)
-- ❌ Dependia de acesso à rede corporativa
-- ❌ Problemas com VPN e credenciais
-- ❌ Lentidão na cópia de arquivos
-- ❌ Falhas por desconexão de rede
+- [X] Dependia de acesso à rede corporativa
+- [X] Problemas com VPN e credenciais
+- [X] Lentidão na cópia de arquivos
+- [X] Falhas por desconexão de rede
 
 ### Agora (Local)
-- ✅ Funciona offline
-- ✅ Instalação mais rápida
-- ✅ Mais confiável
-- ✅ Sem dependência de rede
+- [OK] Funciona offline
+- [OK] Instalação mais rápida
+- [OK] Mais confiável
+- [OK] Sem dependência de rede
 
-## 📦 Estrutura Necessária
+## [PKG] Estrutura Necessária
 
 A pasta `chainsaw` deve ser copiada para a pasta Documentos do usuário:
 
@@ -34,7 +34,7 @@ A pasta `chainsaw` deve ser copiada para a pasta Documentos do usuário:
 └── [outros arquivos]
 ```
 
-## 🚀 Instalação
+## [>>] Instalação
 
 ### 1. Copiar Arquivos
 
@@ -55,7 +55,7 @@ cd "$env:USERPROFILE\Documents\chainsaw"
 .\install.ps1
 ```
 
-## 🔧 Como Funciona
+## [CFG] Como Funciona
 
 ### Detecção Automática de Origem
 
@@ -78,33 +78,33 @@ Para evitar erros quando executado diretamente da pasta de destino, o script:
    - Se sim, pula a cópia (já está instalado)
    - Se não, copia normalmente
 
-## 📊 Exemplo de Execução
+## [CHART] Exemplo de Execução
 
 ```
-🔒 Verificando política de execução...
-✓ Política de execução adequada
+[SEC] Verificando política de execução...
+[OK] Política de execução adequada
 
 ╔════════════════════════════════════════════════════════════════╗
 ║          CHAINSAW - Instalação de Configurações do Word       ║
 ╚════════════════════════════════════════════════════════════════╝
 
-ℹ Verificando acesso ao caminho: C:\Users\csantos\Documents\chainsaw
-✓ Arquivos de origem encontrados ✓
+[i] Verificando acesso ao caminho: C:\Users\csantos\Documents\chainsaw
+[OK] Arquivos de origem encontrados [OK]
 
-ℹ Origem: C:\Users\csantos\Documents\chainsaw\assets\stamp.png
-ℹ Destino: C:\Users\csantos\chainsaw\assets\stamp.png
-✓ Arquivo stamp.png copiado com sucesso ✓
+[i] Origem: C:\Users\csantos\Documents\chainsaw\assets\stamp.png
+[i] Destino: C:\Users\csantos\chainsaw\assets\stamp.png
+[OK] Arquivo stamp.png copiado com sucesso [OK]
 
-ℹ Origem: C:\Users\csantos\Documents\chainsaw\configs\Templates
-ℹ Destino: C:\Users\csantos\AppData\Roaming\Microsoft\Templates
-✓ Pasta Templates copiada com sucesso (37 arquivos) ✓
+[i] Origem: C:\Users\csantos\Documents\chainsaw\configs\Templates
+[i] Destino: C:\Users\csantos\AppData\Roaming\Microsoft\Templates
+[OK] Pasta Templates copiada com sucesso (37 arquivos) [OK]
 
 ╔════════════════════════════════════════════════════════════════╗
 ║              INSTALAÇÃO CONCLUÍDA COM SUCESSO!                 ║
 ╚════════════════════════════════════════════════════════════════╝
 ```
 
-## 🔄 Distribuição
+## [SYNC] Distribuição
 
 ### Para Distribuir para Outros Usuários
 
@@ -135,24 +135,24 @@ install.cmd
 | **Velocidade** | Lenta (rede) | Rápida (disco local) |
 | **Confiabilidade** | Depende da rede | 100% confiável |
 | **Requisitos** | VPN/Rede corporativa | Nenhum |
-| **Offline** | ❌ Não funciona | ✅ Funciona |
+| **Offline** | [X] Não funciona | [OK] Funciona |
 | **Distribuição** | Centralizada | Descentralizada |
 
-## 🔐 Segurança
+## [SEC] Segurança
 
 ### Mantida
-- ✅ Bypass automático seguro
-- ✅ Sem privilégios de administrador
-- ✅ Backup automático
-- ✅ Log completo
-- ✅ Rollback em caso de erro
+- [OK] Bypass automático seguro
+- [OK] Sem privilégios de administrador
+- [OK] Backup automático
+- [OK] Log completo
+- [OK] Rollback em caso de erro
 
 ### Melhorada
-- ✅ Não requer acesso à rede corporativa
-- ✅ Reduz superfície de ataque (menos dependências externas)
-- ✅ Verifica se origem = destino para evitar sobrescrever
+- [OK] Não requer acesso à rede corporativa
+- [OK] Reduz superfície de ataque (menos dependências externas)
+- [OK] Verifica se origem = destino para evitar sobrescrever
 
-## 📝 Notas Técnicas
+## [LOG] Notas Técnicas
 
 ### Parâmetro SourcePath
 
@@ -169,9 +169,9 @@ O parâmetro `-SourcePath` ainda existe para casos especiais:
 ### PSScriptRoot
 
 O script usa `$PSScriptRoot` para detectar automaticamente sua localização:
-- ✅ Funciona em PowerShell 3.0+
-- ✅ Sempre aponta para o diretório do script
-- ✅ Funciona com caminhos UNC
+- [OK] Funciona em PowerShell 3.0+
+- [OK] Sempre aponta para o diretório do script
+- [OK] Funciona com caminhos UNC
 
 ## 🐛 Solução de Problemas
 
@@ -189,7 +189,7 @@ O script usa `$PSScriptRoot` para detectar automaticamente sua localização:
 
 **Solução**: Atualize para a versão mais recente do script.
 
-## ✅ Checklist de Instalação
+## [OK] Checklist de Instalação
 
 Para usuários finais:
 

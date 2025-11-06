@@ -1,18 +1,18 @@
 # Exportação e Importação de Personalizações do Word
 
-## 📋 Visão Geral
+## [INFO] Visão Geral
 
 O Chainsaw agora inclui scripts completos para exportar e importar todas as personalizações da interface do Microsoft Word, incluindo:
 
-- ✅ **Faixa de Opções Personalizada** (abas customizadas)
-- ✅ **Blocos de Construção** (Building Blocks)
-- ✅ **Partes Rápidas** (Quick Parts)
-- ✅ **Temas e Estilos**
-- ✅ **Barra de Ferramentas de Acesso Rápido**
-- ✅ **Normal.dotm** (template global com macros)
-- ✅ **Configurações do Registro** (opcional)
+- [OK] **Faixa de Opções Personalizada** (abas customizadas)
+- [OK] **Blocos de Construção** (Building Blocks)
+- [OK] **Partes Rápidas** (Quick Parts)
+- [OK] **Temas e Estilos**
+- [OK] **Barra de Ferramentas de Acesso Rápido**
+- [OK] **Normal.dotm** (template global com macros)
+- [OK] **Configurações do Registro** (opcional)
 
-## 🎯 Fluxo de Trabalho
+## [*] Fluxo de Trabalho
 
 ### 1️⃣ Exportar Personalizações (Máquina de Origem)
 
@@ -110,7 +110,7 @@ powershell.exe -ExecutionPolicy Bypass -File ".\import-config.ps1"
 7. **Importa UI** - Restaura configurações de interface
 8. **Registra tudo em log**
 
-## 🚀 Uso Avançado
+## [>>] Uso Avançado
 
 ### Exportar para Caminho Específico
 
@@ -126,7 +126,7 @@ powershell.exe -ExecutionPolicy Bypass -File ".\import-config.ps1"
 
 ### Importar sem Backup
 
-⚠️ **Não recomendado** - Use apenas se tiver certeza:
+[!] **Não recomendado** - Use apenas se tiver certeza:
 
 ```powershell
 .\import-config.ps1 -NoBackup
@@ -144,7 +144,7 @@ powershell.exe -ExecutionPolicy Bypass -File ".\import-config.ps1"
 .\import-config.ps1 -ImportPath "C:\Backup\MinhasPersonalizacoes"
 ```
 
-## 📦 Integração com Instalador Principal
+## [PKG] Integração com Instalador Principal
 
 O instalador principal (`install.ps1`) pode automaticamente importar as personalizações se encontrar a pasta `exported-config`:
 
@@ -194,24 +194,24 @@ Configurações gerais:
 - Temas do Office
 - Preferências de interface
 
-## ⚠️ Avisos Importantes
+## [!] Avisos Importantes
 
-### ❌ NÃO Execute com Word Aberto
+### [X] NÃO Execute com Word Aberto
 
 A importação **REQUER** que o Word esteja fechado. Se detectar o Word em execução, o script abortará automaticamente.
 
-### ✅ Sempre Crie Backup
+### [OK] Sempre Crie Backup
 
 Por padrão, o script de importação cria backup automático. Não desabilite isso a menos que tenha outro backup.
 
-### 🔄 Compatibilidade de Versões
+### [SYNC] Compatibilidade de Versões
 
 As personalizações são compatíveis entre:
-- ✅ Mesma versão do Office
-- ⚠️ Versões próximas (ex: Office 2019 → Office 2021)
-- ❌ Versões muito diferentes (ex: Office 2010 → Office 365)
+- [OK] Mesma versão do Office
+- [!] Versões próximas (ex: Office 2019 → Office 2021)
+- [X] Versões muito diferentes (ex: Office 2010 → Office 365)
 
-## 📊 Exemplo de Uso Completo
+## [CHART] Exemplo de Uso Completo
 
 ### Cenário: Configurar 5 máquinas iguais
 
@@ -253,21 +253,21 @@ install.cmd
 # 3. Abrir Word e verificar
 ```
 
-## 🛡️ Segurança e Privacidade
+## [SEC] Segurança e Privacidade
 
 ### O que é Exportado
 
-- ✅ Personalizações de UI
-- ✅ Blocos de construção
-- ✅ Temas
-- ✅ Configurações visuais
+- [OK] Personalizações de UI
+- [OK] Blocos de construção
+- [OK] Temas
+- [OK] Configurações visuais
 
 ### O que NÃO é Exportado
 
-- ❌ Documentos pessoais
-- ❌ Histórico de uso
-- ❌ Senhas
-- ❌ Dados de conta Microsoft
+- [X] Documentos pessoais
+- [X] Histórico de uso
+- [X] Senhas
+- [X] Dados de conta Microsoft
 
 ### Registro (Opcional)
 
@@ -276,7 +276,7 @@ Se usar `-IncludeRegistry`, serão exportadas:
 - Configurações de interface
 - Nenhuma informação sensível
 
-## 🔧 Solução de Problemas
+## [CFG] Solução de Problemas
 
 ### Erro: "Word está em execução"
 
@@ -318,13 +318,13 @@ Se usar `-IncludeRegistry`, serão exportadas:
 3. O Word criará um novo Normal.dotm automático
 4. Re-importe as personalizações
 
-## 📝 Logs
+## [LOG] Logs
 
 Todos os logs são salvos em:
 - **Exportação**: `exported-config/logs/export_YYYYMMDD_HHMMSS.log`
 - **Importação**: `%USERPROFILE%\chainsaw\logs\import_YYYYMMDD_HHMMSS.log`
 
-## 🔄 Atualização de Personalizações
+## [SYNC] Atualização de Personalizações
 
 Para atualizar personalizações existentes:
 

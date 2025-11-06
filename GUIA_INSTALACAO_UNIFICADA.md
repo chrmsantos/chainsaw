@@ -45,12 +45,12 @@ cd "$env:USERPROFILE\Documents\CHAINSAW"
 O instalador executará automaticamente:
 
 ```
-ETAPA 1: Verificação de Pré-requisitos     ✓
-ETAPA 2: Validação de Arquivos             ✓
-ETAPA 3: Cópia do Arquivo de Imagem        ✓
-ETAPA 4: Backup da Pasta Templates         ✓
-ETAPA 5: Cópia da Pasta Templates          ✓
-ETAPA 6: Importação de Personalizações     ✓ (se disponível)
+ETAPA 1: Verificação de Pré-requisitos     [OK]
+ETAPA 2: Validação de Arquivos             [OK]
+ETAPA 3: Cópia do Arquivo de Imagem        [OK]
+ETAPA 4: Backup da Pasta Templates         [OK]
+ETAPA 5: Cópia da Pasta Templates          [OK]
+ETAPA 6: Importação de Personalizações     [OK] (se disponível)
 ```
 
 ## [ART] Importação Automática de Personalizações
@@ -239,8 +239,8 @@ powershell.exe -ExecutionPolicy Bypass -NoProfile -File "script.ps1"
 ### Backups Automáticos
 
 Antes de qualquer modificação:
-- ✅ Templates atuais → `Templates_backup_[timestamp]`
-- ✅ Personalizações atuais → `CHAINSAW\backups\word-customizations_[timestamp]`
+- [OK] Templates atuais → `Templates_backup_[timestamp]`
+- [OK] Personalizações atuais → `CHAINSAW\backups\word-customizations_[timestamp]`
 
 Para restaurar um backup manualmente:
 ```powershell

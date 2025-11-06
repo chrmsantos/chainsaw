@@ -199,7 +199,7 @@ Sandbox
 .\import-config.ps1 -ImportPath "C:\Backup\Config2025"
 ```
 
-## 📊 Tamanho Típico
+## [CHART] Tamanho Típico
 
 ```
 exported-config/
@@ -214,7 +214,7 @@ Total:                 ~200 KB
 Compactado (ZIP):      ~50 KB
 ```
 
-💡 **Dica:** Facilmente enviável por email!
+[i] **Dica:** Facilmente enviável por email!
 
 ## 🆘 Solução Rápida de Problemas
 

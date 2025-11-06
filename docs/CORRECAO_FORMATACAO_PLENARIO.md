@@ -3,10 +3,10 @@
 ## 🐛 Problema Identificado
 
 Os parágrafos (linhas em branco) inseridos após a linha contendo "Plenário "Dr. Tancredo Neves", $DATAATUALEXTENSO$." não estavam sendo formatados corretamente:
-- ❌ Não estavam centralizados
-- ❌ Tinham recuos diferentes de zero
+- [X] Não estavam centralizados
+- [X] Tinham recuos diferentes de zero
 
-## ✅ Correção Implementada
+## [OK] Correção Implementada
 
 ### Arquivos Modificados
 
@@ -131,7 +131,7 @@ For i = plenarioIndex + 3 To plenarioIndex + 4
 Next i
 ```
 
-## 📋 O Que Foi Corrigido
+## [INFO] O Que Foi Corrigido
 
 ### Formatação Aplicada aos Parágrafos
 
@@ -166,8 +166,8 @@ Plenário "Dr. Tancredo Neves", $DATAATUALEXTENSO$. ← Já era formatado
 ### Verificação de Sintaxe
 
 ```
-✓ Functions: 79 | End Function: 79
-✓ Subs: 33 | End Sub: 33
+[OK] Functions: 79 | End Function: 79
+[OK] Subs: 33 | End Sub: 33
 ```
 
 Todas as funções e sub-rotinas estão corretamente fechadas.
@@ -192,7 +192,7 @@ As seguintes funções trabalham juntas para garantir a formatação correta:
    - Centraliza imagens entre linhas 5-7 após o Plenário
    - Não modificada (já funcionava corretamente)
 
-## 📊 Impacto
+## [CHART] Impacto
 
 ### Antes da Correção
 
@@ -212,25 +212,25 @@ Excelentíssimo Senhor Prefeito Municipal,
 
 ```
 Justificativa
-[linha em branco - centralizada, recuos 0] ✓
-[linha em branco - centralizada, recuos 0] ✓
-Plenário "Dr. Tancredo Neves", $DATAATUALEXTENSO$. [centralizado] ✓
-[linha em branco - centralizada, recuos 0] ✓
-[linha em branco - centralizada, recuos 0] ✓
+[linha em branco - centralizada, recuos 0] [OK]
+[linha em branco - centralizada, recuos 0] [OK]
+Plenário "Dr. Tancredo Neves", $DATAATUALEXTENSO$. [centralizado] [OK]
+[linha em branco - centralizada, recuos 0] [OK]
+[linha em branco - centralizada, recuos 0] [OK]
 [possível imagem centralizada]
 Excelentíssimo Senhor Prefeito Municipal,
 ```
 
-## 🎯 Resultado Esperado
+## [*] Resultado Esperado
 
 Ao executar a macro Chainsaw em um documento:
 
-1. ✅ O parágrafo "Plenário Dr. Tancredo Neves" estará centralizado com recuos zero
-2. ✅ As 2 linhas em branco ANTES estarão centralizadas com recuos zero
-3. ✅ As 2 linhas em branco DEPOIS estarão centralizadas com recuos zero
-4. ✅ Toda a seção terá formatação consistente e profissional
+1. [OK] O parágrafo "Plenário Dr. Tancredo Neves" estará centralizado com recuos zero
+2. [OK] As 2 linhas em branco ANTES estarão centralizadas com recuos zero
+3. [OK] As 2 linhas em branco DEPOIS estarão centralizadas com recuos zero
+4. [OK] Toda a seção terá formatação consistente e profissional
 
-## 🚀 Próximos Passos
+## [>>] Próximos Passos
 
 1. **Importar o módulo atualizado** no Word:
    - Abra o VBA Editor (Alt + F11)
@@ -247,7 +247,7 @@ Ao executar a macro Chainsaw em um documento:
    - Verifique o alinhamento (deve estar centralizado)
    - Confirme que não há espaçamentos extras
 
-## 📝 Notas Técnicas
+## [LOG] Notas Técnicas
 
 ### Por que 4 linhas ao invés de 3?
 
@@ -269,7 +269,7 @@ plenarioIndex + 3 → Linha em branco DEPOIS (1ª) ← FORMATADA
 plenarioIndex + 4 → Linha em branco DEPOIS (2ª) ← FORMATADA
 ```
 
-## ✅ Status
+## [OK] Status
 
 - [x] Problema identificado
 - [x] Código corrigido
@@ -283,4 +283,4 @@ plenarioIndex + 4 → Linha em branco DEPOIS (2ª) ← FORMATADA
 **Arquivo modificado:** `src/chainsaw.bas`  
 **Linhas alteradas:** ~2725-2760, ~4860-4920  
 **Funções modificadas:** `EnsurePlenarioBlankLines`, `InsertBlankLines`  
-**Status:** ✅ Pronto para teste
+**Status:** [OK] Pronto para teste
