@@ -1,19 +1,182 @@
-# Chainsaw - Sistema de Padronização de Proposituras Legislativas
+# CHAINSAW - Sistema de Padronização de Proposituras Legislativas
 
 Sistema automatizado para padronização de documentos legislativos no Microsoft Word, garantindo conformidade com normas de formatação institucional.
 
 ## Requisitos
 
+### Sistema
+
+- Windows 10 ou superior
+- PowerShell 5.1 ou superior
+- Acesso à rede corporativa (para instalação inicial)
+
+### Aplicações
+
 - Microsoft Word 2010 ou superior
-- Sistema operacional Windows
-- Permissões de leitura/escrita no diretório do documento
+- Permissões de leitura/escrita no perfil do usuário
 
 ## Instalação
 
-1. Copie o arquivo `chainsaw.bas` para a pasta desejada
-2. No Microsoft Word, pressione `Alt + F11` para abrir o Editor VBA
-3. Vá em `Arquivo > Importar Arquivo` e selecione `chainsaw.bas`
-4. Feche o Editor VBA
+### Instalação Automática (Recomendado)
+
+O sistema CHAINSAW inclui um script automatizado de instalação que configura todos os componentes necessários.
+
+#### Pré-requisitos
+
+- Pasta `CHAINSAW` na pasta Documentos do usuário com todos os arquivos necessários
+- Permissões de escrita no perfil do usuário (`%USERPROFILE%`)
+- Word deve estar fechado durante a instalação
+
+#### Como Executar
+
+1. **Copie a pasta `CHAINSAW` para sua pasta Documentos**
+   - Caminho típico: `C:\Users\[seu_usuario]\Documents\CHAINSAW`
+
+2. **Abra o PowerShell** (não é necessário executar como Administrador)
+   - Pressione `Win + X` e selecione "Windows PowerShell"
+
+3. **Navegue até a pasta do script**
+
+   ```powershell
+   cd "$env:USERPROFILE\Documents\CHAINSAW"
+   ```
+
+4. **Execute o script de instalação**
+
+   🔒 **Método Recomendado - Bypass Automático Seguro:**
+
+   ```cmd
+   install.cmd
+   ```
+
+   Este launcher automático:
+   - ✅ Funciona em QUALQUER política de execução
+   - ✅ Não requer configuração manual
+   - ✅ Usa bypass temporário apenas para este script
+   - ✅ Não altera configurações permanentes do sistema
+   - ✅ Totalmente seguro e transparente
+
+   **Alternativa - Executar diretamente (requer política adequada):**
+
+   ```powershell
+   .\install.ps1
+   ```
+
+   **Com opções:**
+
+   ```cmd
+   install.cmd -Force          # Modo automático (sem confirmação)
+   install.cmd -NoBackup       # Sem criar backup (não recomendado)
+   ```
+
+5. **Aguarde a conclusão**
+   - O script exibirá o progresso de cada etapa
+   - Se necessário, o script se relançará automaticamente (você verá uma mensagem explicativa)
+   - Um arquivo de log será criado em `%USERPROFILE%\CHAINSAW\logs\`
+
+#### O que o Script Faz
+
+O script de instalação realiza automaticamente as seguintes operações:
+
+1. **Verificação de Pré-requisitos**
+   - Valida versão do Windows (10+)
+   - Valida versão do PowerShell (5.1+)
+   - Verifica existência dos arquivos necessários
+   - Confirma permissões de escrita
+
+2. **Cópia do Arquivo de Imagem**
+   - Copia `stamp.png` para `%USERPROFILE%\CHAINSAW\assets\`
+   - Verifica integridade do arquivo copiado
+
+3. **Backup Automático**
+   - Renomeia a pasta `%APPDATA%\Microsoft\Templates` existente
+   - Formato do backup: `Templates_backup_AAAAMMDD_HHMMSS`
+   - Remove backups antigos (mantém os 5 mais recentes)
+
+4. **Instalação dos Templates**
+   - Copia todos os templates para `%APPDATA%\Microsoft\Templates`
+   - Preserva estrutura de pastas e arquivos
+
+5. **Importação Automática de Personalizações** ✨ **NOVO**
+   - Detecta automaticamente a pasta `exported-config` (se existir)
+   - Importa personalizações da interface do Word:
+     - Faixa de Opções Personalizada (Ribbon)
+     - Partes Rápidas (Quick Parts)
+     - Blocos de Construção (Building Blocks)
+     - Temas de Documentos
+     - Template Normal.dotm
+   - Solicita confirmação antes de importar (modo interativo)
+   - Cria backup automático das personalizações existentes
+
+6. **Registro de Log**
+   - Cria log detalhado em `%USERPROFILE%\CHAINSAW\logs\`
+   - Registra todas as operações, avisos e erros
+   - Formato do log: `install_AAAAMMDD_HHMMSS.log`
+
+#### Tratamento de Erros
+
+O script inclui mecanismos robustos de tratamento de erros:
+
+- **Validação prévia**: Verifica todos os requisitos antes de iniciar
+- **Backup automático**: Sempre cria backup antes de modificar arquivos
+- **Rollback**: Em caso de erro, tenta restaurar o backup automaticamente
+- **Log detalhado**: Registra todas as operações para diagnóstico
+
+#### Recuperação de Backup
+
+Se precisar restaurar uma configuração anterior:
+
+1. Navegue até `%APPDATA%\Microsoft\`
+2. Renomeie a pasta `Templates` atual
+3. Renomeie o backup desejado (ex: `Templates_backup_20251105_143022`) para `Templates`
+
+#### Solução de Problemas
+
+##### Erro: "Não foi possível acessar o caminho de rede"
+
+- Verifique conexão com a rede corporativa
+- Confirme que o caminho `\\strqnapmain\Dir. Legislativa\_Christian261\CHAINSAW` está acessível
+- Verifique suas credenciais de rede
+
+##### Erro: "Permissões insuficientes"
+
+- Não execute como Administrador (pode causar problemas de permissões)
+- Verifique se você tem permissões de escrita no seu perfil
+
+##### Erro: "Arquivo em uso"
+
+- Feche o Microsoft Word completamente
+- Feche todos os documentos do Office
+- Se persistir, reinicie o computador
+
+##### Consultar logs
+
+```powershell
+notepad "$env:USERPROFILE\CHAINSAW\logs\install_*.log"
+```
+
+### Instalação Manual
+
+Caso não seja possível executar o script automatizado:
+
+1. **Copiar arquivo de imagem**
+   - Copie `\\strqnapmain\Dir. Legislativa\_Christian261\CHAINSAW\assets\stamp.png`
+   - Para `%USERPROFILE%\CHAINSAW\assets\stamp.png`
+
+2. **Fazer backup dos Templates**
+   - Renomeie `%APPDATA%\Microsoft\Templates`
+   - Para `Templates_backup_AAAAMMDD`
+
+3. **Copiar Templates**
+   - Copie `\\strqnapmain\Dir. Legislativa\_Christian261\CHAINSAW\configs\Templates`
+   - Para `%APPDATA%\Microsoft\Templates`
+
+4. **Importar macro VBA**
+   - Abra o Microsoft Word
+   - Pressione `Alt + F11` para abrir o Editor VBA
+   - Vá em `Arquivo > Importar Arquivo`
+   - Selecione `CHAINSAW.bas` do caminho de rede
+   - Feche o Editor VBA
 
 ## Execução
 
@@ -22,6 +185,30 @@ Sistema automatizado para padronização de documentos legislativos no Microsoft
 3. Pressione `Alt + F8` para abrir a lista de macros
 4. Selecione `PadronizarDocumentoMain` e clique em `Executar`
 5. Aguarde a conclusão do processamento
+
+## ✨ Novo: Exportação e Importação de Personalizações
+
+O CHAINSAW agora permite **exportar e importar** todas as suas personalizações do Word:
+
+- 🎨 **Faixa de Opções** - Abas customizadas
+- 📦 **Blocos de Construção** - Building Blocks e Partes Rápidas
+- 🎭 **Temas** - Temas e estilos personalizados
+- ⚡ **Barra de Acesso Rápido** - Botões customizados
+- 📝 **Normal.dotm** - Template global com macros
+
+### Como Usar
+
+**Exportar (máquina de origem):**
+```cmd
+export-config.cmd
+```
+
+**Importar (máquina de destino):**
+```cmd
+import-config.cmd
+```
+
+📖 **Documentação completa:** `docs\EXPORTACAO_IMPORTACAO.md`
 
 ## Funcionalidades
 
@@ -144,16 +331,22 @@ Sistema automatizado para padronização de documentos legislativos no Microsoft
 ### 15. **Sistema de Backup Automático**
 
 - Backup criado antes de qualquer modificação
-- Localização: pasta `backups\` no mesmo diretório do documento
+- Localização: **mesma pasta do documento sendo editado**
 - Formato: `nomedocumento_backup_AAAA-MM-DD_HHMMSS.docx`
 - Limpeza automática com aviso após 15 arquivos
 
 ### 16. **Sistema de Logs**
 
 - Registro detalhado de todas as operações
-- Localização: mesmo diretório do documento
-- Formato: `chainsaw_log_AAAA-MM-DD.txt`
+- Localização: **mesma pasta do documento sendo editado**
+- Formato: `CHAINSAW_AAAAMMDD_HHMMSS_nomedocumento.log`
 - Níveis: INFO, WARNING, ERROR
+
+> **📍 Nota Importante sobre Localização:**  
+> Tanto os **backups** quanto os **logs** são salvos na **mesma pasta do documento sendo editado**. Isso facilita o gerenciamento e garante que os arquivos relacionados fiquem juntos. Por exemplo:
+> - Documento: `C:\Documentos\MinhaProposicao.docx`
+> - Backup: `C:\Documentos\MinhaProposicao_backup_2025-11-05_143022.docx`
+> - Log: `C:\Documentos\CHAINSAW_20251105_143022_MinhaProposicao.log`
 
 ### 17. **Recuperação de Erros**
 

@@ -1,0 +1,1354 @@
+﻿# =============================================================================
+# CHAINSAW - Script de Instalação de Configurações do Word
+# =============================================================================
+# Versão: 2.0.0
+# Licença: GNU GPLv3 (https://www.gnu.org/licenses/gpl-3.0.html)
+# Compatibilidade: Windows 10+, PowerShell 5.1+
+# Autor: Christian Martin dos Santos (chrmsantos@protonmail.com)
+# =============================================================================
+
+<#
+.SYNOPSIS
+    Instala as configurações do Word do sistema CHAINSAW para o usuário atual.
+
+.DESCRIPTION
+    Este script realiza as seguintes operações:
+    1. Copia o arquivo stamp.png para a pasta do usuário
+    2. Faz backup da pasta Templates atual
+    3. Copia os novos Templates
+    4. Detecta e importa personalizações do Word (se encontradas)
+    5. Registra todas as operações em arquivo de log
+    
+    Se uma pasta 'exported-config' for encontrada no diretório do script,
+    as personalizações do Word (Ribbon, Partes Rápidas, etc.) serão 
+    automaticamente importadas.
+
+.PARAMETER SourcePath
+    Caminho base dos arquivos. Padrão: pasta onde o script está localizado
+
+.PARAMETER Force
+    Força a instalação sem confirmação do usuário.
+
+.PARAMETER NoBackup
+    Não cria backup da pasta Templates existente (não recomendado).
+
+.PARAMETER SkipCustomizations
+    Não importa personalizações do Word mesmo se encontradas.
+
+.EXAMPLE
+    .\install.ps1
+    Executa a instalação com confirmação do usuário.
+
+.EXAMPLE
+    .\install.ps1 -Force
+    Executa a instalação sem confirmação.
+
+.EXAMPLE
+    .\install.ps1 -SkipCustomizations
+    Instala apenas Templates, sem importar personalizações.
+
+.NOTES
+    Requer permissões de escrita nas pastas do usuário.
+    Não requer privilégios de administrador.
+#>
+
+[CmdletBinding()]
+param(
+    [Parameter()]
+    [string]$SourcePath = "",
+    
+    [Parameter()]
+    [switch]$Force,
+    
+    [Parameter()]
+    [switch]$NoBackup,
+    
+    [Parameter()]
+    [switch]$SkipCustomizations,
+    
+    [Parameter(DontShow)]
+    [switch]$BypassedExecution
+)
+
+# Define o caminho padrão como a pasta onde o script está localizado
+if ([string]::IsNullOrWhiteSpace($SourcePath)) {
+    $SourcePath = $PSScriptRoot
+    if ([string]::IsNullOrWhiteSpace($SourcePath)) {
+        # Fallback se PSScriptRoot não estiver disponível
+        $SourcePath = Split-Path -Parent $MyInvocation.MyCommand.Path
+    }
+}
+
+# =============================================================================
+# AUTO-RELANÇAMENTO COM BYPASS DE EXECUÇÃO
+# =============================================================================
+# Este bloco garante que o script seja executado com a política de execução
+# adequada, sem modificar permanentemente as configurações do sistema.
+# Extremamente seguro: apenas este script é executado com bypass temporário.
+# =============================================================================
+
+if (-not $BypassedExecution) {
+    Write-Host "🔒 Verificando política de execução..." -ForegroundColor Cyan
+    
+    # Captura a política atual para documentação no log
+    $currentPolicy = Get-ExecutionPolicy -Scope CurrentUser
+    Write-Host "   Política atual (CurrentUser): $currentPolicy" -ForegroundColor Gray
+    
+    # Verifica se precisa de bypass
+    $needsBypass = $false
+    try {
+        # Tenta uma operação de script simples
+        $null = [ScriptBlock]::Create("1 + 1").Invoke()
+    }
+    catch [System.Management.Automation.PSSecurityException] {
+        $needsBypass = $true
+    }
+    
+    if ($needsBypass -or $currentPolicy -eq "Restricted" -or $currentPolicy -eq "AllSigned") {
+        Write-Host "⚠  Política de execução restritiva detectada." -ForegroundColor Yellow
+        Write-Host "🔄 Relançando script com bypass temporário..." -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "ℹ  SEGURANÇA:" -ForegroundColor Green
+        Write-Host "   • Apenas ESTE script será executado com bypass" -ForegroundColor Gray
+        Write-Host "   • A política do sistema NÃO será alterada" -ForegroundColor Gray
+        Write-Host "   • O bypass expira quando o script terminar" -ForegroundColor Gray
+        Write-Host "   • Nenhum privilégio de administrador é usado" -ForegroundColor Gray
+        Write-Host ""
+        
+        # Constrói argumentos para o relançamento
+        $arguments = @(
+            "-ExecutionPolicy", "Bypass",
+            "-NoProfile",
+            "-File", "`"$PSCommandPath`"",
+            "-BypassedExecution"
+        )
+        
+        # Adiciona parâmetros originais
+        # SourcePath é sempre definido automaticamente, então não precisa passar
+        if ($Force) {
+            $arguments += "-Force"
+        }
+        if ($NoBackup) {
+            $arguments += "-NoBackup"
+        }
+        
+        # Relança o script com bypass temporário
+        $processInfo = Start-Process -FilePath "powershell.exe" `
+                                     -ArgumentList $arguments `
+                                     -Wait `
+                                     -NoNewWindow `
+                                     -PassThru
+        
+        # Retorna o código de saída do processo relançado
+        exit $processInfo.ExitCode
+    }
+    else {
+        Write-Host "✓ Política de execução adequada: $currentPolicy" -ForegroundColor Green
+        Write-Host ""
+    }
+}
+else {
+    Write-Host "✓ Executando com bypass temporário (seguro)" -ForegroundColor Green
+    Write-Host ""
+}
+
+# =============================================================================
+# CONFIGURAÇÕES E CONSTANTES
+# =============================================================================
+
+$ErrorActionPreference = "Stop"
+$script:LogFile = $null
+$script:WarningCount = 0
+$script:ErrorCount = 0
+$script:SuccessCount = 0
+
+# Cores para output
+$ColorSuccess = "Green"
+$ColorWarning = "Yellow"
+$ColorError = "Red"
+$ColorInfo = "Cyan"
+
+# =============================================================================
+# FUNÇÕES DE LOG
+# =============================================================================
+
+function Initialize-LogFile {
+    <#
+    .SYNOPSIS
+        Inicializa o arquivo de log.
+    #>
+    try {
+        $logDir = Join-Path $env:USERPROFILE "CHAINSAW\logs"
+        if (-not (Test-Path $logDir)) {
+            New-Item -Path $logDir -ItemType Directory -Force | Out-Null
+        }
+        
+        $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
+        $script:LogFile = Join-Path $logDir "install_$timestamp.log"
+        
+        $header = @"
+================================================================================
+CHAINSAW - Log de Instalação
+================================================================================
+Data/Hora Início: $(Get-Date -Format "dd/MM/yyyy HH:mm:ss")
+Usuário: $env:USERNAME
+Computador: $env:COMPUTERNAME
+Sistema: $([Environment]::OSVersion.VersionString)
+PowerShell: $($PSVersionTable.PSVersion)
+Caminho de Origem: $SourcePath
+================================================================================
+
+"@
+        Add-Content -Path $script:LogFile -Value $header
+        return $true
+    }
+    catch {
+        Write-Warning "Não foi possível criar arquivo de log: $_"
+        return $false
+    }
+}
+
+function Write-Log {
+    <#
+    .SYNOPSIS
+        Escreve mensagem no log e na tela.
+    #>
+    param(
+        [Parameter(Mandatory)]
+        [string]$Message,
+        
+        [Parameter()]
+        [ValidateSet("INFO", "SUCCESS", "WARNING", "ERROR")]
+        [string]$Level = "INFO",
+        
+        [Parameter()]
+        [switch]$NoConsole
+    )
+    
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $logEntry = "[$timestamp] [$Level] $Message"
+    
+    # Escreve no arquivo de log
+    if ($script:LogFile) {
+        try {
+            Add-Content -Path $script:LogFile -Value $logEntry -ErrorAction SilentlyContinue
+        }
+        catch {
+            # Ignora erros de escrita no log para não interromper o processo
+        }
+    }
+    
+    # Escreve no console
+    if (-not $NoConsole) {
+        switch ($Level) {
+            "SUCCESS" {
+                Write-Host "✓ $Message" -ForegroundColor $ColorSuccess
+                $script:SuccessCount++
+            }
+            "WARNING" {
+                Write-Host "⚠ $Message" -ForegroundColor $ColorWarning
+                $script:WarningCount++
+            }
+            "ERROR" {
+                Write-Host "✗ $Message" -ForegroundColor $ColorError
+                $script:ErrorCount++
+            }
+            default {
+                Write-Host "ℹ $Message" -ForegroundColor $ColorInfo
+            }
+        }
+    }
+}
+
+# =============================================================================
+# FUNÇÕES DE VALIDAÇÃO
+# =============================================================================
+
+function Test-Prerequisites {
+    <#
+    .SYNOPSIS
+        Verifica pré-requisitos para instalação.
+    #>
+    Write-Log "Verificando pré-requisitos..." -Level INFO
+    
+    $allOk = $true
+    
+    # Verifica versão do Windows
+    $osVersion = [Environment]::OSVersion.Version
+    if ($osVersion.Major -lt 10) {
+        Write-Log "Windows 10 ou superior é necessário. Versão detectada: $($osVersion.ToString())" -Level ERROR
+        $allOk = $false
+    }
+    else {
+        Write-Log "Sistema operacional: Windows $($osVersion.Major).$($osVersion.Minor) ✓" -Level SUCCESS
+    }
+    
+    # Verifica versão do PowerShell
+    $psVersion = $PSVersionTable.PSVersion
+    if ($psVersion.Major -lt 5) {
+        Write-Log "PowerShell 5.1 ou superior é necessário. Versão detectada: $($psVersion.ToString())" -Level ERROR
+        $allOk = $false
+    }
+    else {
+        Write-Log "PowerShell versão: $($psVersion.ToString()) ✓" -Level SUCCESS
+    }
+    
+    # Verifica acesso ao caminho de rede
+    Write-Log "Verificando acesso ao caminho de rede: $SourcePath" -Level INFO
+    if (-not (Test-Path $SourcePath)) {
+        Write-Log "Não foi possível acessar o caminho de rede: $SourcePath" -Level ERROR
+        Write-Log "Verifique se você está conectado à rede e tem permissões de acesso." -Level ERROR
+        $allOk = $false
+    }
+    else {
+        Write-Log "Acesso ao caminho de rede confirmado ✓" -Level SUCCESS
+    }
+    
+    # Verifica permissões de escrita no perfil do usuário
+    $testFile = Join-Path $env:USERPROFILE "CHAINSAW_test_$(Get-Date -Format 'yyyyMMddHHmmss').tmp"
+    try {
+        [System.IO.File]::WriteAllText($testFile, "test")
+        Remove-Item $testFile -Force -ErrorAction SilentlyContinue
+        Write-Log "Permissões de escrita no perfil do usuário confirmadas ✓" -Level SUCCESS
+    }
+    catch {
+        Write-Log "Sem permissões de escrita no perfil do usuário: $env:USERPROFILE" -Level ERROR
+        $allOk = $false
+    }
+    
+    return $allOk
+}
+
+function Test-SourceFiles {
+    <#
+    .SYNOPSIS
+        Verifica se os arquivos de origem existem.
+    #>
+    param(
+        [ref]$SourceStampFile,
+        [ref]$SourceTemplatesFolder
+    )
+    
+    Write-Log "Verificando arquivos de origem..." -Level INFO
+    
+    $allOk = $true
+    
+    # Verifica arquivo stamp.png
+    $stampPath = Join-Path $SourcePath "assets\stamp.png"
+    if (Test-Path $stampPath) {
+        $SourceStampFile.Value = $stampPath
+        Write-Log "Arquivo stamp.png encontrado ✓" -Level SUCCESS
+    }
+    else {
+        Write-Log "Arquivo não encontrado: $stampPath" -Level ERROR
+        $allOk = $false
+    }
+    
+    # Verifica pasta Templates
+    $templatesPath = Join-Path $SourcePath "configs\Templates"
+    if (Test-Path $templatesPath) {
+        $SourceTemplatesFolder.Value = $templatesPath
+        Write-Log "Pasta Templates encontrada ✓" -Level SUCCESS
+    }
+    else {
+        Write-Log "Pasta não encontrada: $templatesPath" -Level ERROR
+        $allOk = $false
+    }
+    
+    return $allOk
+}
+
+# =============================================================================
+# FUNÇÕES AUXILIARES
+# =============================================================================
+
+function Test-WordRunning {
+    <#
+    .SYNOPSIS
+        Verifica se o Microsoft Word está em execução.
+    #>
+    $wordProcesses = Get-Process -Name "WINWORD" -ErrorAction SilentlyContinue
+    return ($null -ne $wordProcesses -and $wordProcesses.Count -gt 0)
+}
+
+# =============================================================================
+# FUNÇÕES DE BACKUP
+# =============================================================================
+
+function Backup-TemplatesFolder {
+    <#
+    .SYNOPSIS
+        Cria backup da pasta Templates existente.
+    #>
+    param(
+        [Parameter(Mandatory)]
+        [string]$SourceFolder
+    )
+    
+    if (-not (Test-Path $SourceFolder)) {
+        Write-Log "Pasta Templates não existe, backup não necessário." -Level INFO
+        return $null
+    }
+    
+    # Verifica se o Word está aberto
+    if (Test-WordRunning) {
+        Write-Host ""
+        Write-Host "╔════════════════════════════════════════════════════════════════╗" -ForegroundColor Yellow
+        Write-Host "║                  ⚠ MICROSOFT WORD ABERTO ⚠                    ║" -ForegroundColor Yellow
+        Write-Host "╚════════════════════════════════════════════════════════════════╝" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "O Microsoft Word está em execução e deve ser fechado antes de" -ForegroundColor Yellow
+        Write-Host "continuar com a instalação." -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "Por favor:" -ForegroundColor White
+        Write-Host "  1. Salve todos os documentos abertos no Word" -ForegroundColor Gray
+        Write-Host "  2. Feche completamente o Microsoft Word" -ForegroundColor Gray
+        Write-Host "  3. Pressione qualquer tecla para continuar" -ForegroundColor Gray
+        Write-Host ""
+        
+        Write-Log "Aguardando fechamento do Word..." -Level WARNING
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+        
+        # Verifica novamente
+        if (Test-WordRunning) {
+            Write-Log "Word ainda está aberto - abortando instalação" -Level ERROR
+            throw "Microsoft Word deve ser fechado antes da instalação."
+        }
+        
+        Write-Host "✓ Word fechado, continuando..." -ForegroundColor Green
+        Write-Host ""
+    }
+    
+    $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
+    $backupName = "Templates_backup_$timestamp"
+    $backupPath = Join-Path (Split-Path $SourceFolder -Parent) $backupName
+    
+    Write-Log "Criando backup da pasta Templates..." -Level INFO
+    Write-Log "Origem: $SourceFolder" -Level INFO
+    Write-Log "Destino: $backupPath" -Level INFO
+    
+    try {
+        # Tenta usar Rename-Item primeiro (mais rápido)
+        Rename-Item -Path $SourceFolder -NewName $backupName -Force -ErrorAction Stop
+        Write-Log "Backup criado com sucesso: $backupName ✓" -Level SUCCESS
+        return $backupPath
+    }
+    catch [System.IO.IOException] {
+        Write-Log "Erro de acesso ao renomear (possível arquivo em uso)" -Level WARNING
+        Write-Log "Tentando método alternativo (cópia)..." -Level INFO
+        
+        try {
+            # Método alternativo: copiar e depois deletar
+            Copy-Item -Path $SourceFolder -Destination $backupPath -Recurse -Force -ErrorAction Stop
+            
+            # Aguarda um pouco para liberar arquivos
+            Start-Sleep -Seconds 1
+            
+            # Remove a pasta original
+            Remove-Item -Path $SourceFolder -Recurse -Force -ErrorAction Stop
+            
+            Write-Log "Backup criado com sucesso (método cópia): $backupName ✓" -Level SUCCESS
+            return $backupPath
+        }
+        catch {
+            Write-Log "Erro ao criar backup com método alternativo: $_" -Level ERROR
+            throw "Não foi possível criar backup. Certifique-se de que o Word está fechado e que não há arquivos em uso na pasta Templates."
+        }
+    }
+    catch {
+        Write-Log "Erro ao criar backup: $_" -Level ERROR
+        throw
+    }
+}
+
+function Remove-OldBackups {
+    <#
+    .SYNOPSIS
+        Remove backups antigos mantendo apenas os mais recentes.
+    #>
+    param(
+        [Parameter(Mandatory)]
+        [string]$BackupFolder,
+        
+        [Parameter()]
+        [int]$KeepCount = 5
+    )
+    
+    $backupParent = Split-Path $BackupFolder -Parent
+    $backups = Get-ChildItem -Path $backupParent -Directory -Filter "Templates_backup_*" |
+               Sort-Object Name -Descending
+    
+    if ($backups.Count -gt $KeepCount) {
+        $toRemove = $backups | Select-Object -Skip $KeepCount
+        
+        Write-Log "Removendo backups antigos (mantendo os $KeepCount mais recentes)..." -Level INFO
+        
+        foreach ($backup in $toRemove) {
+            try {
+                Remove-Item -Path $backup.FullName -Recurse -Force -ErrorAction Stop
+                Write-Log "Backup removido: $($backup.Name)" -Level INFO
+            }
+            catch {
+                Write-Log "Erro ao remover backup $($backup.Name): $_" -Level WARNING
+            }
+        }
+    }
+}
+
+# =============================================================================
+# FUNÇÕES DE INSTALAÇÃO
+# =============================================================================
+
+function Copy-StampFile {
+    <#
+    .SYNOPSIS
+        Copia o arquivo stamp.png para a pasta do usuário.
+    #>
+    param(
+        [Parameter(Mandatory)]
+        [string]$SourceFile
+    )
+    
+    $destFolder = Join-Path $env:USERPROFILE "CHAINSAW\assets"
+    $destFile = Join-Path $destFolder "stamp.png"
+    
+    Write-Log "Copiando arquivo stamp.png..." -Level INFO
+    Write-Log "Origem: $SourceFile" -Level INFO
+    Write-Log "Destino: $destFile" -Level INFO
+    
+    try {
+        # Verifica se origem e destino são o mesmo arquivo
+        $sourceFullPath = (Resolve-Path $SourceFile).Path
+        $destFullPath = if (Test-Path $destFile) { (Resolve-Path $destFile).Path } else { $null }
+        
+        if ($sourceFullPath -eq $destFullPath) {
+            Write-Log "Arquivo já está no local correto (origem = destino), pulando cópia" -Level INFO
+            Write-Log "Arquivo stamp.png já está instalado ✓" -Level SUCCESS
+            return $true
+        }
+        
+        # Cria pasta de destino se não existir
+        if (-not (Test-Path $destFolder)) {
+            New-Item -Path $destFolder -ItemType Directory -Force | Out-Null
+            Write-Log "Pasta criada: $destFolder" -Level INFO
+        }
+        
+        # Copia o arquivo
+        Copy-Item -Path $SourceFile -Destination $destFile -Force -ErrorAction Stop
+        
+        # Verifica se o arquivo foi copiado corretamente
+        if (Test-Path $destFile) {
+            $sourceSize = (Get-Item $SourceFile).Length
+            $destSize = (Get-Item $destFile).Length
+            
+            if ($sourceSize -eq $destSize) {
+                Write-Log "Arquivo stamp.png copiado com sucesso ✓" -Level SUCCESS
+                return $true
+            }
+            else {
+                Write-Log "Tamanhos diferentes: origem=$sourceSize, destino=$destSize" -Level WARNING
+                return $false
+            }
+        }
+        else {
+            Write-Log "Arquivo não foi copiado corretamente" -Level ERROR
+            return $false
+        }
+    }
+    catch {
+        Write-Log "Erro ao copiar stamp.png: $_" -Level ERROR
+        throw
+    }
+}
+
+function Copy-TemplatesFolder {
+    <#
+    .SYNOPSIS
+        Copia a pasta Templates da rede para o perfil do usuário.
+    #>
+    param(
+        [Parameter(Mandatory)]
+        [string]$SourceFolder,
+        
+        [Parameter(Mandatory)]
+        [string]$DestFolder
+    )
+    
+    Write-Log "Copiando pasta Templates..." -Level INFO
+    Write-Log "Origem: $SourceFolder" -Level INFO
+    Write-Log "Destino: $DestFolder" -Level INFO
+    
+    try {
+        # Verifica se origem e destino são o mesmo local
+        $sourceFullPath = (Resolve-Path $SourceFolder).Path.TrimEnd('\')
+        $destFullPath = if (Test-Path $DestFolder) { (Resolve-Path $DestFolder).Path.TrimEnd('\') } else { $null }
+        
+        if ($sourceFullPath -eq $destFullPath) {
+            Write-Log "A pasta Templates já está no local correto (origem = destino), pulando cópia" -Level INFO
+            Write-Log "Pasta Templates já está instalada ✓" -Level SUCCESS
+            return $true
+        }
+        
+        # Cria pasta de destino
+        if (-not (Test-Path $DestFolder)) {
+            New-Item -Path $DestFolder -ItemType Directory -Force | Out-Null
+        }
+        
+        # Copia todos os arquivos e subpastas
+        $itemsToCopy = Get-ChildItem -Path $SourceFolder -Recurse
+        $totalItems = $itemsToCopy.Count
+        $copiedItems = 0
+        
+        Write-Log "Total de itens a copiar: $totalItems" -Level INFO
+        
+        foreach ($item in $itemsToCopy) {
+            $relativePath = $item.FullName.Substring($SourceFolder.Length + 1)
+            $destPath = Join-Path $DestFolder $relativePath
+            
+            if ($item.PSIsContainer) {
+                # É uma pasta
+                if (-not (Test-Path $destPath)) {
+                    New-Item -Path $destPath -ItemType Directory -Force | Out-Null
+                }
+            }
+            else {
+                # É um arquivo
+                $destDir = Split-Path $destPath -Parent
+                if (-not (Test-Path $destDir)) {
+                    New-Item -Path $destDir -ItemType Directory -Force | Out-Null
+                }
+                Copy-Item -Path $item.FullName -Destination $destPath -Force
+                $copiedItems++
+            }
+            
+            # Progress
+            if ($copiedItems % 10 -eq 0) {
+                Write-Progress -Activity "Copiando Templates" -Status "$copiedItems de $totalItems arquivos copiados" -PercentComplete (($copiedItems / $totalItems) * 100)
+            }
+        }
+        
+        Write-Progress -Activity "Copiando Templates" -Completed
+        Write-Log "Pasta Templates copiada com sucesso ($copiedItems arquivos) ✓" -Level SUCCESS
+        return $true
+    }
+    catch {
+        Write-Log "Erro ao copiar pasta Templates: $_" -Level ERROR
+        throw
+    }
+}
+
+# =============================================================================
+# FUNÇÕES DE IMPORTAÇÃO DE PERSONALIZAÇÕES
+# =============================================================================
+
+function Test-CustomizationsAvailable {
+    param([string]$ImportPath)
+    
+    if (-not (Test-Path $ImportPath)) {
+        return $false
+    }
+    
+    # Verifica se há um manifesto ou arquivos para importar
+    $manifestPath = Join-Path $ImportPath "MANIFEST.json"
+    $hasManifest = Test-Path $manifestPath
+    
+    if ($hasManifest) {
+        try {
+            $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
+            Write-Log "Manifesto encontrado: $($manifest.TotalItems) itens" -Level INFO
+            Write-Log "Exportado em: $($manifest.ExportDate) por $($manifest.UserName)" -Level INFO
+        }
+        catch {
+            Write-Log "Erro ao ler manifesto: $_" -Level WARNING
+        }
+    }
+    
+    return $true
+}
+
+function Backup-WordCustomizations {
+    param([string]$BackupReason = "pré-importação")
+    
+    if ($NoBackup) {
+        Write-Log "Backup de personalizações desabilitado (-NoBackup)" -Level WARNING
+        return $null
+    }
+    
+    Write-Log "Criando backup das personalizações do Word ($BackupReason)..." -Level INFO
+    
+    $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
+    $backupPath = Join-Path $env:USERPROFILE "CHAINSAW\backups\word-customizations_$timestamp"
+    
+    try {
+        if (-not (Test-Path $backupPath)) {
+            New-Item -Path $backupPath -ItemType Directory -Force | Out-Null
+        }
+        
+        $templatesPath = Join-Path $env:APPDATA "Microsoft\Templates"
+        $localAppDataPath = $env:LOCALAPPDATA
+        
+        # Backup do Normal.dotm
+        $normalPath = Join-Path $templatesPath "Normal.dotm"
+        if (Test-Path $normalPath) {
+            $destNormal = Join-Path $backupPath "Templates"
+            New-Item -Path $destNormal -ItemType Directory -Force | Out-Null
+            Copy-Item -Path $normalPath -Destination $destNormal -Force
+            Write-Log "Normal.dotm backup criado" -Level INFO
+        }
+        
+        # Backup de personalizações UI
+        $uiPath = Join-Path $localAppDataPath "Microsoft\Office"
+        $uiFiles = Get-ChildItem -Path $uiPath -Filter "*.officeUI" -Recurse -ErrorAction SilentlyContinue
+        if ($uiFiles.Count -gt 0) {
+            $destUI = Join-Path $backupPath "OfficeCustomUI"
+            New-Item -Path $destUI -ItemType Directory -Force | Out-Null
+            foreach ($file in $uiFiles) {
+                Copy-Item -Path $file.FullName -Destination (Join-Path $destUI $file.Name) -Force
+            }
+            Write-Log "Personalizações UI backup criado: $($uiFiles.Count) arquivos" -Level INFO
+        }
+        
+        Write-Log "Backup de personalizações criado em: $backupPath ✓" -Level SUCCESS
+        return $backupPath
+    }
+    catch {
+        Write-Log "Erro ao criar backup de personalizações: $_" -Level ERROR
+        return $null
+    }
+}
+
+function Import-NormalTemplate {
+    param([string]$ImportPath)
+    
+    Write-Log "Importando Normal.dotm..." -Level INFO
+    
+    $sourcePath = Join-Path $ImportPath "Templates\Normal.dotm"
+    $templatesPath = Join-Path $env:APPDATA "Microsoft\Templates"
+    $destPath = Join-Path $templatesPath "Normal.dotm"
+    
+    if (-not (Test-Path $sourcePath)) {
+        Write-Log "Normal.dotm não encontrado no pacote de importação" -Level WARNING
+        return $false
+    }
+    
+    try {
+        if (-not (Test-Path $templatesPath)) {
+            New-Item -Path $templatesPath -ItemType Directory -Force | Out-Null
+        }
+        
+        Copy-Item -Path $sourcePath -Destination $destPath -Force
+        Write-Log "Normal.dotm importado com sucesso ✓" -Level SUCCESS
+        return $true
+    }
+    catch {
+        Write-Log "Erro ao importar Normal.dotm: $_" -Level ERROR
+        return $false
+    }
+}
+
+function Import-BuildingBlocks {
+    param([string]$ImportPath)
+    
+    Write-Log "Importando Building Blocks..." -Level INFO
+    
+    $templatesPath = Join-Path $env:APPDATA "Microsoft\Templates"
+    $sourceManaged = Join-Path $ImportPath "Templates\LiveContent\16\Managed\Word Document Building Blocks"
+    $sourceUser = Join-Path $ImportPath "Templates\LiveContent\16\User\Word Document Building Blocks"
+    
+    $destManaged = Join-Path $templatesPath "LiveContent\16\Managed\Word Document Building Blocks"
+    $destUser = Join-Path $templatesPath "LiveContent\16\User\Word Document Building Blocks"
+    
+    $importedCount = 0
+    
+    # Importa Building Blocks gerenciados
+    if (Test-Path $sourceManaged) {
+        try {
+            if (-not (Test-Path $destManaged)) {
+                New-Item -Path $destManaged -ItemType Directory -Force | Out-Null
+            }
+            
+            $files = Get-ChildItem -Path $sourceManaged -Recurse -File
+            foreach ($file in $files) {
+                $relativePath = $file.FullName.Substring($sourceManaged.Length + 1)
+                $destFile = Join-Path $destManaged $relativePath
+                $destDir = Split-Path $destFile -Parent
+                
+                if (-not (Test-Path $destDir)) {
+                    New-Item -Path $destDir -ItemType Directory -Force | Out-Null
+                }
+                
+                Copy-Item -Path $file.FullName -Destination $destFile -Force
+                $importedCount++
+            }
+            
+            Write-Log "Building Blocks gerenciados importados: $($files.Count) arquivos" -Level INFO
+        }
+        catch {
+            Write-Log "Erro ao importar Building Blocks gerenciados: $_" -Level WARNING
+        }
+    }
+    
+    # Importa Building Blocks do usuário
+    if (Test-Path $sourceUser) {
+        try {
+            if (-not (Test-Path $destUser)) {
+                New-Item -Path $destUser -ItemType Directory -Force | Out-Null
+            }
+            
+            $files = Get-ChildItem -Path $sourceUser -Recurse -File
+            foreach ($file in $files) {
+                $relativePath = $file.FullName.Substring($sourceUser.Length + 1)
+                $destFile = Join-Path $destUser $relativePath
+                $destDir = Split-Path $destFile -Parent
+                
+                if (-not (Test-Path $destDir)) {
+                    New-Item -Path $destDir -ItemType Directory -Force | Out-Null
+                }
+                
+                Copy-Item -Path $file.FullName -Destination $destFile -Force
+                $importedCount++
+            }
+            
+            Write-Log "Building Blocks do usuário importados: $($files.Count) arquivos" -Level INFO
+        }
+        catch {
+            Write-Log "Erro ao importar Building Blocks do usuário: $_" -Level WARNING
+        }
+    }
+    
+    if ($importedCount -gt 0) {
+        Write-Log "Building Blocks importados: $importedCount arquivos ✓" -Level SUCCESS
+        return $true
+    }
+    else {
+        Write-Log "Nenhum Building Block para importar" -Level INFO
+        return $false
+    }
+}
+
+function Import-DocumentThemes {
+    param([string]$ImportPath)
+    
+    Write-Log "Importando temas de documentos..." -Level INFO
+    
+    $templatesPath = Join-Path $env:APPDATA "Microsoft\Templates"
+    $sourceManaged = Join-Path $ImportPath "Templates\LiveContent\16\Managed\Document Themes"
+    $sourceUser = Join-Path $ImportPath "Templates\LiveContent\16\User\Document Themes"
+    
+    $destManaged = Join-Path $templatesPath "LiveContent\16\Managed\Document Themes"
+    $destUser = Join-Path $templatesPath "LiveContent\16\User\Document Themes"
+    
+    $importedCount = 0
+    
+    # Temas gerenciados
+    if (Test-Path $sourceManaged) {
+        try {
+            if (-not (Test-Path $destManaged)) {
+                New-Item -Path $destManaged -ItemType Directory -Force | Out-Null
+            }
+            
+            $files = Get-ChildItem -Path $sourceManaged -Recurse -File
+            foreach ($file in $files) {
+                $relativePath = $file.FullName.Substring($sourceManaged.Length + 1)
+                $destFile = Join-Path $destManaged $relativePath
+                $destDir = Split-Path $destFile -Parent
+                
+                if (-not (Test-Path $destDir)) {
+                    New-Item -Path $destDir -ItemType Directory -Force | Out-Null
+                }
+                
+                Copy-Item -Path $file.FullName -Destination $destFile -Force
+                $importedCount++
+            }
+        }
+        catch {
+            Write-Log "Erro ao importar temas gerenciados: $_" -Level WARNING
+        }
+    }
+    
+    # Temas do usuário
+    if (Test-Path $sourceUser) {
+        try {
+            if (-not (Test-Path $destUser)) {
+                New-Item -Path $destUser -ItemType Directory -Force | Out-Null
+            }
+            
+            $files = Get-ChildItem -Path $sourceUser -Recurse -File
+            foreach ($file in $files) {
+                $relativePath = $file.FullName.Substring($sourceUser.Length + 1)
+                $destFile = Join-Path $destUser $relativePath
+                $destDir = Split-Path $destFile -Parent
+                
+                if (-not (Test-Path $destDir)) {
+                    New-Item -Path $destDir -ItemType Directory -Force | Out-Null
+                }
+                
+                Copy-Item -Path $file.FullName -Destination $destFile -Force
+                $importedCount++
+            }
+        }
+        catch {
+            Write-Log "Erro ao importar temas do usuário: $_" -Level WARNING
+        }
+    }
+    
+    if ($importedCount -gt 0) {
+        Write-Log "Temas importados: $importedCount arquivos ✓" -Level SUCCESS
+        return $true
+    }
+    else {
+        Write-Log "Nenhum tema para importar" -Level INFO
+        return $false
+    }
+}
+
+function Import-RibbonCustomization {
+    param([string]$ImportPath)
+    
+    Write-Log "Importando personalização da Faixa de Opções..." -Level INFO
+    
+    $sourcePath = Join-Path $ImportPath "RibbonCustomization"
+    
+    if (-not (Test-Path $sourcePath)) {
+        Write-Log "Nenhuma personalização do Ribbon para importar" -Level INFO
+        return $false
+    }
+    
+    try {
+        $files = Get-ChildItem -Path $sourcePath -Filter "*.officeUI" -ErrorAction SilentlyContinue
+        
+        if ($files.Count -eq 0) {
+            Write-Log "Nenhum arquivo de personalização Ribbon encontrado" -Level INFO
+            return $false
+        }
+        
+        foreach ($file in $files) {
+            # Tenta os locais possíveis
+            $possibleDests = @(
+                (Join-Path $env:LOCALAPPDATA "Microsoft\Office"),
+                (Join-Path $env:APPDATA "Microsoft\Office")
+            )
+            
+            foreach ($destPath in $possibleDests) {
+                if (-not (Test-Path $destPath)) {
+                    New-Item -Path $destPath -ItemType Directory -Force | Out-Null
+                }
+                
+                $destFile = Join-Path $destPath $file.Name
+                Copy-Item -Path $file.FullName -Destination $destFile -Force
+                Write-Log "Ribbon importado para: $destFile" -Level INFO
+            }
+        }
+        
+        Write-Log "Personalização do Ribbon importada: $($files.Count) arquivos ✓" -Level SUCCESS
+        return $true
+    }
+    catch {
+        Write-Log "Erro ao importar Ribbon: $_" -Level ERROR
+        return $false
+    }
+}
+
+function Import-OfficeCustomUI {
+    param([string]$ImportPath)
+    
+    Write-Log "Importando personalizações da interface..." -Level INFO
+    
+    $sourcePath = Join-Path $ImportPath "OfficeCustomUI"
+    
+    if (-not (Test-Path $sourcePath)) {
+        Write-Log "Nenhuma personalização UI para importar" -Level INFO
+        return $false
+    }
+    
+    try {
+        $files = Get-ChildItem -Path $sourcePath -Filter "*.officeUI" -ErrorAction SilentlyContinue
+        
+        if ($files.Count -eq 0) {
+            Write-Log "Nenhum arquivo de personalização UI encontrado" -Level INFO
+            return $false
+        }
+        
+        $destPath = Join-Path $env:LOCALAPPDATA "Microsoft\Office"
+        if (-not (Test-Path $destPath)) {
+            New-Item -Path $destPath -ItemType Directory -Force | Out-Null
+        }
+        
+        foreach ($file in $files) {
+            $destFile = Join-Path $destPath $file.Name
+            Copy-Item -Path $file.FullName -Destination $destFile -Force
+        }
+        
+        Write-Log "Personalizações UI importadas: $($files.Count) arquivos ✓" -Level SUCCESS
+        return $true
+    }
+    catch {
+        Write-Log "Erro ao importar personalizações UI: $_" -Level ERROR
+        return $false
+    }
+}
+
+function Import-WordCustomizations {
+    param([string]$ImportPath)
+    
+    Write-Log "=== Iniciando importação de personalizações ===" -Level INFO
+    
+    # Verifica se o Word está em execução
+    if (Test-WordRunning) {
+        Write-Host ""
+        Write-Host "╔════════════════════════════════════════════════════════════════╗" -ForegroundColor Yellow
+        Write-Host "║                  ⚠ MICROSOFT WORD ABERTO ⚠                    ║" -ForegroundColor Yellow
+        Write-Host "╚════════════════════════════════════════════════════════════════╝" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "O Microsoft Word está em execução e deve ser fechado antes de" -ForegroundColor Yellow
+        Write-Host "importar as personalizações." -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "Por favor:" -ForegroundColor White
+        Write-Host "  1. Salve todos os documentos abertos no Word" -ForegroundColor Gray
+        Write-Host "  2. Feche completamente o Microsoft Word" -ForegroundColor Gray
+        Write-Host "  3. Execute este script novamente" -ForegroundColor Gray
+        Write-Host ""
+        
+        Write-Log "Importação abortada: Word está em execução" -Level WARNING
+        return $false
+    }
+    
+    # Cria backup
+    $backupPath = Backup-WordCustomizations -BackupReason "pré-importação de personalizações"
+    if ($null -eq $backupPath -and -not $NoBackup) {
+        Write-Host ""
+        Write-Host "⚠ Falha ao criar backup das personalizações atuais." -ForegroundColor Yellow
+        
+        if (-not $Force) {
+            $response = Read-Host "Continuar mesmo assim? (S/N)"
+            if ($response -notmatch '^[Ss]$') {
+                Write-Log "Importação cancelada: falha no backup" -Level WARNING
+                return $false
+            }
+        }
+    }
+    
+    Write-Host ""
+    Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+    Write-Host "  ETAPA 6: Importação de Personalizações do Word" -ForegroundColor White
+    Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+    Write-Host ""
+    
+    # Importações
+    $importedCount = 0
+    
+    if (Import-NormalTemplate -ImportPath $ImportPath) { $importedCount++ }
+    if (Import-BuildingBlocks -ImportPath $ImportPath) { $importedCount++ }
+    if (Import-DocumentThemes -ImportPath $ImportPath) { $importedCount++ }
+    if (Import-RibbonCustomization -ImportPath $ImportPath) { $importedCount++ }
+    if (Import-OfficeCustomUI -ImportPath $ImportPath) { $importedCount++ }
+    
+    if ($importedCount -gt 0) {
+        Write-Log "Total de categorias de personalizações importadas: $importedCount ✓" -Level SUCCESS
+        return $true
+    }
+    else {
+        Write-Log "Nenhuma personalização foi importada" -Level WARNING
+        return $false
+    }
+}
+
+# =============================================================================
+# FUNÇÃO PRINCIPAL
+# =============================================================================
+
+function Install-CHAINSAWConfig {
+    <#
+    .SYNOPSIS
+        Função principal de instalação.
+    #>
+    
+    Write-Host ""
+    Write-Host "╔════════════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
+    Write-Host "║          CHAINSAW - Instalação de Configurações do Word       ║" -ForegroundColor Cyan
+    Write-Host "╚════════════════════════════════════════════════════════════════╝" -ForegroundColor Cyan
+    Write-Host ""
+    
+    # Inicializa log
+    if (-not (Initialize-LogFile)) {
+        Write-Warning "Continuando sem arquivo de log..."
+    }
+    else {
+        Write-Host "📝 Arquivo de log: $script:LogFile" -ForegroundColor Gray
+        Write-Host ""
+    }
+    
+    $startTime = Get-Date
+    Write-Log "=== INÍCIO DA INSTALAÇÃO ===" -Level INFO
+    
+    try {
+        # 1. Verificar pré-requisitos
+        Write-Host ""
+        Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+        Write-Host "  ETAPA 1: Verificação de Pré-requisitos" -ForegroundColor White
+        Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+        Write-Host ""
+        
+        if (-not (Test-Prerequisites)) {
+            throw "Pré-requisitos não atendidos. Verifique os erros acima."
+        }
+        
+        # 2. Verificar arquivos de origem
+        Write-Host ""
+        Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+        Write-Host "  ETAPA 2: Verificação de Arquivos de Origem" -ForegroundColor White
+        Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+        Write-Host ""
+        
+        $sourceStampFile = $null
+        $sourceTemplatesFolder = $null
+        
+        if (-not (Test-SourceFiles -SourceStampFile ([ref]$sourceStampFile) -SourceTemplatesFolder ([ref]$sourceTemplatesFolder))) {
+            throw "Arquivos de origem não encontrados. Verifique os erros acima."
+        }
+        
+        # 3. Confirmação do usuário
+        if (-not $Force) {
+            Write-Host ""
+            Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+            Write-Host "  CONFIRMAÇÃO" -ForegroundColor White
+            Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+            Write-Host ""
+            Write-Host "As seguintes operações serão realizadas:" -ForegroundColor Yellow
+            Write-Host "  1. Copiar stamp.png para: $env:USERPROFILE\CHAINSAW\assets\" -ForegroundColor White
+            Write-Host "  2. Fazer backup da pasta Templates atual (se existir)" -ForegroundColor White
+            Write-Host "  3. Copiar nova pasta Templates da rede" -ForegroundColor White
+            Write-Host ""
+            
+            $response = Read-Host "Deseja continuar? (S/N)"
+            if ($response -notmatch '^[Ss]$') {
+                Write-Log "Instalação cancelada pelo usuário." -Level WARNING
+                return
+            }
+        }
+        
+        # 4. Copiar arquivo stamp.png
+        Write-Host ""
+        Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+        Write-Host "  ETAPA 3: Cópia do Arquivo stamp.png" -ForegroundColor White
+        Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+        Write-Host ""
+        
+        Copy-StampFile -SourceFile $sourceStampFile | Out-Null
+        
+        # 5. Backup da pasta Templates
+        $templatesPath = Join-Path $env:APPDATA "Microsoft\Templates"
+        $backupPath = $null
+        
+        if (-not $NoBackup) {
+            Write-Host ""
+            Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+            Write-Host "  ETAPA 4: Backup da Pasta Templates" -ForegroundColor White
+            Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+            Write-Host ""
+            
+            $backupPath = Backup-TemplatesFolder -SourceFolder $templatesPath
+            
+            if ($backupPath) {
+                Remove-OldBackups -BackupFolder $backupPath -KeepCount 5
+            }
+        }
+        else {
+            Write-Log "Backup desabilitado pelo parâmetro -NoBackup" -Level WARNING
+        }
+        
+        # 6. Copiar pasta Templates
+        Write-Host ""
+        Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+        Write-Host "  ETAPA 5: Cópia da Pasta Templates" -ForegroundColor White
+        Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+        Write-Host ""
+        
+        Copy-TemplatesFolder -SourceFolder $sourceTemplatesFolder -DestFolder $templatesPath | Out-Null
+        
+        # 7. Detectar e importar personalizações (se disponíveis)
+        if (-not $SkipCustomizations) {
+            $exportedConfigPath = Join-Path $SourcePath "exported-config"
+            
+            if (Test-CustomizationsAvailable -ImportPath $exportedConfigPath) {
+                Write-Host ""
+                Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
+                Write-Host "  PERSONALIZAÇÕES DO WORD DETECTADAS!" -ForegroundColor White
+                Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
+                Write-Host ""
+                Write-Host "✨ Personalizações exportadas foram encontradas em:" -ForegroundColor Cyan
+                Write-Host "   $exportedConfigPath" -ForegroundColor Gray
+                Write-Host ""
+                Write-Host "📦 Conteúdo que será importado:" -ForegroundColor White
+                Write-Host "   • Faixa de Opções Personalizada (Ribbon)" -ForegroundColor Gray
+                Write-Host "   • Partes Rápidas (Quick Parts)" -ForegroundColor Gray
+                Write-Host "   • Blocos de Construção (Building Blocks)" -ForegroundColor Gray
+                Write-Host "   • Temas de Documentos" -ForegroundColor Gray
+                Write-Host "   • Template Normal.dotm" -ForegroundColor Gray
+                Write-Host ""
+                
+                $importCustomizations = $true
+                if (-not $Force) {
+                    $response = Read-Host "Deseja importar estas personalizações agora? (S/N)"
+                    $importCustomizations = ($response -match '^[Ss]$')
+                }
+                
+                if ($importCustomizations) {
+                    Write-Log "Iniciando importação de personalizações..." -Level INFO
+                    $imported = Import-WordCustomizations -ImportPath $exportedConfigPath
+                    
+                    if ($imported) {
+                        Write-Host ""
+                        Write-Host "✓ Personalizações importadas com sucesso!" -ForegroundColor Green
+                        Write-Host ""
+                        Write-Host "ℹ IMPORTANTE:" -ForegroundColor Cyan
+                        Write-Host "   As personalizações serão visíveis na próxima vez" -ForegroundColor Yellow
+                        Write-Host "   que você abrir o Microsoft Word." -ForegroundColor Yellow
+                        Write-Host ""
+                    }
+                    else {
+                        Write-Host ""
+                        Write-Host "⚠ Personalizações não foram importadas completamente." -ForegroundColor Yellow
+                        Write-Host "  Verifique o log para mais detalhes." -ForegroundColor Yellow
+                        Write-Host ""
+                    }
+                }
+                else {
+                    Write-Host ""
+                    Write-Host "ℹ Importação de personalizações ignorada." -ForegroundColor Cyan
+                    Write-Host "  Para importar mais tarde, execute: .\install.ps1" -ForegroundColor Gray
+                    Write-Host ""
+                    Write-Log "Importação de personalizações ignorada pelo usuário" -Level INFO
+                }
+            }
+            else {
+                Write-Log "Pasta 'exported-config' não encontrada - pulando importação" -Level INFO
+            }
+        }
+        else {
+            Write-Log "Importação de personalizações desabilitada (-SkipCustomizations)" -Level INFO
+        }
+        
+        # Sucesso!
+        $endTime = Get-Date
+        $duration = $endTime - $startTime
+        
+        Write-Host ""
+        Write-Host "╔════════════════════════════════════════════════════════════════╗" -ForegroundColor Green
+        Write-Host "║              INSTALAÇÃO CONCLUÍDA COM SUCESSO!                 ║" -ForegroundColor Green
+        Write-Host "╚════════════════════════════════════════════════════════════════╝" -ForegroundColor Green
+        Write-Host ""
+        Write-Host "📊 Resumo da Instalação:" -ForegroundColor Cyan
+        Write-Host "   • Operações bem-sucedidas: $script:SuccessCount" -ForegroundColor Green
+        Write-Host "   • Avisos: $script:WarningCount" -ForegroundColor Yellow
+        Write-Host "   • Erros: $script:ErrorCount" -ForegroundColor Red
+        Write-Host "   • Tempo decorrido: $($duration.ToString('mm\:ss'))" -ForegroundColor Gray
+        Write-Host ""
+        
+        if ($backupPath) {
+            Write-Host "💾 Backup criado em:" -ForegroundColor Cyan
+            Write-Host "   $backupPath" -ForegroundColor Gray
+            Write-Host ""
+        }
+        
+        Write-Host "📝 Log completo salvo em:" -ForegroundColor Cyan
+        Write-Host "   $script:LogFile" -ForegroundColor Gray
+        Write-Host ""
+        
+        Write-Log "=== INSTALAÇÃO CONCLUÍDA COM SUCESSO ===" -Level SUCCESS
+        Write-Log "Duração: $($duration.ToString('mm\:ss'))" -Level INFO
+    }
+    catch {
+        $endTime = Get-Date
+        $duration = $endTime - $startTime
+        
+        Write-Host ""
+        Write-Host "╔════════════════════════════════════════════════════════════════╗" -ForegroundColor Red
+        Write-Host "║                  ERRO NA INSTALAÇÃO!                           ║" -ForegroundColor Red
+        Write-Host "╚════════════════════════════════════════════════════════════════╝" -ForegroundColor Red
+        Write-Host ""
+        Write-Host "❌ Erro: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host ""
+        Write-Host "📝 Verifique o arquivo de log para mais detalhes:" -ForegroundColor Yellow
+        Write-Host "   $script:LogFile" -ForegroundColor Gray
+        Write-Host ""
+        
+        Write-Log "=== INSTALAÇÃO FALHOU ===" -Level ERROR
+        Write-Log "Erro: $($_.Exception.Message)" -Level ERROR
+        Write-Log "Stack trace: $($_.ScriptStackTrace)" -Level ERROR
+        Write-Log "Duração até falha: $($duration.ToString('mm\:ss'))" -Level INFO
+        
+        # Tenta reverter mudanças se possível
+        if ($backupPath -and (Test-Path $backupPath)) {
+            Write-Host "🔄 Tentando reverter mudanças..." -ForegroundColor Yellow
+            try {
+                $templatesPath = Join-Path $env:APPDATA "Microsoft\Templates"
+                if (Test-Path $templatesPath) {
+                    Remove-Item -Path $templatesPath -Recurse -Force
+                }
+                Rename-Item -Path $backupPath -NewName "Templates" -Force
+                Write-Host "✓ Backup restaurado com sucesso" -ForegroundColor Green
+                Write-Log "Backup restaurado após falha na instalação" -Level INFO
+            }
+            catch {
+                Write-Host "✗ Não foi possível restaurar o backup automaticamente" -ForegroundColor Red
+                Write-Host "  Backup disponível em: $backupPath" -ForegroundColor Yellow
+                Write-Log "Falha ao restaurar backup: $_" -Level ERROR
+            }
+        }
+        
+        throw
+    }
+}
+
+# =============================================================================
+# EXECUÇÃO
+# =============================================================================
+
+# Verifica se o script está sendo executado como administrador
+$isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+if ($isAdmin) {
+    Write-Host ""
+    Write-Host "╔════════════════════════════════════════════════════════════════╗" -ForegroundColor Red
+    Write-Host "║                      ⚠ AVISO IMPORTANTE ⚠                      ║" -ForegroundColor Red
+    Write-Host "╚════════════════════════════════════════════════════════════════╝" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "❌ Este script está sendo executado com privilégios de Administrador." -ForegroundColor Red
+    Write-Host ""
+    Write-Host "⚠  PROBLEMA:" -ForegroundColor Yellow
+    Write-Host "   Executar como Administrador pode causar problemas de permissões," -ForegroundColor Yellow
+    Write-Host "   pois os arquivos serão criados com o proprietário 'Administrador'" -ForegroundColor Yellow
+    Write-Host "   ao invés do seu usuário normal." -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "✓  SOLUÇÃO:" -ForegroundColor Green
+    Write-Host "   1. Feche este PowerShell" -ForegroundColor White
+    Write-Host "   2. Abra o PowerShell SEM privilégios de administrador:" -ForegroundColor White
+    Write-Host "      - Pressione Win + X" -ForegroundColor Gray
+    Write-Host "      - Selecione 'Windows PowerShell' (NÃO 'Windows PowerShell (Admin)')" -ForegroundColor Gray
+    Write-Host "   3. Execute o script novamente" -ForegroundColor White
+    Write-Host ""
+    Write-Host "ℹ  Este script NÃO REQUER privilégios de administrador." -ForegroundColor Cyan
+    Write-Host "   Todas as operações são realizadas apenas no seu perfil de usuário." -ForegroundColor Cyan
+    Write-Host ""
+    
+    $response = Read-Host "Deseja continuar mesmo assim? (NÃO recomendado) [s/N]"
+    if ($response -notmatch '^[Ss]$') {
+        Write-Host ""
+        Write-Host "Instalação cancelada. Execute novamente sem privilégios de administrador." -ForegroundColor Yellow
+        Write-Host ""
+        exit 0
+    }
+    
+    Write-Host ""
+    Write-Warning "Continuando por solicitação do usuário. Problemas de permissões podem ocorrer."
+    Write-Host ""
+    Start-Sleep -Seconds 2
+}
+
+# Executa instalação
+try {
+    Install-CHAINSAWConfig
+}
+catch {
+    exit 1
+}

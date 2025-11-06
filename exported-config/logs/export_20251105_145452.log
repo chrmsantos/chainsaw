@@ -1,0 +1,32 @@
+================================================================================
+CHAINSAW - Exportação de Personalizações do Word
+================================================================================
+Data/Hora: 05/11/2025 14:54:52
+Usuário: csantos
+Computador: NOTEPROCLEG01
+Sistema: Microsoft Windows NT 10.0.26100.0
+PowerShell: 5.1.26100.6899
+Caminho de Exportação: .\exported-config
+================================================================================
+
+[2025-11-05 14:54:52] [INFO] === INÍCIO DA EXPORTAÇÃO ===
+[2025-11-05 14:54:52] [INFO] Exportando Normal.dotm...
+[2025-11-05 14:54:52] [SUCCESS] Normal.dotm exportado com sucesso ?
+[2025-11-05 14:54:52] [INFO] Exportando Building Blocks...
+[2025-11-05 14:54:52] [INFO] Building Blocks gerenciados: 0 arquivos
+[2025-11-05 14:54:52] [INFO] Building Blocks do usuário: 0 arquivos
+[2025-11-05 14:54:52] [WARNING] Nenhum Building Block encontrado
+[2025-11-05 14:54:52] [INFO] Exportando temas de documentos...
+[2025-11-05 14:54:52] [INFO] Nenhum tema personalizado encontrado
+[2025-11-05 14:54:52] [INFO] Exportando personalização da Faixa de Opções...
+[2025-11-05 14:54:52] [INFO] Nenhuma personalização do Ribbon encontrada
+[2025-11-05 14:54:52] [INFO] Exportando personalizações da interface...
+[2025-11-05 14:54:52] [INFO] Nenhum arquivo de personalização UI encontrado
+[2025-11-05 14:54:52] [INFO] Exportando Barra de Ferramentas de Acesso Rápido...
+[2025-11-05 14:54:52] [INFO] QAT incluída nas personalizações UI
+[2025-11-05 14:54:52] [INFO] Exportação do registro desabilitada (use -IncludeRegistry)
+[2025-11-05 14:54:52] [INFO] Criando manifesto de exportação...
+[2025-11-05 14:54:52] [SUCCESS] Manifesto criado: .\exported-config\MANIFEST.json ?
+[2025-11-05 14:54:53] [SUCCESS] README criado: .\exported-config\README.txt ?
+[2025-11-05 14:54:53] [SUCCESS] === EXPORTAÇÃO CONCLUÍDA COM SUCESSO ===
+[2025-11-05 14:54:53] [INFO] Total de itens: 1
