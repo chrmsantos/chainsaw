@@ -1,7 +1,7 @@
 ' =============================================================================
 ' CHAINSAW - Sistema de Padronização de Proposituras Legislativas
 ' =============================================================================
-' Versão: 1.0-RC1-202511050239
+' Versão: 1.0-RC1-202511061541
 ' Licença: GNU GPLv3 (https://www.gnu.org/licenses/gpl-3.0.html)
 ' Compatibilidade: Microsoft Word 2010+
 ' Autor: Christian Martin dos Santos (chrmsantos@protonmail.com)
