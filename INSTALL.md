@@ -1,61 +1,61 @@
 # Script de Instalação - CHAINSAW
 
-## 📋 Visão Geral
+## [INFO] Visão Geral
 
 O script `install.ps1` automatiza completamente a instalação das configurações do Word para o sistema CHAINSAW, garantindo uma instalação segura e consistente para todos os usuários.
 
-## ⚠️ IMPORTANTE: Privilégios de Administrador
+## [!] IMPORTANTE: Privilégios de Administrador
 
-**🚫 NÃO EXECUTE COMO ADMINISTRADOR**
+**[NO] NÃO EXECUTE COMO ADMINISTRADOR**
 
 Este script foi projetado para rodar com privilégios de **usuário normal** e:
 
-- ✅ **Funciona perfeitamente** sem privilégios de administrador
-- ✅ Opera apenas em pastas do perfil do usuário
-- ✅ Não modifica arquivos do sistema
-- ✅ Não requer acesso a recursos protegidos
+- [OK] **Funciona perfeitamente** sem privilégios de administrador
+- [OK] Opera apenas em pastas do perfil do usuário
+- [OK] Não modifica arquivos do sistema
+- [OK] Não requer acesso a recursos protegidos
 
-**❌ Executar como Administrador pode causar problemas:**
+**[X] Executar como Administrador pode causar problemas:**
 
 - Arquivos criados com proprietário "Administrador"
 - Problemas de permissões para acessar os arquivos depois
 - Word pode não conseguir acessar os templates
 - Operação desnecessária e insegura
 
-## 🎯 O que o Script Faz
+## [*] O que o Script Faz
 
 ### 1. Validação Pré-instalação
-- ✅ Verifica versão do Windows (10+)
-- ✅ Verifica versão do PowerShell (5.1+)
-- ✅ Confirma acesso à rede corporativa
-- ✅ Testa permissões de escrita no perfil do usuário
-- ✅ Valida existência dos arquivos de origem
+- [OK] Verifica versão do Windows (10+)
+- [OK] Verifica versão do PowerShell (5.1+)
+- [OK] Confirma acesso à rede corporativa
+- [OK] Testa permissões de escrita no perfil do usuário
+- [OK] Valida existência dos arquivos de origem
 
 ### 2. Backup Automático
-- 🔒 Renomeia pasta Templates existente com timestamp
-- 🔒 Mantém histórico dos últimos 5 backups
-- 🔒 Remove backups antigos automaticamente
-- 🔒 Formato: `Templates_backup_YYYYMMDD_HHMMSS`
+- [LOCK] Renomeia pasta Templates existente com timestamp
+- [LOCK] Mantém histórico dos últimos 5 backups
+- [LOCK] Remove backups antigos automaticamente
+- [LOCK] Formato: `Templates_backup_YYYYMMDD_HHMMSS`
 
 ### 3. Instalação
-- 📁 Copia `stamp.png` para `%USERPROFILE%\CHAINSAW\assets\`
-- 📁 Copia Templates para `%APPDATA%\Microsoft\Templates\`
-- 📁 Preserva toda estrutura de pastas e arquivos
-- 📁 Verifica integridade dos arquivos copiados
+- [DIR] Copia `stamp.png` para `%USERPROFILE%\CHAINSAW\assets\`
+- [DIR] Copia Templates para `%APPDATA%\Microsoft\Templates\`
+- [DIR] Preserva toda estrutura de pastas e arquivos
+- [DIR] Verifica integridade dos arquivos copiados
 
 ### 4. Sistema de Log
-- 📝 Registra todas as operações
-- 📝 Salva em `%USERPROFILE%\CHAINSAW\logs\`
-- 📝 Formato: `install_YYYYMMDD_HHMMSS.log`
-- 📝 Inclui timestamps, níveis e mensagens detalhadas
+- [LOG] Registra todas as operações
+- [LOG] Salva em `%USERPROFILE%\CHAINSAW\logs\`
+- [LOG] Formato: `install_YYYYMMDD_HHMMSS.log`
+- [LOG] Inclui timestamps, níveis e mensagens detalhadas
 
 ### 5. Tratamento de Erros
-- 🛡️ Validação completa antes de iniciar
-- 🛡️ Rollback automático em caso de falha
-- 🛡️ Mensagens de erro claras e acionáveis
-- 🛡️ Não interrompe em avisos não críticos
+- [SEC] Validação completa antes de iniciar
+- [SEC] Rollback automático em caso de falha
+- [SEC] Mensagens de erro claras e acionáveis
+- [SEC] Não interrompe em avisos não críticos
 
-## � Bypass Automático de Execução (Novo!)
+## [LOCK] Bypass Automático de Execução (Novo!)
 
 O script agora possui um **mecanismo de auto-relançamento seguro** que elimina a necessidade de configurar manualmente a política de execução do PowerShell.
 
@@ -70,12 +70,12 @@ O script agora possui um **mecanismo de auto-relançamento seguro** que elimina 
 
 ### Garantias de Segurança
 
-✅ **Isolado**: Apenas este script específico é executado com bypass  
-✅ **Temporário**: O bypass expira automaticamente quando o script termina  
-✅ **Transparente**: Todas as ações são informadas ao usuário  
-✅ **Auditável**: Tudo é registrado no arquivo de log  
-✅ **Sem Admin**: Não requer nem usa privilégios elevados  
-✅ **Reversível**: A política original permanece intacta  
+[OK] **Isolado**: Apenas este script específico é executado com bypass  
+[OK] **Temporário**: O bypass expira automaticamente quando o script termina  
+[OK] **Transparente**: Todas as ações são informadas ao usuário  
+[OK] **Auditável**: Tudo é registrado no arquivo de log  
+[OK] **Sem Admin**: Não requer nem usa privilégios elevados  
+[OK] **Reversível**: A política original permanece intacta  
 
 ### Uso
 
@@ -89,12 +89,12 @@ cd "$env:USERPROFILE\chainsaw"
 Se necessário, o script se relançará automaticamente. Você verá:
 
 ```
-🔒 Verificando política de execução...
+[LOCK] Verificando política de execução...
    Política atual (CurrentUser): Restricted
-⚠  Política de execução restritiva detectada.
-🔄 Relançando script com bypass temporário...
+[!]  Política de execução restritiva detectada.
+[SYNC] Relançando script com bypass temporário...
 
-ℹ  SEGURANÇA:
+[i]  SEGURANÇA:
    • Apenas ESTE script será executado com bypass
    • A política do sistema NÃO será alterada
    • O bypass expira quando o script terminar
@@ -103,7 +103,7 @@ Se necessário, o script se relançará automaticamente. Você verá:
 ✓ Executando com bypass temporário (seguro)
 ```
 
-## �🚀 Como Usar
+## [LOCK][>>] Como Usar
 
 ### Verificação de Privilégios (Obrigatória)
 
@@ -133,10 +133,10 @@ cd "$env:USERPROFILE\chainsaw"
 ```
 
 Este script verifica:
-- ✅ Se você NÃO está executando como administrador
-- ✅ Permissões de escrita em `%USERPROFILE%`
-- ✅ Permissões de escrita em `%APPDATA%`
-- ✅ Capacidade de criar, renomear e copiar arquivos/pastas
+- [OK] Se você NÃO está executando como administrador
+- [OK] Permissões de escrita em `%USERPROFILE%`
+- [OK] Permissões de escrita em `%APPDATA%`
+- [OK] Capacidade de criar, renomear e copiar arquivos/pastas
 
 ### Teste Rápido de Instalação (Opcional)
 
@@ -172,14 +172,14 @@ O script irá:
 5. Executar a instalação
 6. Exibir resultado detalhado
 
-🔒 **Segurança do Bypass Automático:**
+[LOCK] **Segurança do Bypass Automático:**
 
-- ✅ Apenas ESTE script é executado com bypass
-- ✅ A política do sistema NÃO é alterada permanentemente
-- ✅ O bypass expira automaticamente quando o script termina
-- ✅ Nenhum privilégio de administrador é necessário ou usado
-- ✅ Totalmente transparente e seguro
-- ✅ O launcher `.cmd` funciona em QUALQUER política de execução
+- [OK] Apenas ESTE script é executado com bypass
+- [OK] A política do sistema NÃO é alterada permanentemente
+- [OK] O bypass expira automaticamente quando o script termina
+- [OK] Nenhum privilégio de administrador é necessário ou usado
+- [OK] Totalmente transparente e seguro
+- [OK] O launcher `.cmd` funciona em QUALQUER política de execução
 
 ### Instalação Automática
 
@@ -197,7 +197,7 @@ Ou diretamente:
 
 ### Instalação Sem Backup
 
-⚠️ **Não recomendado** - Instala sem criar backup:
+[!] **Não recomendado** - Instala sem criar backup:
 
 ```cmd
 install.cmd -NoBackup
@@ -211,14 +211,14 @@ Se os arquivos estiverem em outro local:
 install.cmd -SourcePath "C:\outro\caminho\CHAINSAW"
 ```
 
-## 📊 Exemplo de Execução
+## [INFO] Exemplo de Execução
 
 ```
 ╔════════════════════════════════════════════════════════════════╗
 ║          CHAINSAW - Instalação de Configurações do Word       ║
 ╚════════════════════════════════════════════════════════════════╝
 
-📝 Arquivo de log: C:\Users\csantos\CHAINSAW\logs\install_20251105_143022.log
+[LOG] Arquivo de log: C:\Users\csantos\CHAINSAW\logs\install_20251105_143022.log
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   ETAPA 1: Verificação de Pré-requisitos
@@ -267,7 +267,7 @@ Caminho de Origem: C:\Users\csantos\Documents\CHAINSAW
 ...
 ```
 
-## 🛠️ Solução de Problemas
+## [TOOL] Solução de Problemas
 
 ### Erro: Script não pode ser executado
 
@@ -296,7 +296,7 @@ Se preferir configurar manualmente a política de execução de forma permanente
 Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 ```
 
-⚠️ **Nota:** A solução automática é mais segura, pois não altera permanentemente as configurações do sistema.
+[!] **Nota:** A solução automática é mais segura, pois não altera permanentemente as configurações do sistema.
 
 ### Erro: Arquivos de origem não encontrados
 
@@ -347,27 +347,27 @@ Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 2. Adicione exceção no antivírus para a pasta Templates
 3. Verifique espaço em disco: `Get-PSDrive C`
 
-## 🔐 Segurança
+## [SEC] Segurança
 
 ### O que o script NÃO faz
 
-- ❌ Não requer privilégios de administrador
-- ❌ Não modifica arquivos do sistema
-- ❌ Não altera registro do Windows
-- ❌ Não instala software adicional
-- ❌ Não faz comunicação externa
-- ❌ Não coleta dados do usuário
+- [X] Não requer privilégios de administrador
+- [X] Não modifica arquivos do sistema
+- [X] Não altera registro do Windows
+- [X] Não instala software adicional
+- [X] Não faz comunicação externa
+- [X] Não coleta dados do usuário
 
 ### O que o script faz para segurança
 
-- ✅ Valida todos os inputs
-- ✅ Cria backup antes de modificar
-- ✅ Registra todas as operações em log
-- ✅ Reverte mudanças em caso de erro
-- ✅ Verifica integridade dos arquivos
-- ✅ Opera apenas no perfil do usuário
+- [OK] Valida todos os inputs
+- [OK] Cria backup antes de modificar
+- [OK] Registra todas as operações em log
+- [OK] Reverte mudanças em caso de erro
+- [OK] Verifica integridade dos arquivos
+- [OK] Opera apenas no perfil do usuário
 
-## 📁 Estrutura de Arquivos Criada
+## [DIR] Estrutura de Arquivos Criada
 
 Após a instalação, a seguinte estrutura será criada:
 
@@ -394,7 +394,7 @@ Após a instalação, a seguinte estrutura será criada:
    └─ [conteúdo anterior]
 ```
 
-## 🔄 Atualizações
+## [SYNC] Atualizações
 
 Para atualizar uma instalação existente:
 

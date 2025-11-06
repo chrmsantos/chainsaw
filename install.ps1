@@ -88,7 +88,7 @@ if ([string]::IsNullOrWhiteSpace($SourcePath)) {
 # =============================================================================
 
 if (-not $BypassedExecution) {
-    Write-Host "🔒 Verificando política de execução..." -ForegroundColor Cyan
+    Write-Host "[LOCK] Verificando política de execução..." -ForegroundColor Cyan
     
     # Captura a política atual para documentação no log
     $currentPolicy = Get-ExecutionPolicy -Scope CurrentUser
@@ -105,10 +105,10 @@ if (-not $BypassedExecution) {
     }
     
     if ($needsBypass -or $currentPolicy -eq "Restricted" -or $currentPolicy -eq "AllSigned") {
-        Write-Host "⚠  Política de execução restritiva detectada." -ForegroundColor Yellow
-        Write-Host "🔄 Relançando script com bypass temporário..." -ForegroundColor Cyan
+        Write-Host "[!]  Política de execução restritiva detectada." -ForegroundColor Yellow
+        Write-Host "[SYNC] Relançando script com bypass temporário..." -ForegroundColor Cyan
         Write-Host ""
-        Write-Host "ℹ  SEGURANÇA:" -ForegroundColor Green
+        Write-Host "[i]  SEGURANÇA:" -ForegroundColor Green
         Write-Host "   • Apenas ESTE script será executado com bypass" -ForegroundColor Gray
         Write-Host "   • A política do sistema NÃO será alterada" -ForegroundColor Gray
         Write-Host "   • O bypass expira quando o script terminar" -ForegroundColor Gray

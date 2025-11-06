@@ -43,18 +43,18 @@ O sistema CHAINSAW inclui um script automatizado de instalação que configura t
 
 4. **Execute o script de instalação**
 
-   🔒 **Método Recomendado - Bypass Automático Seguro:**
+   [LOCK] **Método Recomendado - Bypass Automático Seguro:**
 
    ```cmd
    install.cmd
    ```
 
    Este launcher automático:
-   - ✅ Funciona em QUALQUER política de execução
-   - ✅ Não requer configuração manual
-   - ✅ Usa bypass temporário apenas para este script
-   - ✅ Não altera configurações permanentes do sistema
-   - ✅ Totalmente seguro e transparente
+   - [OK] Funciona em QUALQUER política de execução
+   - [OK] Não requer configuração manual
+   - [OK] Usa bypass temporário apenas para este script
+   - [OK] Não altera configurações permanentes do sistema
+   - [OK] Totalmente seguro e transparente
 
    **Alternativa - Executar diretamente (requer política adequada):**
 
@@ -97,7 +97,7 @@ O script de instalação realiza automaticamente as seguintes operações:
    - Copia todos os templates para `%APPDATA%\Microsoft\Templates`
    - Preserva estrutura de pastas e arquivos
 
-5. **Importação Automática de Personalizações** ✨ **NOVO**
+5. **Importação Automática de Personalizações** [NEW] **NOVO**
    - Detecta automaticamente a pasta `exported-config` (se existir)
    - Importa personalizações da interface do Word:
      - Faixa de Opções Personalizada (Ribbon)
@@ -181,20 +181,20 @@ Caso não seja possível executar o script automatizado:
 ## Execução
 
 1. Abra o documento que deseja padronizar no Word
-2. **Salve o documento** antes de executar (requisito obrigatório)
+3. **Salve o documento** antes de executar (requisito obrigatório)
 3. Pressione `Alt + F8` para abrir a lista de macros
 4. Selecione `PadronizarDocumentoMain` e clique em `Executar`
 5. Aguarde a conclusão do processamento
 
-## ✨ Novo: Exportação e Importação de Personalizações
+## [NEW] Novo: Exportação e Importação de Personalizações
 
 O CHAINSAW agora permite **exportar e importar** todas as suas personalizações do Word:
 
-- 🎨 **Faixa de Opções** - Abas customizadas
-- 📦 **Blocos de Construção** - Building Blocks e Partes Rápidas
-- 🎭 **Temas** - Temas e estilos personalizados
-- ⚡ **Barra de Acesso Rápido** - Botões customizados
-- 📝 **Normal.dotm** - Template global com macros
+- [ART] **Faixa de Opções** - Abas customizadas
+- [PKG] **Blocos de Construção** - Building Blocks e Partes Rápidas
+- [THEME] **Temas** - Temas e estilos personalizados
+- [FAST] **Barra de Acesso Rápido** - Botões customizados
+- [LOG] **Normal.dotm** - Template global com macros
 
 ### Como Usar
 
