@@ -5,7 +5,7 @@ instalar p a marta
 deixar p o bruno e o henrique depois por cautela, exceto q eles queiram
 instalar no gu
 testar-debugar-testar-debugar
-tirar a dependencia da pasta documentos: deixar tudo na raiz do usuario
+✓ CONCLUÍDO: tirar a dependencia da pasta documentos: deixar tudo na raiz do usuario (%USERPROFILE%\chainsaw)
 tentar deixar chainsaw como pasta oculta
 fazer testes automatizados
 deixar modular

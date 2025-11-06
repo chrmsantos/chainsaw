@@ -373,6 +373,42 @@ CleanUp:
     
     SafeFinalizeLogging
     
+    ' Exibe mensagem de conclusão com informações completas
+    If Not formattingCancelled Then
+        Dim executionTimeText As String
+        Dim duration As Double
+        
+        ' Calcula duração total
+        duration = (Now - executionStartTime) * 86400
+        If duration < 60 Then
+            executionTimeText = Format(duration, "0.0") & " segundos"
+        ElseIf duration < 3600 Then
+            executionTimeText = Format(Int(duration / 60), "0") & " minuto(s) e " & Format(duration Mod 60, "00") & " segundo(s)"
+        Else
+            executionTimeText = Format(Int(duration / 3600), "0") & " hora(s) e " & Format(Int((duration Mod 3600) / 60), "00") & " minuto(s)"
+        End If
+        
+        ' Monta mensagem com informações de erros/avisos
+        Dim statusMsg As String
+        If errorCount > 0 Then
+            statusMsg = vbCrLf & vbCrLf & "⚠️ ATENÇÃO: " & errorCount & " erro(s) detectado(s) durante a execução." & vbCrLf & _
+                       "   Verifique o log para mais detalhes."
+        ElseIf warningCount > 0 Then
+            statusMsg = vbCrLf & vbCrLf & "ℹ️ INFORMAÇÃO: " & warningCount & " aviso(s) registrado(s) durante a execução." & vbCrLf & _
+                       "   Verifique o log para mais detalhes."
+        Else
+            statusMsg = vbCrLf & vbCrLf & "✓ Nenhum erro ou aviso detectado durante a execução."
+        End If
+        
+        ' Mensagem de sucesso com informações completas
+        MsgBox "✓ Processamento concluído com sucesso em " & executionTimeText & "!" & vbCrLf & vbCrLf & _
+               "📁 Backup criado em:" & vbCrLf & _
+               "   " & IIf(backupFilePath <> "", backupFilePath, doc.Path & "\" & BACKUP_FOLDER_NAME & "\") & vbCrLf & vbCrLf & _
+               "📄 Log salvo em:" & vbCrLf & _
+               "   " & logFilePath & statusMsg, _
+               vbInformation, "CHAINSAW - Padronização Concluída"
+    End If
+    
     Exit Sub
 
 CriticalErrorHandler:
@@ -2895,20 +2931,20 @@ Private Function GetHeaderImagePath() As String
 
     Dim fso As Object
     Dim shell As Object
-    Dim documentsPath As String
+    Dim userProfilePath As String
     Dim headerImagePath As String
 
     Set fso = CreateObject("Scripting.FileSystemObject")
     Set shell = CreateObject("WScript.Shell")
 
-    ' Obtém pasta Documents do usuário atual (compatível com Windows)
-    documentsPath = shell.SpecialFolders("MyDocuments")
-    If Right(documentsPath, 1) = "\" Then
-        documentsPath = Left(documentsPath, Len(documentsPath) - 1)
+    ' Obtém pasta %USERPROFILE% do usuário atual (compatível com Windows)
+    userProfilePath = shell.ExpandEnvironmentStrings("%USERPROFILE%")
+    If Right(userProfilePath, 1) = "\" Then
+        userProfilePath = Left(userProfilePath, Len(userProfilePath) - 1)
     End If
 
     ' Constrói caminho absoluto para a imagem desejada
-    headerImagePath = documentsPath & "\chainsaw\assets\stamp.png"
+    headerImagePath = userProfilePath & "\chainsaw\assets\stamp.png"
 
     ' Verifica se o arquivo existe
     If Not fso.FileExists(headerImagePath) Then
@@ -4917,6 +4953,139 @@ ErrorHandler:
     Else
         shell "explorer.exe """ & Environ("TEMP") & """", vbNormalFocus
         Application.StatusBar = "Pasta temporária aberta"
+    End If
+End Sub
+
+'================================================================================
+' SUBROTINA PÚBLICA: CONFIRMAR DESFAZIMENTO DA PADRONIZAÇÃO
+'================================================================================
+Public Sub ConfirmarDesfazerPadronizacao()
+    On Error GoTo ErrorHandler
+    
+    ' Verifica se há um documento ativo
+    Dim doc As Document
+    Set doc = Nothing
+    
+    On Error Resume Next
+    Set doc = ActiveDocument
+    On Error GoTo ErrorHandler
+    
+    If doc Is Nothing Then
+        Exit Sub
+    End If
+    
+    ' Verifica o número de ações disponíveis para desfazer
+    Dim canUndo As Boolean
+    canUndo = False
+    
+    On Error Resume Next
+    canUndo = Application.CommandBars.ActionControl.Enabled
+    If Err.Number <> 0 Then canUndo = False
+    On Error GoTo ErrorHandler
+    
+    ' Armazena informações antes do desfazer
+    Dim beforeUndoCount As Long
+    Dim docName As String
+    Dim docPath As String
+    
+    beforeUndoCount = doc.Paragraphs.count
+    docName = doc.Name
+    docPath = doc.Path
+    
+    ' Executa o comando Desfazer (Undo)
+    Application.StatusBar = "Desfazendo padronização..."
+    On Error Resume Next
+    Application.Undo
+    On Error GoTo ErrorHandler
+    
+    ' Aguarda o Word processar o desfazer
+    DoEvents
+    
+    ' Verifica se houve mudança no documento
+    Dim afterUndoCount As Long
+    afterUndoCount = doc.Paragraphs.count
+    
+    ' Calcula a diferença
+    Dim changeCount As Long
+    changeCount = Abs(beforeUndoCount - afterUndoCount)
+    
+    ' Cria mensagem informativa
+    Dim undoMsg As String
+    
+    If changeCount > 0 Then
+        undoMsg = "↶ Padronização desfeita com sucesso!" & vbCrLf & vbCrLf & _
+                  "📊 Alterações revertidas:" & vbCrLf & _
+                  "   • Parágrafos afetados: " & changeCount & vbCrLf & vbCrLf & _
+                  "📁 Documento:" & vbCrLf & _
+                  "   " & docName & vbCrLf & vbCrLf & _
+                  "💡 DICA: O backup da padronização permanece disponível." & vbCrLf & _
+                  "   Use 'Abrir Pasta de Logs e Backups' para acessá-lo."
+    Else
+        undoMsg = "↶ Desfazer executado!" & vbCrLf & vbCrLf & _
+                  "ℹ️ O documento foi revertido para o estado anterior." & vbCrLf & vbCrLf & _
+                  "📁 Documento:" & vbCrLf & _
+                  "   " & docName & vbCrLf & vbCrLf & _
+                  "💡 DICA: O backup da padronização permanece disponível." & vbCrLf & _
+                  "   Use 'Abrir Pasta de Logs e Backups' para acessá-lo."
+    End If
+    
+    ' Exibe mensagem de confirmação
+    MsgBox undoMsg, vbInformation, "CHAINSAW - Desfazer Padronização"
+    
+    ' Registra no log se estiver ativo
+    If loggingEnabled Then
+        LogMessage "Padronização desfeita pelo usuário - documento: " & docName, LOG_LEVEL_INFO
+    End If
+    
+    Application.StatusBar = "Padronização desfeita"
+    
+    Exit Sub
+    
+ErrorHandler:
+    Application.StatusBar = "Erro ao desfazer"
+    
+    ' Mensagem de erro genérica
+    MsgBox "Não foi possível desfazer a operação." & vbCrLf & vbCrLf & _
+           "⚠️ Possíveis causas:" & vbCrLf & _
+           "   • Não há operações para desfazer" & vbCrLf & _
+           "   • O documento foi fechado e reaberto" & vbCrLf & _
+           "   • Limite de desfazer atingido" & vbCrLf & vbCrLf & _
+           "💡 SOLUÇÃO: Restaure manualmente a partir do backup." & vbCrLf & _
+           "   Use 'Abrir Pasta de Logs e Backups' para acessar os backups.", _
+           vbExclamation, "CHAINSAW - Erro ao Desfazer"
+    
+    If loggingEnabled Then
+        LogMessage "Erro ao desfazer padronização: " & Err.Description, LOG_LEVEL_WARNING
+    End If
+End Sub
+
+'================================================================================
+' SUBROTINA PÚBLICA: DESFAZER COM CONFIRMAÇÃO AUTOMÁTICA
+' Esta sub pode ser chamada diretamente ou após o usuário usar Ctrl+Z
+'================================================================================
+Public Sub NotificarDesfazerPadronizacao()
+    On Error Resume Next
+    
+    ' Verifica se há um documento ativo
+    Dim doc As Document
+    Set doc = ActiveDocument
+    
+    If doc Is Nothing Then Exit Sub
+    
+    ' Cria mensagem de confirmação simplificada
+    Dim msg As String
+    msg = "↶ Padronização desfeita!" & vbCrLf & vbCrLf & _
+          "✓ Todas as alterações da última padronização foram revertidas." & vbCrLf & vbCrLf & _
+          "📁 Documento: " & doc.Name & vbCrLf & vbCrLf & _
+          "💾 O backup continua disponível na pasta de backups." & vbCrLf & _
+          "   Use 'Abrir Pasta de Logs e Backups' para acessá-lo."
+    
+    ' Exibe notificação
+    MsgBox msg, vbInformation, "CHAINSAW - Operação Desfeita"
+    
+    ' Log se disponível
+    If loggingEnabled Then
+        LogMessage "Notificação de desfazer exibida para: " & doc.Name, LOG_LEVEL_INFO
     End If
 End Sub
 

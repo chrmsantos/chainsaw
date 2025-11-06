@@ -23,14 +23,14 @@ O sistema CHAINSAW inclui um script automatizado de instalação que configura t
 
 #### Pré-requisitos
 
-- Pasta `CHAINSAW` na pasta Documentos do usuário com todos os arquivos necessários
+- Pasta `chainsaw` no perfil do usuário com todos os arquivos necessários
 - Permissões de escrita no perfil do usuário (`%USERPROFILE%`)
 - Word deve estar fechado durante a instalação
 
 #### Como Executar
 
-1. **Copie a pasta `CHAINSAW` para sua pasta Documentos**
-   - Caminho típico: `C:\Users\[seu_usuario]\Documents\CHAINSAW`
+1. **Copie a pasta `chainsaw` para o seu perfil de usuário**
+   - Caminho típico: `C:\Users\[seu_usuario]\chainsaw`
 
 2. **Abra o PowerShell** (não é necessário executar como Administrador)
    - Pressione `Win + X` e selecione "Windows PowerShell"
@@ -38,7 +38,7 @@ O sistema CHAINSAW inclui um script automatizado de instalação que configura t
 3. **Navegue até a pasta do script**
 
    ```powershell
-   cd "$env:USERPROFILE\Documents\CHAINSAW"
+   cd "$env:USERPROFILE\chainsaw"
    ```
 
 4. **Execute o script de instalação**
@@ -344,9 +344,9 @@ import-config.cmd
 
 > **📍 Nota Importante sobre Localização:**  
 > Tanto os **backups** quanto os **logs** são salvos na **mesma pasta do documento sendo editado**. Isso facilita o gerenciamento e garante que os arquivos relacionados fiquem juntos. Por exemplo:
-> - Documento: `C:\Documentos\MinhaProposicao.docx`
-> - Backup: `C:\Documentos\MinhaProposicao_backup_2025-11-05_143022.docx`
-> - Log: `C:\Documentos\CHAINSAW_20251105_143022_MinhaProposicao.log`
+> - Documento: `C:\Users\usuario\Meus Arquivos\MinhaProposicao.docx`
+> - Backup: `C:\Users\usuario\Meus Arquivos\MinhaProposicao_backup_2025-11-05_143022.docx`
+> - Log: `C:\Users\usuario\Meus Arquivos\CHAINSAW_20251105_143022_MinhaProposicao.log`
 
 ### 17. **Recuperação de Erros**
 

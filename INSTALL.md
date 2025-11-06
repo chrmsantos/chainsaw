@@ -79,10 +79,10 @@ O script agora possui um **mecanismo de auto-relançamento seguro** que elimina 
 
 ### Uso
 
-Simplesmente execute o script normalmente a partir da pasta Documentos:
+Simplesmente execute o script normalmente a partir do perfil do usuário:
 
 ```powershell
-cd "$env:USERPROFILE\Documents\CHAINSAW"
+cd "$env:USERPROFILE\chainsaw"
 .\install.ps1
 ```
 
@@ -128,7 +128,7 @@ Se necessário, o script se relançará automaticamente. Você verá:
 Antes de instalar, execute o script de teste de permissões:
 
 ```powershell
-cd "$env:USERPROFILE\Documents\CHAINSAW"
+cd "$env:USERPROFILE\chainsaw"
 .\test-permissions.ps1
 ```
 
@@ -143,7 +143,7 @@ Este script verifica:
 Para verificar pré-requisitos sem modificar nada:
 
 ```powershell
-cd "$env:USERPROFILE\Documents\CHAINSAW"
+cd "$env:USERPROFILE\chainsaw"
 .\test-install.ps1
 ```
 
