@@ -160,6 +160,157 @@ function Get-WordVersion {
 }
 
 # =============================================================================
+# GERENCIAMENTO DO WORD
+# =============================================================================
+
+function Test-WordRunning {
+    <#
+    .SYNOPSIS
+        Verifica se há processos do Word em execução.
+    #>
+    $wordProcesses = Get-Process -Name "WINWORD" -ErrorAction SilentlyContinue
+    return ($null -ne $wordProcesses -and $wordProcesses.Count -gt 0)
+}
+
+function Stop-WordProcesses {
+    <#
+    .SYNOPSIS
+        Fecha forçadamente todos os processos do Word.
+    .DESCRIPTION
+        Encerra apenas processos WINWORD.EXE (Microsoft Word), sem afetar
+        outros aplicativos do Office como Excel (EXCEL.EXE) ou PowerPoint (POWERPNT.EXE).
+    #>
+    param(
+        [Parameter()]
+        [switch]$Force
+    )
+    
+    try {
+        $wordProcesses = Get-Process -Name "WINWORD" -ErrorAction SilentlyContinue
+        
+        if ($null -eq $wordProcesses -or $wordProcesses.Count -eq 0) {
+            Write-Log "Nenhum processo do Word em execução" -Level INFO
+            return $true
+        }
+        
+        Write-Log "Encontrados $($wordProcesses.Count) processo(s) do Word em execução" -Level INFO
+        
+        foreach ($process in $wordProcesses) {
+            try {
+                Write-Log "Encerrando processo Word (PID: $($process.Id))..." -Level INFO
+                
+                if ($Force) {
+                    # Encerra forçadamente
+                    $process.Kill()
+                    $process.WaitForExit(5000) # Aguarda até 5 segundos
+                }
+                else {
+                    # Tenta encerrar graciosamente primeiro
+                    $process.CloseMainWindow() | Out-Null
+                    Start-Sleep -Milliseconds 500
+                    
+                    if (-not $process.HasExited) {
+                        $process.Kill()
+                        $process.WaitForExit(5000)
+                    }
+                }
+                
+                Write-Log "Processo Word (PID: $($process.Id)) encerrado com sucesso" -Level SUCCESS
+            }
+            catch {
+                Write-Log "Erro ao encerrar processo Word (PID: $($process.Id)): $_" -Level WARNING
+            }
+        }
+        
+        # Aguarda um momento e verifica se todos foram fechados
+        Start-Sleep -Milliseconds 1000
+        $remainingProcesses = Get-Process -Name "WINWORD" -ErrorAction SilentlyContinue
+        
+        if ($null -ne $remainingProcesses -and $remainingProcesses.Count -gt 0) {
+            Write-Log "Ainda há $($remainingProcesses.Count) processo(s) do Word em execução" -Level WARNING
+            return $false
+        }
+        
+        Write-Log "Todos os processos do Word foram encerrados com sucesso" -Level SUCCESS
+        return $true
+    }
+    catch {
+        Write-Log "Erro ao encerrar processos do Word: $_" -Level ERROR
+        return $false
+    }
+}
+
+function Confirm-CloseWord {
+    <#
+    .SYNOPSIS
+        Solicita que o usuário salve e feche o Word, ou cancela a operação.
+    .DESCRIPTION
+        Exibe aviso ao usuário e aguarda confirmação antes de fechar o Word forçadamente.
+        Retorna $true se o usuário autorizar, $false se cancelar.
+    #>
+    
+    # Verifica se Word está em execução
+    if (-not (Test-WordRunning)) {
+        Write-Log "Word não está em execução - prosseguindo..." -Level SUCCESS
+        return $true
+    }
+    
+    Write-Host ""
+    Write-Host "╔════════════════════════════════════════════════════════════════╗" -ForegroundColor Yellow
+    Write-Host "║                          ⚠ ATENÇÃO ⚠                          ║" -ForegroundColor Yellow
+    Write-Host "╚════════════════════════════════════════════════════════════════╝" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "O Microsoft Word está atualmente em execução!" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "IMPORTANTE:" -ForegroundColor Red
+    Write-Host "  • SALVE todos os seus documentos abertos no Word" -ForegroundColor White
+    Write-Host "  • FECHE o Word completamente" -ForegroundColor White
+    Write-Host "  • Outros aplicativos do Office (Excel, PowerPoint) NÃO serão afetados" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Se você continuar, o Word será FECHADO FORÇADAMENTE e" -ForegroundColor Red
+    Write-Host "qualquer trabalho não salvo SERÁ PERDIDO!" -ForegroundColor Red
+    Write-Host ""
+    
+    Write-Log "Word em execução - solicitando confirmação do usuário" -Level WARNING
+    
+    # Aguarda confirmação
+    $response = Read-Host "Deseja FECHAR o Word e continuar a exportação? (S/N)"
+    
+    if ($response -notmatch '^[Ss]$') {
+        Write-Host ""
+        Write-Host "✓ Exportação cancelada pelo usuário" -ForegroundColor Cyan
+        Write-Host "  Salve seus documentos e execute o script novamente quando estiver pronto." -ForegroundColor Gray
+        Write-Host ""
+        Write-Log "Exportação cancelada - usuário optou por não fechar o Word" -Level WARNING
+        return $false
+    }
+    
+    # Usuário confirmou - fecha o Word
+    Write-Host ""
+    Write-Host "Fechando Microsoft Word..." -ForegroundColor Cyan
+    Write-Log "Usuário autorizou o fechamento do Word" -Level INFO
+    
+    if (Stop-WordProcesses -Force) {
+        Write-Host "✓ Word fechado com sucesso" -ForegroundColor Green
+        Write-Host ""
+        # Aguarda um pouco para garantir que recursos foram liberados
+        Start-Sleep -Seconds 2
+        return $true
+    }
+    else {
+        Write-Host "✗ Não foi possível fechar o Word completamente" -ForegroundColor Red
+        Write-Host ""
+        Write-Log "Falha ao fechar Word - cancelando exportação" -Level ERROR
+        
+        $retry = Read-Host "Deseja tentar novamente? (S/N)"
+        if ($retry -match '^[Ss]$') {
+            return Confirm-CloseWord # Recursão para tentar novamente
+        }
+        return $false
+    }
+}
+
+# =============================================================================
 # FUNÇÕES DE EXPORTAÇÃO
 # =============================================================================
 
@@ -627,19 +778,10 @@ function Export-WordCustomizations {
     Initialize-LogFile | Out-Null
     Write-Log "=== INÍCIO DA EXPORTAÇÃO ===" -Level INFO
     
-    # Verifica se Word está em execução
-    if (Test-WordRunning) {
-        Write-Host ""
-        Write-Host "⚠ AVISO: O Microsoft Word está em execução!" -ForegroundColor Yellow
-        Write-Host ""
-        Write-Host "Para garantir que todas as personalizações sejam exportadas corretamente," -ForegroundColor Yellow
-        Write-Host "é recomendado fechar o Word antes de continuar." -ForegroundColor Yellow
-        Write-Host ""
-        $response = Read-Host "Deseja continuar mesmo assim? (S/N)"
-        if ($response -notmatch '^[Ss]$') {
-            Write-Log "Exportação cancelada pelo usuário (Word em execução)" -Level WARNING
-            return
-        }
+    # Verifica e fecha Word se necessário
+    if (-not (Confirm-CloseWord)) {
+        Write-Log "Exportação cancelada - Word não foi fechado" -Level WARNING
+        return
     }
     
     # Cria pasta de exportação
