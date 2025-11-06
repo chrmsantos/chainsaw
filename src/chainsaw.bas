@@ -183,7 +183,9 @@ Public Sub PadronizarDocumentoMain()
     
     executionStartTime = Now
     formattingCancelled = False
+    undoGroupEnabled = False ' Reset inicial
     
+    ' Verificações iniciais ANTES de iniciar UndoRecord
     If Not CheckWordVersion() Then
         Application.StatusBar = "Erro: Word 2010 ou superior necessário"
         LogMessage "Versão do Word " & Application.version & " não suportada. Mínimo: " & CStr(MIN_SUPPORTED_VERSION), LOG_LEVEL_ERROR
@@ -221,7 +223,21 @@ Public Sub PadronizarDocumentoMain()
     ' Inicializa barra de progresso (15 etapas principais)
     InitializeProgress 15
     
-    StartUndoGroup "Padronização de Documento - " & doc.Name
+    ' ═══════════════════════════════════════════════════════════════════════════
+    ' INÍCIO DO GRUPO DE DESFAZER - TODAS as operações são agrupadas aqui
+    ' ═══════════════════════════════════════════════════════════════════════════
+    On Error Resume Next
+    Application.UndoRecord.StartCustomRecord "Padronização de Documento"
+    If Err.Number = 0 Then
+        undoGroupEnabled = True
+        LogMessage "UndoRecord iniciado com sucesso", LOG_LEVEL_INFO
+    Else
+        LogMessage "Aviso: Não foi possível iniciar UndoRecord: " & Err.Description, LOG_LEVEL_WARNING
+        undoGroupEnabled = False
+    End If
+    Err.Clear
+    On Error GoTo CriticalErrorHandler
+    ' ═══════════════════════════════════════════════════════════════════════════
     
     If Not SetAppState(False, "Iniciando...") Then
         LogMessage "Falha ao configurar estado da aplicação", LOG_LEVEL_WARNING
@@ -236,7 +252,7 @@ Public Sub PadronizarDocumentoMain()
         If Not SaveDocumentFirst(doc) Then
             Application.StatusBar = "Cancelado: documento não salvo"
             LogMessage "Operação cancelada - documento não foi salvo", LOG_LEVEL_INFO
-            Exit Sub
+            GoTo CleanUp ' Garante fechamento do UndoRecord
         End If
     End If
     
@@ -333,6 +349,19 @@ Public Sub PadronizarDocumentoMain()
     Loop
 
 CleanUp:
+    ' ═══════════════════════════════════════════════════════════════════════════
+    ' FIM DO GRUPO DE DESFAZER - SEMPRE fecha o UndoRecord
+    ' ═══════════════════════════════════════════════════════════════════════════
+    On Error Resume Next
+    If undoGroupEnabled Then
+        Application.UndoRecord.EndCustomRecord
+        undoGroupEnabled = False
+        LogMessage "UndoRecord finalizado com sucesso", LOG_LEVEL_INFO
+    End If
+    Err.Clear
+    On Error GoTo 0
+    ' ═══════════════════════════════════════════════════════════════════════════
+    
     ClearParagraphCache ' Limpa cache de parágrafos
     SafeCleanup
     CleanupImageProtection ' Nova função para limpar variáveis de proteção de imagens
@@ -356,6 +385,9 @@ CriticalErrorHandler:
     
     ShowUserFriendlyError Err.Number, Err.Description
     EmergencyRecovery
+    
+    ' CRÍTICO: Garante fechamento do UndoRecord mesmo em erro
+    GoTo CleanUp
 End Sub
 
 '================================================================================
@@ -402,9 +434,11 @@ Private Sub EmergencyRecovery()
     Application.StatusBar = False
     Application.EnableCancelKey = 0
     
+    ' Fecha UndoRecord se ainda estiver aberto
     If undoGroupEnabled Then
         Application.UndoRecord.EndCustomRecord
         undoGroupEnabled = False
+        LogMessage "UndoRecord fechado durante recuperação de emergência", LOG_LEVEL_WARNING
     End If
     
     ' Limpa variáveis de proteção de imagens em caso de erro
@@ -413,8 +447,10 @@ Private Sub EmergencyRecovery()
     ' Limpa variáveis de configurações de visualização em caso de erro
     CleanupViewSettings
     
+    ' Limpa cache de parágrafos
+    ClearParagraphCache
+    
     LogMessage "Recuperação de emergência executada", LOG_LEVEL_ERROR
-        undoGroupEnabled = False
     
     CloseAllOpenFiles
 End Sub
@@ -425,7 +461,7 @@ End Sub
 Private Sub SafeCleanup()
     On Error Resume Next
     
-    EndUndoGroup
+    ' Não tenta fechar UndoRecord aqui - já foi fechado em CleanUp
     
     ReleaseObjects
 End Sub
@@ -914,39 +950,6 @@ ErrorHandler:
 FinalFallback:
     SafeGetLastCharacter = ""
 End Function
-
-'================================================================================
-' GERENCIAMENTO DE DESFAZER
-'================================================================================
-Private Sub StartUndoGroup(groupName As String)
-    On Error GoTo ErrorHandler
-    
-    If undoGroupEnabled Then
-        EndUndoGroup
-    End If
-    
-    Application.UndoRecord.StartCustomRecord groupName
-    undoGroupEnabled = True
-    
-    Exit Sub
-    
-ErrorHandler:
-    undoGroupEnabled = False
-End Sub
-
-Private Sub EndUndoGroup()
-    On Error GoTo ErrorHandler
-    
-    If undoGroupEnabled Then
-        Application.UndoRecord.EndCustomRecord
-        undoGroupEnabled = False
-    End If
-    
-    Exit Sub
-    
-ErrorHandler:
-    undoGroupEnabled = False
-End Sub
 
 '================================================================================
 ' SISTEMA DE REGISTRO DE LOGS
