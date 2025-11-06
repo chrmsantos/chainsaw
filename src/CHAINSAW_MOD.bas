@@ -1659,6 +1659,7 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     LogStepStart "Formatações especiais (diante do exposto, requeiro)"
     FormatDianteDoExposto doc
     FormatRequeiroParagraphs doc
+    FormatPorTodasRazoesParagraphs doc
     LogStepComplete "Formatações especiais (diante do exposto, requeiro)"
     
     LogStepStart "Garantia de espaçamento entre parágrafos longos"
@@ -4738,8 +4739,13 @@ Private Sub FormatRequeiroParagraphs(doc As Document)
             ' Verifica se começa com "requeiro" (8 caracteres)
             If Len(paraText) >= 8 Then
                 If Left(cleanText, 8) = "requeiro" Then
-                    ' Aplica formatação a TODO o parágrafo: negrito e caixa alta
-                    With para.Range.Font
+                    ' Aplica formatação APENAS à palavra "requeiro": negrito e caixa alta
+                    Dim wordRange As Range
+                    Set wordRange = para.Range.Duplicate
+                    wordRange.Collapse wdCollapseStart
+                    wordRange.MoveEnd wdCharacter, 8 ' Seleciona apenas "requeiro"
+                    
+                    With wordRange.Font
                         .Bold = True
                         .AllCaps = True
                         .Name = STANDARD_FONT
@@ -4753,13 +4759,90 @@ Private Sub FormatRequeiroParagraphs(doc As Document)
     Next para
     
     If formattedCount > 0 Then
-        LogMessage "Formatação 'Requeiro': " & formattedCount & " parágrafos formatados em negrito e caixa alta", LOG_LEVEL_INFO
+        LogMessage "Formatação 'Requeiro': " & formattedCount & " palavras formatadas em negrito e caixa alta", LOG_LEVEL_INFO
     End If
     
     Exit Sub
     
 ErrorHandler:
     LogMessage "Erro ao formatar parágrafos 'Requeiro': " & Err.Description, LOG_LEVEL_WARNING
+End Sub
+
+'================================================================================
+' FORMAT "POR TODAS AS RAZÕES" PARAGRAPHS - Formata "Por todas as razões aqui expostas" e "Pelas razões aqui expostas"
+'================================================================================
+Private Sub FormatPorTodasRazoesParagraphs(doc As Document)
+    On Error GoTo ErrorHandler
+    
+    If Not ValidateDocument(doc) Then Exit Sub
+    
+    Dim para As Paragraph
+    Dim paraText As String
+    Dim cleanText As String
+    Dim formattedCount As Long
+    Dim wordRange As Range
+    Dim phrase1Len As Long
+    Dim phrase2Len As Long
+    
+    formattedCount = 0
+    phrase1Len = 33 ' "por todas as razões aqui expostas"
+    phrase2Len = 28 ' "pelas razões aqui expostas"
+    
+    ' Procura por parágrafos que começam com as frases (case insensitive)
+    For Each para In doc.Paragraphs
+        If Not HasVisualContent(para) Then
+            ' Obtém o texto do parágrafo
+            paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+            cleanText = LCase(paraText)
+            
+            ' Verifica "por todas as razões aqui expostas"
+            If Len(paraText) >= phrase1Len Then
+                If Left(cleanText, phrase1Len) = "por todas as razões aqui expostas" Or _
+                   Left(cleanText, phrase1Len) = "por todas as razoes aqui expostas" Then
+                    Set wordRange = para.Range.Duplicate
+                    wordRange.Collapse wdCollapseStart
+                    wordRange.MoveEnd wdCharacter, phrase1Len
+                    
+                    With wordRange.Font
+                        .Bold = True
+                        .Name = STANDARD_FONT
+                        .size = STANDARD_FONT_SIZE
+                    End With
+                    
+                    formattedCount = formattedCount + 1
+                    GoTo NextPara
+                End If
+            End If
+            
+            ' Verifica "pelas razões aqui expostas"
+            If Len(paraText) >= phrase2Len Then
+                If Left(cleanText, phrase2Len) = "pelas razões aqui expostas" Or _
+                   Left(cleanText, phrase2Len) = "pelas razoes aqui expostas" Then
+                    Set wordRange = para.Range.Duplicate
+                    wordRange.Collapse wdCollapseStart
+                    wordRange.MoveEnd wdCharacter, phrase2Len
+                    
+                    With wordRange.Font
+                        .Bold = True
+                        .Name = STANDARD_FONT
+                        .size = STANDARD_FONT_SIZE
+                    End With
+                    
+                    formattedCount = formattedCount + 1
+                End If
+            End If
+        End If
+NextPara:
+    Next para
+    
+    If formattedCount > 0 Then
+        LogMessage "Formatação 'Por todas as razões': " & formattedCount & " frases formatadas em negrito", LOG_LEVEL_INFO
+    End If
+    
+    Exit Sub
+    
+ErrorHandler:
+    LogMessage "Erro ao formatar frases 'Por todas as razões': " & Err.Description, LOG_LEVEL_WARNING
 End Sub
 
 '================================================================================
