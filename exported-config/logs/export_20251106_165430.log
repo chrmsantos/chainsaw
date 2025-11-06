@@ -1,0 +1,33 @@
+================================================================================
+CHAINSAW - Exportação de Personalizações do Word
+================================================================================
+Data/Hora: 06/11/2025 16:54:30
+Usuário: csantos
+Computador: NOTEPROCLEG07
+Sistema: Microsoft Windows NT 10.0.22000.0
+PowerShell: 5.1.22000.2538
+Caminho de Exportação: .\exported-config
+================================================================================
+
+[2025-11-06 16:54:30] [INFO] === INÍCIO DA EXPORTAÇÃO ===
+[2025-11-06 16:54:30] [SUCCESS] Word não está em execução - prosseguindo...
+[2025-11-06 16:54:30] [INFO] Exportando Normal.dotm...
+[2025-11-06 16:54:30] [SUCCESS] Normal.dotm exportado com sucesso ?
+[2025-11-06 16:54:30] [INFO] Exportando Building Blocks...
+[2025-11-06 16:54:30] [INFO] Building Blocks gerenciados: 0 arquivos
+[2025-11-06 16:54:30] [WARNING] Nenhum Building Block encontrado
+[2025-11-06 16:54:30] [INFO] Exportando temas de documentos...
+[2025-11-06 16:54:30] [INFO] Nenhum tema personalizado encontrado
+[2025-11-06 16:54:30] [INFO] Exportando personalização da Faixa de Opções...
+[2025-11-06 16:54:30] [SUCCESS] Personalização do Ribbon exportada: Word.officeUI ?
+[2025-11-06 16:54:30] [SUCCESS] Personalização do Ribbon exportada: Word.officeUI ?
+[2025-11-06 16:54:31] [INFO] Exportando personalizações da interface...
+[2025-11-06 16:54:31] [SUCCESS] Personalizações UI exportadas: 2 arquivos ?
+[2025-11-06 16:54:31] [INFO] Exportando Barra de Ferramentas de Acesso Rápido...
+[2025-11-06 16:54:31] [INFO] QAT incluída nas personalizações UI
+[2025-11-06 16:54:31] [INFO] Exportação do registro desabilitada (use -IncludeRegistry)
+[2025-11-06 16:54:31] [INFO] Criando manifesto de exportação...
+[2025-11-06 16:54:31] [SUCCESS] Manifesto criado: .\exported-config\MANIFEST.json ?
+[2025-11-06 16:54:31] [SUCCESS] README criado: .\exported-config\README.txt ?
+[2025-11-06 16:54:31] [SUCCESS] === EXPORTAÇÃO CONCLUÍDA COM SUCESSO ===
+[2025-11-06 16:54:31] [INFO] Total de itens: 5

@@ -2,12 +2,12 @@
 CHAINSAW - Personalizações Exportadas do Word
 ================================================================================
 
-Data de Exportação: 05/11/2025 17:36:58
+Data de Exportação: 06/11/2025 16:54:31
 Usuário: csantos
-Computador: NOTEPROCLEG01
-Versão do Word: 16.0.19328.20158
+Computador: NOTEPROCLEG07
+Versão do Word: 16.0.19328.20178
 
-Total de itens exportados: 4
+Total de itens exportados: 5
 
 CONTEÚDO:
 ---------

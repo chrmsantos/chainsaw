@@ -1,7 +1,7 @@
 ﻿{
-    "TotalItems":  4,
+    "TotalItems":  5,
     "UserName":  "csantos",
-    "ComputerName":  "NOTEPROCLEG01",
+    "ComputerName":  "NOTEPROCLEG07",
     "Items":  [
                   {
                       "Type":  "Normal Template",
@@ -23,11 +23,17 @@
                   },
                   {
                       "Type":  "Office Custom UI",
+                      "Source":  "C:\\Users\\csantos\\AppData\\Local\\Microsoft\\Office\\Excel.officeUI",
+                      "Destination":  ".\\exported-config\\OfficeCustomUI\\Excel.officeUI",
+                      "Size":  1114
+                  },
+                  {
+                      "Type":  "Office Custom UI",
                       "Source":  "C:\\Users\\csantos\\AppData\\Local\\Microsoft\\Office\\Word.officeUI",
                       "Destination":  ".\\exported-config\\OfficeCustomUI\\Word.officeUI",
                       "Size":  1610
                   }
               ],
-    "ExportDate":  "2025-11-05 17:36:58",
-    "WordVersion":  "16.0.19328.20158"
+    "ExportDate":  "2025-11-06 16:54:31",
+    "WordVersion":  "16.0.19328.20178"
 }

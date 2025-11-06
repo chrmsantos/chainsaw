@@ -1,0 +1,60 @@
+================================================================================
+CHAINSAW - Log de Instalação
+================================================================================
+Data/Hora Início: 06/11/2025 16:55:57
+Usuário: csantos
+Computador: NOTEPROCLEG07
+Sistema: Microsoft Windows NT 10.0.22000.0
+PowerShell: 5.1.22000.2538
+Caminho de Origem: C:\Users\csantos\chainsaw
+================================================================================
+
+[2025-11-06 16:55:57] [INFO] === INÍCIO DA INSTALAÇÃO ===
+[2025-11-06 16:55:57] [SUCCESS] Word não está em execução - prosseguindo...
+[2025-11-06 16:55:57] [INFO] Verificando pré-requisitos...
+[2025-11-06 16:55:57] [SUCCESS] Sistema operacional: Windows 10.0 ?
+[2025-11-06 16:55:57] [SUCCESS] PowerShell versão: 5.1.22000.2538 ?
+[2025-11-06 16:55:57] [INFO] Verificando acesso ao caminho de rede: C:\Users\csantos\chainsaw
+[2025-11-06 16:55:57] [SUCCESS] Acesso ao caminho de rede confirmado ?
+[2025-11-06 16:55:57] [SUCCESS] Permissões de escrita no perfil do usuário confirmadas ?
+[2025-11-06 16:55:57] [INFO] Verificando arquivos de origem...
+[2025-11-06 16:55:57] [SUCCESS] Arquivo stamp.png encontrado ?
+[2025-11-06 16:55:57] [SUCCESS] Pasta Templates encontrada ?
+[2025-11-06 16:56:00] [INFO] Copiando arquivo stamp.png...
+[2025-11-06 16:56:00] [INFO] Origem: C:\Users\csantos\chainsaw\assets\stamp.png
+[2025-11-06 16:56:00] [INFO] Destino: C:\Users\csantos\CHAINSAW\assets\stamp.png
+[2025-11-06 16:56:00] [INFO] Arquivo já está no local correto (origem = destino), pulando cópia
+[2025-11-06 16:56:00] [SUCCESS] Arquivo stamp.png já está instalado ?
+[2025-11-06 16:56:00] [INFO] Criando backup da pasta Templates...
+[2025-11-06 16:56:00] [INFO] Origem: C:\Users\csantos\AppData\Roaming\Microsoft\Templates
+[2025-11-06 16:56:00] [INFO] Destino: C:\Users\csantos\AppData\Roaming\Microsoft\Templates_backup_20251106_165600
+[2025-11-06 16:56:00] [SUCCESS] Backup criado com sucesso: Templates_backup_20251106_165600 ?
+[2025-11-06 16:56:00] [INFO] Copiando pasta Templates...
+[2025-11-06 16:56:00] [INFO] Origem: C:\Users\csantos\chainsaw\configs\Templates
+[2025-11-06 16:56:00] [INFO] Destino: C:\Users\csantos\AppData\Roaming\Microsoft\Templates
+[2025-11-06 16:56:00] [INFO] Total de itens a copiar: 46
+[2025-11-06 16:56:00] [SUCCESS] Pasta Templates copiada com sucesso (38 arquivos) ?
+[2025-11-06 16:56:00] [INFO] Manifesto encontrado: 5 itens
+[2025-11-06 16:56:00] [INFO] Exportado em: 2025-11-06 16:54:31 por csantos
+[2025-11-06 16:56:04] [INFO] Iniciando importação de personalizações...
+[2025-11-06 16:56:04] [INFO] === Iniciando importação de personalizações ===
+[2025-11-06 16:56:04] [INFO] Criando backup das personalizações do Word (pré-importação de personalizações)...
+[2025-11-06 16:56:04] [INFO] Normal.dotm backup criado
+[2025-11-06 16:56:04] [INFO] Personalizações UI backup criado: 2 arquivos
+[2025-11-06 16:56:04] [SUCCESS] Backup de personalizações criado em: C:\Users\csantos\CHAINSAW\backups\word-customizations_20251106_165604 ?
+[2025-11-06 16:56:04] [INFO] Importando Normal.dotm...
+[2025-11-06 16:56:04] [SUCCESS] Normal.dotm importado com sucesso ?
+[2025-11-06 16:56:04] [INFO] Importando Building Blocks...
+[2025-11-06 16:56:04] [INFO] Building Blocks gerenciados importados: 0 arquivos
+[2025-11-06 16:56:04] [INFO] Nenhum Building Block para importar
+[2025-11-06 16:56:04] [INFO] Importando temas de documentos...
+[2025-11-06 16:56:04] [INFO] Nenhum tema para importar
+[2025-11-06 16:56:04] [INFO] Importando personalização da Faixa de Opções...
+[2025-11-06 16:56:05] [INFO] Ribbon importado para: C:\Users\csantos\AppData\Local\Microsoft\Office\Word.officeUI
+[2025-11-06 16:56:05] [INFO] Ribbon importado para: C:\Users\csantos\AppData\Roaming\Microsoft\Office\Word.officeUI
+[2025-11-06 16:56:05] [SUCCESS] Personalização do Ribbon importada: 1 arquivos ?
+[2025-11-06 16:56:05] [INFO] Importando personalizações da interface...
+[2025-11-06 16:56:05] [SUCCESS] Personalizações UI importadas: 2 arquivos ?
+[2025-11-06 16:56:05] [SUCCESS] Total de categorias de personalizações importadas: 3 ?
+[2025-11-06 16:56:05] [SUCCESS] === INSTALAÇÃO CONCLUÍDA COM SUCESSO ===
+[2025-11-06 16:56:05] [INFO] Duração: 00:07
