@@ -307,15 +307,15 @@ function Test-Prerequisites {
         Write-Log "PowerShell versão: $($psVersion.ToString()) ✓" -Level SUCCESS
     }
     
-    # Verifica acesso ao caminho de rede
-    Write-Log "Verificando acesso ao caminho de rede: $SourcePath" -Level INFO
+    # Verifica acesso ao diretório de origem
+    Write-Log "Verificando acesso ao diretório de origem: $SourcePath" -Level INFO
     if (-not (Test-Path $SourcePath)) {
-        Write-Log "Não foi possível acessar o caminho de rede: $SourcePath" -Level ERROR
-        Write-Log "Verifique se você está conectado à rede e tem permissões de acesso." -Level ERROR
+        Write-Log "Não foi possível acessar o diretório de origem: $SourcePath" -Level ERROR
+        Write-Log "Verifique se o diretório existe e você tem permissões de acesso." -Level ERROR
         $allOk = $false
     }
     else {
-        Write-Log "Acesso ao caminho de rede confirmado ✓" -Level SUCCESS
+        Write-Log "Acesso ao diretório de origem confirmado ✓" -Level SUCCESS
     }
     
     # Verifica permissões de escrita no perfil do usuário
@@ -578,7 +578,7 @@ function Copy-StampFile {
 function Copy-TemplatesFolder {
     <#
     .SYNOPSIS
-        Copia a pasta Templates da rede para o perfil do usuário.
+        Copia a pasta Templates do diretório de origem para o perfil do usuário.
     #>
     param(
         [Parameter(Mandatory)]
@@ -1294,7 +1294,7 @@ function Install-CHAINSAWConfig {
             Write-Host "As seguintes operações serão realizadas:" -ForegroundColor Yellow
             Write-Host "  1. Copiar stamp.png para: $env:USERPROFILE\chainsaw\assets\" -ForegroundColor White
             Write-Host "  2. Fazer backup da pasta Templates atual (se existir)" -ForegroundColor White
-            Write-Host "  3. Copiar nova pasta Templates da rede" -ForegroundColor White
+            Write-Host "  3. Copiar nova pasta Templates do diretório local" -ForegroundColor White
             Write-Host ""
             
             $response = Read-Host "Deseja continuar? (S/N)"

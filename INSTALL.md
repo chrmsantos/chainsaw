@@ -27,7 +27,7 @@ Este script foi projetado para rodar com privilégios de **usuário normal** e:
 ### 1. Validação Pré-instalação
 - [OK] Verifica versão do Windows (10+)
 - [OK] Verifica versão do PowerShell (5.1+)
-- [OK] Confirma acesso à rede corporativa
+- [OK] Confirma acesso ao diretório de instalação
 - [OK] Testa permissões de escrita no perfil do usuário
 - [OK] Valida existência dos arquivos de origem
 
@@ -247,7 +247,7 @@ Este script foi projetado para rodar com privilégios de **usuário normal** e:
 ### 1. Validação Pré-instalação
 - [OK] Verifica versão do Windows (10+)
 - [OK] Verifica versão do PowerShell (5.1+)
-- [OK] Confirma acesso à rede corporativa
+- [OK] Confirma acesso ao diretório de instalação
 - [OK] Testa permissões de escrita no perfil do usuário
 - [OK] Valida existência dos arquivos de origem
 
@@ -482,8 +482,8 @@ Caminho de Origem: C:\Users\csantos\chainsaw
 [2025-11-05 14:30:22] [INFO] Verificando pré-requisitos...
 [2025-11-05 14:30:22] [SUCCESS] Sistema operacional: Windows 10.0 [OK]
 [2025-11-05 14:30:23] [SUCCESS] PowerShell versão: 5.1.19041.4894 [OK]
-[2025-11-05 14:30:23] [INFO] Verificando acesso ao caminho de rede: ...
-[2025-11-05 14:30:24] [SUCCESS] Acesso ao caminho de rede confirmado [OK]
+[2025-11-05 14:30:23] [INFO] Verificando acesso ao diretório de origem: ...
+[2025-11-05 14:30:24] [SUCCESS] acesso ao diretório de origem confirmado [OK]
 ...
 ```
 
@@ -679,7 +679,7 @@ Este script foi projetado para rodar com privilégios de **usuário normal** e:
 ### 1. Validação Pré-instalação
 - [OK] Verifica versão do Windows (10+)
 - [OK] Verifica versão do PowerShell (5.1+)
-- [OK] Confirma acesso à rede corporativa
+- [OK] Confirma acesso ao diretório de instalação
 - [OK] Testa permissões de escrita no perfil do usuário
 - [OK] Valida existência dos arquivos de origem
 
@@ -914,8 +914,8 @@ Caminho de Origem: C:\Users\csantos\chainsaw
 [2025-11-05 14:30:22] [INFO] Verificando pré-requisitos...
 [2025-11-05 14:30:22] [SUCCESS] Sistema operacional: Windows 10.0 [OK]
 [2025-11-05 14:30:23] [SUCCESS] PowerShell versão: 5.1.19041.4894 [OK]
-[2025-11-05 14:30:23] [INFO] Verificando acesso ao caminho de rede: ...
-[2025-11-05 14:30:24] [SUCCESS] Acesso ao caminho de rede confirmado [OK]
+[2025-11-05 14:30:23] [INFO] Verificando acesso ao diretório de origem: ...
+[2025-11-05 14:30:24] [SUCCESS] acesso ao diretório de origem confirmado [OK]
 ...
 ```
 
@@ -1130,7 +1130,7 @@ Este script foi projetado para rodar com privilégios de **usuário normal** e:
 ### 1. Validação Pré-instalação
 - [OK] Verifica versão do Windows (10+)
 - [OK] Verifica versão do PowerShell (5.1+)
-- [OK] Confirma acesso à rede corporativa
+- [OK] Confirma acesso ao diretório de instalação
 - [OK] Testa permissões de escrita no perfil do usuário
 - [OK] Valida existência dos arquivos de origem
 
@@ -1365,8 +1365,8 @@ Caminho de Origem: C:\Users\csantos\chainsaw
 [2025-11-05 14:30:22] [INFO] Verificando pré-requisitos...
 [2025-11-05 14:30:22] [SUCCESS] Sistema operacional: Windows 10.0 [OK]
 [2025-11-05 14:30:23] [SUCCESS] PowerShell versão: 5.1.19041.4894 [OK]
-[2025-11-05 14:30:23] [INFO] Verificando acesso ao caminho de rede: ...
-[2025-11-05 14:30:24] [SUCCESS] Acesso ao caminho de rede confirmado [OK]
+[2025-11-05 14:30:23] [INFO] Verificando acesso ao diretório de origem: ...
+[2025-11-05 14:30:24] [SUCCESS] acesso ao diretório de origem confirmado [OK]
 ...
 ```
 
@@ -1531,8 +1531,8 @@ GNU General Public License v3.0 (GPLv3)
 [2025-11-05 14:30:22] [INFO] Verificando pré-requisitos...
 [2025-11-05 14:30:22] [SUCCESS] Sistema operacional: Windows 10.0 [OK]
 [2025-11-05 14:30:23] [SUCCESS] PowerShell versão: 5.1.19041.4894 [OK]
-[2025-11-05 14:30:23] [INFO] Verificando acesso ao caminho de rede: ...
-[2025-11-05 14:30:24] [SUCCESS] Acesso ao caminho de rede confirmado [OK]
+[2025-11-05 14:30:23] [INFO] Verificando acesso ao diretório de origem: ...
+[2025-11-05 14:30:24] [SUCCESS] acesso ao diretório de origem confirmado [OK]
 ...
 ```
 

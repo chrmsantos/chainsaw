@@ -8,7 +8,7 @@ Sistema automatizado para padronização de documentos legislativos no Microsoft
 
 - Windows 10 ou superior
 - PowerShell 5.1 ou superior
-- Acesso à rede corporativa (para instalação inicial)
+
 
 ### Aplicações
 
@@ -40,7 +40,7 @@ Sistema automatizado para padronização de documentos legislativos no Microsoft
 
 - Windows 10 ou superior
 - PowerShell 5.1 ou superior
-- Acesso à rede corporativa (para instalação inicial)
+
 
 ### Aplicações
 
@@ -164,11 +164,11 @@ Se precisar restaurar uma configuração anterior:
 
 #### Solução de Problemas
 
-##### Erro: "Não foi possível acessar o caminho de rede"
+##### Erro: "Não foi possível acessar o diretório de instalação"
 
-- Verifique conexão com a rede corporativa
+- Verifique se o diretório existe
 - Confirme que o caminho `\\strqnapmain\Dir. Legislativa\_Christian261\chainsaw` está acessível
-- Verifique suas credenciais de rede
+- Verifique permissões de acesso
 
 ##### Erro: "Permissões insuficientes"
 
@@ -207,7 +207,7 @@ Caso não seja possível executar o script automatizado:
    - Abra o Microsoft Word
    - Pressione `Alt + F11` para abrir o Editor VBA
    - Vá em `Arquivo > Importar Arquivo`
-   - Selecione `CHAINSAW.bas` do caminho de rede
+   - Selecione `CHAINSAW.bas` do diretório local
    - Feche o Editor VBA
 
 ## Execução
@@ -616,11 +616,11 @@ Se precisar restaurar uma configuração anterior:
 
 #### Solução de Problemas
 
-##### Erro: "Não foi possível acessar o caminho de rede"
+##### Erro: "Não foi possível acessar o diretório de instalação"
 
-- Verifique conexão com a rede corporativa
+- Verifique se o diretório existe
 - Confirme que o caminho `\\strqnapmain\Dir. Legislativa\_Christian261\chainsaw` está acessível
-- Verifique suas credenciais de rede
+- Verifique permissões de acesso
 
 ##### Erro: "Permissões insuficientes"
 
@@ -659,7 +659,7 @@ Caso não seja possível executar o script automatizado:
    - Abra o Microsoft Word
    - Pressione `Alt + F11` para abrir o Editor VBA
    - Vá em `Arquivo > Importar Arquivo`
-   - Selecione `CHAINSAW.bas` do caminho de rede
+   - Selecione `CHAINSAW.bas` do diretório local
    - Feche o Editor VBA
 
 ## Execução
