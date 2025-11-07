@@ -1914,12 +1914,14 @@ Private Function InitializeLogging(doc As Document) As Boolean
     Dim fileNum As Integer
     Dim fso As Object
     
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    
     ' Garante que a estrutura .chainsaw existe
     EnsureChainsawFolders
     
     ' Define o caminho do log
-    ' Se documento foi salvo, usa pasta do documento; senão usa .chainsaw\logs
-    If doc.Path <> "" Then
+    ' Verifica se documento foi realmente salvo (existe no disco)
+    If doc.Path <> "" And fso.FileExists(doc.FullName) Then
         logFolder = doc.Path & "\"
     Else
         logFolder = GetChainsawLogsPath() & "\"
@@ -5847,8 +5849,8 @@ Public Sub AbrirPastaLogsEBackups()
     Set doc = ActiveDocument
     On Error GoTo ErrorHandler
     
-    ' Se não há documento ativo ou não foi salvo, abre pasta .chainsaw
-    If doc Is Nothing Or doc.Path = "" Then
+    ' Verifica se não há documento ativo ou se documento não foi realmente salvo
+    If doc Is Nothing Or doc.Path = "" Or Not fso.FileExists(doc.FullName) Then
         Application.StatusBar = "Abrindo pasta .chainsaw"
         Shell "explorer.exe """ & chainsawFolder & """", vbNormalFocus
         Exit Sub
@@ -6072,21 +6074,21 @@ End Sub
 Private Function CreateDocumentBackup(doc As Document) As Boolean
     On Error GoTo ErrorHandler
     
-    ' Não faz backup se documento não foi salvo
-    If doc.Path = "" Then
+    Dim fso As Object
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    
+    ' Não faz backup se documento não foi realmente salvo (não existe no disco)
+    If doc.Path = "" Or Not fso.FileExists(doc.FullName) Then
         LogMessage "Backup ignorado - documento não salvo", LOG_LEVEL_INFO
         CreateDocumentBackup = True
         Exit Function
     End If
     
     Dim backupFolder As String
-    Dim fso As Object
     Dim docName As String
     Dim docExtension As String
     Dim timeStamp As String
     Dim backupFileName As String
-    
-    Set fso = CreateObject("Scripting.FileSystemObject")
     
     ' Define pasta de backup
     backupFolder = fso.GetParentFolderName(doc.Path) & "\" & BACKUP_FOLDER_NAME
@@ -7379,7 +7381,8 @@ Private Function EnsureBackupDirectory(doc As Document) As String
     EnsureChainsawFolders
     
     ' Define o caminho base para backups
-    If doc.Path <> "" Then
+    ' Verifica se documento foi realmente salvo (existe no disco)
+    If doc.Path <> "" And fso.FileExists(doc.FullName) Then
         ' Documento salvo - cria subpasta "backups" na mesma pasta do documento
         backupPath = doc.Path & "\" & BACKUP_FOLDER_NAME
     Else
