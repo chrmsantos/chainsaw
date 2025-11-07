@@ -363,35 +363,28 @@ import-config.cmd
 ### 15. **Sistema de Backup Automático**
 
 - Backup criado antes de qualquer modificação
-- **Localização (documento salvo):** mesma pasta do documento sendo editado
-- **Localização (documento não salvo):** `%USERPROFILE%\AppData\Local\Temp\.chainsaw\backups`
+- **Localização:** `%USERPROFILE%\AppData\Local\Temp\.chainsaw\backups`
 - Formato: `nomedocumento_backup_AAAA-MM-DD_HHMMSS.docx`
 - Limpeza automática com aviso após 15 arquivos
 
 ### 16. **Sistema de Logs**
 
 - Registro detalhado de todas as operações
-- **Localização (documento salvo):** mesma pasta do documento sendo editado
-- **Localização (documento não salvo):** `%USERPROFILE%\AppData\Local\Temp\.chainsaw\logs`
+- **Localização:** `%USERPROFILE%\AppData\Local\Temp\.chainsaw\logs`
 - Formato: `CHAINSAW_AAAAMMDD_HHMMSS_nomedocumento.log`
 - Níveis: INFO, WARNING, ERROR
 
 > ** Nota Importante sobre Localização:**  
-> Tanto os **backups** quanto os **logs** são salvos de forma inteligente:
+> Tanto os **backups** quanto os **logs** são sempre salvos na estrutura centralizada `.chainsaw`:
 > 
-> **Documentos salvos:**
-> - Arquivos ficam na **mesma pasta do documento**, facilitando o gerenciamento
-> - Exemplo:
->   - Documento: `C:\Users\usuario\Meus Arquivos\MinhaProposicao.docx`
->   - Backup: `C:\Users\usuario\Meus Arquivos\backups\MinhaProposicao_backup_2025-11-05_143022.docx`
->   - Log: `C:\Users\usuario\Meus Arquivos\chainsaw_20251105_143022_MinhaProposicao.log`
+> - **Backups:** `%USERPROFILE%\AppData\Local\Temp\.chainsaw\backups\`
+> - **Logs:** `%USERPROFILE%\AppData\Local\Temp\.chainsaw\logs\`
 > 
-> **Documentos não salvos:**
-> - Arquivos são organizados em estrutura dedicada do sistema
-> - Backups: `%USERPROFILE%\AppData\Local\Temp\.chainsaw\backups\`
-> - Logs: `%USERPROFILE%\AppData\Local\Temp\.chainsaw\logs\`
-> - Use o comando **"Abrir Logs/Backups"** na barra de ferramentas para acessar rapidamente
-
+> **Vantagens:**
+> - Organização centralizada de todos os arquivos do sistema
+> - Fácil acesso através do comando **"Abrir Logs/Backups"** na barra de ferramentas
+> - Não mistura arquivos de sistema com documentos do usuário
+> - Limpeza simplificada quando necessário
 ### 17. **Recuperação de Erros**
 
 - Tratamento amigável de erros comuns
@@ -827,35 +820,28 @@ import-config.cmd
 ### 15. **Sistema de Backup Automático**
 
 - Backup criado antes de qualquer modificação
-- **Localização (documento salvo):** mesma pasta do documento sendo editado
-- **Localização (documento não salvo):** `%USERPROFILE%\AppData\Local\Temp\.chainsaw\backups`
+- **Localização:** `%USERPROFILE%\AppData\Local\Temp\.chainsaw\backups`
 - Formato: `nomedocumento_backup_AAAA-MM-DD_HHMMSS.docx`
 - Limpeza automática com aviso após 15 arquivos
 
 ### 16. **Sistema de Logs**
 
 - Registro detalhado de todas as operações
-- **Localização (documento salvo):** mesma pasta do documento sendo editado
-- **Localização (documento não salvo):** `%USERPROFILE%\AppData\Local\Temp\.chainsaw\logs`
+- **Localização:** `%USERPROFILE%\AppData\Local\Temp\.chainsaw\logs`
 - Formato: `CHAINSAW_AAAAMMDD_HHMMSS_nomedocumento.log`
 - Níveis: INFO, WARNING, ERROR
 
 > ** Nota Importante sobre Localização:**  
-> Tanto os **backups** quanto os **logs** são salvos de forma inteligente:
+> Tanto os **backups** quanto os **logs** são sempre salvos na estrutura centralizada `.chainsaw`:
 > 
-> **Documentos salvos:**
-> - Arquivos ficam na **mesma pasta do documento**, facilitando o gerenciamento
-> - Exemplo:
->   - Documento: `C:\Users\usuario\Meus Arquivos\MinhaProposicao.docx`
->   - Backup: `C:\Users\usuario\Meus Arquivos\backups\MinhaProposicao_backup_2025-11-05_143022.docx`
->   - Log: `C:\Users\usuario\Meus Arquivos\chainsaw_20251105_143022_MinhaProposicao.log`
+> - **Backups:** `%USERPROFILE%\AppData\Local\Temp\.chainsaw\backups\`
+> - **Logs:** `%USERPROFILE%\AppData\Local\Temp\.chainsaw\logs\`
 > 
-> **Documentos não salvos:**
-> - Arquivos são organizados em estrutura dedicada do sistema
-> - Backups: `%USERPROFILE%\AppData\Local\Temp\.chainsaw\backups\`
-> - Logs: `%USERPROFILE%\AppData\Local\Temp\.chainsaw\logs\`
-> - Use o comando **"Abrir Logs/Backups"** na barra de ferramentas para acessar rapidamente
-
+> **Vantagens:**
+> - Organização centralizada de todos os arquivos do sistema
+> - Fácil acesso através do comando **"Abrir Logs/Backups"** na barra de ferramentas
+> - Não mistura arquivos de sistema com documentos do usuário
+> - Limpeza simplificada quando necessário
 ### 17. **Recuperação de Erros**
 
 - Tratamento amigável de erros comuns
@@ -990,4 +976,5 @@ GitHub: <https://github.com/chrmsantos>
 
 1.0-RC1 (Release Candidate 1)  
 Data: 05/11/2025
+
 

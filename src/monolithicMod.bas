@@ -1919,13 +1919,8 @@ Private Function InitializeLogging(doc As Document) As Boolean
     ' Garante que a estrutura .chainsaw existe
     EnsureChainsawFolders
     
-    ' Define o caminho do log
-    ' Verifica se documento foi realmente salvo (existe no disco)
-    If doc.Path <> "" And fso.FileExists(doc.FullName) Then
-        logFolder = doc.Path & "\"
-    Else
-        logFolder = GetChainsawLogsPath() & "\"
-    End If
+    ' SEMPRE USA .chainsaw\logs para todos os documentos
+    logFolder = GetChainsawLogsPath() & "\"
     
     ' Sanitiza nome do documento para uso em arquivo
     docNameClean = doc.Name
@@ -5826,16 +5821,7 @@ End Sub
 Public Sub AbrirPastaLogsEBackups()
     On Error GoTo ErrorHandler
     
-    Dim doc As Document
-    Dim docFolder As String
-    Dim backupFolder As String
     Dim chainsawFolder As String
-    Dim fso As Object
-    Dim folderToOpen As String
-    Dim hasBackups As Boolean
-    Dim hasChainsawFolder As Boolean
-    
-    Set fso = CreateObject("Scripting.FileSystemObject")
     
     ' Garante que a estrutura .chainsaw existe
     EnsureChainsawFolders
@@ -5843,64 +5829,25 @@ Public Sub AbrirPastaLogsEBackups()
     ' Caminho da pasta .chainsaw
     chainsawFolder = GetChainsawTempPath()
     
-    ' Tenta obter documento ativo
-    Set doc = Nothing
-    On Error Resume Next
-    Set doc = ActiveDocument
-    On Error GoTo ErrorHandler
-    
-    ' Verifica se não há documento ativo ou se documento não foi realmente salvo
-    If doc Is Nothing Or doc.Path = "" Or Not fso.FileExists(doc.FullName) Then
-        Application.StatusBar = "Abrindo pasta .chainsaw"
-        Shell "explorer.exe """ & chainsawFolder & """", vbNormalFocus
-        Exit Sub
-    End If
-    
-    ' Obtém a pasta do documento ativo
-    docFolder = doc.Path
-    backupFolder = docFolder & "\" & BACKUP_FOLDER_NAME
-    
-    ' Verifica se existe pasta de backups
-    hasBackups = fso.FolderExists(backupFolder)
-    
-    ' Decide qual pasta abrir
-    If hasBackups Then
-        ' Se existe pasta de backups, abre ela (logs também estão na mesma pasta do documento)
-        folderToOpen = backupFolder
-        Application.StatusBar = "Abrindo backups"
-    Else
-        ' Se não existe pasta de backups, abre a pasta do documento (onde estão os logs)
-        folderToOpen = docFolder
-        Application.StatusBar = "Abrindo pasta do documento"
-    End If
-    
-    ' Abre a pasta no Windows Explorer
-    shell "explorer.exe """ & folderToOpen & """", vbNormalFocus
+    ' SEMPRE abre pasta .chainsaw
+    Application.StatusBar = "Abrindo pasta .chainsaw"
+    Shell "explorer.exe """ & chainsawFolder & """", vbNormalFocus
     
     ' Log da operação se sistema de log estiver ativo
     If loggingEnabled Then
-        If hasBackups Then
-            LogMessage "Pasta de backups aberta pelo usuário: " & folderToOpen, LOG_LEVEL_INFO
-        Else
-            LogMessage "Pasta de logs/documento aberta pelo usuário: " & folderToOpen, LOG_LEVEL_INFO
-        End If
+        LogMessage "Pasta .chainsaw aberta pelo usuário: " & chainsawFolder, LOG_LEVEL_INFO
     End If
     
     Exit Sub
     
 ErrorHandler:
     Application.StatusBar = "Erro ao abrir pasta"
-    LogMessage "Erro ao abrir pasta de logs/backups: " & Err.Description, LOG_LEVEL_ERROR
+    LogMessage "Erro ao abrir pasta .chainsaw: " & Err.Description, LOG_LEVEL_ERROR
     
-    ' Fallback: tenta abrir pasta do documento ou .chainsaw
+    ' Fallback: tenta abrir novamente
     On Error Resume Next
-    If Not doc Is Nothing And doc.Path <> "" Then
-        Shell "explorer.exe """ & doc.Path & """", vbNormalFocus
-        Application.StatusBar = "Pasta alternativa aberta"
-    Else
-        Shell "explorer.exe """ & GetChainsawTempPath() & """", vbNormalFocus
-        Application.StatusBar = "Pasta .chainsaw aberta"
-    End If
+    Shell "explorer.exe """ & GetChainsawTempPath() & """", vbNormalFocus
+    Application.StatusBar = "Pasta .chainsaw aberta"
 End Sub
 
 '================================================================================
@@ -6090,14 +6037,8 @@ Private Function CreateDocumentBackup(doc As Document) As Boolean
     Dim timeStamp As String
     Dim backupFileName As String
     
-    ' Define pasta de backup
-    backupFolder = fso.GetParentFolderName(doc.Path) & "\" & BACKUP_FOLDER_NAME
-    
-    ' Cria pasta de backup se não existir
-    If Not fso.FolderExists(backupFolder) Then
-        fso.CreateFolder backupFolder
-        LogMessage "Pasta de backup criada: " & backupFolder, LOG_LEVEL_INFO
-    End If
+    ' USA A FUNÇÃO QUE JÁ TEM A LÓGICA CORRETA (.chainsaw para não salvos)
+    backupFolder = EnsureBackupDirectory(doc)
     
     ' Extrai nome e extensão do documento
     docName = fso.GetBaseName(doc.Name)
@@ -7380,15 +7321,8 @@ Private Function EnsureBackupDirectory(doc As Document) As String
     ' Garante que a estrutura .chainsaw existe
     EnsureChainsawFolders
     
-    ' Define o caminho base para backups
-    ' Verifica se documento foi realmente salvo (existe no disco)
-    If doc.Path <> "" And fso.FileExists(doc.FullName) Then
-        ' Documento salvo - cria subpasta "backups" na mesma pasta do documento
-        backupPath = doc.Path & "\" & BACKUP_FOLDER_NAME
-    Else
-        ' Documento não salvo - usa .chainsaw\backups
-        backupPath = GetChainsawBackupsPath()
-    End If
+    ' SEMPRE USA .chainsaw\backups para todos os documentos
+    backupPath = GetChainsawBackupsPath()
     
     ' Cria o diretório se não existir
     If Not fso.FolderExists(backupPath) Then
