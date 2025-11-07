@@ -1329,6 +1329,107 @@ function Install-CHAINSAWConfig {
         
         Copy-TemplatesFolder -SourceFolder $sourceTemplatesFolder -DestFolder $templatesPath | Out-Null
         
+        # 6.5. Atualizar módulo VBA no Normal.dotm
+        Write-Host ""
+        Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+        Write-Host "  ETAPA 6: Atualização do Módulo VBA" -ForegroundColor White
+        Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+        Write-Host ""
+        
+        $vbaModulePath = Join-Path $SourcePath "src\monolithicMod.bas"
+        if (Test-Path $vbaModulePath) {
+            Write-Log "Módulo VBA encontrado: $vbaModulePath" -Level INFO
+            Write-Host "📝 Importando módulo VBA mais recente..." -ForegroundColor Cyan
+            
+            try {
+                $normalDotmPath = Join-Path $templatesPath "Normal.dotm"
+                
+                if (-not (Test-Path $normalDotmPath)) {
+                    Write-Log "Normal.dotm não encontrado em: $normalDotmPath" -Level ERROR
+                    Write-Host "✗ Normal.dotm não encontrado!" -ForegroundColor Red
+                    Write-Host "  O módulo VBA precisa ser importado manualmente." -ForegroundColor Yellow
+                }
+                else {
+                    # Cria objeto Word
+                    $word = New-Object -ComObject Word.Application
+                    $word.Visible = $false
+                    $word.DisplayAlerts = 0  # wdAlertsNone
+                    
+                    # Abre Normal.dotm
+                    $doc = $word.Documents.Open($normalDotmPath, $false, $false)
+                    $vbProject = $doc.VBProject
+                    
+                    # Remove módulos antigos
+                    $oldModuleNames = @("Módulo1", "Module1", "monolithicMod", "Mod_Main", "Chainsaw")
+                    $moduleRemoved = $false
+                    
+                    foreach ($moduleName in $oldModuleNames) {
+                        try {
+                            $module = $vbProject.VBComponents.Item($moduleName)
+                            if ($module) {
+                                # Faz backup do módulo antigo
+                                $backupDir = Join-Path $SourcePath "src"
+                                if (-not (Test-Path $backupDir)) {
+                                    New-Item -Path $backupDir -ItemType Directory -Force | Out-Null
+                                }
+                                $backupPath = Join-Path $backupDir "backup_$moduleName`_$(Get-Date -Format 'yyyyMMdd_HHmmss').bas"
+                                $module.Export($backupPath)
+                                Write-Log "Backup do módulo '$moduleName' criado: $backupPath" -Level INFO
+                                
+                                # Remove o módulo
+                                $vbProject.VBComponents.Remove($module)
+                                Write-Log "Módulo '$moduleName' removido" -Level INFO
+                                $moduleRemoved = $true
+                            }
+                        }
+                        catch {
+                            # Módulo não existe, continua
+                        }
+                    }
+                    
+                    # Importa novo módulo
+                    $vbProject.VBComponents.Import($vbaModulePath) | Out-Null
+                    Write-Log "Módulo 'monolithicMod' importado com sucesso" -Level SUCCESS
+                    
+                    # Salva e fecha
+                    $doc.Save()
+                    $doc.Close($false)
+                    $word.Quit()
+                    
+                    # Libera objetos COM
+                    [System.Runtime.InteropServices.Marshal]::ReleaseComObject($doc) | Out-Null
+                    [System.Runtime.InteropServices.Marshal]::ReleaseComObject($word) | Out-Null
+                    [System.GC]::Collect()
+                    [System.GC]::WaitForPendingFinalizers()
+                    
+                    Write-Host "✓ Módulo VBA atualizado com sucesso!" -ForegroundColor Green
+                    Write-Log "Módulo VBA importado e Normal.dotm salvo" -Level SUCCESS
+                }
+            }
+            catch {
+                Write-Log "Erro ao importar módulo VBA: $_" -Level ERROR
+                Write-Host "⚠ Não foi possível importar o módulo VBA automaticamente." -ForegroundColor Yellow
+                Write-Host ""
+                Write-Host "  Importação Manual:" -ForegroundColor Cyan
+                Write-Host "    1. Abra o Word" -ForegroundColor Gray
+                Write-Host "    2. Pressione Alt + F11" -ForegroundColor Gray
+                Write-Host "    3. Arquivo > Importar Arquivo" -ForegroundColor Gray
+                Write-Host "    4. Selecione: $vbaModulePath" -ForegroundColor Gray
+                Write-Host ""
+                
+                # Cleanup
+                if ($word) {
+                    try { $word.Quit() } catch {}
+                    try { [System.Runtime.InteropServices.Marshal]::ReleaseComObject($word) | Out-Null } catch {}
+                }
+            }
+        }
+        else {
+            Write-Log "Módulo VBA não encontrado em: $vbaModulePath" -Level WARNING
+            Write-Host "⚠ Módulo VBA (monolithicMod.bas) não encontrado." -ForegroundColor Yellow
+            Write-Host "  Localização esperada: $vbaModulePath" -ForegroundColor Gray
+        }
+        
         # 7. Detectar e importar personalizações (se disponíveis)
         if (-not $SkipCustomizations) {
             $exportedConfigPath = Join-Path $SourcePath "exported-config"
