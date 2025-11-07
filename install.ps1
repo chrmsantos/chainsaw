@@ -7,6 +7,20 @@
 # Autor: Christian Martin dos Santos (chrmsantos@protonmail.com)
 # =============================================================================
 
+# Maximiza a janela do PowerShell
+if ($Host.Name -eq "ConsoleHost") {
+    $psWindow = (Get-Host).UI.RawUI
+    $newSize = $psWindow.BufferSize
+    $newSize.Width = 120
+    $newSize.Height = 9999
+    try {
+        $psWindow.BufferSize = $newSize
+        $psWindow.WindowSize = $psWindow.MaxPhysicalWindowSize
+    } catch {
+        # Ignora erros se não for possível maximizar
+    }
+}
+
 <#
 .SYNOPSIS
     Instala as configurações do Word do chainsaw para o usuário atual.
