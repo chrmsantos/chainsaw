@@ -9,7 +9,7 @@
 
 <#
 .SYNOPSIS
-    Instala as configurações do Word do sistema CHAINSAW para o usuário atual.
+    Instala as configurações do Word do chainsaw para o usuário atual.
 
 .DESCRIPTION
     Este script realiza as seguintes operações:
