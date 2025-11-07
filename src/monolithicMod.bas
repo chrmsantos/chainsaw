@@ -5188,6 +5188,58 @@ NextVariant:
         LogMessage "Substituições de texto: nenhuma ocorrência encontrada", LOG_LEVEL_INFO
     End If
     
+    ' Funcionalidade 11: Substitui " ao Setor, " por " ao setor competente"
+    On Error Resume Next
+    Set rng = Nothing
+    Set rng = doc.Range
+    If Not rng Is Nothing Then
+        With rng.Find
+            .ClearFormatting
+            .Replacement.ClearFormatting
+            .Text = " ao Setor, "
+            .Replacement.Text = " ao setor competente"
+            .Forward = True
+            .Wrap = wdFindContinue
+            .Format = False
+            .MatchCase = True
+            .MatchWholeWord = False
+            .MatchWildcards = False
+            
+            replacementCount = .Execute(Replace:=wdReplaceAll)
+            If Err.Number = 0 And replacementCount Then
+                LogMessage "Substituição aplicada: ' ao Setor, ' → ' ao setor competente'", LOG_LEVEL_INFO
+            End If
+        End With
+    End If
+    Err.Clear
+    On Error GoTo ErrorHandler
+    
+    ' Funcionalidade 12: Substitui " Setor Competente " por " setor competente " (case insensitive)
+    On Error Resume Next
+    Set rng = Nothing
+    Set rng = doc.Range
+    If Not rng Is Nothing Then
+        With rng.Find
+            .ClearFormatting
+            .Replacement.ClearFormatting
+            .Text = " Setor Competente "
+            .Replacement.Text = " setor competente "
+            .Forward = True
+            .Wrap = wdFindContinue
+            .Format = False
+            .MatchCase = False
+            .MatchWholeWord = False
+            .MatchWildcards = False
+            
+            replacementCount = .Execute(Replace:=wdReplaceAll)
+            If Err.Number = 0 And replacementCount Then
+                LogMessage "Substituição aplicada: ' Setor Competente ' → ' setor competente '", LOG_LEVEL_INFO
+            End If
+        End With
+    End If
+    Err.Clear
+    On Error GoTo ErrorHandler
+    
     ApplyTextReplacements = True
     Exit Function
 
