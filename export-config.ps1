@@ -328,6 +328,86 @@ function Confirm-CloseWord {
 # FUNÇÕES DE EXPORTAÇÃO
 # =============================================================================
 
+function Compile-VbaModule {
+    <#
+    .SYNOPSIS
+        Compila o módulo VBA antes da exportação para verificar erros.
+    #>
+    Write-Log "Compilando módulo VBA..." -Level INFO
+    
+    try {
+        # Cria instância do Word
+        $word = New-Object -ComObject Word.Application
+        $word.Visible = $false
+        $word.DisplayAlerts = 0  # wdAlertsNone
+        
+        # Caminho do Normal.dotm
+        $normalPath = Join-Path $TemplatesPath "Normal.dotm"
+        
+        if (-not (Test-Path $normalPath)) {
+            Write-Log "Normal.dotm não encontrado - compilação ignorada" -Level WARNING
+            $word.Quit()
+            [System.Runtime.Interopservices.Marshal]::ReleaseComObject($word) | Out-Null
+            return $true
+        }
+        
+        # Abre o Normal.dotm
+        $template = $word.Documents.Open($normalPath, $false, $false)
+        
+        # Verifica se há projeto VBA
+        if ($template.VBProject -eq $null) {
+            Write-Log "Nenhum projeto VBA encontrado - compilação ignorada" -Level INFO
+            $template.Close($false)
+            $word.Quit()
+            [System.Runtime.Interopservices.Marshal]::ReleaseComObject($word) | Out-Null
+            return $true
+        }
+        
+        # Compila o projeto VBA
+        try {
+            $vbProject = $template.VBProject
+            
+            # Força compilação acessando os módulos
+            foreach ($component in $vbProject.VBComponents) {
+                $null = $component.CodeModule.CountOfLines
+            }
+            
+            Write-Log "Módulo VBA compilado com sucesso ✓" -Level SUCCESS
+            $compilationSuccess = $true
+        }
+        catch {
+            Write-Log "Erro ao compilar módulo VBA: $_" -Level ERROR
+            Write-Log "ATENÇÃO: O módulo pode conter erros de compilação!" -Level WARNING
+            $compilationSuccess = $false
+        }
+        
+        # Fecha sem salvar
+        $template.Close($false)
+        $word.Quit()
+        
+        # Libera COM objects
+        [System.Runtime.Interopservices.Marshal]::ReleaseComObject($word) | Out-Null
+        [System.GC]::Collect()
+        [System.GC]::WaitForPendingFinalizers()
+        
+        return $compilationSuccess
+    }
+    catch {
+        Write-Log "Erro ao verificar compilação: $_" -Level ERROR
+        
+        # Tenta limpar recursos
+        try {
+            if ($word) {
+                $word.Quit()
+                [System.Runtime.Interopservices.Marshal]::ReleaseComObject($word) | Out-Null
+            }
+        }
+        catch { }
+        
+        return $false
+    }
+}
+
 function Export-NormalTemplate {
     <#
     .SYNOPSIS
@@ -812,6 +892,20 @@ function Export-WordCustomizations {
         Write-Host "  Exportando Personalizações" -ForegroundColor White
         Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
         Write-Host ""
+        
+        # 0. Compilar módulo VBA antes de exportar
+        $compilationResult = Compile-VbaModule
+        if (-not $compilationResult) {
+            Write-Host ""
+            Write-Host "⚠ AVISO: Foram detectados erros de compilação no módulo VBA!" -ForegroundColor Yellow
+            Write-Host "  A exportação continuará, mas recomenda-se verificar o código." -ForegroundColor Gray
+            Write-Host ""
+            $continue = Read-Host "Deseja continuar a exportação mesmo assim? (S/N)"
+            if ($continue -notmatch '^[Ss]$') {
+                Write-Log "Exportação cancelada devido a erros de compilação" -Level WARNING
+                return
+            }
+        }
         
         # 1. Normal.dotm
         Export-NormalTemplate | Out-Null
