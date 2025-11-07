@@ -6,6 +6,10 @@ REM Este arquivo .cmd garante que o script PowerShell seja executado mesmo com
 REM políticas restritivas de execução, usando bypass temporário seguro.
 REM =============================================================================
 
+REM Maximiza a janela do console
+mode con cols=120 lines=50
+if not "%1"=="max" start /MAX cmd /c %0 max & exit/b
+
 setlocal EnableDelayedExpansion
 
 echo.

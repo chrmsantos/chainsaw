@@ -3,6 +3,10 @@ REM ============================================================================
 REM CHAINSAW - Exportacao de Personalizacoes do Word
 REM =============================================================================
 
+REM Maximiza a janela do console
+mode con cols=120 lines=50
+if not "%1"=="max" start /MAX cmd /c %0 max & exit/b
+
 setlocal EnableDelayedExpansion
 
 echo.

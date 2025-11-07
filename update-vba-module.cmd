@@ -6,6 +6,10 @@ REM Versão: 1.0.0
 REM Licença: GNU GPLv3
 REM =============================================================================
 
+REM Maximiza a janela do console
+mode con cols=120 lines=50
+if not "%1"=="max" start /MAX cmd /c %0 max & exit/b
+
 setlocal enabledelayedexpansion
 
 REM Define o caminho do script PowerShell
