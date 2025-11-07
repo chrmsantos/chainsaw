@@ -1,6 +1,6 @@
-# Correção: Erro de Acesso Negado ao Criar Backup
+﻿# CorreÃ§Ã£o: Erro de Acesso Negado ao Criar Backup
 
-## 🐛 Problema Identificado
+## ðŸ› Problema Identificado
 
 No log `install_20251105_151951.log`, foi identificado o seguinte erro:
 
@@ -15,56 +15,56 @@ O erro ocorreu porque:
 
 1. **Word pode estar aberto**: Arquivos na pasta Templates podem estar em uso pelo Microsoft Word
 2. **Arquivos bloqueados**: Alguns arquivos podem estar bloqueados por outros processos
-3. **Operação Rename-Item**: O método `Rename-Item` falha quando arquivos estão em uso
+3. **OperaÃ§Ã£o Rename-Item**: O mÃ©todo `Rename-Item` falha quando arquivos estÃ£o em uso
 
-## [OK] Correção Implementada
+## [OK] CorreÃ§Ã£o Implementada
 
-### 1. Verificação do Word Antes do Backup
+### 1. VerificaÃ§Ã£o do Word Antes do Backup
 
-Adicionada verificação se o Word está em execução:
+Adicionada verificaÃ§Ã£o se o Word estÃ¡ em execuÃ§Ã£o:
 
 ```powershell
 if (Test-WordRunning) {
-    # Avisa o usuário
+    # Avisa o usuÃ¡rio
     # Aguarda fechamento do Word
     # Verifica novamente antes de continuar
 }
 ```
 
-### 2. Método de Backup Alternativo
+### 2. MÃ©todo de Backup Alternativo
 
 Implementado fallback quando `Rename-Item` falha:
 
 ```powershell
 try {
-    # Método 1: Rename-Item (mais rápido)
+    # MÃ©todo 1: Rename-Item (mais rÃ¡pido)
     Rename-Item -Path $SourceFolder -NewName $backupName -Force
 }
 catch [System.IO.IOException] {
-    # Método 2: Copy + Delete (mais robusto)
+    # MÃ©todo 2: Copy + Delete (mais robusto)
     Copy-Item -Path $SourceFolder -Destination $backupPath -Recurse -Force
-    Start-Sleep -Seconds 1  # Aguarda liberação de arquivos
+    Start-Sleep -Seconds 1  # Aguarda liberaÃ§Ã£o de arquivos
     Remove-Item -Path $SourceFolder -Recurse -Force
 }
 ```
 
-### 3. Função Test-WordRunning Movida
+### 3. FunÃ§Ã£o Test-WordRunning Movida
 
-A função `Test-WordRunning` foi movida para antes de `Backup-TemplatesFolder` para estar disponível quando necessária.
+A funÃ§Ã£o `Test-WordRunning` foi movida para antes de `Backup-TemplatesFolder` para estar disponÃ­vel quando necessÃ¡ria.
 
 **Estrutura Atualizada:**
 ```
-Funções Auxiliares
-├── Test-WordRunning          ← Movida para cá
-│
-Funções de Backup
-├── Backup-TemplatesFolder    ← Agora pode usar Test-WordRunning
-└── Remove-OldBackups
-│
-Funções de Importação
-├── Test-CustomizationsAvailable
-├── Import-NormalTemplate
-└── ...
+FunÃ§Ãµes Auxiliares
+â”œâ”€â”€ Test-WordRunning          â† Movida para cÃ¡
+â”‚
+FunÃ§Ãµes de Backup
+â”œâ”€â”€ Backup-TemplatesFolder    â† Agora pode usar Test-WordRunning
+â””â”€â”€ Remove-OldBackups
+â”‚
+FunÃ§Ãµes de ImportaÃ§Ã£o
+â”œâ”€â”€ Test-CustomizationsAvailable
+â”œâ”€â”€ Import-NormalTemplate
+â””â”€â”€ ...
 ```
 
 ## [*] Como Funciona Agora
@@ -72,32 +72,32 @@ Funções de Importação
 ### Fluxo de Backup Melhorado
 
 ```
-1. Verificar se Word está aberto
-   ├── Se SIM → Avisar usuário → Aguardar fechamento
-   └── Se NÃO → Continuar
+1. Verificar se Word estÃ¡ aberto
+   â”œâ”€â”€ Se SIM â†’ Avisar usuÃ¡rio â†’ Aguardar fechamento
+   â””â”€â”€ Se NÃƒO â†’ Continuar
 
-2. Tentar Rename-Item (método rápido)
-   ├── Se SUCESSO → Backup criado [OK]
-   └── Se FALHA (arquivo em uso) → Ir para passo 3
+2. Tentar Rename-Item (mÃ©todo rÃ¡pido)
+   â”œâ”€â”€ Se SUCESSO â†’ Backup criado [OK]
+   â””â”€â”€ Se FALHA (arquivo em uso) â†’ Ir para passo 3
 
-3. Método alternativo: Copy + Delete
-   ├── Copiar pasta inteira
-   ├── Aguardar 1 segundo
-   ├── Deletar pasta original
-   └── Backup criado [OK]
+3. MÃ©todo alternativo: Copy + Delete
+   â”œâ”€â”€ Copiar pasta inteira
+   â”œâ”€â”€ Aguardar 1 segundo
+   â”œâ”€â”€ Deletar pasta original
+   â””â”€â”€ Backup criado [OK]
 ```
 
-## [INFO] Mensagens ao Usuário
+## [INFO] Mensagens ao UsuÃ¡rio
 
-Quando o Word está aberto, o usuário verá:
+Quando o Word estÃ¡ aberto, o usuÃ¡rio verÃ¡:
 
 ```
-╔════════════════════════════════════════════════════════════════╗
-║                  [!] MICROSOFT WORD ABERTO [!]                    ║
-╚════════════════════════════════════════════════════════════════╝
+â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
+â•‘                  [!] MICROSOFT WORD ABERTO [!]                    â•‘
+â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-O Microsoft Word está em execução e deve ser fechado antes de
-continuar com a instalação.
+O Microsoft Word estÃ¡ em execuÃ§Ã£o e deve ser fechado antes de
+continuar com a instalaÃ§Ã£o.
 
 Por favor:
   1. Salve todos os documentos abertos no Word
@@ -105,21 +105,21 @@ Por favor:
   3. Pressione qualquer tecla para continuar
 ```
 
-## 🧪 Testes Recomendados
+## ðŸ§ª Testes Recomendados
 
-### Cenário 1: Word Fechado
+### CenÃ¡rio 1: Word Fechado
 ```cmd
-# Certifique-se que o Word está fechado
-cd %USERPROFILE%\Documents\chainsaw
+# Certifique-se que o Word estÃ¡ fechado
+cd %USERPROFILE%\chainsaw
 install.cmd
 ```
 
-**Resultado Esperado:** Backup criado com sucesso usando Rename-Item (rápido)
+**Resultado Esperado:** Backup criado com sucesso usando Rename-Item (rÃ¡pido)
 
-### Cenário 2: Word Aberto
+### CenÃ¡rio 2: Word Aberto
 ```cmd
 # Abra o Word antes de executar
-cd %USERPROFILE%\Documents\chainsaw
+cd %USERPROFILE%\chainsaw
 install.cmd
 ```
 
@@ -127,28 +127,28 @@ install.cmd
 1. Script detecta Word aberto
 2. Exibe aviso
 3. Aguarda fechamento
-4. Continua após Word ser fechado
+4. Continua apÃ³s Word ser fechado
 
-### Cenário 3: Arquivo em Uso (Sem Word)
+### CenÃ¡rio 3: Arquivo em Uso (Sem Word)
 ```cmd
 # Se algum arquivo estiver em uso por outro processo
-cd %USERPROFILE%\Documents\chainsaw
+cd %USERPROFILE%\chainsaw
 install.cmd
 ```
 
 **Resultado Esperado:** 
 1. Rename-Item falha
-2. Método alternativo (Copy + Delete) é usado
+2. MÃ©todo alternativo (Copy + Delete) Ã© usado
 3. Backup criado com sucesso
 
-## 🔍 Verificação de Logs
+## ðŸ” VerificaÃ§Ã£o de Logs
 
-Após executar, verifique o log em:
+ApÃ³s executar, verifique o log em:
 ```
 %USERPROFILE%\chainsaw\logs\install_[timestamp].log
 ```
 
-### Log de Sucesso - Método Rápido
+### Log de Sucesso - MÃ©todo RÃ¡pido
 
 ```log
 [INFO] Criando backup da pasta Templates...
@@ -157,13 +157,13 @@ Após executar, verifique o log em:
 [SUCCESS] Backup criado com sucesso: Templates_backup_20251105_152500 [OK]
 ```
 
-### Log de Sucesso - Método Alternativo
+### Log de Sucesso - MÃ©todo Alternativo
 
 ```log
 [INFO] Criando backup da pasta Templates...
-[WARNING] Erro de acesso ao renomear (possível arquivo em uso)
-[INFO] Tentando método alternativo (cópia)...
-[SUCCESS] Backup criado com sucesso (método cópia): Templates_backup_20251105_152500 [OK]
+[WARNING] Erro de acesso ao renomear (possÃ­vel arquivo em uso)
+[INFO] Tentando mÃ©todo alternativo (cÃ³pia)...
+[SUCCESS] Backup criado com sucesso (mÃ©todo cÃ³pia): Templates_backup_20251105_152500 [OK]
 ```
 
 ### Log com Word Aberto
@@ -182,99 +182,100 @@ Após executar, verifique o log em:
 1. [OK] **Feche o Microsoft Word completamente**
    - Salve todos os documentos
    - Feche todas as janelas do Word
-   - Verifique no Gerenciador de Tarefas se `WINWORD.EXE` não está em execução
+   - Verifique no Gerenciador de Tarefas se `WINWORD.EXE` nÃ£o estÃ¡ em execuÃ§Ã£o
 
 2. [OK] **Feche outros aplicativos do Office**
    - Outlook (se usa modelos do Word)
    - PowerPoint (se compartilha recursos)
    - Excel (se usa templates do Word)
 
-3. [OK] **Execute como usuário normal**
-   - NÃO use "Executar como administrador"
-   - Use sua sessão de usuário normal
+3. [OK] **Execute como usuÃ¡rio normal**
+   - NÃƒO use "Executar como administrador"
+   - Use sua sessÃ£o de usuÃ¡rio normal
 
-### Durante a Instalação
+### Durante a InstalaÃ§Ã£o
 
-- ⏳ Se solicitado, aguarde o script completar
-- [NO] Não abra o Word durante a instalação
+- â³ Se solicitado, aguarde o script completar
+- [NO] NÃ£o abra o Word durante a instalaÃ§Ã£o
 - [LOG] Acompanhe as mensagens na tela
 
-## 🆘 Troubleshooting
+## ðŸ†˜ Troubleshooting
 
 ### Erro Persiste Mesmo com Word Fechado
 
-**Solução:**
+**SoluÃ§Ã£o:**
 
 1. Abra o Gerenciador de Tarefas (Ctrl + Shift + Esc)
-2. Vá para aba "Detalhes"
+2. VÃ¡ para aba "Detalhes"
 3. Procure por `WINWORD.EXE`
-4. Se encontrar, clique com botão direito → "Finalizar tarefa"
+4. Se encontrar, clique com botÃ£o direito â†’ "Finalizar tarefa"
 5. Execute install.cmd novamente
 
 ### Erro "O acesso ao caminho foi negado" Continua
 
-**Possíveis causas:**
+**PossÃ­veis causas:**
 
-1. **Antivírus bloqueando**: Temporariamente desabilite o antivírus
-2. **Sincronização de nuvem**: OneDrive/Google Drive podem bloquear arquivos
-3. **Permissões**: Verifique se tem permissão de escrita em `%APPDATA%`
+1. **AntivÃ­rus bloqueando**: Temporariamente desabilite o antivÃ­rus
+2. **SincronizaÃ§Ã£o de nuvem**: OneDrive/Google Drive podem bloquear arquivos
+3. **PermissÃµes**: Verifique se tem permissÃ£o de escrita em `%APPDATA%`
 
-**Solução alternativa:**
+**SoluÃ§Ã£o alternativa:**
 
 ```powershell
-# Verificar permissões
+# Verificar permissÃµes
 $templatesPath = "$env:APPDATA\Microsoft\Templates"
 $acl = Get-Acl $templatesPath
 $acl.Access | Format-Table IdentityReference, FileSystemRights
 
-# Se necessário, tomar propriedade
+# Se necessÃ¡rio, tomar propriedade
 takeown /f $templatesPath /r /d y
 icacls $templatesPath /grant "$env:USERNAME:(OI)(CI)F" /t
 ```
 
-## [CHART] Mudanças no Código
+## [CHART] MudanÃ§as no CÃ³digo
 
 ### Arquivos Modificados
 
-- [OK] `install.ps1` - Versão 2.0.0
-  - Função `Backup-TemplatesFolder` melhorada
-  - Função `Test-WordRunning` movida
-  - Método de backup alternativo adicionado
-  - Verificação de Word em execução adicionada
+- [OK] `install.ps1` - VersÃ£o 2.0.0
+  - FunÃ§Ã£o `Backup-TemplatesFolder` melhorada
+  - FunÃ§Ã£o `Test-WordRunning` movida
+  - MÃ©todo de backup alternativo adicionado
+  - VerificaÃ§Ã£o de Word em execuÃ§Ã£o adicionada
 
 ### Linhas Modificadas
 
-| Função | Linhas Adicionadas | Impacto |
+| FunÃ§Ã£o | Linhas Adicionadas | Impacto |
 |--------|-------------------|---------|
 | `Test-WordRunning` | ~6 | Movida para antes de Backup |
-| `Backup-TemplatesFolder` | ~50 | Verificação de Word + método alternativo |
+| `Backup-TemplatesFolder` | ~50 | VerificaÃ§Ã£o de Word + mÃ©todo alternativo |
 
 ## [OK] Status
 
 - [x] Erro identificado
 - [x] Causa raiz determinada
-- [x] Correção implementada
+- [x] CorreÃ§Ã£o implementada
 - [x] Sintaxe validada
-- [x] Documentação criada
-- [ ] Teste em ambiente real (próximo passo)
+- [x] DocumentaÃ§Ã£o criada
+- [ ] Teste em ambiente real (prÃ³ximo passo)
 
-## [>>] Próximo Passo
+## [>>] PrÃ³ximo Passo
 
-Execute a instalação novamente:
+Execute a instalaÃ§Ã£o novamente:
 
 ```cmd
-cd %USERPROFILE%\Documents\chainsaw
+cd %USERPROFILE%\chainsaw
 install.cmd
 ```
 
 Se o erro persistir, verifique:
-1. Word está fechado?
+1. Word estÃ¡ fechado?
 2. Gerenciador de Tarefas mostra WINWORD.EXE?
-3. Antivírus está bloqueando?
-4. Tem permissões na pasta Templates?
+3. AntivÃ­rus estÃ¡ bloqueando?
+4. Tem permissÃµes na pasta Templates?
 
 ---
 
-**Correção aplicada em:** 05/11/2025  
-**Versão do script:** 2.0.0  
+**CorreÃ§Ã£o aplicada em:** 05/11/2025  
+**VersÃ£o do script:** 2.0.0  
 **Status:** [OK] Pronto para teste
+

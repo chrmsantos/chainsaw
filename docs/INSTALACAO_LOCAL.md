@@ -1,216 +1,217 @@
-# Instalação Local - Chainsaw
+﻿# InstalaÃ§Ã£o Local - Chainsaw
 
-## [INFO] Mudança Importante
+## [INFO] MudanÃ§a Importante
 
-O sistema Chainsaw agora funciona a partir da **pasta Documentos do usuário**, eliminando a necessidade de acesso à rede corporativa durante a instalação.
+O sistema Chainsaw agora funciona a partir da **pasta Documentos do usuÃ¡rio**, eliminando a necessidade de acesso Ã  rede corporativa durante a instalaÃ§Ã£o.
 
-## [*] Benefícios
+## [*] BenefÃ­cios
 
 ### Antes (Rede)
-- [X] Dependia de acesso à rede corporativa
+- [X] Dependia de acesso Ã  rede corporativa
 - [X] Problemas com VPN e credenciais
-- [X] Lentidão na cópia de arquivos
-- [X] Falhas por desconexão de rede
+- [X] LentidÃ£o na cÃ³pia de arquivos
+- [X] Falhas por desconexÃ£o de rede
 
 ### Agora (Local)
 - [OK] Funciona offline
-- [OK] Instalação mais rápida
-- [OK] Mais confiável
-- [OK] Sem dependência de rede
+- [OK] InstalaÃ§Ã£o mais rÃ¡pida
+- [OK] Mais confiÃ¡vel
+- [OK] Sem dependÃªncia de rede
 
-## [PKG] Estrutura Necessária
+## [PKG] Estrutura NecessÃ¡ria
 
-A pasta `chainsaw` deve ser copiada para a pasta Documentos do usuário:
+A pasta `chainsaw` deve ser copiada para a pasta Documentos do usuÃ¡rio:
 
 ```
-%USERPROFILE%\Documents\chainsaw\
-├── assets\
-│   └── stamp.png
-├── configs\
-│   └── Templates\
-│       └── [todos os templates]
-├── install.ps1
-├── install.cmd
-└── [outros arquivos]
+%USERPROFILE%\chainsaw\
+â”œâ”€â”€ assets\
+â”‚   â””â”€â”€ stamp.png
+â”œâ”€â”€ configs\
+â”‚   â””â”€â”€ Templates\
+â”‚       â””â”€â”€ [todos os templates]
+â”œâ”€â”€ install.ps1
+â”œâ”€â”€ install.cmd
+â””â”€â”€ [outros arquivos]
 ```
 
-## [>>] Instalação
+## [>>] InstalaÃ§Ã£o
 
 ### 1. Copiar Arquivos
 
 Primeiro, copie a pasta completa `chainsaw` para:
-- **Windows**: `C:\Users\[seu_usuario]\Documents\chainsaw`
+- **Windows**: `C:\Users\[seu_usuario]\chainsaw`
 
-### 2. Executar Instalação
+### 2. Executar InstalaÃ§Ã£o
 
 ```cmd
-cd "%USERPROFILE%\Documents\chainsaw"
+cd "%USERPROFILE%\chainsaw"
 install.cmd
 ```
 
 Ou usando PowerShell:
 
 ```powershell
-cd "$env:USERPROFILE\Documents\chainsaw"
+cd "$env:USERPROFILE\chainsaw"
 .\install.ps1
 ```
 
 ## [CFG] Como Funciona
 
-### Detecção Automática de Origem
+### DetecÃ§Ã£o AutomÃ¡tica de Origem
 
-O script agora detecta automaticamente de onde está sendo executado:
+O script agora detecta automaticamente de onde estÃ¡ sendo executado:
 
 ```powershell
-# O caminho de origem é automaticamente definido como a pasta do script
+# O caminho de origem Ã© automaticamente definido como a pasta do script
 $SourcePath = $PSScriptRoot
 ```
 
-### Verificação de Auto-Cópia
+### VerificaÃ§Ã£o de Auto-CÃ³pia
 
 Para evitar erros quando executado diretamente da pasta de destino, o script:
 
 1. **Verifica se origem = destino** para `stamp.png`
-   - Se sim, pula a cópia (já está instalado)
-   - Se não, copia normalmente
+   - Se sim, pula a cÃ³pia (jÃ¡ estÃ¡ instalado)
+   - Se nÃ£o, copia normalmente
 
 2. **Verifica se origem = destino** para `Templates`
-   - Se sim, pula a cópia (já está instalado)
-   - Se não, copia normalmente
+   - Se sim, pula a cÃ³pia (jÃ¡ estÃ¡ instalado)
+   - Se nÃ£o, copia normalmente
 
-## [CHART] Exemplo de Execução
+## [CHART] Exemplo de ExecuÃ§Ã£o
 
 ```
-[SEC] Verificando política de execução...
-[OK] Política de execução adequada
+[SEC] Verificando polÃ­tica de execuÃ§Ã£o...
+[OK] PolÃ­tica de execuÃ§Ã£o adequada
 
-╔════════════════════════════════════════════════════════════════╗
-║          CHAINSAW - Instalação de Configurações do Word       ║
-╚════════════════════════════════════════════════════════════════╝
+â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
+â•‘          CHAINSAW - InstalaÃ§Ã£o de ConfiguraÃ§Ãµes do Word       â•‘
+â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-[i] Verificando acesso ao caminho: C:\Users\csantos\Documents\chainsaw
+[i] Verificando acesso ao caminho: C:\Users\csantos\chainsaw
 [OK] Arquivos de origem encontrados [OK]
 
-[i] Origem: C:\Users\csantos\Documents\chainsaw\assets\stamp.png
+[i] Origem: C:\Users\csantos\chainsaw\assets\stamp.png
 [i] Destino: C:\Users\csantos\chainsaw\assets\stamp.png
 [OK] Arquivo stamp.png copiado com sucesso [OK]
 
-[i] Origem: C:\Users\csantos\Documents\chainsaw\configs\Templates
+[i] Origem: C:\Users\csantos\chainsaw\configs\Templates
 [i] Destino: C:\Users\csantos\AppData\Roaming\Microsoft\Templates
 [OK] Pasta Templates copiada com sucesso (37 arquivos) [OK]
 
-╔════════════════════════════════════════════════════════════════╗
-║              INSTALAÇÃO CONCLUÍDA COM SUCESSO!                 ║
-╚════════════════════════════════════════════════════════════════╝
+â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
+â•‘              INSTALAÃ‡ÃƒO CONCLUÃDA COM SUCESSO!                 â•‘
+â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 ```
 
-## [SYNC] Distribuição
+## [SYNC] DistribuiÃ§Ã£o
 
-### Para Distribuir para Outros Usuários
+### Para Distribuir para Outros UsuÃ¡rios
 
 1. **Comprimir** a pasta `chainsaw` completa
 2. **Enviar** por email, rede, ou USB
-3. **Instruir** o usuário a:
+3. **Instruir** o usuÃ¡rio a:
    - Extrair para `Documentos\chainsaw`
    - Executar `install.cmd`
 
-### Script de Distribuição (Opcional)
+### Script de DistribuiÃ§Ã£o (Opcional)
 
-Você pode criar um script batch para automatizar a cópia:
+VocÃª pode criar um script batch para automatizar a cÃ³pia:
 
 ```batch
 @echo off
 echo Copiando Chainsaw para Documentos...
-xcopy /E /I /Y "\\servidor\compartilhado\chainsaw" "%USERPROFILE%\Documents\chainsaw\"
+xcopy /E /I /Y "\\servidor\compartilhado\chainsaw" "%USERPROFILE%\chainsaw\"
 echo.
 echo Instalando...
-cd "%USERPROFILE%\Documents\chainsaw"
+cd "%USERPROFILE%\chainsaw"
 install.cmd
 ```
 
-## 🆚 Comparação
+## ðŸ†š ComparaÃ§Ã£o
 
 | Aspecto | Rede (Antes) | Local (Agora) |
 |---------|-------------|---------------|
-| **Velocidade** | Lenta (rede) | Rápida (disco local) |
-| **Confiabilidade** | Depende da rede | 100% confiável |
+| **Velocidade** | Lenta (rede) | RÃ¡pida (disco local) |
+| **Confiabilidade** | Depende da rede | 100% confiÃ¡vel |
 | **Requisitos** | VPN/Rede corporativa | Nenhum |
-| **Offline** | [X] Não funciona | [OK] Funciona |
-| **Distribuição** | Centralizada | Descentralizada |
+| **Offline** | [X] NÃ£o funciona | [OK] Funciona |
+| **DistribuiÃ§Ã£o** | Centralizada | Descentralizada |
 
-## [SEC] Segurança
+## [SEC] SeguranÃ§a
 
 ### Mantida
-- [OK] Bypass automático seguro
-- [OK] Sem privilégios de administrador
-- [OK] Backup automático
+- [OK] Bypass automÃ¡tico seguro
+- [OK] Sem privilÃ©gios de administrador
+- [OK] Backup automÃ¡tico
 - [OK] Log completo
 - [OK] Rollback em caso de erro
 
 ### Melhorada
-- [OK] Não requer acesso à rede corporativa
-- [OK] Reduz superfície de ataque (menos dependências externas)
+- [OK] NÃ£o requer acesso Ã  rede corporativa
+- [OK] Reduz superfÃ­cie de ataque (menos dependÃªncias externas)
 - [OK] Verifica se origem = destino para evitar sobrescrever
 
-## [LOG] Notas Técnicas
+## [LOG] Notas TÃ©cnicas
 
-### Parâmetro SourcePath
+### ParÃ¢metro SourcePath
 
-O parâmetro `-SourcePath` ainda existe para casos especiais:
+O parÃ¢metro `-SourcePath` ainda existe para casos especiais:
 
 ```powershell
-# Se os arquivos estão em outro local
+# Se os arquivos estÃ£o em outro local
 .\install.ps1 -SourcePath "C:\outro\local\chainsaw"
 
-# Ou até mesmo de uma rede (se necessário)
+# Ou atÃ© mesmo de uma rede (se necessÃ¡rio)
 .\install.ps1 -SourcePath "\\servidor\compartilhado\chainsaw"
 ```
 
 ### PSScriptRoot
 
-O script usa `$PSScriptRoot` para detectar automaticamente sua localização:
+O script usa `$PSScriptRoot` para detectar automaticamente sua localizaÃ§Ã£o:
 - [OK] Funciona em PowerShell 3.0+
-- [OK] Sempre aponta para o diretório do script
+- [OK] Sempre aponta para o diretÃ³rio do script
 - [OK] Funciona com caminhos UNC
 
-## 🐛 Solução de Problemas
+## ðŸ› SoluÃ§Ã£o de Problemas
 
-### Erro: "Arquivos de origem não encontrados"
+### Erro: "Arquivos de origem nÃ£o encontrados"
 
-**Causa**: Pasta `chainsaw` não está em Documentos ou estrutura incompleta.
+**Causa**: Pasta `chainsaw` nÃ£o estÃ¡ em Documentos ou estrutura incompleta.
 
-**Solução**:
-1. Verifique se a pasta está em: `%USERPROFILE%\Documents\chainsaw`
+**SoluÃ§Ã£o**:
+1. Verifique se a pasta estÃ¡ em: `%USERPROFILE%\chainsaw`
 2. Verifique se existe: `assets\stamp.png` e `configs\Templates\`
 
-### Erro: "Não pode substituir o item por ele mesmo"
+### Erro: "NÃ£o pode substituir o item por ele mesmo"
 
-**Causa**: Versão antiga do script (já corrigido).
+**Causa**: VersÃ£o antiga do script (jÃ¡ corrigido).
 
-**Solução**: Atualize para a versão mais recente do script.
+**SoluÃ§Ã£o**: Atualize para a versÃ£o mais recente do script.
 
-## [OK] Checklist de Instalação
+## [OK] Checklist de InstalaÃ§Ã£o
 
-Para usuários finais:
+Para usuÃ¡rios finais:
 
 - [ ] Copiar pasta `chainsaw` para `Documentos`
 - [ ] Fechar o Microsoft Word
 - [ ] Abrir PowerShell ou Prompt de Comando
-- [ ] Navegar para: `cd "%USERPROFILE%\Documents\chainsaw"`
+- [ ] Navegar para: `cd "%USERPROFILE%\chainsaw"`
 - [ ] Executar: `install.cmd`
-- [ ] Aguardar conclusão
+- [ ] Aguardar conclusÃ£o
 - [ ] Verificar mensagem de sucesso
 
-## 📞 Suporte
+## ðŸ“ž Suporte
 
 Se encontrar problemas:
 
 1. Verifique o log: `%USERPROFILE%\chainsaw\logs\install_*.log`
-2. Consulte `INSTALL.md` para documentação completa
+2. Consulte `INSTALL.md` para documentaÃ§Ã£o completa
 3. Entre em contato: chrmsantos@protonmail.com
 
 ---
 
-**Versão:** 1.1.0 (Instalação Local)  
+**VersÃ£o:** 1.1.0 (InstalaÃ§Ã£o Local)  
 **Data:** 05/11/2025  
 **Autor:** Christian Martin dos Santos
+

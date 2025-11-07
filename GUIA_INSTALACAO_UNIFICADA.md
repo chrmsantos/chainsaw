@@ -22,7 +22,7 @@ A partir da **versão 2.0.0**, o processo de instalação do CHAINSAW foi unific
 
 Copie a pasta `CHAINSAW` completa para:
 ```
-C:\Users\[seu_usuario]\Documents\CHAINSAW
+C:\Users\[seu_usuario]\CHAINSAW
 ```
 
 ### Passo 2: Executar Instalação
@@ -30,13 +30,13 @@ C:\Users\[seu_usuario]\Documents\CHAINSAW
 **Método Recomendado** (funciona com qualquer política de execução):
 
 1. Abra o Explorador de Arquivos
-2. Navegue até `C:\Users\[seu_usuario]\Documents\CHAINSAW`
+2. Navegue até `C:\Users\[seu_usuario]\CHAINSAW`
 3. Dê um duplo-clique em: **`install.cmd`**
 
 **Método Alternativo** (via PowerShell):
 
 ```powershell
-cd "$env:USERPROFILE\Documents\CHAINSAW"
+cd "$env:USERPROFILE\CHAINSAW"
 .\install.ps1
 ```
 
@@ -74,7 +74,7 @@ Se a pasta `exported-config` for detectada dentro da pasta `CHAINSAW`, o instala
 ### Estrutura Esperada
 
 ```
-C:\Users\[usuario]\Documents\CHAINSAW\
+C:\Users\[usuario]\CHAINSAW\
 ├── install.ps1
 ├── install.cmd
 ├── export-config.ps1
@@ -156,10 +156,10 @@ Isso criará a pasta `exported-config` com todas as suas personalizações.
 Copie a pasta `CHAINSAW` completa (incluindo `exported-config`) para a máquina de destino:
 
 ```
-Origem:  C:\Users\[usuario_origem]\Documents\CHAINSAW\
+Origem:  C:\Users\[usuario_origem]\CHAINSAW\
          └── exported-config\  (gerado pelo export)
 
-Destino: C:\Users\[usuario_destino]\Documents\CHAINSAW\
+Destino: C:\Users\[usuario_destino]\CHAINSAW\
          └── exported-config\  (copiado da origem)
 ```
 
@@ -208,7 +208,7 @@ Sim! Cada execução cria um novo backup com timestamp. Os 5 backups mais recent
 Sim! Se você pulou a importação durante a instalação inicial, basta:
 
 1. Obter a pasta `exported-config` 
-2. Colocá-la em `C:\Users\[usuario]\Documents\CHAINSAW\`
+2. Colocá-la em `C:\Users\[usuario]\CHAINSAW\`
 3. Executar `install.cmd` novamente
 
 ### O que são os arquivos .cmd?
@@ -292,7 +292,7 @@ Os seguintes scripts foram consolidados ou removidos:
 ### Cenário 1: Instalação Nova (Sem Personalizações)
 
 ```cmd
-cd %USERPROFILE%\Documents\CHAINSAW
+cd %USERPROFILE%\CHAINSAW
 install.cmd
 ```
 
@@ -302,13 +302,13 @@ Resultado: Templates instalados, nenhuma personalização importada.
 
 ```cmd
 # Na máquina de origem
-cd %USERPROFILE%\Documents\CHAINSAW
+cd %USERPROFILE%\CHAINSAW
 export-config.cmd
 
 # Copiar pasta CHAINSAW completa para máquina de destino
 
 # Na máquina de destino
-cd %USERPROFILE%\Documents\CHAINSAW
+cd %USERPROFILE%\CHAINSAW
 install.cmd
 ```
 
@@ -317,7 +317,7 @@ Resultado: Templates + personalizações instalados.
 ### Cenário 3: Atualização de Templates (Preservar Personalizações)
 
 ```cmd
-cd %USERPROFILE%\Documents\CHAINSAW
+cd %USERPROFILE%\CHAINSAW
 install.cmd -SkipCustomizations
 ```
 
@@ -326,7 +326,7 @@ Resultado: Apenas templates atualizados, personalizações não tocadas.
 ### Cenário 4: Deploy Automatizado
 
 ```cmd
-cd %USERPROFILE%\Documents\CHAINSAW
+cd %USERPROFILE%\CHAINSAW
 install.cmd -Force
 ```
 

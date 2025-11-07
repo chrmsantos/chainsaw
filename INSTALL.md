@@ -152,14 +152,14 @@ cd "$env:USERPROFILE\chainsaw"
 **Método Recomendado - Usando o Launcher Seguro:**
 
 ```cmd
-cd "%USERPROFILE%\Documents\CHAINSAW"
+cd "%USERPROFILE%\CHAINSAW"
 install.cmd
 ```
 
 **Alternativa - Execução Direta do PowerShell:**
 
 ```powershell
-cd "$env:USERPROFILE\Documents\CHAINSAW"
+cd "$env:USERPROFILE\CHAINSAW"
 .\install.ps1
 ```
 
@@ -227,7 +227,7 @@ install.cmd -SourcePath "C:\outro\caminho\CHAINSAW"
 [i] Verificando pré-requisitos...
 [OK] Sistema operacional: Windows 10.0 [OK]
 [OK] PowerShell versão: 5.1.19041.4894 [OK]
-[i] Verificando arquivos de origem: C:\Users\csantos\Documents\CHAINSAW
+[i] Verificando arquivos de origem: C:\Users\csantos\CHAINSAW
 [OK] Arquivos de origem encontrados [OK]
 [OK] Permissões de escrita no perfil do usuário confirmadas [OK]
 
@@ -255,7 +255,7 @@ Usuário: csantos
 Computador: DESKTOP-ABC123
 Sistema: Microsoft Windows NT 10.0.19045.0
 PowerShell: 5.1.19041.4894
-Caminho de Origem: C:\Users\csantos\Documents\CHAINSAW
+Caminho de Origem: C:\Users\csantos\CHAINSAW
 ================================================================================
 
 [2025-11-05 14:30:22] [INFO] === INÍCIO DA INSTALAÇÃO ===
@@ -303,12 +303,12 @@ Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 **Problema:** "Arquivos de origem não encontrados" ou "Não foi possível acessar o caminho"
 
 **Possíveis causas:**
-1. Pasta `CHAINSAW` não está na pasta Documentos
+1. Pasta `CHAINSAW` não está no perfil do usuário
 2. Arquivos `stamp.png` ou pasta `Templates` ausentes
 3. Caminho incorreto especificado
 
 **Solução:**
-1. Verifique se a pasta está em: `%USERPROFILE%\Documents\CHAINSAW`
+1. Verifique se a pasta está em: `%USERPROFILE%\CHAINSAW`
 2. Certifique-se que os arquivos necessários estão presentes:
    - `assets\stamp.png`
    - `configs\Templates\`

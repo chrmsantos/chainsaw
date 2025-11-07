@@ -1,124 +1,124 @@
-# Exportação e Importação de Personalizações do Word
+﻿# ExportaÃ§Ã£o e ImportaÃ§Ã£o de PersonalizaÃ§Ãµes do Word
 
-## [INFO] Visão Geral
+## [INFO] VisÃ£o Geral
 
-O Chainsaw agora inclui scripts completos para exportar e importar todas as personalizações da interface do Microsoft Word, incluindo:
+O Chainsaw agora inclui scripts completos para exportar e importar todas as personalizaÃ§Ãµes da interface do Microsoft Word, incluindo:
 
-- [OK] **Faixa de Opções Personalizada** (abas customizadas)
-- [OK] **Blocos de Construção** (Building Blocks)
-- [OK] **Partes Rápidas** (Quick Parts)
+- [OK] **Faixa de OpÃ§Ãµes Personalizada** (abas customizadas)
+- [OK] **Blocos de ConstruÃ§Ã£o** (Building Blocks)
+- [OK] **Partes RÃ¡pidas** (Quick Parts)
 - [OK] **Temas e Estilos**
-- [OK] **Barra de Ferramentas de Acesso Rápido**
+- [OK] **Barra de Ferramentas de Acesso RÃ¡pido**
 - [OK] **Normal.dotm** (template global com macros)
-- [OK] **Configurações do Registro** (opcional)
+- [OK] **ConfiguraÃ§Ãµes do Registro** (opcional)
 
 ## [*] Fluxo de Trabalho
 
-### 1️⃣ Exportar Personalizações (Máquina de Origem)
+### 1ï¸âƒ£ Exportar PersonalizaÃ§Ãµes (MÃ¡quina de Origem)
 
-Execute na máquina que possui as personalizações que você deseja copiar:
+Execute na mÃ¡quina que possui as personalizaÃ§Ãµes que vocÃª deseja copiar:
 
 ```powershell
-cd "$env:USERPROFILE\Documents\chainsaw"
+cd "$env:USERPROFILE\chainsaw"
 .\export-config.ps1
 ```
 
 Ou usando o launcher seguro:
 
 ```cmd
-cd "%USERPROFILE%\Documents\chainsaw"
+cd "%USERPROFILE%\chainsaw"
 powershell.exe -ExecutionPolicy Bypass -File ".\export-config.ps1"
 ```
 
 #### O que o Script Faz
 
-1. **Verifica se o Word está aberto** - Recomenda fechar para garantir export completo
-2. **Exporta Normal.dotm** - Template global com todas as personalizações
-3. **Exporta Building Blocks** - Blocos de construção e partes rápidas
-4. **Exporta Ribbon** - Personalizações da Faixa de Opções
+1. **Verifica se o Word estÃ¡ aberto** - Recomenda fechar para garantir export completo
+2. **Exporta Normal.dotm** - Template global com todas as personalizaÃ§Ãµes
+3. **Exporta Building Blocks** - Blocos de construÃ§Ã£o e partes rÃ¡pidas
+4. **Exporta Ribbon** - PersonalizaÃ§Ãµes da Faixa de OpÃ§Ãµes
 5. **Exporta Temas** - Temas e estilos customizados
-6. **Exporta UI** - Configurações da interface
+6. **Exporta UI** - ConfiguraÃ§Ãµes da interface
 7. **Cria Manifesto** - Arquivo JSON com metadata
 
 #### Resultado
 
 ```
 exported-config/
-├── Templates/
-│   ├── Normal.dotm
-│   └── LiveContent/
-│       └── 16/
-│           ├── Managed/
-│           │   ├── Document Themes/
-│           │   └── Word Document Building Blocks/
-│           └── User/
-│               ├── Document Themes/
-│               └── Word Document Building Blocks/
-├── RibbonCustomization/
-│   └── Word.officeUI
-├── OfficeCustomUI/
-│   └── [arquivos .officeUI]
-├── Registry/
-│   └── [arquivos .reg]
-├── MANIFEST.json
-├── README.txt
-└── logs/
-    └── export_YYYYMMDD_HHMMSS.log
+â”œâ”€â”€ Templates/
+â”‚   â”œâ”€â”€ Normal.dotm
+â”‚   â””â”€â”€ LiveContent/
+â”‚       â””â”€â”€ 16/
+â”‚           â”œâ”€â”€ Managed/
+â”‚           â”‚   â”œâ”€â”€ Document Themes/
+â”‚           â”‚   â””â”€â”€ Word Document Building Blocks/
+â”‚           â””â”€â”€ User/
+â”‚               â”œâ”€â”€ Document Themes/
+â”‚               â””â”€â”€ Word Document Building Blocks/
+â”œâ”€â”€ RibbonCustomization/
+â”‚   â””â”€â”€ Word.officeUI
+â”œâ”€â”€ OfficeCustomUI/
+â”‚   â””â”€â”€ [arquivos .officeUI]
+â”œâ”€â”€ Registry/
+â”‚   â””â”€â”€ [arquivos .reg]
+â”œâ”€â”€ MANIFEST.json
+â”œâ”€â”€ README.txt
+â””â”€â”€ logs/
+    â””â”€â”€ export_YYYYMMDD_HHMMSS.log
 ```
 
-### 2️⃣ Transferir Arquivos
+### 2ï¸âƒ£ Transferir Arquivos
 
-Copie a pasta `exported-config` para a máquina de destino:
+Copie a pasta `exported-config` para a mÃ¡quina de destino:
 
-**Opção 1: Substituir no pacote Chainsaw**
+**OpÃ§Ã£o 1: Substituir no pacote Chainsaw**
 
 ```cmd
-# Na máquina de destino
-robocopy "C:\Temp\exported-config" "%USERPROFILE%\Documents\chainsaw\exported-config" /E /IS
+# Na mÃ¡quina de destino
+robocopy "C:\Temp\exported-config" "%USERPROFILE%\chainsaw\exported-config" /E /IS
 ```
 
-**Opção 2: USB/Email**
+**OpÃ§Ã£o 2: USB/Email**
 
 1. Compacte a pasta `exported-config`
 2. Transfira por USB, email ou rede
-3. Extraia na máquina de destino
+3. Extraia na mÃ¡quina de destino
 
-### 3️⃣ Importar Personalizações (Máquina de Destino)
+### 3ï¸âƒ£ Importar PersonalizaÃ§Ãµes (MÃ¡quina de Destino)
 
 **IMPORTANTE: Feche o Microsoft Word antes de importar!**
 
 ```powershell
-cd "$env:USERPROFILE\Documents\chainsaw"
+cd "$env:USERPROFILE\chainsaw"
 .\import-config.ps1
 ```
 
 Ou usando o launcher seguro:
 
 ```cmd
-cd "%USERPROFILE%\Documents\chainsaw"
+cd "%USERPROFILE%\chainsaw"
 powershell.exe -ExecutionPolicy Bypass -File ".\import-config.ps1"
 ```
 
 #### O que o Script Faz
 
-1. **Verifica se o Word está fechado** - Aborta se estiver aberto
-2. **Cria backup automático** - Salva configurações atuais
+1. **Verifica se o Word estÃ¡ fechado** - Aborta se estiver aberto
+2. **Cria backup automÃ¡tico** - Salva configuraÃ§Ãµes atuais
 3. **Importa Normal.dotm** - Substitui template global
-4. **Importa Building Blocks** - Copia blocos de construção
-5. **Importa Ribbon** - Restaura Faixa de Opções
+4. **Importa Building Blocks** - Copia blocos de construÃ§Ã£o
+5. **Importa Ribbon** - Restaura Faixa de OpÃ§Ãµes
 6. **Importa Temas** - Restaura temas personalizados
-7. **Importa UI** - Restaura configurações de interface
+7. **Importa UI** - Restaura configuraÃ§Ãµes de interface
 8. **Registra tudo em log**
 
-## [>>] Uso Avançado
+## [>>] Uso AvanÃ§ado
 
-### Exportar para Caminho Específico
+### Exportar para Caminho EspecÃ­fico
 
 ```powershell
 .\export-config.ps1 -ExportPath "C:\Backup\MinhasPersonalizacoes"
 ```
 
-### Incluir Configurações do Registro
+### Incluir ConfiguraÃ§Ãµes do Registro
 
 ```powershell
 .\export-config.ps1 -IncludeRegistry
@@ -126,103 +126,103 @@ powershell.exe -ExecutionPolicy Bypass -File ".\import-config.ps1"
 
 ### Importar sem Backup
 
-[!] **Não recomendado** - Use apenas se tiver certeza:
+[!] **NÃ£o recomendado** - Use apenas se tiver certeza:
 
 ```powershell
 .\import-config.ps1 -NoBackup
 ```
 
-### Importar sem Confirmação
+### Importar sem ConfirmaÃ§Ã£o
 
 ```powershell
 .\import-config.ps1 -Force
 ```
 
-### Importar de Caminho Específico
+### Importar de Caminho EspecÃ­fico
 
 ```powershell
 .\import-config.ps1 -ImportPath "C:\Backup\MinhasPersonalizacoes"
 ```
 
-## [PKG] Integração com Instalador Principal
+## [PKG] IntegraÃ§Ã£o com Instalador Principal
 
-O instalador principal (`install.ps1`) pode automaticamente importar as personalizações se encontrar a pasta `exported-config`:
+O instalador principal (`install.ps1`) pode automaticamente importar as personalizaÃ§Ãµes se encontrar a pasta `exported-config`:
 
 ```cmd
-cd "%USERPROFILE%\Documents\chainsaw"
+cd "%USERPROFILE%\chainsaw"
 install.cmd
 ```
 
-Isso irá:
+Isso irÃ¡:
 1. Copiar `stamp.png`
 2. Instalar Templates
-3. **Importar personalizações** (se `exported-config` existir)
+3. **Importar personalizaÃ§Ãµes** (se `exported-config` existir)
 
-## 🔍 Estrutura Detalhada
+## ðŸ” Estrutura Detalhada
 
 ### Normal.dotm
 
-Contém:
+ContÃ©m:
 - Macros personalizadas
 - Estilos customizados
-- Configurações globais
+- ConfiguraÃ§Ãµes globais
 - AutoTexto
 - Atalhos de teclado
 
 ### Building Blocks
 
 Incluem:
-- Partes Rápidas
-- Cabeçalhos e Rodapés
-- Páginas de Capa
-- Marcas d'água
-- Equações
+- Partes RÃ¡pidas
+- CabeÃ§alhos e RodapÃ©s
+- PÃ¡ginas de Capa
+- Marcas d'Ã¡gua
+- EquaÃ§Ãµes
 - Tabelas
 
 ### Ribbon Customization
 
-Personalizações da Faixa de Opções:
+PersonalizaÃ§Ãµes da Faixa de OpÃ§Ãµes:
 - Abas customizadas
 - Grupos personalizados
-- Botões adicionados/removidos
+- BotÃµes adicionados/removidos
 - Ordem das abas
 
 ### Office Custom UI
 
-Configurações gerais:
-- Barra de Ferramentas de Acesso Rápido (QAT)
+ConfiguraÃ§Ãµes gerais:
+- Barra de Ferramentas de Acesso RÃ¡pido (QAT)
 - Temas do Office
-- Preferências de interface
+- PreferÃªncias de interface
 
 ## [!] Avisos Importantes
 
-### [X] NÃO Execute com Word Aberto
+### [X] NÃƒO Execute com Word Aberto
 
-A importação **REQUER** que o Word esteja fechado. Se detectar o Word em execução, o script abortará automaticamente.
+A importaÃ§Ã£o **REQUER** que o Word esteja fechado. Se detectar o Word em execuÃ§Ã£o, o script abortarÃ¡ automaticamente.
 
 ### [OK] Sempre Crie Backup
 
-Por padrão, o script de importação cria backup automático. Não desabilite isso a menos que tenha outro backup.
+Por padrÃ£o, o script de importaÃ§Ã£o cria backup automÃ¡tico. NÃ£o desabilite isso a menos que tenha outro backup.
 
-### [SYNC] Compatibilidade de Versões
+### [SYNC] Compatibilidade de VersÃµes
 
-As personalizações são compatíveis entre:
-- [OK] Mesma versão do Office
-- [!] Versões próximas (ex: Office 2019 → Office 2021)
-- [X] Versões muito diferentes (ex: Office 2010 → Office 365)
+As personalizaÃ§Ãµes sÃ£o compatÃ­veis entre:
+- [OK] Mesma versÃ£o do Office
+- [!] VersÃµes prÃ³ximas (ex: Office 2019 â†’ Office 2021)
+- [X] VersÃµes muito diferentes (ex: Office 2010 â†’ Office 365)
 
 ## [CHART] Exemplo de Uso Completo
 
-### Cenário: Configurar 5 máquinas iguais
+### CenÃ¡rio: Configurar 5 mÃ¡quinas iguais
 
-**Passo 1: Preparar máquina master**
+**Passo 1: Preparar mÃ¡quina master**
 
 ```powershell
-# Configurar o Word com todas as personalizações desejadas
+# Configurar o Word com todas as personalizaÃ§Ãµes desejadas
 # Testar e validar
 
-# Exportar configurações
-cd "$env:USERPROFILE\Documents\chainsaw"
+# Exportar configuraÃ§Ãµes
+cd "$env:USERPROFILE\chainsaw"
 .\export-config.ps1 -IncludeRegistry
 
 # Resultado: exported-config/ criado
@@ -238,102 +238,102 @@ robocopy "C:\Master\chainsaw" "\\FileServer\Share\chainsaw" /E /IS
 Compress-Archive -Path "C:\Master\chainsaw" -DestinationPath "Chainsaw-Complete.zip"
 ```
 
-**Passo 3: Instalar em cada máquina**
+**Passo 3: Instalar em cada mÃ¡quina**
 
 ```cmd
-# Em cada máquina de destino:
+# Em cada mÃ¡quina de destino:
 
 # 1. Copiar pasta chainsaw para Documentos
-robocopy "\\FileServer\Share\chainsaw" "%USERPROFILE%\Documents\chainsaw" /E /IS
+robocopy "\\FileServer\Share\chainsaw" "%USERPROFILE%\chainsaw" /E /IS
 
 # 2. Executar instalador
-cd "%USERPROFILE%\Documents\chainsaw"
+cd "%USERPROFILE%\chainsaw"
 install.cmd
 
 # 3. Abrir Word e verificar
 ```
 
-## [SEC] Segurança e Privacidade
+## [SEC] SeguranÃ§a e Privacidade
 
-### O que é Exportado
+### O que Ã© Exportado
 
-- [OK] Personalizações de UI
-- [OK] Blocos de construção
+- [OK] PersonalizaÃ§Ãµes de UI
+- [OK] Blocos de construÃ§Ã£o
 - [OK] Temas
-- [OK] Configurações visuais
+- [OK] ConfiguraÃ§Ãµes visuais
 
-### O que NÃO é Exportado
+### O que NÃƒO Ã© Exportado
 
 - [X] Documentos pessoais
-- [X] Histórico de uso
+- [X] HistÃ³rico de uso
 - [X] Senhas
 - [X] Dados de conta Microsoft
 
 ### Registro (Opcional)
 
-Se usar `-IncludeRegistry`, serão exportadas:
-- Preferências do Word
-- Configurações de interface
-- Nenhuma informação sensível
+Se usar `-IncludeRegistry`, serÃ£o exportadas:
+- PreferÃªncias do Word
+- ConfiguraÃ§Ãµes de interface
+- Nenhuma informaÃ§Ã£o sensÃ­vel
 
-## [CFG] Solução de Problemas
+## [CFG] SoluÃ§Ã£o de Problemas
 
-### Erro: "Word está em execução"
+### Erro: "Word estÃ¡ em execuÃ§Ã£o"
 
-**Solução:**
+**SoluÃ§Ã£o:**
 1. Feche completamente o Word
-2. Verifique no Gerenciador de Tarefas se `WINWORD.EXE` ainda está aberto
-3. Termine o processo se necessário
+2. Verifique no Gerenciador de Tarefas se `WINWORD.EXE` ainda estÃ¡ aberto
+3. Termine o processo se necessÃ¡rio
 4. Execute o script novamente
 
-### Erro: "Fonte de importação não encontrada"
+### Erro: "Fonte de importaÃ§Ã£o nÃ£o encontrada"
 
-**Solução:**
+**SoluÃ§Ã£o:**
 1. Verifique se a pasta `exported-config` existe
-2. Certifique-se que está no diretório correto
+2. Certifique-se que estÃ¡ no diretÃ³rio correto
 3. Use `-ImportPath` para especificar o caminho correto
 
-### Personalizações não aparecem no Word
+### PersonalizaÃ§Ãµes nÃ£o aparecem no Word
 
-**Causas possíveis:**
-1. Word não foi reiniciado após importação
-2. Versões incompatíveis do Office
-3. Políticas de grupo corporativas bloqueando personalizações
+**Causas possÃ­veis:**
+1. Word nÃ£o foi reiniciado apÃ³s importaÃ§Ã£o
+2. VersÃµes incompatÃ­veis do Office
+3. PolÃ­ticas de grupo corporativas bloqueando personalizaÃ§Ãµes
 
-**Solução:**
+**SoluÃ§Ã£o:**
 1. Reinicie o Word completamente
-2. Verifique se a versão do Office é compatível
-3. Consulte o administrador de TI sobre políticas
+2. Verifique se a versÃ£o do Office Ã© compatÃ­vel
+3. Consulte o administrador de TI sobre polÃ­ticas
 
 ### Normal.dotm corrompido
 
 **Sintomas:**
 - Word trava ao abrir
-- Personalizações desaparecem
+- PersonalizaÃ§Ãµes desaparecem
 - Erros de macro
 
-**Solução:**
+**SoluÃ§Ã£o:**
 1. Feche o Word
 2. Renomeie `Normal.dotm` para `Normal.old`
-3. O Word criará um novo Normal.dotm automático
-4. Re-importe as personalizações
+3. O Word criarÃ¡ um novo Normal.dotm automÃ¡tico
+4. Re-importe as personalizaÃ§Ãµes
 
 ## [LOG] Logs
 
-Todos os logs são salvos em:
-- **Exportação**: `exported-config/logs/export_YYYYMMDD_HHMMSS.log`
-- **Importação**: `%USERPROFILE%\chainsaw\logs\import_YYYYMMDD_HHMMSS.log`
+Todos os logs sÃ£o salvos em:
+- **ExportaÃ§Ã£o**: `exported-config/logs/export_YYYYMMDD_HHMMSS.log`
+- **ImportaÃ§Ã£o**: `%USERPROFILE%\chainsaw\logs\import_YYYYMMDD_HHMMSS.log`
 
-## [SYNC] Atualização de Personalizações
+## [SYNC] AtualizaÃ§Ã£o de PersonalizaÃ§Ãµes
 
-Para atualizar personalizações existentes:
+Para atualizar personalizaÃ§Ãµes existentes:
 
-1. **Exportar novas personalizações**
+1. **Exportar novas personalizaÃ§Ãµes**
    ```powershell
    .\export-config.ps1 -ExportPath ".\exported-config-v2"
    ```
 
-2. **Distribuir atualização**
+2. **Distribuir atualizaÃ§Ã£o**
    - Substitua `exported-config` antiga pela nova
 
 3. **Re-importar**
@@ -341,16 +341,17 @@ Para atualizar personalizações existentes:
    .\import-config.ps1 -Force
    ```
 
-## 📞 Suporte
+## ðŸ“ž Suporte
 
-Para problemas ou dúvidas:
+Para problemas ou dÃºvidas:
 
 1. Consulte os logs em `chainsaw\logs\`
-2. Verifique `INSTALL.md` para documentação geral
+2. Verifique `INSTALL.md` para documentaÃ§Ã£o geral
 3. Entre em contato: chrmsantos@protonmail.com
 
 ---
 
-**Versão:** 1.0.0  
-**Última Atualização:** 05/11/2025  
+**VersÃ£o:** 1.0.0  
+**Ãšltima AtualizaÃ§Ã£o:** 05/11/2025  
 **Autor:** Christian Martin dos Santos
+

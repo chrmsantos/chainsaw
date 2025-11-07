@@ -70,7 +70,7 @@
 ### Exportar
 
 ```cmd
-cd "%USERPROFILE%\Documents\CHAINSAW"
+cd "%USERPROFILE%\CHAINSAW"
 export-config.cmd
 ```
 
@@ -83,7 +83,7 @@ export-config.cmd
 ### Importar
 
 ```cmd
-cd "%USERPROFILE%\Documents\CHAINSAW"
+cd "%USERPROFILE%\CHAINSAW"
 import-config.cmd
 ```
 
