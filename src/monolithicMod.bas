@@ -5902,6 +5902,38 @@ ErrorHandler:
 End Sub
 
 '================================================================================
+' SUBROTINA PÚBLICA: ABRIR REPOSITÓRIO DO GITHUB
+'================================================================================
+Public Sub AbrirReadme()
+    On Error GoTo ErrorHandler
+    
+    Const GITHUB_REPO_URL As String = "https://github.com/chrmsantos/chainsaw"
+    
+    ' Abre o repositório do GitHub no navegador padrão
+    Application.StatusBar = "Abrindo repositório do GitHub..."
+    
+    ' Usa o comando Shell com o protocolo http:// para abrir no navegador padrão
+    CreateObject("WScript.Shell").Run GITHUB_REPO_URL, 1, False
+    
+    ' Log da operação se sistema de log estiver ativo
+    If loggingEnabled Then
+        LogMessage "Repositório do GitHub aberto pelo usuário: " & GITHUB_REPO_URL, LOG_LEVEL_INFO
+    End If
+    
+    Application.StatusBar = "Repositório aberto no navegador"
+    
+    Exit Sub
+    
+ErrorHandler:
+    Application.StatusBar = "Erro ao abrir repositório"
+    LogMessage "Erro ao abrir repositório do GitHub: " & Err.Description, LOG_LEVEL_ERROR
+    
+    ' Tenta método alternativo
+    On Error Resume Next
+    Shell "explorer.exe """ & GITHUB_REPO_URL & """", vbNormalFocus
+End Sub
+
+'================================================================================
 ' SUBROTINA PÚBLICA: CONFIRMAR DESFAZIMENTO DA PADRONIZAÇÃO
 '================================================================================
 Public Sub ConfirmarDesfazerPadronizacao()
