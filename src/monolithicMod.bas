@@ -1813,6 +1813,44 @@ End Function
 '================================================================================
 ' SISTEMA DE REGISTRO DE LOGS
 '================================================================================
+
+'--------------------------------------------------------------------------------
+' WriteTextUTF8 - Escreve texto em arquivo com encoding UTF-8
+'--------------------------------------------------------------------------------
+Private Sub WriteTextUTF8(filePath As String, textContent As String, Optional appendMode As Boolean = False)
+    On Error GoTo ErrorHandler
+    
+    Dim stream As Object
+    Set stream = CreateObject("ADODB.Stream")
+    
+    stream.Type = 2 ' adTypeText
+    stream.Charset = "UTF-8"
+    stream.Open
+    
+    ' Se modo append, lê conteúdo existente primeiro
+    If appendMode And Dir(filePath) <> "" Then
+        stream.LoadFromFile filePath
+        stream.Position = stream.Size
+    End If
+    
+    ' Escreve o novo conteúdo
+    stream.WriteText textContent, 1 ' adWriteLine
+    
+    ' Salva com UTF-8
+    stream.SaveToFile filePath, 2 ' adSaveCreateOverWrite
+    stream.Close
+    Set stream = Nothing
+    
+    Exit Sub
+    
+ErrorHandler:
+    On Error Resume Next
+    If Not stream Is Nothing Then
+        stream.Close
+        Set stream = Nothing
+    End If
+End Sub
+
 Private Function InitializeLogging(doc As Document) As Boolean
     On Error GoTo ErrorHandler
     
@@ -1847,46 +1885,36 @@ Private Function InitializeLogging(doc As Document) As Boolean
     lastFlushTime = Now
     logFileHandle = 0
     
-    ' Cria arquivo de log com informações de contexto
-    fileNum = FreeFile
-    logFileHandle = fileNum
+    ' Cria arquivo de log com informações de contexto usando UTF-8
+    Dim headerText As String
+    headerText = String(80, "=") & vbCrLf
+    headerText = headerText & "CHAINSAW - LOG DE PROCESSAMENTO DE DOCUMENTO" & vbCrLf
+    headerText = headerText & String(80, "=") & vbCrLf & vbCrLf
+    headerText = headerText & "[SESSÃO]" & vbCrLf
+    headerText = headerText & "  Início: " & Format(Now, "dd/mm/yyyy HH:mm:ss") & vbCrLf
+    headerText = headerText & "  ID: " & Format(Now, "yyyymmddHHmmss") & vbCrLf & vbCrLf
+    headerText = headerText & "[AMBIENTE]" & vbCrLf
+    headerText = headerText & "  Usuário: " & Environ("USERNAME") & vbCrLf
+    headerText = headerText & "  Computador: " & Environ("COMPUTERNAME") & vbCrLf
+    headerText = headerText & "  Domínio: " & Environ("USERDOMAIN") & vbCrLf
+    headerText = headerText & "  SO: Windows " & GetWindowsVersion() & vbCrLf
+    headerText = headerText & "  Word: " & Application.Version & " (" & GetWordVersionName() & ")" & vbCrLf & vbCrLf
+    headerText = headerText & "[DOCUMENTO]" & vbCrLf
+    headerText = headerText & "  Nome: " & doc.Name & vbCrLf
+    headerText = headerText & "  Caminho: " & IIf(doc.Path = "", "(Não salvo)", doc.Path) & vbCrLf
+    headerText = headerText & "  Tamanho: " & GetDocumentSize(doc) & vbCrLf
+    headerText = headerText & "  Parágrafos: " & doc.Paragraphs.Count & vbCrLf
+    headerText = headerText & "  Páginas: " & doc.ComputeStatistics(wdStatisticPages) & vbCrLf
+    headerText = headerText & "  Proteção: " & GetProtectionType(doc) & vbCrLf
+    headerText = headerText & "  Idioma: " & doc.Range.LanguageID & vbCrLf & vbCrLf
+    headerText = headerText & "[CONFIGURAÇÃO]" & vbCrLf
+    headerText = headerText & "  Debug: " & IIf(DEBUG_MODE, "Ativado", "Desativado") & vbCrLf
+    headerText = headerText & "  Log: " & logFilePath & vbCrLf
+    headerText = headerText & "  Backup: " & IIf(doc.Path = "", "(Desabilitado)", doc.Path & "\backups\") & vbCrLf & vbCrLf
+    headerText = headerText & String(80, "=") & vbCrLf & vbCrLf
     
-    Open logFilePath For Output As #fileNum
-    
-    ' Cabeçalho estruturado
-    Print #fileNum, String(80, "=")
-    Print #fileNum, "CHAINSAW - LOG DE PROCESSAMENTO DE DOCUMENTO"
-    Print #fileNum, String(80, "=")
-    Print #fileNum, ""
-    Print #fileNum, "[SESSÃO]"
-    Print #fileNum, "  Início: " & Format(Now, "dd/mm/yyyy HH:mm:ss")
-    Print #fileNum, "  ID: " & Format(Now, "yyyymmddHHmmss")
-    Print #fileNum, ""
-    Print #fileNum, "[AMBIENTE]"
-    Print #fileNum, "  Usuário: " & Environ("USERNAME")
-    Print #fileNum, "  Computador: " & Environ("COMPUTERNAME")
-    Print #fileNum, "  Domínio: " & Environ("USERDOMAIN")
-    Print #fileNum, "  SO: Windows " & GetWindowsVersion()
-    Print #fileNum, "  Word: " & Application.version & " (" & GetWordVersionName() & ")"
-    Print #fileNum, ""
-    Print #fileNum, "[DOCUMENTO]"
-    Print #fileNum, "  Nome: " & doc.Name
-    Print #fileNum, "  Caminho: " & IIf(doc.Path = "", "(Não salvo)", doc.Path)
-    Print #fileNum, "  Tamanho: " & GetDocumentSize(doc)
-    Print #fileNum, "  Parágrafos: " & doc.Paragraphs.count
-    Print #fileNum, "  Páginas: " & doc.ComputeStatistics(wdStatisticPages)
-    Print #fileNum, "  Proteção: " & GetProtectionType(doc)
-    Print #fileNum, "  Idioma: " & doc.Range.LanguageID
-    Print #fileNum, ""
-    Print #fileNum, "[CONFIGURAÇÃO]"
-    Print #fileNum, "  Debug: " & IIf(DEBUG_MODE, "Ativado", "Desativado")
-    Print #fileNum, "  Log: " & logFilePath
-    Print #fileNum, "  Backup: " & IIf(doc.Path = "", "(Desabilitado)", doc.Path & "\backups\")
-    Print #fileNum, ""
-    Print #fileNum, String(80, "=")
-    Print #fileNum, ""
-    
-    Close #fileNum
+    ' Escreve cabeçalho em UTF-8
+    WriteTextUTF8 logFilePath, headerText, False
     
     loggingEnabled = True
     InitializeLogging = True
@@ -1895,7 +1923,6 @@ Private Function InitializeLogging(doc As Document) As Boolean
     
 ErrorHandler:
     On Error Resume Next
-    If fileNum > 0 Then Close #fileNum
     logFileHandle = 0
     loggingEnabled = False
     InitializeLogging = False
@@ -1956,14 +1983,8 @@ Private Sub LogMessage(message As String, Optional level As Long = LOG_LEVEL_INF
         ' Escreve imediatamente: erros, buffer cheio (>4KB), ou 5+ segundos desde último flush
         FlushLogBuffer
         
-        fileNum = FreeFile
-        Open logFilePath For Append As #fileNum
-        If Len(logBuffer) > 0 Then
-            Print #fileNum, logBuffer
-            logBuffer = ""
-        End If
-        Print #fileNum, formattedMessage
-        Close #fileNum
+        ' Escreve mensagem em UTF-8
+        WriteTextUTF8 logFilePath, formattedMessage, True
         
         lastFlushTime = Now
     Else
@@ -1984,12 +2005,8 @@ Private Sub FlushLogBuffer()
     
     If Len(logBuffer) = 0 Then Exit Sub
     
-    Dim fileNum As Integer
-    fileNum = FreeFile
-    
-    Open logFilePath For Append As #fileNum
-    Print #fileNum, logBuffer
-    Close #fileNum
+    ' Escreve buffer em UTF-8
+    WriteTextUTF8 logFilePath, logBuffer, True
     
     logBuffer = ""
     lastFlushTime = Now
@@ -2005,15 +2022,14 @@ Private Sub LogSection(sectionName As String)
     
     FlushLogBuffer
     
-    Dim fileNum As Integer
-    fileNum = FreeFile
+    ' Cria texto de seção
+    Dim sectionText As String
+    sectionText = vbCrLf & String(80, "-") & vbCrLf
+    sectionText = sectionText & "SEÇÃO: " & UCase(sectionName) & vbCrLf
+    sectionText = sectionText & String(80, "-")
     
-    Open logFilePath For Append As #fileNum
-    Print #fileNum, ""
-    Print #fileNum, String(80, "-")
-    Print #fileNum, "SEÇÃO: " & UCase(sectionName)
-    Print #fileNum, String(80, "-")
-    Close #fileNum
+    ' Escreve em UTF-8
+    WriteTextUTF8 logFilePath, sectionText, True
     
     lastFlushTime = Now
 End Sub
@@ -2086,55 +2102,49 @@ Private Sub SafeFinalizeLogging()
     
     totalEvents = infoCount + warningCount + errorCount
     
-    ' Escreve rodapé estruturado
-    fileNum = FreeFile
-    Open logFilePath For Append As #fileNum
-    
-    Print #fileNum, ""
-    Print #fileNum, String(80, "=")
-    Print #fileNum, "RESUMO DA SESSÃO"
-    Print #fileNum, String(80, "=")
-    Print #fileNum, ""
-    Print #fileNum, "[STATUS]"
-    Print #fileNum, "  Final: " & statusText & " " & statusIcon
-    Print #fileNum, "  Término: " & Format(Now, "dd/mm/yyyy HH:mm:ss")
-    Print #fileNum, "  Duração: " & durationText
-    Print #fileNum, ""
-    Print #fileNum, "[ESTATÍSTICAS]"
-    Print #fileNum, "  Total de eventos: " & totalEvents
-    Print #fileNum, "  Informações: " & infoCount & " (" & Format(infoCount / IIf(totalEvents > 0, totalEvents, 1) * 100, "0.0") & "%)"
-    Print #fileNum, "  Avisos: " & warningCount & " (" & Format(warningCount / IIf(totalEvents > 0, totalEvents, 1) * 100, "0.0") & "%)"
-    Print #fileNum, "  Erros: " & errorCount & " (" & Format(errorCount / IIf(totalEvents > 0, totalEvents, 1) * 100, "0.0") & "%)"
-    Print #fileNum, ""
+    ' Escreve rodapé estruturado em UTF-8
+    Dim footerText As String
+    footerText = vbCrLf & String(80, "=") & vbCrLf
+    footerText = footerText & "RESUMO DA SESSÃO" & vbCrLf
+    footerText = footerText & String(80, "=") & vbCrLf & vbCrLf
+    footerText = footerText & "[STATUS]" & vbCrLf
+    footerText = footerText & "  Final: " & statusText & " " & statusIcon & vbCrLf
+    footerText = footerText & "  Término: " & Format(Now, "dd/mm/yyyy HH:mm:ss") & vbCrLf
+    footerText = footerText & "  Duração: " & durationText & vbCrLf & vbCrLf
+    footerText = footerText & "[ESTATÍSTICAS]" & vbCrLf
+    footerText = footerText & "  Total de eventos: " & totalEvents & vbCrLf
+    footerText = footerText & "  Informações: " & infoCount & " (" & Format(infoCount / IIf(totalEvents > 0, totalEvents, 1) * 100, "0.0") & "%)" & vbCrLf
+    footerText = footerText & "  Avisos: " & warningCount & " (" & Format(warningCount / IIf(totalEvents > 0, totalEvents, 1) * 100, "0.0") & "%)" & vbCrLf
+    footerText = footerText & "  Erros: " & errorCount & " (" & Format(errorCount / IIf(totalEvents > 0, totalEvents, 1) * 100, "0.0") & "%)" & vbCrLf & vbCrLf
     
     ' Adiciona informações de performance
     If totalEvents > 0 Then
-        Print #fileNum, "[PERFORMANCE]"
-        Print #fileNum, "  Eventos/segundo: " & Format(totalEvents / IIf(duration > 0, duration, 1), "0.0")
-        Print #fileNum, "  Tempo médio/evento: " & Format((duration / totalEvents) * 1000, "0.0") & "ms"
-        Print #fileNum, ""
+        footerText = footerText & "[PERFORMANCE]" & vbCrLf
+        footerText = footerText & "  Eventos/segundo: " & Format(totalEvents / IIf(duration > 0, duration, 1), "0.0") & vbCrLf
+        footerText = footerText & "  Tempo médio/evento: " & Format((duration / totalEvents) * 1000, "0.0") & "ms" & vbCrLf & vbCrLf
     End If
     
     ' Recomendações se houver problemas
     If errorCount > 0 Or warningCount > 5 Then
-        Print #fileNum, "[RECOMENDAÇÕES]"
+        footerText = footerText & "[RECOMENDAÇÕES]" & vbCrLf
         If errorCount > 0 Then
-            Print #fileNum, "  • Verifique os erros acima e corrija problemas no documento"
+            footerText = footerText & "  • Verifique os erros acima e corrija problemas no documento" & vbCrLf
         End If
         If warningCount > 5 Then
-            Print #fileNum, "  • Múltiplos avisos detectados - revise o documento manualmente"
+            footerText = footerText & "  • Múltiplos avisos detectados - revise o documento manualmente" & vbCrLf
         End If
         If duration > 60 Then
-            Print #fileNum, "  • Processamento demorado - considere otimizar o documento"
+            footerText = footerText & "  • Processamento demorado - considere otimizar o documento" & vbCrLf
         End If
-        Print #fileNum, ""
+        footerText = footerText & vbCrLf
     End If
     
-    Print #fileNum, String(80, "=")
-    Print #fileNum, "FIM DO LOG"
-    Print #fileNum, String(80, "=")
+    footerText = footerText & String(80, "=") & vbCrLf
+    footerText = footerText & "FIM DO LOG" & vbCrLf
+    footerText = footerText & String(80, "=")
     
-    Close #fileNum
+    ' Escreve footer em UTF-8
+    WriteTextUTF8 logFilePath, footerText, True
     
     ' Limpa variáveis
     loggingEnabled = False
