@@ -93,6 +93,31 @@ if ([string]::IsNullOrWhiteSpace($SourcePath)) {
     }
 }
 
+# Normaliza/resolve o SourcePath quando fornecido como relativo/alias
+if (-not [string]::IsNullOrWhiteSpace($SourcePath)) {
+    try {
+        # Tenta resolver caminhos absolutos ou relativos existentes
+        $resolved = Resolve-Path -Path $SourcePath -ErrorAction Stop
+        $SourcePath = $resolved.ProviderPath
+    }
+    catch {
+        # Se não for um caminho absoluto, tente relative ao diretório do script
+        try {
+            if (-not [IO.Path]::IsPathRooted($SourcePath) -and -not [string]::IsNullOrWhiteSpace($PSScriptRoot)) {
+                $candidate = Join-Path $PSScriptRoot $SourcePath
+                if (Test-Path $candidate) {
+                    $SourcePath = (Resolve-Path -Path $candidate).ProviderPath
+                }
+            }
+        }
+        catch {
+            # ignora - deixamos o valor original para que as validações posteriores loguem
+        }
+    }
+}
+
+Write-Log "Caminho de Origem (resolvido): $SourcePath" -Level INFO
+
 # =============================================================================
 # AUTO-RELANÇAMENTO COM BYPASS DE EXECUÇÃO
 # =============================================================================

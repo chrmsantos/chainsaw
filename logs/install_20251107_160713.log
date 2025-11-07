@@ -1,0 +1,27 @@
+================================================================================
+CHAINSAW - Log de Instalação
+================================================================================
+Data/Hora Início: 07/11/2025 16:07:13
+Usuário: csantos
+Computador: NOTEPROCLEG01
+Sistema: Microsoft Windows NT 10.0.26100.0
+PowerShell: 5.1.26100.6899
+Caminho de Origem: max
+================================================================================
+
+[2025-11-07 16:07:13] [INFO] === INÍCIO DA INSTALAÇÃO ===
+[2025-11-07 16:07:13] [SUCCESS] Word não está em execução - prosseguindo...
+[2025-11-07 16:07:13] [INFO] Verificando pré-requisitos...
+[2025-11-07 16:07:13] [SUCCESS] Sistema operacional: Windows 10.0 ?
+[2025-11-07 16:07:13] [SUCCESS] PowerShell versão: 5.1.26100.6899 ?
+[2025-11-07 16:07:13] [INFO] Verificando acesso ao diretório de origem: max
+[2025-11-07 16:07:13] [SUCCESS] Acesso ao diretório de origem confirmado ?
+[2025-11-07 16:07:13] [SUCCESS] Permissões de escrita no perfil do usuário confirmadas ?
+[2025-11-07 16:07:13] [INFO] Verificando arquivos de origem...
+[2025-11-07 16:07:13] [ERROR] Arquivo não encontrado: max\assets\stamp.png
+[2025-11-07 16:07:13] [ERROR] Pasta não encontrada: max\configs\Templates
+[2025-11-07 16:07:13] [ERROR] === INSTALAÇÃO FALHOU ===
+[2025-11-07 16:07:13] [ERROR] Erro: Arquivos de origem não encontrados. Verifique os erros acima.
+[2025-11-07 16:07:13] [ERROR] Stack trace: em Install-CHAINSAWConfig, C:\Users\csantos\chainsaw\install.ps1: linha 1284
+em <ScriptBlock>, C:\Users\csantos\chainsaw\install.ps1: linha 1628
+[2025-11-07 16:07:13] [INFO] Duração até falha: 00:00
