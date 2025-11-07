@@ -93,31 +93,6 @@ if ([string]::IsNullOrWhiteSpace($SourcePath)) {
     }
 }
 
-# Normaliza/resolve o SourcePath quando fornecido como relativo/alias
-if (-not [string]::IsNullOrWhiteSpace($SourcePath)) {
-    try {
-        # Tenta resolver caminhos absolutos ou relativos existentes
-        $resolved = Resolve-Path -Path $SourcePath -ErrorAction Stop
-        $SourcePath = $resolved.ProviderPath
-    }
-    catch {
-        # Se não for um caminho absoluto, tente relative ao diretório do script
-        try {
-            if (-not [IO.Path]::IsPathRooted($SourcePath) -and -not [string]::IsNullOrWhiteSpace($PSScriptRoot)) {
-                $candidate = Join-Path $PSScriptRoot $SourcePath
-                if (Test-Path $candidate) {
-                    $SourcePath = (Resolve-Path -Path $candidate).ProviderPath
-                }
-            }
-        }
-        catch {
-            # ignora - deixamos o valor original para que as validações posteriores loguem
-        }
-    }
-}
-
-Write-Log "Caminho de Origem (resolvido): $SourcePath" -Level INFO
-
 # =============================================================================
 # AUTO-RELANÇAMENTO COM BYPASS DE EXECUÇÃO
 # =============================================================================
@@ -295,6 +270,33 @@ function Write-Log {
             default {
                 Write-Host "ℹ $Message" -ForegroundColor $ColorInfo
             }
+        }
+    }
+}
+
+# =============================================================================
+# NORMALIZAÇÃO DO SOURCEPATH
+# =============================================================================
+
+# Normaliza/resolve o SourcePath quando fornecido como relativo/alias
+if (-not [string]::IsNullOrWhiteSpace($SourcePath)) {
+    try {
+        # Tenta resolver caminhos absolutos ou relativos existentes
+        $resolved = Resolve-Path -Path $SourcePath -ErrorAction Stop
+        $SourcePath = $resolved.ProviderPath
+    }
+    catch {
+        # Se não for um caminho absoluto, tente relative ao diretório do script
+        try {
+            if (-not [IO.Path]::IsPathRooted($SourcePath) -and -not [string]::IsNullOrWhiteSpace($PSScriptRoot)) {
+                $candidate = Join-Path $PSScriptRoot $SourcePath
+                if (Test-Path $candidate) {
+                    $SourcePath = (Resolve-Path -Path $candidate).ProviderPath
+                }
+            }
+        }
+        catch {
+            # ignora - deixamos o valor original para que as validações posteriores loguem
         }
     }
 }
@@ -1268,6 +1270,9 @@ function Install-CHAINSAWConfig {
         Write-Host ""
     }
     
+    # Loga o SourcePath resolvido
+    Write-Log "Caminho de Origem (resolvido): $SourcePath" -Level INFO
+    
     $startTime = Get-Date
     Write-Log "=== INÍCIO DA INSTALAÇÃO ===" -Level INFO
     
@@ -1400,7 +1405,6 @@ function Install-CHAINSAWConfig {
                     
                     # Remove módulos antigos
                     $oldModuleNames = @("Módulo1", "Module1", "monolithicMod", "Mod_Main", "Chainsaw", "CHAINSAW_MODX", "Chainsaw_ModX", "chainsawModX")
-                    $moduleRemoved = $false
                     
                     foreach ($moduleName in $oldModuleNames) {
                         try {
@@ -1418,7 +1422,6 @@ function Install-CHAINSAWConfig {
                                 # Remove o módulo
                                 $vbProject.VBComponents.Remove($module)
                                 Write-Log "Módulo '$moduleName' removido" -Level INFO
-                                $moduleRemoved = $true
                             }
                         }
                         catch {
