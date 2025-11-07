@@ -3181,41 +3181,8 @@ End Function
 '================================================================================
 ' HELPER FUNCTIONS FOR BLANK LINES - Funções auxiliares para linhas em branco
 '================================================================================
-Private Function CountBlankLinesBefore(doc As Document, paraIndex As Long) As Long
-    On Error GoTo ErrorHandler
-    
-    Dim count As Long
-    Dim i As Long
-    Dim para As Paragraph
-    Dim paraText As String
-    
-    count = 0
-    
-    ' Verifica parágrafos anteriores (máximo 5 para performance)
-    For i = paraIndex - 1 To 1 Step -1
-        If i <= 0 Then Exit For
-        
-        Set para = doc.Paragraphs(i)
-        paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
-        
-        ' Se o parágrafo está vazio, conta como linha em branco
-        If paraText = "" And Not HasVisualContent(para) Then
-            count = count + 1
-        Else
-            ' Se encontrou parágrafo com conteúdo, para de contar
-            Exit For
-        End If
-        
-        ' Limite de segurança
-        If count >= 5 Then Exit For
-    Next i
-    
-    CountBlankLinesBefore = count
-    Exit Function
-    
-ErrorHandler:
-    CountBlankLinesBefore = 0
-End Function
+' Nota: CountBlankLinesBefore já está definida nas linhas 918-958
+' (seção de identificação de estrutura do documento)
 
 Private Function CountBlankLinesAfter(doc As Document, paraIndex As Long) As Long
     On Error GoTo ErrorHandler
