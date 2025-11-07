@@ -1,0 +1,41 @@
+================================================================================
+CHAINSAW - Log de Instalação
+================================================================================
+Data/Hora Início: 07/11/2025 16:14:49
+Usuário: csantos
+Computador: NOTEPROCLEG01
+Sistema: Microsoft Windows NT 10.0.26100.0
+PowerShell: 5.1.26100.6899
+Caminho de Origem: C:\Users\csantos\chainsaw\max
+================================================================================
+
+[2025-11-07 16:14:49] [INFO] === INÍCIO DA INSTALAÇÃO ===
+[2025-11-07 16:14:49] [SUCCESS] Word não está em execução - prosseguindo...
+[2025-11-07 16:14:50] [INFO] Verificando pré-requisitos...
+[2025-11-07 16:14:50] [SUCCESS] Sistema operacional: Windows 10.0 ?
+[2025-11-07 16:14:50] [SUCCESS] PowerShell versão: 5.1.26100.6899 ?
+[2025-11-07 16:14:50] [INFO] Verificando acesso ao diretório de origem: C:\Users\csantos\chainsaw\max
+[2025-11-07 16:14:50] [SUCCESS] Acesso ao diretório de origem confirmado ?
+[2025-11-07 16:14:50] [SUCCESS] Permissões de escrita no perfil do usuário confirmadas ?
+[2025-11-07 16:14:50] [INFO] Verificando arquivos de origem...
+[2025-11-07 16:14:50] [SUCCESS] Arquivo stamp.png encontrado ?
+[2025-11-07 16:14:50] [SUCCESS] Pasta Templates encontrada ?
+[2025-11-07 16:14:51] [INFO] Copiando arquivo stamp.png...
+[2025-11-07 16:14:51] [INFO] Origem: C:\Users\csantos\chainsaw\max\assets\stamp.png
+[2025-11-07 16:14:51] [INFO] Destino: C:\Users\csantos\CHAINSAW\assets\stamp.png
+[2025-11-07 16:14:51] [SUCCESS] Arquivo stamp.png copiado com sucesso ?
+[2025-11-07 16:14:51] [INFO] Criando backup da pasta Templates...
+[2025-11-07 16:14:51] [INFO] Origem: C:\Users\csantos\AppData\Roaming\Microsoft\Templates
+[2025-11-07 16:14:51] [INFO] Destino: C:\Users\csantos\AppData\Roaming\Microsoft\Templates_backup_20251107_161451
+[2025-11-07 16:14:51] [SUCCESS] Backup criado com sucesso: Templates_backup_20251107_161451 ?
+[2025-11-07 16:14:52] [INFO] Removendo backups antigos (mantendo os 5 mais recentes)...
+[2025-11-07 16:14:52] [INFO] Backup removido: Templates_backup_20251105_173738
+[2025-11-07 16:14:52] [INFO] Copiando pasta Templates...
+[2025-11-07 16:14:52] [INFO] Origem: C:\Users\csantos\chainsaw\max\configs\Templates
+[2025-11-07 16:14:52] [INFO] Destino: C:\Users\csantos\AppData\Roaming\Microsoft\Templates
+[2025-11-07 16:14:52] [INFO] Total de itens a copiar: 46
+[2025-11-07 16:14:52] [SUCCESS] Pasta Templates copiada com sucesso (38 arquivos) ?
+[2025-11-07 16:14:52] [WARNING] Módulo VBA não encontrado em: C:\Users\csantos\chainsaw\max\src\monolithicMod.bas
+[2025-11-07 16:14:52] [INFO] Pasta 'exported-config' não encontrada - pulando importação
+[2025-11-07 16:14:52] [SUCCESS] === INSTALAÇÃO CONCLUÍDA COM SUCESSO ===
+[2025-11-07 16:14:52] [INFO] Duração: 00:02
