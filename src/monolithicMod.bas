@@ -80,6 +80,9 @@ Private Const HEADER_IMAGE_HEIGHT_RATIO As Double = 0.19
 Private Const MIN_SUPPORTED_VERSION As Long = 14
 Private Const REQUIRED_STRING As String = "$NUMERO$/$ANO$"
 Private Const BACKUP_FOLDER_NAME As String = "backups"
+Private Const CHAINSAW_ROOT_FOLDER As String = ".chainsaw"
+Private Const CHAINSAW_BACKUPS_FOLDER As String = "backups"
+Private Const CHAINSAW_LOGS_FOLDER As String = "logs"
 Private Const MAX_BACKUP_FILES As Long = 10
 Private Const DEBUG_MODE As Boolean = False
 
@@ -1811,6 +1814,58 @@ FinalFallback:
 End Function
 
 '================================================================================
+' FUNÇÕES DE CAMINHO - Estrutura .chainsaw
+'================================================================================
+
+'--------------------------------------------------------------------------------
+' GetChainsawTempPath - Retorna caminho base .chainsaw no Temp
+'--------------------------------------------------------------------------------
+Private Function GetChainsawTempPath() As String
+    GetChainsawTempPath = Environ("TEMP") & "\" & CHAINSAW_ROOT_FOLDER
+End Function
+
+'--------------------------------------------------------------------------------
+' GetChainsawBackupsPath - Retorna caminho para backups
+'--------------------------------------------------------------------------------
+Private Function GetChainsawBackupsPath() As String
+    GetChainsawBackupsPath = GetChainsawTempPath() & "\" & CHAINSAW_BACKUPS_FOLDER
+End Function
+
+'--------------------------------------------------------------------------------
+' GetChainsawLogsPath - Retorna caminho para logs
+'--------------------------------------------------------------------------------
+Private Function GetChainsawLogsPath() As String
+    GetChainsawLogsPath = GetChainsawTempPath() & "\" & CHAINSAW_LOGS_FOLDER
+End Function
+
+'--------------------------------------------------------------------------------
+' EnsureChainsawFolders - Cria estrutura de pastas .chainsaw se não existir
+'--------------------------------------------------------------------------------
+Private Sub EnsureChainsawFolders()
+    On Error Resume Next
+    
+    Dim fso As Object
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    
+    ' Cria pasta raiz .chainsaw
+    If Not fso.FolderExists(GetChainsawTempPath()) Then
+        fso.CreateFolder GetChainsawTempPath()
+    End If
+    
+    ' Cria pasta backups
+    If Not fso.FolderExists(GetChainsawBackupsPath()) Then
+        fso.CreateFolder GetChainsawBackupsPath()
+    End If
+    
+    ' Cria pasta logs
+    If Not fso.FolderExists(GetChainsawLogsPath()) Then
+        fso.CreateFolder GetChainsawLogsPath()
+    End If
+    
+    Set fso = Nothing
+End Sub
+
+'================================================================================
 ' SISTEMA DE REGISTRO DE LOGS
 '================================================================================
 
@@ -1859,11 +1914,15 @@ Private Function InitializeLogging(doc As Document) As Boolean
     Dim fileNum As Integer
     Dim fso As Object
     
-    ' Define o caminho do log na mesma pasta do documento ativo
+    ' Garante que a estrutura .chainsaw existe
+    EnsureChainsawFolders
+    
+    ' Define o caminho do log
+    ' Se documento foi salvo, usa pasta do documento; senão usa .chainsaw\logs
     If doc.Path <> "" Then
         logFolder = doc.Path & "\"
     Else
-        logFolder = Environ("TEMP") & "\"
+        logFolder = GetChainsawLogsPath() & "\"
     End If
     
     ' Sanitiza nome do documento para uso em arquivo
@@ -5716,11 +5775,19 @@ Public Sub AbrirPastaLogsEBackups()
     Dim doc As Document
     Dim docFolder As String
     Dim backupFolder As String
+    Dim chainsawFolder As String
     Dim fso As Object
     Dim folderToOpen As String
     Dim hasBackups As Boolean
+    Dim hasChainsawFolder As Boolean
     
     Set fso = CreateObject("Scripting.FileSystemObject")
+    
+    ' Garante que a estrutura .chainsaw existe
+    EnsureChainsawFolders
+    
+    ' Caminho da pasta .chainsaw
+    chainsawFolder = GetChainsawTempPath()
     
     ' Tenta obter documento ativo
     Set doc = Nothing
@@ -5728,10 +5795,10 @@ Public Sub AbrirPastaLogsEBackups()
     Set doc = ActiveDocument
     On Error GoTo ErrorHandler
     
-    ' Verifica se há documento ativo salvo
+    ' Se não há documento ativo ou não foi salvo, abre pasta .chainsaw
     If doc Is Nothing Or doc.Path = "" Then
-        Application.StatusBar = "Abrindo pasta temporária"
-        shell "explorer.exe """ & Environ("TEMP") & """", vbNormalFocus
+        Application.StatusBar = "Abrindo pasta .chainsaw"
+        Shell "explorer.exe """ & chainsawFolder & """", vbNormalFocus
         Exit Sub
     End If
     
@@ -5771,14 +5838,14 @@ ErrorHandler:
     Application.StatusBar = "Erro ao abrir pasta"
     LogMessage "Erro ao abrir pasta de logs/backups: " & Err.Description, LOG_LEVEL_ERROR
     
-    ' Fallback: tenta abrir pasta do documento ou TEMP
+    ' Fallback: tenta abrir pasta do documento ou .chainsaw
     On Error Resume Next
     If Not doc Is Nothing And doc.Path <> "" Then
-        shell "explorer.exe """ & doc.Path & """", vbNormalFocus
+        Shell "explorer.exe """ & doc.Path & """", vbNormalFocus
         Application.StatusBar = "Pasta alternativa aberta"
     Else
-        shell "explorer.exe """ & Environ("TEMP") & """", vbNormalFocus
-        Application.StatusBar = "Pasta temporária aberta"
+        Shell "explorer.exe """ & GetChainsawTempPath() & """", vbNormalFocus
+        Application.StatusBar = "Pasta .chainsaw aberta"
     End If
 End Sub
 
@@ -7224,13 +7291,16 @@ Private Function EnsureBackupDirectory(doc As Document) As String
     
     Set fso = CreateObject("Scripting.FileSystemObject")
     
-    ' Define o caminho base para backups na mesma pasta do documento
+    ' Garante que a estrutura .chainsaw existe
+    EnsureChainsawFolders
+    
+    ' Define o caminho base para backups
     If doc.Path <> "" Then
         ' Documento salvo - cria subpasta "backups" na mesma pasta do documento
         backupPath = doc.Path & "\" & BACKUP_FOLDER_NAME
     Else
-        ' Documento não salvo - usa TEMP como fallback
-        backupPath = Environ("TEMP") & "\" & BACKUP_FOLDER_NAME
+        ' Documento não salvo - usa .chainsaw\backups
+        backupPath = GetChainsawBackupsPath()
     End If
     
     ' Cria o diretório se não existir
@@ -7244,11 +7314,11 @@ Private Function EnsureBackupDirectory(doc As Document) As String
     
 ErrorHandler:
     LogMessage "Erro ao criar pasta de backup: " & Err.Description, LOG_LEVEL_ERROR
-    ' Retorna pasta do documento ou TEMP como fallback
+    ' Retorna pasta do documento ou .chainsaw como fallback
     If doc.Path <> "" Then
         EnsureBackupDirectory = doc.Path
     Else
-        EnsureBackupDirectory = Environ("TEMP")
+        EnsureBackupDirectory = GetChainsawTempPath()
     End If
 End Function
 
