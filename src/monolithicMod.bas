@@ -5785,7 +5785,7 @@ Public Sub ConfirmarDesfazerPadronizacao()
     ' Executa o comando Desfazer (Undo)
     Application.StatusBar = "Desfazendo padronização..."
     On Error Resume Next
-    Application.Undo
+    doc.Undo
     On Error GoTo ErrorHandler
     
     ' Aguarda o Word processar o desfazer
