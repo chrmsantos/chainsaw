@@ -274,8 +274,12 @@ Public Sub PadronizarDocumentoMain()
     
     LogMessage "Iniciando padronização do documento: " & doc.Name, LOG_LEVEL_INFO
     
-    ' Inicializa barra de progresso (15 etapas principais)
-    InitializeProgress 15
+    ' Inicializa barra de progresso
+    ' Etapas: Verificação(1) + Backup(1) + Config(1) + Imagens(1) + Listas(1) +
+    '         [Pipeline x2: Index(1) + Format(1) + RestoreImg(1) + RestoreList(1) + 
+    '          Numbered(1) + Bulleted(1) + ImgLayout(1) + Center(1) = 8 etapas] x 2 = 16 +
+    '         Restaurar View(1) + Finalizar(1) = 22 etapas totais
+    InitializeProgress 22
     
     ' ---------------------------------------------------------------------------
     ' INÍCIO DO GRUPO DE DESFAZER - TODAS as operações são agrupadas aqui
@@ -334,50 +338,96 @@ Public Sub PadronizarDocumentoMain()
         LogMessage "Aviso: Falha no backup de listas - formatações de lista podem ser perdidas", LOG_LEVEL_WARNING
     End If
     
-    ' Constrói cache de parágrafos para otimização
-    IncrementProgress "Indexando parágrafos"
-    BuildParagraphCache doc
-
-    IncrementProgress "Formatando documento"
-    If Not PreviousFormatting(doc) Then
-        GoTo CleanUp
-    End If
-
-    ' Restaura imagens após formatações
-    IncrementProgress "Restaurando imagens"
-    If Not RestoreAllImages(doc) Then
-        LogMessage "Aviso: Algumas imagens podem ter sido afetadas durante o processamento", LOG_LEVEL_WARNING
-    End If
+    ' ==========================================================================
+    ' EXECUÇÃO DUPLA DO PIPELINE DE FORMATAÇÃO
+    ' Executar duas vezes garante que formatações dependentes sejam aplicadas
+    ' corretamente (ex: formatações que dependem de outras já aplicadas)
+    ' ==========================================================================
     
-    ' Restaura formatações de lista após formatações
-    IncrementProgress "Restaurando listas"
-    If Not RestoreListFormats(doc) Then
-        LogMessage "Aviso: Algumas formatações de lista podem não ter sido restauradas", LOG_LEVEL_WARNING
-    End If
+    Dim pipelinePass As Long
+    For pipelinePass = 1 To 2
+        LogMessage "=== PIPELINE DE FORMATAÇÃO - PASSAGEM " & pipelinePass & " DE 2 ===", LOG_LEVEL_INFO
+        
+        ' Constrói/reconstrói cache de parágrafos
+        If pipelinePass = 1 Then
+            IncrementProgress "Indexando parágrafos (1ª passagem)"
+        Else
+            IncrementProgress "Reindexando parágrafos (2ª passagem)"
+        End If
+        BuildParagraphCache doc
     
-    ' Formata parágrafos iniciados com número (aplica recuo de lista numerada)
-    IncrementProgress "Ajustando numeração"
-    If Not FormatNumberedParagraphsIndent(doc) Then
-        LogMessage "Aviso: Falha ao formatar recuos de parágrafos numerados", LOG_LEVEL_WARNING
-    End If
+        ' Formata documento
+        If pipelinePass = 1 Then
+            IncrementProgress "Formatando documento (1ª passagem)"
+        Else
+            IncrementProgress "Refinando formatação (2ª passagem)"
+        End If
+        If Not PreviousFormatting(doc) Then
+            GoTo CleanUp
+        End If
     
-    ' Formata parágrafos iniciados com marcador (aplica recuo de lista com marcadores)
-    IncrementProgress "Ajustando marcadores"
-    If Not FormatBulletedParagraphsIndent(doc) Then
-        LogMessage "Aviso: Falha ao formatar recuos de parágrafos com marcadores", LOG_LEVEL_WARNING
-    End If
-    
-    ' Formata recuos de parágrafos com imagens (zera recuo à esquerda)
-    IncrementProgress "Ajustando layout"
-    If Not FormatImageParagraphsIndents(doc) Then
-        LogMessage "Aviso: Falha ao formatar recuos de imagens", LOG_LEVEL_WARNING
-    End If
-    
-    ' Centraliza imagem entre 5ª e 7ª linha após Plenário
-    IncrementProgress "Centralizando elementos"
-    If Not CenterImageAfterPlenario(doc) Then
-        LogMessage "Aviso: Falha ao centralizar imagem após Plenário", LOG_LEVEL_WARNING
-    End If
+        ' Restaura imagens após formatações
+        If pipelinePass = 1 Then
+            IncrementProgress "Restaurando imagens (1ª passagem)"
+        Else
+            IncrementProgress "Verificando imagens (2ª passagem)"
+        End If
+        If Not RestoreAllImages(doc) Then
+            LogMessage "Aviso: Algumas imagens podem ter sido afetadas durante o processamento", LOG_LEVEL_WARNING
+        End If
+        
+        ' Restaura formatações de lista após formatações
+        If pipelinePass = 1 Then
+            IncrementProgress "Restaurando listas (1ª passagem)"
+        Else
+            IncrementProgress "Verificando listas (2ª passagem)"
+        End If
+        If Not RestoreListFormats(doc) Then
+            LogMessage "Aviso: Algumas formatações de lista podem não ter sido restauradas", LOG_LEVEL_WARNING
+        End If
+        
+        ' Formata parágrafos iniciados com número (aplica recuo de lista numerada)
+        If pipelinePass = 1 Then
+            IncrementProgress "Ajustando numeração (1ª passagem)"
+        Else
+            IncrementProgress "Refinando numeração (2ª passagem)"
+        End If
+        If Not FormatNumberedParagraphsIndent(doc) Then
+            LogMessage "Aviso: Falha ao formatar recuos de parágrafos numerados", LOG_LEVEL_WARNING
+        End If
+        
+        ' Formata parágrafos iniciados com marcador (aplica recuo de lista com marcadores)
+        If pipelinePass = 1 Then
+            IncrementProgress "Ajustando marcadores (1ª passagem)"
+        Else
+            IncrementProgress "Refinando marcadores (2ª passagem)"
+        End If
+        If Not FormatBulletedParagraphsIndent(doc) Then
+            LogMessage "Aviso: Falha ao formatar recuos de parágrafos com marcadores", LOG_LEVEL_WARNING
+        End If
+        
+        ' Formata recuos de parágrafos com imagens (zera recuo à esquerda)
+        If pipelinePass = 1 Then
+            IncrementProgress "Ajustando layout (1ª passagem)"
+        Else
+            IncrementProgress "Refinando layout (2ª passagem)"
+        End If
+        If Not FormatImageParagraphsIndents(doc) Then
+            LogMessage "Aviso: Falha ao formatar recuos de imagens", LOG_LEVEL_WARNING
+        End If
+        
+        ' Centraliza imagem entre 5ª e 7ª linha após Plenário
+        If pipelinePass = 1 Then
+            IncrementProgress "Centralizando elementos (1ª passagem)"
+        Else
+            IncrementProgress "Verificando centralização (2ª passagem)"
+        End If
+        If Not CenterImageAfterPlenario(doc) Then
+            LogMessage "Aviso: Falha ao centralizar imagem após Plenário", LOG_LEVEL_WARNING
+        End If
+        
+        LogMessage "=== FIM DA PASSAGEM " & pipelinePass & " ===", LOG_LEVEL_INFO
+    Next pipelinePass
 
     ' Restaura configurações de visualização originais (exceto zoom)
     IncrementProgress "Restaurando visualização"
