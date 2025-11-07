@@ -1,10 +1,21 @@
 ' =============================================================================
 ' CHAINSAW - Sistema de Padronização de Proposituras Legislativas
 ' =============================================================================
-' Versão: 1.0-RC1-202511061541
+' Versão: 1.1-RC1-202511071045
 ' Licença: GNU GPLv3 (https://www.gnu.org/licenses/gpl-3.0.html)
 ' Compatibilidade: Microsoft Word 2010+
 ' Autor: Christian Martin dos Santos (chrmsantos@protonmail.com)
+' =============================================================================
+' CHANGELOG v1.1:
+' - Adicionado sistema de identificação de elementos estruturais da propositura
+' - Novos identificadores: Título, Ementa, Proposição, Justificativa, Data,
+'   Assinatura, Anexo e Propositura completa
+' - Funções públicas de acesso aos elementos: GetTituloRange, GetEmentaRange,
+'   GetProposicaoRange, GetJustificativaRange, GetDataRange, GetAssinaturaRange,
+'   GetTituloAnexoRange, GetAnexoRange, GetProposituraRange
+' - Integração com sistema de cache de parágrafos existente
+' - Identificação automática durante BuildParagraphCache
+' - Função GetElementInfo para relatório completo dos elementos
 ' =============================================================================
 
 Option Explicit
@@ -87,6 +98,18 @@ Private Const CONSIDERANDO_MIN_LENGTH As Long = 12
 Private Const JUSTIFICATIVA_TEXT As String = "justificativa"
 
 '================================================================================
+' CONSTANTES DE IDENTIFICAÇÃO DE ELEMENTOS ESTRUTURAIS
+'================================================================================
+' Critérios para identificação dos elementos da propositura
+Private Const TITULO_MIN_LENGTH As Long = 15              ' Comprimento mínimo do título
+Private Const EMENTA_MIN_LEFT_INDENT As Single = 6        ' Recuo mínimo à esquerda da ementa (em pontos)
+Private Const PLENARIO_TEXT As String = "plenário ""dr. tancredo neves"""  ' Texto identificador da data
+Private Const ANEXO_TEXT_SINGULAR As String = "anexo"     ' Texto identificador de anexo (singular)
+Private Const ANEXO_TEXT_PLURAL As String = "anexos"      ' Texto identificador de anexo (plural)
+Private Const ASSINATURA_PARAGRAPH_COUNT As Long = 3      ' Número de parágrafos da assinatura
+Private Const ASSINATURA_BLANK_LINES_BEFORE As Long = 2   ' Linhas em branco antes da assinatura
+
+'================================================================================
 ' VARIÁVEIS GLOBAIS
 '================================================================================
 Private undoGroupEnabled As Boolean
@@ -112,6 +135,16 @@ Private Type paragraphCache
     isSpecial As Boolean
     specialType As String
     needsFormatting As Boolean
+    ' Identificadores de elementos estruturais da propositura
+    isTitulo As Boolean
+    isEmenta As Boolean
+    isProposicaoContent As Boolean
+    isTituloJustificativa As Boolean
+    isJustificativaContent As Boolean
+    isData As Boolean
+    isAssinatura As Boolean
+    isTituloAnexo As Boolean
+    isAnexoContent As Boolean
 End Type
 
 Private paragraphCache() As paragraphCache
@@ -174,6 +207,24 @@ End Type
 
 Private savedListFormats() As ListFormatInfo
 Private listFormatCount As Long
+
+'================================================================================
+' VARIÁVEIS DE IDENTIFICAÇÃO DE ELEMENTOS ESTRUTURAIS
+'================================================================================
+' Índices dos elementos identificados no documento (0 = não encontrado)
+Private tituloParaIndex As Long
+Private ementaParaIndex As Long
+Private proposicaoStartIndex As Long
+Private proposicaoEndIndex As Long
+Private tituloJustificativaIndex As Long
+Private justificativaStartIndex As Long
+Private justificativaEndIndex As Long
+Private dataParaIndex As Long
+Private assinaturaStartIndex As Long
+Private assinaturaEndIndex As Long
+Private tituloAnexoIndex As Long
+Private anexoStartIndex As Long
+Private anexoEndIndex As Long
 
 '================================================================================
 ' PONTO DE ENTRADA PRINCIPAL
@@ -688,6 +739,490 @@ Private Function DetectSpecialParagraph(cleanText As String, ByRef specialType A
 End Function
 
 '================================================================================
+' IDENTIFICAÇÃO DE ELEMENTOS ESTRUTURAIS DA PROPOSITURA
+'================================================================================
+
+'--------------------------------------------------------------------------------
+' IsTituloElement - Identifica se o parágrafo é o título da propositura
+'--------------------------------------------------------------------------------
+' Critérios:
+' - 1ª linha contendo texto
+' - Negrito, sublinhado, caixa alta
+' - Recuo = 0
+' - Mais de 15 caracteres
+' - Termina com "$NUMERO$/$ANO$"
+'--------------------------------------------------------------------------------
+Private Function IsTituloElement(para As Paragraph) As Boolean
+    On Error GoTo ErrorHandler
+    
+    IsTituloElement = False
+    
+    ' Validação de segurança
+    If para Is Nothing Then Exit Function
+    If para.Range Is Nothing Then Exit Function
+    
+    ' Obtém texto limpo
+    Dim paraText As String
+    paraText = Trim(para.Range.text)
+    If Len(paraText) < TITULO_MIN_LENGTH Then Exit Function
+    
+    ' Verifica se termina com a string requerida
+    Dim cleanText As String
+    cleanText = Replace(Replace(paraText, vbCr, ""), vbLf, "")
+    If Not (Right(Trim(cleanText), Len(REQUIRED_STRING)) = REQUIRED_STRING) Then Exit Function
+    
+    ' Verifica formatação do parágrafo
+    With para.Format
+        If .leftIndent <> 0 Then Exit Function
+        If .alignment <> wdAlignParagraphLeft Then Exit Function
+    End With
+    
+    ' Verifica formatação do texto (negrito, sublinhado, caixa alta)
+    With para.Range.Font
+        If .Bold <> msoTrue Then Exit Function
+        If .Underline = wdUnderlineNone Then Exit Function
+        If .AllCaps <> msoTrue Then Exit Function
+    End With
+    
+    IsTituloElement = True
+    Exit Function
+    
+ErrorHandler:
+    IsTituloElement = False
+End Function
+
+'--------------------------------------------------------------------------------
+' IsEmentaElement - Identifica se o parágrafo é a ementa
+'--------------------------------------------------------------------------------
+' Critérios:
+' - Parágrafo único imediatamente abaixo do título
+' - Recuo à esquerda > 6 pontos
+' - Contém texto
+'--------------------------------------------------------------------------------
+Private Function IsEmentaElement(para As Paragraph, prevParaIsTitulo As Boolean) As Boolean
+    On Error GoTo ErrorHandler
+    
+    IsEmentaElement = False
+    
+    ' Validação de segurança
+    If para Is Nothing Then Exit Function
+    If Not prevParaIsTitulo Then Exit Function
+    
+    ' Verifica se contém texto
+    Dim paraText As String
+    paraText = Trim(para.Range.text)
+    If Len(paraText) = 0 Then Exit Function
+    
+    ' Verifica recuo à esquerda
+    If para.Format.leftIndent <= EMENTA_MIN_LEFT_INDENT Then Exit Function
+    
+    IsEmentaElement = True
+    Exit Function
+    
+ErrorHandler:
+    IsEmentaElement = False
+End Function
+
+'--------------------------------------------------------------------------------
+' IsJustificativaTitleElement - Identifica o título "Justificativa"
+'--------------------------------------------------------------------------------
+Private Function IsJustificativaTitleElement(para As Paragraph) As Boolean
+    On Error GoTo ErrorHandler
+    
+    IsJustificativaTitleElement = False
+    
+    ' Validação de segurança
+    If para Is Nothing Then Exit Function
+    
+    ' Verifica se o texto é "Justificativa"
+    Dim cleanText As String
+    cleanText = GetCleanParagraphText(para)
+    If cleanText <> JUSTIFICATIVA_TEXT Then Exit Function
+    
+    IsJustificativaTitleElement = True
+    Exit Function
+    
+ErrorHandler:
+    IsJustificativaTitleElement = False
+End Function
+
+'--------------------------------------------------------------------------------
+' IsDataElement - Identifica o parágrafo de data (Plenário)
+'--------------------------------------------------------------------------------
+' Critérios:
+' - Contém "Plenário "Dr. Tancredo Neves", $DATAATUALEXTENSO$."
+'--------------------------------------------------------------------------------
+Private Function IsDataElement(para As Paragraph) As Boolean
+    On Error GoTo ErrorHandler
+    
+    IsDataElement = False
+    
+    ' Validação de segurança
+    If para Is Nothing Then Exit Function
+    
+    ' Verifica se contém o texto do plenário
+    Dim paraTextLower As String
+    paraTextLower = LCase(Trim(para.Range.text))
+    
+    ' Busca por "plenário" e elementos relacionados
+    If InStr(paraTextLower, "plenário") > 0 And _
+       InStr(paraTextLower, "tancredo neves") > 0 Then
+        IsDataElement = True
+    End If
+    
+    Exit Function
+    
+ErrorHandler:
+    IsDataElement = False
+End Function
+
+'--------------------------------------------------------------------------------
+' IsTituloAnexoElement - Identifica o título "Anexo" ou "Anexos"
+'--------------------------------------------------------------------------------
+' Critérios:
+' - Parágrafo unicamente com palavra "Anexo" ou "Anexos"
+' - Negrito, recuo 0, alinhado à esquerda
+'--------------------------------------------------------------------------------
+Private Function IsTituloAnexoElement(para As Paragraph) As Boolean
+    On Error GoTo ErrorHandler
+    
+    IsTituloAnexoElement = False
+    
+    ' Validação de segurança
+    If para Is Nothing Then Exit Function
+    
+    ' Verifica texto
+    Dim cleanText As String
+    cleanText = GetCleanParagraphText(para)
+    If cleanText <> ANEXO_TEXT_SINGULAR And cleanText <> ANEXO_TEXT_PLURAL Then Exit Function
+    
+    ' Verifica formatação
+    With para.Format
+        If .leftIndent <> 0 Then Exit Function
+        If .alignment <> wdAlignParagraphLeft Then Exit Function
+    End With
+    
+    ' Verifica negrito
+    If para.Range.Font.Bold <> msoTrue Then Exit Function
+    
+    IsTituloAnexoElement = True
+    Exit Function
+    
+ErrorHandler:
+    IsTituloAnexoElement = False
+End Function
+
+'--------------------------------------------------------------------------------
+' CountBlankLinesBefore - Conta linhas em branco antes de um parágrafo
+'--------------------------------------------------------------------------------
+Private Function CountBlankLinesBefore(doc As Document, paraIndex As Long) As Long
+    On Error GoTo ErrorHandler
+    
+    CountBlankLinesBefore = 0
+    
+    If paraIndex <= 1 Then Exit Function
+    If paraIndex > doc.Paragraphs.count Then Exit Function
+    
+    Dim i As Long
+    Dim blankCount As Long
+    blankCount = 0
+    
+    ' Volta até encontrar parágrafo não-vazio ou até 5 linhas
+    For i = paraIndex - 1 To 1 Step -1
+        If i > doc.Paragraphs.count Then Exit For
+        
+        Dim paraText As String
+        paraText = Trim(doc.Paragraphs(i).Range.text)
+        
+        If Len(paraText) = 0 Then
+            blankCount = blankCount + 1
+        Else
+            Exit For
+        End If
+        
+        ' Limita a 5 linhas para evitar loops longos
+        If blankCount >= 5 Then Exit For
+    Next i
+    
+    CountBlankLinesBefore = blankCount
+    Exit Function
+    
+ErrorHandler:
+    CountBlankLinesBefore = 0
+End Function
+
+'--------------------------------------------------------------------------------
+' IsAssinaturaStart - Identifica o início da assinatura
+'--------------------------------------------------------------------------------
+' Critérios:
+' - 3 parágrafos textuais
+' - 2 linhas em branco antes
+' - Centralizados
+' - Sem linhas em branco entre si
+' - Pode ter imagens logo abaixo (sem linhas em branco)
+'--------------------------------------------------------------------------------
+Private Function IsAssinaturaStart(doc As Document, paraIndex As Long) As Boolean
+    On Error GoTo ErrorHandler
+    
+    IsAssinaturaStart = False
+    
+    ' Validação de segurança
+    If paraIndex <= 0 Or paraIndex > doc.Paragraphs.count Then Exit Function
+    
+    ' Verifica se há linhas em branco antes (pelo menos 2)
+    If CountBlankLinesBefore(doc, paraIndex) < ASSINATURA_BLANK_LINES_BEFORE Then Exit Function
+    
+    ' Verifica se há 3 parágrafos consecutivos centralizados com texto
+    Dim i As Long
+    Dim consecutiveCount As Long
+    consecutiveCount = 0
+    
+    For i = paraIndex To doc.Paragraphs.count
+        If i > doc.Paragraphs.count Then Exit For
+        
+        Dim para As Paragraph
+        Set para = doc.Paragraphs(i)
+        
+        Dim paraText As String
+        paraText = Trim(para.Range.text)
+        
+        ' Se encontrou parágrafo vazio, para a contagem
+        If Len(paraText) = 0 Then
+            Exit For
+        End If
+        
+        ' Verifica se está centralizado
+        If para.Format.alignment = wdAlignParagraphCenter Then
+            consecutiveCount = consecutiveCount + 1
+        Else
+            Exit For
+        End If
+        
+        ' Se já encontrou 3, é uma assinatura
+        If consecutiveCount >= ASSINATURA_PARAGRAPH_COUNT Then
+            IsAssinaturaStart = True
+            Exit Function
+        End If
+        
+        ' Limite de segurança
+        If i - paraIndex > 10 Then Exit For
+    Next i
+    
+    Exit Function
+    
+ErrorHandler:
+    IsAssinaturaStart = False
+End Function
+
+'--------------------------------------------------------------------------------
+' IdentifyDocumentStructure - Identifica todos os elementos estruturais
+'--------------------------------------------------------------------------------
+' Esta função percorre o documento e identifica:
+' - Título, Ementa, Proposição, Justificativa, Data, Assinatura, Anexo
+'--------------------------------------------------------------------------------
+Private Sub IdentifyDocumentStructure(doc As Document)
+    On Error GoTo ErrorHandler
+    
+    LogMessage "Identificando estrutura do documento...", LOG_LEVEL_INFO
+    
+    ' Reseta todos os índices
+    tituloParaIndex = 0
+    ementaParaIndex = 0
+    proposicaoStartIndex = 0
+    proposicaoEndIndex = 0
+    tituloJustificativaIndex = 0
+    justificativaStartIndex = 0
+    justificativaEndIndex = 0
+    dataParaIndex = 0
+    assinaturaStartIndex = 0
+    assinaturaEndIndex = 0
+    tituloAnexoIndex = 0
+    anexoStartIndex = 0
+    anexoEndIndex = 0
+    
+    Dim i As Long
+    Dim para As Paragraph
+    Dim foundTitulo As Boolean
+    Dim foundJustificativa As Boolean
+    Dim foundData As Boolean
+    
+    foundTitulo = False
+    foundJustificativa = False
+    foundData = False
+    
+    ' Percorre todos os parágrafos
+    For i = 1 To cacheSize
+        Set para = doc.Paragraphs(i)
+        
+        ' Atualiza cache com identificação
+        With paragraphCache(i)
+            ' Reseta flags
+            .isTitulo = False
+            .isEmenta = False
+            .isProposicaoContent = False
+            .isTituloJustificativa = False
+            .isJustificativaContent = False
+            .isData = False
+            .isAssinatura = False
+            .isTituloAnexo = False
+            .isAnexoContent = False
+            
+            ' 1. Identifica TÍTULO (primeira ocorrência)
+            If Not foundTitulo And IsTituloElement(para) Then
+                .isTitulo = True
+                tituloParaIndex = i
+                foundTitulo = True
+                LogMessage "Título identificado no parágrafo " & i, LOG_LEVEL_INFO
+                
+            ' 2. Identifica EMENTA (logo após o título)
+            ElseIf foundTitulo And ementaParaIndex = 0 Then
+                If IsEmentaElement(para, True) Then
+                    .isEmenta = True
+                    ementaParaIndex = i
+                    proposicaoStartIndex = i + 1 ' Proposição começa logo após a ementa
+                    LogMessage "Ementa identificada no parágrafo " & i, LOG_LEVEL_INFO
+                End If
+                
+            ' 3. Identifica TÍTULO DA JUSTIFICATIVA
+            ElseIf Not foundJustificativa And IsJustificativaTitleElement(para) Then
+                .isTituloJustificativa = True
+                tituloJustificativaIndex = i
+                foundJustificativa = True
+                ' Proposição termina antes da Justificativa
+                If proposicaoStartIndex > 0 Then
+                    proposicaoEndIndex = i - 1
+                End If
+                justificativaStartIndex = i + 1 ' Justificativa começa logo após o título
+                LogMessage "Título da Justificativa identificado no parágrafo " & i, LOG_LEVEL_INFO
+                
+            ' 4. Identifica DATA (Plenário)
+            ElseIf Not foundData And IsDataElement(para) Then
+                .isData = True
+                dataParaIndex = i
+                foundData = True
+                ' Justificativa termina antes da Data
+                If justificativaStartIndex > 0 Then
+                    justificativaEndIndex = i - 1
+                End If
+                LogMessage "Data (Plenário) identificada no parágrafo " & i, LOG_LEVEL_INFO
+                
+            ' 5. Identifica ASSINATURA (após a data, com 2 linhas em branco)
+            ElseIf foundData And assinaturaStartIndex = 0 And IsAssinaturaStart(doc, i) Then
+                .isAssinatura = True
+                assinaturaStartIndex = i
+                ' Conta os 3 parágrafos + imagens (se houver)
+                Dim j As Long
+                Dim assinaturaCount As Long
+                assinaturaCount = 0
+                For j = i To doc.Paragraphs.count
+                    If j > doc.Paragraphs.count Then Exit For
+                    Dim tempPara As Paragraph
+                    Set tempPara = doc.Paragraphs(j)
+                    Dim tempText As String
+                    tempText = Trim(tempPara.Range.text)
+                    
+                    ' Para em linha vazia
+                    If Len(tempText) = 0 Then Exit For
+                    
+                    ' Marca como assinatura
+                    paragraphCache(j).isAssinatura = True
+                    assinaturaCount = assinaturaCount + 1
+                    assinaturaEndIndex = j
+                    
+                    ' Se já contou 3 parágrafos, verifica se há imagens nos próximos
+                    If assinaturaCount >= ASSINATURA_PARAGRAPH_COUNT Then
+                        ' Verifica se próximo parágrafo tem imagem (sem linha vazia)
+                        If j + 1 <= doc.Paragraphs.count Then
+                            Set tempPara = doc.Paragraphs(j + 1)
+                            If HasVisualContent(tempPara) Then
+                                ' Inclui imagem na assinatura
+                                paragraphCache(j + 1).isAssinatura = True
+                                assinaturaEndIndex = j + 1
+                            End If
+                        End If
+                        Exit For
+                    End If
+                    
+                    ' Limite de segurança
+                    If assinaturaCount > 10 Then Exit For
+                Next j
+                LogMessage "Assinatura identificada nos parágrafos " & assinaturaStartIndex & " a " & assinaturaEndIndex, LOG_LEVEL_INFO
+                
+            ' 6. Identifica TÍTULO DO ANEXO
+            ElseIf tituloAnexoIndex = 0 And IsTituloAnexoElement(para) Then
+                .isTituloAnexo = True
+                tituloAnexoIndex = i
+                anexoStartIndex = i + 1 ' Anexo começa logo após o título
+                LogMessage "Título do Anexo identificado no parágrafo " & i, LOG_LEVEL_INFO
+            End If
+            
+            ' Marca conteúdo da PROPOSIÇÃO
+            If proposicaoStartIndex > 0 And proposicaoEndIndex > 0 Then
+                If i >= proposicaoStartIndex And i <= proposicaoEndIndex Then
+                    .isProposicaoContent = True
+                End If
+            End If
+            
+            ' Marca conteúdo da JUSTIFICATIVA
+            If justificativaStartIndex > 0 And justificativaEndIndex > 0 Then
+                If i >= justificativaStartIndex And i <= justificativaEndIndex Then
+                    .isJustificativaContent = True
+                End If
+            End If
+            
+            ' Marca conteúdo do ANEXO
+            If anexoStartIndex > 0 And i >= anexoStartIndex Then
+                .isAnexoContent = True
+                anexoEndIndex = i
+            End If
+        End With
+        
+        ' Atualiza progresso a cada 50 parágrafos
+        If i Mod 50 = 0 Then
+            DoEvents
+        End If
+    Next i
+    
+    ' Se não encontrou fim da proposição, define até antes da justificativa ou data
+    If proposicaoStartIndex > 0 And proposicaoEndIndex = 0 Then
+        If tituloJustificativaIndex > 0 Then
+            proposicaoEndIndex = tituloJustificativaIndex - 1
+        ElseIf dataParaIndex > 0 Then
+            proposicaoEndIndex = dataParaIndex - 1
+        Else
+            proposicaoEndIndex = cacheSize
+        End If
+    End If
+    
+    ' Se não encontrou fim da justificativa, define até antes da data
+    If justificativaStartIndex > 0 And justificativaEndIndex = 0 Then
+        If dataParaIndex > 0 Then
+            justificativaEndIndex = dataParaIndex - 1
+        Else
+            justificativaEndIndex = cacheSize
+        End If
+    End If
+    
+    ' Relatório de identificação
+    LogMessage "=== ESTRUTURA DO DOCUMENTO IDENTIFICADA ===", LOG_LEVEL_INFO
+    LogMessage "Título: parágrafo " & tituloParaIndex, LOG_LEVEL_INFO
+    LogMessage "Ementa: parágrafo " & ementaParaIndex, LOG_LEVEL_INFO
+    LogMessage "Proposição: parágrafos " & proposicaoStartIndex & " a " & proposicaoEndIndex, LOG_LEVEL_INFO
+    LogMessage "Título Justificativa: parágrafo " & tituloJustificativaIndex, LOG_LEVEL_INFO
+    LogMessage "Justificativa: parágrafos " & justificativaStartIndex & " a " & justificativaEndIndex, LOG_LEVEL_INFO
+    LogMessage "Data: parágrafo " & dataParaIndex, LOG_LEVEL_INFO
+    LogMessage "Assinatura: parágrafos " & assinaturaStartIndex & " a " & assinaturaEndIndex, LOG_LEVEL_INFO
+    LogMessage "Título Anexo: parágrafo " & tituloAnexoIndex, LOG_LEVEL_INFO
+    LogMessage "Anexo: parágrafos " & anexoStartIndex & " a " & anexoEndIndex, LOG_LEVEL_INFO
+    LogMessage "==========================================", LOG_LEVEL_INFO
+    
+    Exit Sub
+    
+ErrorHandler:
+    LogMessage "Erro ao identificar estrutura do documento: " & Err.Description, LOG_LEVEL_ERROR
+End Sub
+
+'================================================================================
 ' CONSTRUÇÃO DO CACHE DE PARÁGRAFOS - Otimização principal
 '================================================================================
 Private Sub BuildParagraphCache(doc As Document)
@@ -734,6 +1269,10 @@ Private Sub BuildParagraphCache(doc As Document)
     elapsed = Timer - startTime
     
     LogMessage "Cache construído: " & cacheSize & " parágrafos em " & Format(elapsed, "0.00") & "s", LOG_LEVEL_INFO
+    
+    ' Identifica a estrutura do documento após construir o cache
+    IdentifyDocumentStructure doc
+    
     Exit Sub
     
 ErrorHandler:
@@ -749,7 +1288,291 @@ Private Sub ClearParagraphCache()
     Erase paragraphCache
     cacheSize = 0
     cacheEnabled = False
+    
+    ' Limpa também os índices de identificação
+    tituloParaIndex = 0
+    ementaParaIndex = 0
+    proposicaoStartIndex = 0
+    proposicaoEndIndex = 0
+    tituloJustificativaIndex = 0
+    justificativaStartIndex = 0
+    justificativaEndIndex = 0
+    dataParaIndex = 0
+    assinaturaStartIndex = 0
+    assinaturaEndIndex = 0
+    tituloAnexoIndex = 0
+    anexoStartIndex = 0
+    anexoEndIndex = 0
 End Sub
+
+'================================================================================
+' FUNÇÕES PÚBLICAS DE ACESSO AOS ELEMENTOS ESTRUTURAIS
+'================================================================================
+
+'--------------------------------------------------------------------------------
+' GetTituloRange - Retorna o Range do título
+'--------------------------------------------------------------------------------
+Public Function GetTituloRange(doc As Document) As Range
+    On Error GoTo ErrorHandler
+    
+    Set GetTituloRange = Nothing
+    
+    If tituloParaIndex <= 0 Or tituloParaIndex > doc.Paragraphs.count Then Exit Function
+    Set GetTituloRange = doc.Paragraphs(tituloParaIndex).Range
+    Exit Function
+    
+ErrorHandler:
+    Set GetTituloRange = Nothing
+End Function
+
+'--------------------------------------------------------------------------------
+' GetEmentaRange - Retorna o Range da ementa
+'--------------------------------------------------------------------------------
+Public Function GetEmentaRange(doc As Document) As Range
+    On Error GoTo ErrorHandler
+    
+    Set GetEmentaRange = Nothing
+    
+    If ementaParaIndex <= 0 Or ementaParaIndex > doc.Paragraphs.count Then Exit Function
+    Set GetEmentaRange = doc.Paragraphs(ementaParaIndex).Range
+    Exit Function
+    
+ErrorHandler:
+    Set GetEmentaRange = Nothing
+End Function
+
+'--------------------------------------------------------------------------------
+' GetProposicaoRange - Retorna o Range da proposição (conjunto de parágrafos)
+'--------------------------------------------------------------------------------
+Public Function GetProposicaoRange(doc As Document) As Range
+    On Error GoTo ErrorHandler
+    
+    Set GetProposicaoRange = Nothing
+    
+    If proposicaoStartIndex <= 0 Or proposicaoEndIndex <= 0 Then Exit Function
+    If proposicaoStartIndex > doc.Paragraphs.count Then Exit Function
+    If proposicaoEndIndex > doc.Paragraphs.count Then Exit Function
+    
+    Dim startPos As Long
+    Dim endPos As Long
+    
+    startPos = doc.Paragraphs(proposicaoStartIndex).Range.Start
+    endPos = doc.Paragraphs(proposicaoEndIndex).Range.End
+    
+    Set GetProposicaoRange = doc.Range(startPos, endPos)
+    Exit Function
+    
+ErrorHandler:
+    Set GetProposicaoRange = Nothing
+End Function
+
+'--------------------------------------------------------------------------------
+' GetTituloJustificativaRange - Retorna o Range do título "Justificativa"
+'--------------------------------------------------------------------------------
+Public Function GetTituloJustificativaRange(doc As Document) As Range
+    On Error GoTo ErrorHandler
+    
+    Set GetTituloJustificativaRange = Nothing
+    
+    If tituloJustificativaIndex <= 0 Or tituloJustificativaIndex > doc.Paragraphs.count Then Exit Function
+    Set GetTituloJustificativaRange = doc.Paragraphs(tituloJustificativaIndex).Range
+    Exit Function
+    
+ErrorHandler:
+    Set GetTituloJustificativaRange = Nothing
+End Function
+
+'--------------------------------------------------------------------------------
+' GetJustificativaRange - Retorna o Range da justificativa (conjunto de parágrafos)
+'--------------------------------------------------------------------------------
+Public Function GetJustificativaRange(doc As Document) As Range
+    On Error GoTo ErrorHandler
+    
+    Set GetJustificativaRange = Nothing
+    
+    If justificativaStartIndex <= 0 Or justificativaEndIndex <= 0 Then Exit Function
+    If justificativaStartIndex > doc.Paragraphs.count Then Exit Function
+    If justificativaEndIndex > doc.Paragraphs.count Then Exit Function
+    
+    Dim startPos As Long
+    Dim endPos As Long
+    
+    startPos = doc.Paragraphs(justificativaStartIndex).Range.Start
+    endPos = doc.Paragraphs(justificativaEndIndex).Range.End
+    
+    Set GetJustificativaRange = doc.Range(startPos, endPos)
+    Exit Function
+    
+ErrorHandler:
+    Set GetJustificativaRange = Nothing
+End Function
+
+'--------------------------------------------------------------------------------
+' GetDataRange - Retorna o Range da data (Plenário)
+'--------------------------------------------------------------------------------
+Public Function GetDataRange(doc As Document) As Range
+    On Error GoTo ErrorHandler
+    
+    Set GetDataRange = Nothing
+    
+    If dataParaIndex <= 0 Or dataParaIndex > doc.Paragraphs.count Then Exit Function
+    Set GetDataRange = doc.Paragraphs(dataParaIndex).Range
+    Exit Function
+    
+ErrorHandler:
+    Set GetDataRange = Nothing
+End Function
+
+'--------------------------------------------------------------------------------
+' GetAssinaturaRange - Retorna o Range da assinatura (3 parágrafos + imagens)
+'--------------------------------------------------------------------------------
+Public Function GetAssinaturaRange(doc As Document) As Range
+    On Error GoTo ErrorHandler
+    
+    Set GetAssinaturaRange = Nothing
+    
+    If assinaturaStartIndex <= 0 Or assinaturaEndIndex <= 0 Then Exit Function
+    If assinaturaStartIndex > doc.Paragraphs.count Then Exit Function
+    If assinaturaEndIndex > doc.Paragraphs.count Then Exit Function
+    
+    Dim startPos As Long
+    Dim endPos As Long
+    
+    startPos = doc.Paragraphs(assinaturaStartIndex).Range.Start
+    endPos = doc.Paragraphs(assinaturaEndIndex).Range.End
+    
+    Set GetAssinaturaRange = doc.Range(startPos, endPos)
+    Exit Function
+    
+ErrorHandler:
+    Set GetAssinaturaRange = Nothing
+End Function
+
+'--------------------------------------------------------------------------------
+' GetTituloAnexoRange - Retorna o Range do título "Anexo" ou "Anexos"
+'--------------------------------------------------------------------------------
+Public Function GetTituloAnexoRange(doc As Document) As Range
+    On Error GoTo ErrorHandler
+    
+    Set GetTituloAnexoRange = Nothing
+    
+    If tituloAnexoIndex <= 0 Or tituloAnexoIndex > doc.Paragraphs.count Then Exit Function
+    Set GetTituloAnexoRange = doc.Paragraphs(tituloAnexoIndex).Range
+    Exit Function
+    
+ErrorHandler:
+    Set GetTituloAnexoRange = Nothing
+End Function
+
+'--------------------------------------------------------------------------------
+' GetAnexoRange - Retorna o Range do anexo (todo conteúdo abaixo do título)
+'--------------------------------------------------------------------------------
+Public Function GetAnexoRange(doc As Document) As Range
+    On Error GoTo ErrorHandler
+    
+    Set GetAnexoRange = Nothing
+    
+    If anexoStartIndex <= 0 Or anexoEndIndex <= 0 Then Exit Function
+    If anexoStartIndex > doc.Paragraphs.count Then Exit Function
+    If anexoEndIndex > doc.Paragraphs.count Then Exit Function
+    
+    Dim startPos As Long
+    Dim endPos As Long
+    
+    startPos = doc.Paragraphs(anexoStartIndex).Range.Start
+    endPos = doc.Paragraphs(anexoEndIndex).Range.End
+    
+    Set GetAnexoRange = doc.Range(startPos, endPos)
+    Exit Function
+    
+ErrorHandler:
+    Set GetAnexoRange = Nothing
+End Function
+
+'--------------------------------------------------------------------------------
+' GetProposituraRange - Retorna o Range de toda a propositura (documento completo)
+'--------------------------------------------------------------------------------
+Public Function GetProposituraRange(doc As Document) As Range
+    On Error GoTo ErrorHandler
+    
+    Set GetProposituraRange = Nothing
+    
+    If doc Is Nothing Then Exit Function
+    Set GetProposituraRange = doc.Range
+    Exit Function
+    
+ErrorHandler:
+    Set GetProposituraRange = Nothing
+End Function
+
+'--------------------------------------------------------------------------------
+' GetElementInfo - Retorna informações sobre todos os elementos identificados
+'--------------------------------------------------------------------------------
+Public Function GetElementInfo(doc As Document) As String
+    On Error Resume Next
+    
+    Dim info As String
+    info = "=== INFORMAÇÕES DOS ELEMENTOS ESTRUTURAIS ===" & vbCrLf
+    
+    If tituloParaIndex > 0 Then
+        info = info & "Título: Parágrafo " & tituloParaIndex & vbCrLf
+    Else
+        info = info & "Título: Não identificado" & vbCrLf
+    End If
+    
+    If ementaParaIndex > 0 Then
+        info = info & "Ementa: Parágrafo " & ementaParaIndex & vbCrLf
+    Else
+        info = info & "Ementa: Não identificado" & vbCrLf
+    End If
+    
+    If proposicaoStartIndex > 0 And proposicaoEndIndex > 0 Then
+        info = info & "Proposição: Parágrafos " & proposicaoStartIndex & " a " & proposicaoEndIndex & _
+                      " (" & (proposicaoEndIndex - proposicaoStartIndex + 1) & " parágrafos)" & vbCrLf
+    Else
+        info = info & "Proposição: Não identificado" & vbCrLf
+    End If
+    
+    If tituloJustificativaIndex > 0 Then
+        info = info & "Título Justificativa: Parágrafo " & tituloJustificativaIndex & vbCrLf
+    Else
+        info = info & "Título Justificativa: Não identificado" & vbCrLf
+    End If
+    
+    If justificativaStartIndex > 0 And justificativaEndIndex > 0 Then
+        info = info & "Justificativa: Parágrafos " & justificativaStartIndex & " a " & justificativaEndIndex & _
+                      " (" & (justificativaEndIndex - justificativaStartIndex + 1) & " parágrafos)" & vbCrLf
+    Else
+        info = info & "Justificativa: Não identificado" & vbCrLf
+    End If
+    
+    If dataParaIndex > 0 Then
+        info = info & "Data (Plenário): Parágrafo " & dataParaIndex & vbCrLf
+    Else
+        info = info & "Data (Plenário): Não identificado" & vbCrLf
+    End If
+    
+    If assinaturaStartIndex > 0 And assinaturaEndIndex > 0 Then
+        info = info & "Assinatura: Parágrafos " & assinaturaStartIndex & " a " & assinaturaEndIndex & _
+                      " (" & (assinaturaEndIndex - assinaturaStartIndex + 1) & " parágrafos)" & vbCrLf
+    Else
+        info = info & "Assinatura: Não identificado" & vbCrLf
+    End If
+    
+    If tituloAnexoIndex > 0 Then
+        info = info & "Título Anexo: Parágrafo " & tituloAnexoIndex & vbCrLf
+        If anexoStartIndex > 0 And anexoEndIndex > 0 Then
+            info = info & "Anexo: Parágrafos " & anexoStartIndex & " a " & anexoEndIndex & _
+                          " (" & (anexoEndIndex - anexoStartIndex + 1) & " parágrafos)" & vbCrLf
+        End If
+    Else
+        info = info & "Anexo: Não presente" & vbCrLf
+    End If
+    
+    info = info & "============================================="
+    
+    GetElementInfo = info
+End Function
 
 '================================================================================
 ' ATUALIZAÇÃO DA BARRA DE PROGRESSO
