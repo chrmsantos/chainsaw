@@ -1360,7 +1360,7 @@ function Install-CHAINSAWConfig {
                     $vbProject = $doc.VBProject
                     
                     # Remove módulos antigos
-                    $oldModuleNames = @("Módulo1", "Module1", "monolithicMod", "Mod_Main", "Chainsaw")
+                    $oldModuleNames = @("Módulo1", "Module1", "monolithicMod", "Mod_Main", "Chainsaw", "CHAINSAW_MODX", "Chainsaw_ModX", "chainsawModX")
                     $moduleRemoved = $false
                     
                     foreach ($moduleName in $oldModuleNames) {

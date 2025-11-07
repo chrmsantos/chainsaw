@@ -128,7 +128,7 @@ try {
     $moduleRemoved = $false
     
     # Lista de nomes possíveis do módulo antigo
-    $oldModuleNames = @("Módulo1", "Module1", "monolithicMod", "Mod_Main", "Chainsaw")
+    $oldModuleNames = @("Módulo1", "Module1", "monolithicMod", "Mod_Main", "Chainsaw", "CHAINSAW_MODX", "Chainsaw_ModX", "chainsawModX")
     
     foreach ($moduleName in $oldModuleNames) {
         try {
