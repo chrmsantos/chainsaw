@@ -1278,7 +1278,7 @@ function Install-CHAINSAWConfig {
             Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
             Write-Host ""
             Write-Host "As seguintes operações serão realizadas:" -ForegroundColor Yellow
-            Write-Host "  1. Copiar stamp.png para: $env:USERPROFILE\CHAINSAW\assets\" -ForegroundColor White
+            Write-Host "  1. Copiar stamp.png para: $env:USERPROFILE\chainsaw\assets\" -ForegroundColor White
             Write-Host "  2. Fazer backup da pasta Templates atual (se existir)" -ForegroundColor White
             Write-Host "  3. Copiar nova pasta Templates da rede" -ForegroundColor White
             Write-Host ""

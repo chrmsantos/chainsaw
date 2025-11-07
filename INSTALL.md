@@ -38,14 +38,14 @@ Este script foi projetado para rodar com privilégios de **usuário normal** e:
 - [LOCK] Formato: `Templates_backup_YYYYMMDD_HHMMSS`
 
 ### 3. Instalação
-- [DIR] Copia `stamp.png` para `%USERPROFILE%\CHAINSAW\assets\`
+- [DIR] Copia `stamp.png` para `%USERPROFILE%\chainsaw\assets\`
 - [DIR] Copia Templates para `%APPDATA%\Microsoft\Templates\`
 - [DIR] Preserva toda estrutura de pastas e arquivos
 - [DIR] Verifica integridade dos arquivos copiados
 
 ### 4. Sistema de Log
 - [LOG] Registra todas as operações
-- [LOG] Salva em `%USERPROFILE%\CHAINSAW\logs\`
+- [LOG] Salva em `%USERPROFILE%\chainsaw\logs\`
 - [LOG] Formato: `install_YYYYMMDD_HHMMSS.log`
 - [LOG] Inclui timestamps, níveis e mensagens detalhadas
 
@@ -152,14 +152,14 @@ cd "$env:USERPROFILE\chainsaw"
 **Método Recomendado - Usando o Launcher Seguro:**
 
 ```cmd
-cd "%USERPROFILE%\CHAINSAW"
+cd "%USERPROFILE%\chainsaw"
 install.cmd
 ```
 
 **Alternativa - Execução Direta do PowerShell:**
 
 ```powershell
-cd "$env:USERPROFILE\CHAINSAW"
+cd "$env:USERPROFILE\chainsaw"
 .\install.ps1
 ```
 
@@ -208,7 +208,7 @@ install.cmd -NoBackup
 Se os arquivos estiverem em outro local:
 
 ```cmd
-install.cmd -SourcePath "C:\outro\caminho\CHAINSAW"
+install.cmd -SourcePath "C:\outro\caminho\chainsaw"
 ```
 
 ## [INFO] Exemplo de Execução
@@ -218,7 +218,7 @@ install.cmd -SourcePath "C:\outro\caminho\CHAINSAW"
 ║          CHAINSAW - Instalação de Configurações do Word       ║
 ╚════════════════════════════════════════════════════════════════╝
 
-[LOG] Arquivo de log: C:\Users\csantos\CHAINSAW\logs\install_20251105_143022.log
+[LOG] Arquivo de log: C:\Users\csantos\chainsaw\logs\install_20251105_143022.log
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   ETAPA 1: Verificação de Pré-requisitos
@@ -227,7 +227,7 @@ install.cmd -SourcePath "C:\outro\caminho\CHAINSAW"
 [i] Verificando pré-requisitos...
 [OK] Sistema operacional: Windows 10.0 [OK]
 [OK] PowerShell versão: 5.1.19041.4894 [OK]
-[i] Verificando arquivos de origem: C:\Users\csantos\CHAINSAW
+[i] Verificando arquivos de origem: C:\Users\csantos\chainsaw
 [OK] Arquivos de origem encontrados [OK]
 [OK] Permissões de escrita no perfil do usuário confirmadas [OK]
 
@@ -255,7 +255,7 @@ Usuário: csantos
 Computador: DESKTOP-ABC123
 Sistema: Microsoft Windows NT 10.0.19045.0
 PowerShell: 5.1.19041.4894
-Caminho de Origem: C:\Users\csantos\CHAINSAW
+Caminho de Origem: C:\Users\csantos\chainsaw
 ================================================================================
 
 [2025-11-05 14:30:22] [INFO] === INÍCIO DA INSTALAÇÃO ===
@@ -308,7 +308,7 @@ Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 3. Caminho incorreto especificado
 
 **Solução:**
-1. Verifique se a pasta está em: `%USERPROFILE%\CHAINSAW`
+1. Verifique se a pasta está em: `%USERPROFILE%\chainsaw`
 2. Certifique-se que os arquivos necessários estão presentes:
    - `assets\stamp.png`
    - `configs\Templates\`
@@ -407,7 +407,7 @@ Para atualizar uma instalação existente:
 
 Se encontrar problemas não listados aqui:
 
-1. Consulte o arquivo de log: `%USERPROFILE%\CHAINSAW\logs\install_*.log`
+1. Consulte o arquivo de log: `%USERPROFILE%\chainsaw\logs\install_*.log`
 2. Execute `.\test-install.ps1` para diagnóstico
 3. Verifique o README.md principal para documentação completa
 4. Entre em contato com Christian Martin (chrmsantos@protonmail.com)

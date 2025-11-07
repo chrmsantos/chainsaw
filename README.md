@@ -72,7 +72,7 @@ O sistema CHAINSAW inclui um script automatizado de instalação que configura t
 5. **Aguarde a conclusão**
    - O script exibirá o progresso de cada etapa
    - Se necessário, o script se relançará automaticamente (você verá uma mensagem explicativa)
-   - Um arquivo de log será criado em `%USERPROFILE%\CHAINSAW\logs\`
+   - Um arquivo de log será criado em `%USERPROFILE%\chainsaw\logs\`
 
 #### O que o Script Faz
 
@@ -85,7 +85,7 @@ O script de instalação realiza automaticamente as seguintes operações:
    - Confirma permissões de escrita
 
 2. **Cópia do Arquivo de Imagem**
-   - Copia `stamp.png` para `%USERPROFILE%\CHAINSAW\assets\`
+   - Copia `stamp.png` para `%USERPROFILE%\chainsaw\assets\`
    - Verifica integridade do arquivo copiado
 
 3. **Backup Automático**
@@ -109,7 +109,7 @@ O script de instalação realiza automaticamente as seguintes operações:
    - Cria backup automático das personalizações existentes
 
 6. **Registro de Log**
-   - Cria log detalhado em `%USERPROFILE%\CHAINSAW\logs\`
+   - Cria log detalhado em `%USERPROFILE%\chainsaw\logs\`
    - Registra todas as operações, avisos e erros
    - Formato do log: `install_AAAAMMDD_HHMMSS.log`
 
@@ -135,7 +135,7 @@ Se precisar restaurar uma configuração anterior:
 ##### Erro: "Não foi possível acessar o caminho de rede"
 
 - Verifique conexão com a rede corporativa
-- Confirme que o caminho `\\strqnapmain\Dir. Legislativa\_Christian261\CHAINSAW` está acessível
+- Confirme que o caminho `\\strqnapmain\Dir. Legislativa\_Christian261\chainsaw` está acessível
 - Verifique suas credenciais de rede
 
 ##### Erro: "Permissões insuficientes"
@@ -152,7 +152,7 @@ Se precisar restaurar uma configuração anterior:
 ##### Consultar logs
 
 ```powershell
-notepad "$env:USERPROFILE\CHAINSAW\logs\install_*.log"
+notepad "$env:USERPROFILE\chainsaw\logs\install_*.log"
 ```
 
 ### Instalação Manual
@@ -160,15 +160,15 @@ notepad "$env:USERPROFILE\CHAINSAW\logs\install_*.log"
 Caso não seja possível executar o script automatizado:
 
 1. **Copiar arquivo de imagem**
-   - Copie `\\strqnapmain\Dir. Legislativa\_Christian261\CHAINSAW\assets\stamp.png`
-   - Para `%USERPROFILE%\CHAINSAW\assets\stamp.png`
+   - Copie `\\strqnapmain\Dir. Legislativa\_Christian261\chainsaw\assets\stamp.png`
+   - Para `%USERPROFILE%\chainsaw\assets\stamp.png`
 
 2. **Fazer backup dos Templates**
    - Renomeie `%APPDATA%\Microsoft\Templates`
    - Para `Templates_backup_AAAAMMDD`
 
 3. **Copiar Templates**
-   - Copie `\\strqnapmain\Dir. Legislativa\_Christian261\CHAINSAW\configs\Templates`
+   - Copie `\\strqnapmain\Dir. Legislativa\_Christian261\chainsaw\configs\Templates`
    - Para `%APPDATA%\Microsoft\Templates`
 
 4. **Importar macro VBA**
@@ -346,7 +346,7 @@ import-config.cmd
 > Tanto os **backups** quanto os **logs** são salvos na **mesma pasta do documento sendo editado**. Isso facilita o gerenciamento e garante que os arquivos relacionados fiquem juntos. Por exemplo:
 > - Documento: `C:\Users\usuario\Meus Arquivos\MinhaProposicao.docx`
 > - Backup: `C:\Users\usuario\Meus Arquivos\MinhaProposicao_backup_2025-11-05_143022.docx`
-> - Log: `C:\Users\usuario\Meus Arquivos\CHAINSAW_20251105_143022_MinhaProposicao.log`
+> - Log: `C:\Users\usuario\Meus Arquivos\chainsaw_20251105_143022_MinhaProposicao.log`
 
 ### 17. **Recuperação de Erros**
 
