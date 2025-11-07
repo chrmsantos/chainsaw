@@ -5029,6 +5029,19 @@ End Function
 Private Function ApplyTextReplacements(doc As Document) As Boolean
     On Error GoTo ErrorHandler
     
+    ' Validação de documento
+    If Not ValidateDocument(doc) Then
+        ApplyTextReplacements = False
+        Exit Function
+    End If
+    
+    ' Verifica se há conteúdo suficiente
+    If doc.Range.Text = "" Or Len(Trim(doc.Range.Text)) <= 1 Then
+        LogMessage "Documento vazio - substituições de texto ignoradas", LOG_LEVEL_INFO
+        ApplyTextReplacements = True
+        Exit Function
+    End If
+    
     Dim rng As Range
     Dim replacementCount As Long
     Dim totalReplacements As Long
@@ -5061,15 +5074,24 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
     For i = 0 To UBound(dOesteVariants)
         On Error Resume Next
         
+        ' Valida a variante antes de usar
+        If IsEmpty(dOesteVariants(i)) Or dOesteVariants(i) = "" Then
+            GoTo NextVariant
+        End If
+        
         ' Cria novo range para cada busca
+        Set rng = Nothing
         Set rng = doc.Range
+        
+        ' Verifica se o range foi criado com sucesso
+        If rng Is Nothing Then GoTo NextVariant
         
         ' Configura os parâmetros de busca e substituição
         With rng.Find
             .ClearFormatting
             .Replacement.ClearFormatting
-            .text = dOesteVariants(i) & "este"
-            .Replacement.text = "d'Oeste"
+            .Text = dOesteVariants(i) & "este"
+            .Replacement.Text = "d'Oeste"
             .Forward = True
             .Wrap = wdFindContinue
             .Format = False
@@ -5089,12 +5111,16 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
                     totalReplacements = totalReplacements + 1
                 End If
             Else
-                LogMessage "Aviso ao substituir variante #" & i & " ('" & dOesteVariants(i) & "este'): " & Err.Description, LOG_LEVEL_WARNING
+                If Err.Number <> 0 Then
+                    LogMessage "Aviso ao substituir variante #" & i & " ('" & dOesteVariants(i) & "este'): " & Err.Description, LOG_LEVEL_WARNING
+                End If
                 Err.Clear
             End If
         End With
         
+NextVariant:
         On Error GoTo ErrorHandler
+        Err.Clear
     Next i
     
     If totalReplacements > 0 Then
