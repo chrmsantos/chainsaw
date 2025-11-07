@@ -6,20 +6,6 @@
 # Autor: Christian Martin dos Santos
 # =============================================================================
 
-# Maximiza a janela do PowerShell
-if ($Host.Name -eq "ConsoleHost") {
-    $psWindow = (Get-Host).UI.RawUI
-    $newSize = $psWindow.BufferSize
-    $newSize.Width = 120
-    $newSize.Height = 9999
-    try {
-        $psWindow.BufferSize = $newSize
-        $psWindow.WindowSize = $psWindow.MaxPhysicalWindowSize
-    } catch {
-        # Ignora erros se não for possível maximizar
-    }
-}
-
 <#
 .SYNOPSIS
     Exporta todas as personalizações do Word do usuário atual.
@@ -56,6 +42,20 @@ param(
     [Parameter()]
     [switch]$IncludeRegistry
 )
+
+# Maximiza a janela do PowerShell
+if ($Host.Name -eq "ConsoleHost") {
+    $psWindow = (Get-Host).UI.RawUI
+    $newSize = $psWindow.BufferSize
+    $newSize.Width = 120
+    $newSize.Height = 9999
+    try {
+        $psWindow.BufferSize = $newSize
+        $psWindow.WindowSize = $psWindow.MaxPhysicalWindowSize
+    } catch {
+        # Ignora erros se não for possível maximizar
+    }
+}
 
 $ErrorActionPreference = "Stop"
 
