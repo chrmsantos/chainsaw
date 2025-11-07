@@ -5702,8 +5702,12 @@ Private Sub FormatRequeiroParagraphs(doc As Document)
     ' Procura por parágrafos que começam com "requeiro" (case insensitive)
     For Each para In doc.Paragraphs
         If Not HasVisualContent(para) Then
-            ' Obtém o texto do parágrafo
-            paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+            ' Obtém o texto do parágrafo (sem marca de parágrafo)
+            paraText = para.Range.text
+            If Right(paraText, 1) = vbCr Then
+                paraText = Left(paraText, Len(paraText) - 1)
+            End If
+            paraText = Trim(paraText)
             cleanText = LCase(paraText)
             
             ' Verifica se começa com "requeiro" (8 caracteres)
@@ -5711,10 +5715,23 @@ Private Sub FormatRequeiroParagraphs(doc As Document)
                 If Left(cleanText, 8) = "requeiro" Then
                     ' Aplica formatação APENAS à palavra "requeiro": negrito e caixa alta
                     Dim wordRange As Range
-                    Set wordRange = para.Range.Duplicate
-                    wordRange.Collapse wdCollapseStart
-                    wordRange.MoveEnd wdCharacter, 8 ' Seleciona apenas "requeiro"
+                    Dim startPos As Long
                     
+                    ' Encontra a posição inicial do texto (após espaços/tabs)
+                    Set wordRange = para.Range
+                    startPos = wordRange.Start
+                    
+                    ' Move para o início do texto visível
+                    Do While startPos < wordRange.End
+                        wordRange.Start = startPos
+                        If Trim(Left(wordRange.text, 1)) <> "" Then Exit Do
+                        startPos = startPos + 1
+                    Loop
+                    
+                    ' Seleciona apenas os 8 caracteres de "requeiro"
+                    wordRange.End = wordRange.Start + 8
+                    
+                    ' Aplica formatação apenas à palavra
                     With wordRange.Font
                         .Bold = True
                         .AllCaps = True
