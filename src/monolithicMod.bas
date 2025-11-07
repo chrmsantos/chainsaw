@@ -1821,7 +1821,7 @@ End Function
 ' GetChainsawTempPath - Retorna caminho base .chainsaw no Temp
 '--------------------------------------------------------------------------------
 Private Function GetChainsawTempPath() As String
-    GetChainsawTempPath = Environ("TEMP") & "\" & CHAINSAW_ROOT_FOLDER
+    GetChainsawTempPath = Environ("USERPROFILE") & "\AppData\Local\Temp\" & CHAINSAW_ROOT_FOLDER
 End Function
 
 '--------------------------------------------------------------------------------
