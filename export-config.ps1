@@ -969,4 +969,12 @@ function Export-WordCustomizations {
 # EXECUÇÃO
 # =============================================================================
 
-Export-WordCustomizations
+try {
+    Export-WordCustomizations
+}
+finally {
+    # Pausa ao final da execução
+    Write-Host ""
+    Write-Host "Pressione qualquer tecla para sair..." -ForegroundColor Gray
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+}
