@@ -2,7 +2,7 @@
 
 ## [INFO] MudanÃ§a Importante
 
-O sistema Chainsaw agora funciona a partir da **pasta Documentos do usuÃ¡rio**, eliminando a necessidade de acesso Ã  rede corporativa durante a instalaÃ§Ã£o.
+O sistema Chainsaw agora funciona a partir do **perfil do usuÃ¡rio (%USERPROFILE%)**, eliminando a necessidade de acesso Ã  rede corporativa durante a instalaÃ§Ã£o.
 
 ## [*] BenefÃ­cios
 
@@ -20,7 +20,7 @@ O sistema Chainsaw agora funciona a partir da **pasta Documentos do usuÃ¡rio**
 
 ## [PKG] Estrutura NecessÃ¡ria
 
-A pasta `chainsaw` deve ser copiada para a pasta Documentos do usuÃ¡rio:
+A pasta `chainsaw` deve ser copiada para o perfil do usuÃ¡rio:
 
 ```
 %USERPROFILE%\chainsaw\
@@ -111,7 +111,7 @@ Para evitar erros quando executado diretamente da pasta de destino, o script:
 1. **Comprimir** a pasta `chainsaw` completa
 2. **Enviar** por email, rede, ou USB
 3. **Instruir** o usuÃ¡rio a:
-   - Extrair para `Documentos\chainsaw`
+   - Extrair para `%USERPROFILE%\chainsaw`
    - Executar `install.cmd`
 
 ### Script de DistribuiÃ§Ã£o (Opcional)

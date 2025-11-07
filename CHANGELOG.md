@@ -156,7 +156,7 @@ install.cmd -Force
 - `README.md` - Visão geral do sistema
 - `INSTALL.md` - Guia de instalação detalhado
 - `GUIA_RAPIDO_EXPORT_IMPORT.md` - Guia de exportação/importação
-- `docs/INSTALACAO_LOCAL.md` - Instalação a partir da pasta Documentos
+- `docs/INSTALACAO_LOCAL.md` - Instalação a partir do perfil do usuário
 - `docs/EXPORTACAO_IMPORTACAO.md` - Documentação técnica completa
 - `docs/BYPASS_SEGURO.md` - Explicação do mecanismo de bypass
 
@@ -167,7 +167,7 @@ install.cmd -Force
 - [OK] Backup automático de configurações
 - [OK] Log detalhado de todas as operações
 - [OK] Exportação e importação de personalizações do Word
-- [OK] Instalação a partir da pasta Documentos do usuário
+- [OK] Instalação a partir do perfil do usuário (%USERPROFILE%)
 
 ---
 

@@ -14,7 +14,7 @@ A partir da **versão 2.0.0**, o processo de instalação do CHAINSAW foi unific
 - Windows 10 ou superior
 - PowerShell 5.1 ou superior
 - Microsoft Word fechado durante a instalação
-- Pasta `CHAINSAW` na pasta Documentos do usuário
+- Pasta `CHAINSAW` no perfil do usuário (%USERPROFILE%)
 
 ## [>>] Instalação Rápida
 
