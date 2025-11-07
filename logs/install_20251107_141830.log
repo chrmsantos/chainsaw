@@ -1,0 +1,66 @@
+================================================================================
+CHAINSAW - Log de Instalação
+================================================================================
+Data/Hora Início: 07/11/2025 14:18:30
+Usuário: csantos
+Computador: NOTEPROCLEG01
+Sistema: Microsoft Windows NT 10.0.26100.0
+PowerShell: 5.1.26100.6899
+Caminho de Origem: C:\Users\csantos\chainsaw
+================================================================================
+
+[2025-11-07 14:18:30] [INFO] === INÍCIO DA INSTALAÇÃO ===
+[2025-11-07 14:18:30] [WARNING] Word em execução - solicitando confirmação do usuário
+[2025-11-07 14:18:44] [INFO] Usuário autorizou o fechamento do Word
+[2025-11-07 14:18:44] [INFO] Encontrados 1 processo(s) do Word em execução
+[2025-11-07 14:18:44] [INFO] Encerrando processo Word (PID: 16544)...
+[2025-11-07 14:18:44] [SUCCESS] Processo Word (PID: 16544) encerrado com sucesso
+[2025-11-07 14:18:45] [SUCCESS] Todos os processos do Word foram encerrados com sucesso
+[2025-11-07 14:18:47] [INFO] Verificando pré-requisitos...
+[2025-11-07 14:18:47] [SUCCESS] Sistema operacional: Windows 10.0 ?
+[2025-11-07 14:18:47] [SUCCESS] PowerShell versão: 5.1.26100.6899 ?
+[2025-11-07 14:18:47] [INFO] Verificando acesso ao caminho de rede: C:\Users\csantos\chainsaw
+[2025-11-07 14:18:47] [SUCCESS] Acesso ao caminho de rede confirmado ?
+[2025-11-07 14:18:47] [SUCCESS] Permissões de escrita no perfil do usuário confirmadas ?
+[2025-11-07 14:18:47] [INFO] Verificando arquivos de origem...
+[2025-11-07 14:18:47] [SUCCESS] Arquivo stamp.png encontrado ?
+[2025-11-07 14:18:47] [SUCCESS] Pasta Templates encontrada ?
+[2025-11-07 14:19:20] [INFO] Copiando arquivo stamp.png...
+[2025-11-07 14:19:20] [INFO] Origem: C:\Users\csantos\chainsaw\assets\stamp.png
+[2025-11-07 14:19:20] [INFO] Destino: C:\Users\csantos\CHAINSAW\assets\stamp.png
+[2025-11-07 14:19:20] [INFO] Arquivo já está no local correto (origem = destino), pulando cópia
+[2025-11-07 14:19:20] [SUCCESS] Arquivo stamp.png já está instalado ?
+[2025-11-07 14:19:20] [INFO] Criando backup da pasta Templates...
+[2025-11-07 14:19:20] [INFO] Origem: C:\Users\csantos\AppData\Roaming\Microsoft\Templates
+[2025-11-07 14:19:20] [INFO] Destino: C:\Users\csantos\AppData\Roaming\Microsoft\Templates_backup_20251107_141920
+[2025-11-07 14:19:20] [SUCCESS] Backup criado com sucesso: Templates_backup_20251107_141920 ?
+[2025-11-07 14:19:20] [INFO] Removendo backups antigos (mantendo os 5 mais recentes)...
+[2025-11-07 14:19:20] [INFO] Backup removido: Templates_backup_20251105_164923
+[2025-11-07 14:19:20] [INFO] Copiando pasta Templates...
+[2025-11-07 14:19:20] [INFO] Origem: C:\Users\csantos\chainsaw\configs\Templates
+[2025-11-07 14:19:20] [INFO] Destino: C:\Users\csantos\AppData\Roaming\Microsoft\Templates
+[2025-11-07 14:19:20] [INFO] Total de itens a copiar: 46
+[2025-11-07 14:19:20] [SUCCESS] Pasta Templates copiada com sucesso (38 arquivos) ?
+[2025-11-07 14:19:21] [INFO] Manifesto encontrado: 5 itens
+[2025-11-07 14:19:21] [INFO] Exportado em: 2025-11-07 04:23:48 por csantos
+[2025-11-07 14:19:23] [INFO] Iniciando importação de personalizações...
+[2025-11-07 14:19:23] [INFO] === Iniciando importação de personalizações ===
+[2025-11-07 14:19:24] [INFO] Criando backup das personalizações do Word (pré-importação de personalizações)...
+[2025-11-07 14:19:24] [INFO] Normal.dotm backup criado
+[2025-11-07 14:19:24] [INFO] Personalizações UI backup criado: 2 arquivos
+[2025-11-07 14:19:24] [SUCCESS] Backup de personalizações criado em: C:\Users\csantos\CHAINSAW\backups\word-customizations_20251107_141924 ?
+[2025-11-07 14:19:24] [INFO] Importando Normal.dotm...
+[2025-11-07 14:19:24] [SUCCESS] Normal.dotm importado com sucesso ?
+[2025-11-07 14:19:24] [INFO] Importando Building Blocks...
+[2025-11-07 14:19:24] [INFO] Nenhum Building Block para importar
+[2025-11-07 14:19:24] [INFO] Importando temas de documentos...
+[2025-11-07 14:19:24] [INFO] Nenhum tema para importar
+[2025-11-07 14:19:24] [INFO] Importando personalização da Faixa de Opções...
+[2025-11-07 14:19:24] [INFO] Ribbon importado para: C:\Users\csantos\AppData\Local\Microsoft\Office\Word.officeUI
+[2025-11-07 14:19:24] [INFO] Ribbon importado para: C:\Users\csantos\AppData\Roaming\Microsoft\Office\Word.officeUI
+[2025-11-07 14:19:24] [SUCCESS] Personalização do Ribbon importada: 1 arquivos ?
+[2025-11-07 14:19:24] [INFO] Importando personalizações da interface...
+[2025-11-07 14:19:24] [SUCCESS] Personalizações UI importadas: 2 arquivos ?
+[2025-11-07 14:19:24] [SUCCESS] Total de categorias de personalizações importadas: 3 ?
+[2025-11-07 14:19:24] [SUCCESS] === INSTALAÇÃO CONCLUÍDA COM SUCESSO ===
+[2025-11-07 14:19:24] [INFO] Duração: 00:53
