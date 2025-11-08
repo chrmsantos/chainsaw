@@ -37,73 +37,73 @@ Describe "VBA Identifier Functions - Validacao de Consistencia" {
     Context "Declaracao das Funcoes Identificadoras" {
         
         It "Deve declarar GetTituloRange como funcao publica" {
-            $vbaContent | Should -Match 'Public Function GetTituloRange\(doc As Document\) As Range'
+            $vbaContent | Should Match 'Public Function GetTituloRange\(doc As Document\) As Range'
         }
         
         It "Deve declarar GetEmentaRange como funcao publica" {
-            $vbaContent | Should -Match 'Public Function GetEmentaRange\(doc As Document\) As Range'
+            $vbaContent | Should Match 'Public Function GetEmentaRange\(doc As Document\) As Range'
         }
         
         It "Deve declarar GetProposicaoRange como funcao publica" {
-            $vbaContent | Should -Match 'Public Function GetProposicaoRange\(doc As Document\) As Range'
+            $vbaContent | Should Match 'Public Function GetProposicaoRange\(doc As Document\) As Range'
         }
         
         It "Deve declarar GetJustificativaRange como funcao publica" {
-            $vbaContent | Should -Match 'Public Function GetJustificativaRange\(doc As Document\) As Range'
+            $vbaContent | Should Match 'Public Function GetJustificativaRange\(doc As Document\) As Range'
         }
         
         It "Deve declarar GetDataRange como funcao publica" {
-            $vbaContent | Should -Match 'Public Function GetDataRange\(doc As Document\) As Range'
+            $vbaContent | Should Match 'Public Function GetDataRange\(doc As Document\) As Range'
         }
         
         It "Deve declarar GetAssinaturaRange como funcao publica" {
-            $vbaContent | Should -Match 'Public Function GetAssinaturaRange\(doc As Document\) As Range'
+            $vbaContent | Should Match 'Public Function GetAssinaturaRange\(doc As Document\) As Range'
         }
     }
     
     Context "Implementacao das Funcoes" {
         
         It "GetTituloRange deve usar tituloParaIndex internamente" {
-            $vbaContent | Should -Match 'GetTituloRange.*?tituloParaIndex'
+            $vbaContent | Should Match 'GetTituloRange.*?tituloParaIndex'
         }
         
         It "GetEmentaRange deve usar ementaParaIndex internamente" {
-            $vbaContent | Should -Match 'GetEmentaRange.*?ementaParaIndex'
+            $vbaContent | Should Match 'GetEmentaRange.*?ementaParaIndex'
         }
         
         It "GetJustificativaRange deve usar justificativaStartIndex internamente" {
-            $vbaContent | Should -Match 'GetJustificativaRange.*?justificativaStartIndex'
+            $vbaContent | Should Match 'GetJustificativaRange.*?justificativaStartIndex'
         }
         
         It "GetDataRange deve usar dataParaIndex internamente" {
-            $vbaContent | Should -Match 'GetDataRange.*?dataParaIndex'
+            $vbaContent | Should Match 'GetDataRange.*?dataParaIndex'
         }
         
         It "GetAssinaturaRange deve usar assinaturaStartIndex internamente" {
-            $vbaContent | Should -Match 'GetAssinaturaRange.*?assinaturaStartIndex'
+            $vbaContent | Should Match 'GetAssinaturaRange.*?assinaturaStartIndex'
         }
     }
     
     Context "Validacao de Range Checks" {
         
         It "GetTituloRange deve validar limites do indice" {
-            $vbaContent | Should -Match 'If tituloParaIndex <= 0 Or tituloParaIndex > doc\.Paragraphs\.count Then Exit Function'
+            $vbaContent | Should Match 'If tituloParaIndex <= 0 Or tituloParaIndex > doc\.Paragraphs\.count Then Exit Function'
         }
         
         It "GetEmentaRange deve validar limites do indice" {
-            $vbaContent | Should -Match 'If ementaParaIndex <= 0 Or ementaParaIndex > doc\.Paragraphs\.count Then Exit Function'
+            $vbaContent | Should Match 'If ementaParaIndex <= 0 Or ementaParaIndex > doc\.Paragraphs\.count Then Exit Function'
         }
         
         It "GetJustificativaRange deve validar limites dos indices" {
-            $vbaContent | Should -Match 'If justificativaStartIndex <= 0 Or justificativaEndIndex <= 0 Then Exit Function'
+            $vbaContent | Should Match 'If justificativaStartIndex <= 0 Or justificativaEndIndex <= 0 Then Exit Function'
         }
         
         It "GetDataRange deve validar limites do indice" {
-            $vbaContent | Should -Match 'If dataParaIndex <= 0 Or dataParaIndex > doc\.Paragraphs\.count Then Exit Function'
+            $vbaContent | Should Match 'If dataParaIndex <= 0 Or dataParaIndex > doc\.Paragraphs\.count Then Exit Function'
         }
         
         It "GetAssinaturaRange deve validar limites dos indices" {
-            $vbaContent | Should -Match 'If assinaturaStartIndex <= 0 Or assinaturaEndIndex <= 0 Then Exit Function'
+            $vbaContent | Should Match 'If assinaturaStartIndex <= 0 Or assinaturaEndIndex <= 0 Then Exit Function'
         }
     }
     
@@ -120,7 +120,7 @@ Describe "VBA Identifier Functions - Validacao de Consistencia" {
             if ($getElementInfoBlock) {
                 # Apos migracao, deve usar as funcoes
                 # Antes da migracao, este teste vai falhar (esperado)
-                $getElementInfoBlock | Should -Match 'GetTituloRange\(doc\)'
+                $getElementInfoBlock | Should Match 'GetTituloRange\(doc\)'
             }
         }
         
@@ -172,7 +172,7 @@ Describe "VBA Identifier Functions - Validacao de Consistencia" {
             
             foreach ($func in $getFunctions) {
                 $pattern = "(?s)Public Function $func.*?Set $func = Nothing"
-                $vbaContent | Should -Match $pattern
+                $vbaContent | Should Match $pattern
             }
         }
         
@@ -191,7 +191,7 @@ Describe "VBA Identifier Functions - Validacao de Consistencia" {
                 $pattern = "(?s)Public Function $func.*?End Function"
                 if ($vbaContent -match $pattern) {
                     $funcBody = $matches[0]
-                    $funcBody | Should -Match 'Exit Function'
+                    $funcBody | Should Match 'Exit Function'
                 }
             }
         }
@@ -200,19 +200,19 @@ Describe "VBA Identifier Functions - Validacao de Consistencia" {
     Context "Documentacao das Funcoes" {
         
         It "Deve haver comentarios explicativos para GetTituloRange" {
-            $vbaContent | Should -Match "'\s*GetTituloRange"
+            $vbaContent | Should Match "'\s*GetTituloRange"
         }
         
         It "Deve haver comentarios explicativos para GetEmentaRange" {
-            $vbaContent | Should -Match "'\s*GetEmentaRange"
+            $vbaContent | Should Match "'\s*GetEmentaRange"
         }
         
         It "Deve haver comentarios explicativos para GetJustificativaRange" {
-            $vbaContent | Should -Match "'\s*GetJustificativaRange"
+            $vbaContent | Should Match "'\s*GetJustificativaRange"
         }
         
         It "Changelog deve mencionar as funcoes identificadoras" {
-            $vbaContent | Should -Match 'GetTituloRange|GetEmentaRange|GetJustificativaRange'
+            $vbaContent | Should Match 'GetTituloRange|GetEmentaRange|GetJustificativaRange'
         }
     }
     
@@ -227,12 +227,12 @@ Describe "VBA Identifier Functions - Validacao de Consistencia" {
             if (-not $hasUtf8Bom) {
                 try {
                     $null = [System.Text.Encoding]::UTF8.GetString($bytes)
-                    $true | Should -Be $true
+                    $true | Should Be $true
                 } catch {
-                    $false | Should -Be $true
+                    $false | Should Be $true
                 }
             } else {
-                $hasUtf8Bom | Should -Be $true
+                $hasUtf8Bom | Should Be $true
             }
         }
         
@@ -252,14 +252,14 @@ Describe "VBA Identifier Functions - Validacao de Consistencia" {
                 }
             }
             
-            $hasEmoji | Should -Be $false
+            $hasEmoji | Should Be $false
         }
         
         It "Nao deve ter linhas excedendo 500 caracteres (manutencao VBA)" {
             $lines = Get-Content $vbaFile -Encoding UTF8
             $longLines = $lines | Where-Object { $_.Length -gt 500 }
             
-            $longLines.Count | Should -Be 0
+            $longLines.Count | Should Be 0
         }
     }
 }
