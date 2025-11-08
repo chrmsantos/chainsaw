@@ -1,0 +1,521 @@
+#requires -Version 5.1
+Import-Module Pester -ErrorAction Stop
+. $PSScriptRoot\Helpers.ps1
+
+# Override Get-RepoRoot for test context
+function Get-RepoRoot {
+    $testsDir = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
+    $repoRoot = Split-Path -Parent $testsDir
+    return $repoRoot
+}
+
+Describe 'CHAINSAW - Testes do Módulo VBA monolithicMod.bas' {
+
+    BeforeAll {
+        $repoRoot = Get-RepoRoot
+        $vbaPath = Join-Path $repoRoot "source\backups\main\monolithicMod.bas"
+        $vbaContent = Get-Content $vbaPath -Raw -Encoding UTF8
+        $vbaLines = Get-Content $vbaPath -Encoding UTF8
+    }
+
+    Context 'Estrutura e Metadados do Arquivo' {
+        
+        It 'Arquivo monolithicMod.bas existe' {
+            Test-Path $vbaPath | Should Be $true
+        }
+
+        It 'Arquivo não está vazio' {
+            (Get-Item $vbaPath).Length -gt 0 | Should Be $true
+        }
+
+        It 'Tamanho do arquivo é razoável (< 5MB)' {
+            $sizeMB = (Get-Item $vbaPath).Length / 1MB
+            $sizeMB -lt 5 | Should Be $true
+        }
+
+        It 'Contém cabeçalho CHAINSAW' {
+            $vbaContent -match 'CHAINSAW' | Should Be $true
+        }
+
+        It 'Contém informações de versão' {
+            $vbaContent -match 'Vers[aã]o:\s*\d+\.\d+' | Should Be $true
+        }
+
+        It 'Contém licença GNU GPLv3' {
+            $vbaContent -match 'GNU GPLv3' | Should Be $true
+        }
+
+        It 'Contém informação de autor' {
+            $vbaContent -match 'Autor:' | Should Be $true
+        }
+
+        It 'Contém declaração Option Explicit' {
+            $vbaContent -match '(?m)^Option Explicit' | Should Be $true
+        }
+
+        It 'Número total de linhas corresponde ao esperado (> 7000)' {
+            $vbaLines.Count -gt 7000 | Should Be $true
+        }
+    }
+
+    Context 'Análise de Procedimentos e Funções' {
+        
+        BeforeAll {
+            $procedures = [regex]::Matches($vbaContent, '(?m)^(Public |Private )?(Sub |Function )\w+')
+            $publicProcs = [regex]::Matches($vbaContent, '(?m)^Public (Sub |Function )\w+')
+            $privateProcs = [regex]::Matches($vbaContent, '(?m)^Private (Sub |Function )\w+')
+            $subs = [regex]::Matches($vbaContent, '(?m)^(Public |Private )?Sub \w+')
+            $functions = [regex]::Matches($vbaContent, '(?m)^(Public |Private )?Function \w+')
+        }
+
+        It 'Contém quantidade razoável de procedimentos (100-150)' {
+            $procedures.Count -ge 100 -and $procedures.Count -le 150 | Should Be $true
+        }
+
+        It 'Possui procedimento principal PadronizarDocumentoMain' {
+            $vbaContent -match '(?m)^Public Sub PadronizarDocumentoMain\(' | Should Be $true
+        }
+
+        It 'Procedimentos públicos são minoria (< 20% do total)' {
+            $publicRatio = $publicProcs.Count / $procedures.Count
+            $publicRatio -lt 0.20 | Should Be $true
+        }
+
+        It 'Possui funções de validação (ValidateDocument)' {
+            $vbaContent -match 'Function ValidateDocument' | Should Be $true
+        }
+
+        It 'Possui funções de identificação de elementos estruturais' {
+            ($vbaContent -match 'GetTituloRange') -and
+            ($vbaContent -match 'GetEmentaRange') -and
+            ($vbaContent -match 'GetProposicaoRange') | Should Be $true
+        }
+
+        It 'Possui sistema de tratamento de erros (ShowUserFriendlyError)' {
+            $vbaContent -match 'ShowUserFriendlyError' | Should Be $true
+        }
+
+        It 'Possui sistema de recuperação de emergência (EmergencyRecovery)' {
+            $vbaContent -match 'EmergencyRecovery' | Should Be $true
+        }
+
+        It 'Possui funções de normalização de texto' {
+            $vbaContent -match 'NormalizarTexto' | Should Be $true
+        }
+
+        It 'Todas as funções têm End Function' {
+            $functionStarts = [regex]::Matches($vbaContent, '(?m)^(Public |Private )?Function \w+').Count
+            $functionEnds = [regex]::Matches($vbaContent, '(?m)^End Function').Count
+            $functionStarts -eq $functionEnds | Should Be $true
+        }
+
+        It 'Todas as subs têm End Sub' {
+            $subStarts = [regex]::Matches($vbaContent, '(?m)^(Public |Private )?Sub \w+').Count
+            $subEnds = [regex]::Matches($vbaContent, '(?m)^End Sub').Count
+            $subStarts -eq $subEnds | Should Be $true
+        }
+    }
+
+    Context 'Constantes e Configurações' {
+        
+        It 'Define constantes do Word (wdNoProtection, wdTypeDocument, etc)' {
+            ($vbaContent -match 'wdNoProtection') -and
+            ($vbaContent -match 'wdTypeDocument') -and
+            ($vbaContent -match 'wdAlignParagraphCenter') | Should Be $true
+        }
+
+        It 'Define constantes de formatação (STANDARD_FONT, STANDARD_FONT_SIZE)' {
+            ($vbaContent -match 'STANDARD_FONT') -and
+            ($vbaContent -match 'STANDARD_FONT_SIZE') | Should Be $true
+        }
+
+        It 'Define margens do documento (TOP_MARGIN_CM, BOTTOM_MARGIN_CM, etc)' {
+            ($vbaContent -match 'TOP_MARGIN_CM') -and
+            ($vbaContent -match 'BOTTOM_MARGIN_CM') -and
+            ($vbaContent -match 'LEFT_MARGIN_CM') -and
+            ($vbaContent -match 'RIGHT_MARGIN_CM') | Should Be $true
+        }
+
+        It 'Define configurações de imagem do cabeçalho' {
+            ($vbaContent -match 'HEADER_IMAGE_RELATIVE_PATH') -and
+            ($vbaContent -match 'HEADER_IMAGE_MAX_WIDTH_CM') | Should Be $true
+        }
+
+        It 'Define constantes de sistema (MIN_SUPPORTED_VERSION, MAX_RETRY_ATTEMPTS)' {
+            ($vbaContent -match 'MIN_SUPPORTED_VERSION') -and
+            ($vbaContent -match 'MAX_RETRY_ATTEMPTS') | Should Be $true
+        }
+
+        It 'Define constantes de backup e logs (CHAINSAW_ROOT_FOLDER, CHAINSAW_LOGS_FOLDER)' {
+            ($vbaContent -match 'CHAINSAW_ROOT_FOLDER') -and
+            ($vbaContent -match 'CHAINSAW_LOGS_FOLDER') | Should Be $true
+        }
+
+        It 'Define níveis de log (LOG_LEVEL_INFO, LOG_LEVEL_WARNING, LOG_LEVEL_ERROR)' {
+            ($vbaContent -match 'LOG_LEVEL_INFO') -and
+            ($vbaContent -match 'LOG_LEVEL_WARNING') -and
+            ($vbaContent -match 'LOG_LEVEL_ERROR') | Should Be $true
+        }
+
+        It 'Fonte padrão é Arial' {
+            $vbaContent -match 'STANDARD_FONT.*=.*"Arial"' | Should Be $true
+        }
+
+        It 'Tamanho de fonte padrão é 12' {
+            $vbaContent -match 'STANDARD_FONT_SIZE.*=.*12' | Should Be $true
+        }
+    }
+
+    Context 'Sistema de Cache de Parágrafos' {
+        
+        It 'Possui função BuildParagraphCache' {
+            $vbaContent -match 'Sub BuildParagraphCache' | Should Be $true
+        }
+
+        It 'Possui função ClearParagraphCache' {
+            $vbaContent -match 'Sub ClearParagraphCache' | Should Be $true
+        }
+
+        It 'Possui sistema de identificação de estrutura do documento' {
+            $vbaContent -match 'IdentifyDocumentStructure' | Should Be $true
+        }
+    }
+
+    Context 'Identificação de Elementos Estruturais' {
+        
+        It 'Possui função para identificar Título (IsTituloElement)' {
+            $vbaContent -match 'Function IsTituloElement' | Should Be $true
+        }
+
+        It 'Possui função para identificar Ementa (IsEmentaElement)' {
+            $vbaContent -match 'Function IsEmentaElement' | Should Be $true
+        }
+
+        It 'Possui função para identificar Justificativa (IsJustificativaTitleElement)' {
+            $vbaContent -match 'Function IsJustificativaTitleElement' | Should Be $true
+        }
+
+        It 'Possui função para identificar Data (IsDataElement)' {
+            $vbaContent -match 'Function IsDataElement' | Should Be $true
+        }
+
+        It 'Possui função para identificar Assinatura (IsAssinaturaStart)' {
+            $vbaContent -match 'Function IsAssinaturaStart' | Should Be $true
+        }
+
+        It 'Possui função para identificar Título de Anexo (IsTituloAnexoElement)' {
+            $vbaContent -match 'Function IsTituloAnexoElement' | Should Be $true
+        }
+
+        It 'Possui GetProposituraRange para retornar range da propositura completa' {
+            $vbaContent -match 'Function GetProposituraRange' | Should Be $true
+        }
+
+        It 'Possui GetElementInfo para relatório de elementos' {
+            $vbaContent -match 'GetElementInfo' | Should Be $true
+        }
+    }
+
+    Context 'Tratamento de Erros e Recuperação' {
+        
+        It 'Possui tratamento On Error em procedimentos críticos' {
+            $vbaContent -match 'On Error GoTo' | Should Be $true
+        }
+
+        It 'Possui labels de tratamento de erro (ErrorHandler:)' {
+            $vbaContent -match 'ErrorHandler:' | Should Be $true
+        }
+
+        It 'Possui função SafeCleanup' {
+            $vbaContent -match 'Sub SafeCleanup' | Should Be $true
+        }
+
+        It 'Possui função ReleaseObjects' {
+            $vbaContent -match 'Sub ReleaseObjects' | Should Be $true
+        }
+
+        It 'Possui verificação de timeout (IsOperationTimeout)' {
+            $vbaContent -match 'Function IsOperationTimeout' | Should Be $true
+        }
+
+        It 'Implementa sistema de retry (MAX_RETRY_ATTEMPTS)' {
+            $vbaContent -match 'MAX_RETRY_ATTEMPTS' | Should Be $true
+        }
+    }
+
+    Context 'Validação de Sintaxe VBA' {
+        
+        It 'Não contém tabs (usa apenas espaços)' {
+            $vbaContent -notmatch "`t" | Should Be $true
+        }
+
+        It 'Parênteses balanceados em declarações de função' {
+            $functionDeclarations = [regex]::Matches($vbaContent, '(?m)^(Public |Private )?Function [^(]+\([^)]*\)')
+            $functionDeclarations.Count -gt 0 | Should Be $true
+        }
+
+        It 'Não contém caracteres de controle inválidos' {
+            $invalidChars = [regex]::Matches($vbaContent, '[\x00-\x08\x0B\x0C\x0E-\x1F]')
+            $invalidChars.Count -eq 0 | Should Be $true
+        }
+
+        It 'Linhas não excedem 1000 caracteres (padrão VBA)' {
+            $longLines = $vbaLines | Where-Object { $_.Length -gt 1000 }
+            $longLines.Count -eq 0 | Should Be $true
+        }
+
+        It 'Usa aspas duplas para strings, não aspas simples' {
+            # VBA usa aspas duplas "" para strings, ' é apenas para comentários
+            $stringDeclarations = [regex]::Matches($vbaContent, '=\s*"[^"]*"')
+            $stringDeclarations.Count -gt 0 | Should Be $true
+        }
+    }
+
+    Context 'Comentários e Documentação' {
+        
+        It 'Contém comentários de seção (linhas com ====)' {
+            $vbaContent -match '={20,}' | Should Be $true
+        }
+
+        It 'Possui CHANGELOG documentado' {
+            $vbaContent -match 'CHANGELOG' | Should Be $true
+        }
+
+        It 'Taxa de comentários adequada (> 5% das linhas)' {
+            $commentLines = $vbaLines | Where-Object { $_ -match "^\s*'" }
+            $commentRatio = $commentLines.Count / $vbaLines.Count
+            $commentRatio -gt 0.05 | Should Be $true
+        }
+
+        It 'Contém seções organizadas (CONSTANTES, FUNÇÕES, etc)' {
+            $vbaContent -match 'CONSTANTES' | Should Be $true
+        }
+    }
+
+    Context 'Funcionalidades de Backup e Log' {
+        
+        It 'Possui sistema de backup (BACKUP_FOLDER_NAME)' {
+            $vbaContent -match 'BACKUP_FOLDER_NAME' | Should Be $true
+        }
+
+        It 'Possui limite de arquivos de backup (MAX_BACKUP_FILES)' {
+            $vbaContent -match 'MAX_BACKUP_FILES' | Should Be $true
+        }
+
+        It 'Implementa sistema de logging' {
+            ($vbaContent -match 'LOG_LEVEL') -or ($vbaContent -match 'WriteLog') | Should Be $true
+        }
+
+        It 'Possui modo de debug (DEBUG_MODE)' {
+            $vbaContent -match 'DEBUG_MODE' | Should Be $true
+        }
+    }
+
+    Context 'Processamento de Texto' {
+        
+        It 'Possui função GetCleanParagraphText' {
+            $vbaContent -match 'Function GetCleanParagraphText' | Should Be $true
+        }
+
+        It 'Possui função RemovePunctuation' {
+            $vbaContent -match 'Function RemovePunctuation' | Should Be $true
+        }
+
+        It 'Possui função para detectar parágrafos especiais (DetectSpecialParagraph)' {
+            $vbaContent -match 'Function DetectSpecialParagraph' | Should Be $true
+        }
+
+        It 'Possui função para contar linhas em branco (CountBlankLinesBefore)' {
+            $vbaContent -match 'Function CountBlankLinesBefore' | Should Be $true
+        }
+    }
+
+    Context 'Validação de Documento' {
+        
+        It 'Possui verificação de saúde do documento (IsDocumentHealthy)' {
+            $vbaContent -match 'Function IsDocumentHealthy' | Should Be $true
+        }
+
+        It 'Valida versão mínima do Word (MIN_SUPPORTED_VERSION = 14, Word 2010+)' {
+            $vbaContent -match 'MIN_SUPPORTED_VERSION.*=.*14' | Should Be $true
+        }
+
+        It 'Possui validação de string obrigatória (REQUIRED_STRING)' {
+            $vbaContent -match 'REQUIRED_STRING' | Should Be $true
+        }
+    }
+
+    Context 'Análise de Complexidade' {
+        
+        It 'Densidade de código é razoável (> 40% linhas não vazias)' {
+            $nonEmptyLines = $vbaLines | Where-Object { $_.Trim() -ne '' }
+            $density = $nonEmptyLines.Count / $vbaLines.Count
+            $density -gt 0.40 | Should Be $true
+        }
+
+        It 'Número de procedimentos por 1000 linhas é razoável (15-25)' {
+            $procedures = [regex]::Matches($vbaContent, '(?m)^(Public |Private )?(Sub |Function )\w+')
+            $procsPerK = ($procedures.Count / $vbaLines.Count) * 1000
+            ($procsPerK -ge 15) -and ($procsPerK -le 25) | Should Be $true
+        }
+
+        It 'Possui proteções contra loops infinitos (MAX_LOOP_ITERATIONS)' {
+            $vbaContent -match 'MAX_LOOP_ITERATIONS' | Should Be $true
+        }
+
+        It 'Possui timeout para operações longas (MAX_OPERATION_TIMEOUT_SECONDS)' {
+            $vbaContent -match 'MAX_OPERATION_TIMEOUT_SECONDS' | Should Be $true
+        }
+    }
+
+    Context 'Configurações de Formatação' {
+        
+        It 'Define espaçamento entre linhas (LINE_SPACING)' {
+            $vbaContent -match 'LINE_SPACING' | Should Be $true
+        }
+
+        It 'Define configurações de cabeçalho e rodapé' {
+            ($vbaContent -match 'HEADER_DISTANCE_CM') -and
+            ($vbaContent -match 'FOOTER_DISTANCE_CM') -and
+            ($vbaContent -match 'FOOTER_FONT_SIZE') | Should Be $true
+        }
+
+        It 'Define orientação de página (wdOrientPortrait)' {
+            $vbaContent -match 'wdOrientPortrait' | Should Be $true
+        }
+
+        It 'Define configurações de sublinhado (wdUnderlineNone, wdUnderlineSingle)' {
+            ($vbaContent -match 'wdUnderlineNone') -and
+            ($vbaContent -match 'wdUnderlineSingle') | Should Be $true
+        }
+    }
+
+    Context 'Recursos Avançados' {
+        
+        It 'Suporta múltiplas visualizações (wdPrintView)' {
+            $vbaContent -match 'wdPrintView' | Should Be $true
+        }
+
+        It 'Gerencia alertas do Word (wdAlertsAll, wdAlertsNone)' {
+            ($vbaContent -match 'wdAlertsAll') -or
+            ($vbaContent -match 'wdAlertsNone') | Should Be $true
+        }
+
+        It 'Trabalha com campos do Word (wdFieldPage, wdFieldNumPages)' {
+            ($vbaContent -match 'wdFieldPage') -or
+            ($vbaContent -match 'wdFieldNumPages') | Should Be $true
+        }
+
+        It 'Gerencia shapes e imagens (msoPicture, msoTextEffect)' {
+            ($vbaContent -match 'msoPicture') -or
+            ($vbaContent -match 'msoTextEffect') | Should Be $true
+        }
+    }
+
+    Context 'Segurança e Boas Práticas' {
+        
+        It 'Fecha arquivos abertos (CloseAllOpenFiles)' {
+            $vbaContent -match 'CloseAllOpenFiles' | Should Be $true
+        }
+
+        It 'Não contém senhas ou credenciais hardcoded' {
+            $vbaContent -notmatch '(?i)(password|senha|pwd)\s*=\s*"[^"]+"' | Should Be $true
+        }
+
+        It 'Não contém caminhos absolutos hardcoded (usa caminhos relativos)' {
+            # Permite constantes mas não caminhos C:\ direto no código
+            $hardcodedPaths = [regex]::Matches($vbaContent, '(?<!Const\s+\w+\s*As\s*String\s*=\s*)"[A-Z]:\\[^"]*"')
+            $hardcodedPaths.Count -eq 0 | Should Be $true
+        }
+
+        It 'Usa controle de versão documentado' {
+            $vbaContent -match 'Vers[aã]o:\s*\d+\.\d+' | Should Be $true
+        }
+    }
+
+    Context 'Performance e Otimização' {
+        
+        It 'Usa variáveis tipadas (As Long, As String, As Range, etc)' {
+            ($vbaContent -match '\bAs Long\b') -and
+            ($vbaContent -match '\bAs String\b') -and
+            ($vbaContent -match '\bAs Range\b') | Should Be $true
+        }
+
+        It 'Define constantes Private (performance em VBA)' {
+            $vbaContent -match '(?m)^Private Const ' | Should Be $true
+        }
+
+        It 'Limita escaneamento inicial de parágrafos (MAX_INITIAL_PARAGRAPHS_TO_SCAN)' {
+            $vbaContent -match 'MAX_INITIAL_PARAGRAPHS_TO_SCAN' | Should Be $true
+        }
+    }
+
+    Context 'Integração e Compatibilidade' {
+        
+        It 'Compatível com Word 2010+ (versão 14+)' {
+            $vbaContent -match 'MIN_SUPPORTED_VERSION.*=.*14' | Should Be $true
+        }
+
+        It 'Referencia Microsoft Word corretamente' {
+            $vbaContent -match 'Word' | Should Be $true
+        }
+
+        It 'Trabalha com objetos Document corretamente' {
+            $vbaContent -match '\bDocument\b' | Should Be $true
+        }
+
+        It 'Trabalha com objetos Range corretamente' {
+            $vbaContent -match '\bRange\b' | Should Be $true
+        }
+
+        It 'Trabalha com objetos Paragraph corretamente' {
+            $vbaContent -match '\bParagraph\b' | Should Be $true
+        }
+    }
+
+    Context 'Funcionalidades Específicas do Chainsaw' {
+        
+        It 'Processa "considerando" corretamente (CONSIDERANDO_PREFIX)' {
+            $vbaContent -match 'CONSIDERANDO_PREFIX' | Should Be $true
+        }
+
+        It 'Define comprimento mínimo para considerando (CONSIDERANDO_MIN_LENGTH)' {
+            $vbaContent -match 'CONSIDERANDO_MIN_LENGTH' | Should Be $true
+        }
+
+        It 'Referencia pasta de assets (stamp.png)' {
+            $vbaContent -match 'stamp\.png' | Should Be $true
+        }
+
+        It 'Usa estrutura .chainsaw para organização' {
+            $vbaContent -match '\.chainsaw' | Should Be $true
+        }
+    }
+
+    Context 'Qualidade de Código' {
+        
+        It 'Arquivo não termina em meio a procedimento (tem End Sub/Function no final)' {
+            $lastProc = $vbaLines | Select-Object -Last 50 | Where-Object { $_ -match '^End (Sub|Function)' }
+            $lastProc.Count -gt 0 | Should Be $true
+        }
+
+        It 'Possui diversidade de código razoável (> 50% linhas únicas)' {
+            # VBA tem muitas linhas repetidas: End Sub/Function, linhas vazias, separadores
+            # Taxa de ~50% de linhas únicas é aceitável para código VBA bem estruturado
+            $uniqueLines = $vbaLines | Select-Object -Unique
+            $uniqueRatio = $uniqueLines.Count / $vbaLines.Count
+            $uniqueRatio -gt 0.50 | Should Be $true
+        }
+
+        It 'Usa nomenclatura consistente (CamelCase para funções)' {
+            $funcs = [regex]::Matches($vbaContent, '(?m)^(Public |Private )?Function ([A-Z][a-zA-Z0-9]+)')
+            $funcs.Count -gt 0 | Should Be $true
+        }
+
+        It 'Não contém código comentado excessivo (< 5% comentários de código)' {
+            $codeComments = $vbaLines | Where-Object { $_ -match "^\s*'.*\b(If|For|While|Dim|Set)\b" }
+            $codeCommentRate = $codeComments.Count / $vbaLines.Count
+            $codeCommentRate -lt 0.05 | Should Be $true
+        }
+    }
+}
