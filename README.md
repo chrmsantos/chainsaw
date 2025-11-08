@@ -83,15 +83,52 @@ Ou use o `install.cmd` (duplo-clique) que contorna automaticamente.
 ### "Normal.dotm está em uso"
 
 1. Feche Word
-2. Gerenciador de Tarefas  Finalize `WINWORD.EXE`
+2. Gerenciador de Tarefas → Finalize `WINWORD.EXE`
 3. Execute instalador novamente
+
+## 🧪 Testes Automatizados
+
+O projeto inclui um sistema completo de testes unitários usando **Pester** para garantir a qualidade do código.
+
+### Executar Testes
+
+**Opção 1 - Script CMD (recomendado):**
+```cmd
+cd chainsaw\tests
+run-tests.cmd
+```
+
+**Opção 2 - PowerShell:**
+```powershell
+cd "$env:USERPROFILE\chainsaw\tests"
+powershell -NoProfile -ExecutionPolicy Bypass -File .\Run-Tests.ps1
+```
+
+### O que é testado
+
+- ✅ **Scripts PowerShell** - Validação de sintaxe (export-config.ps1, install.ps1, update-vba-module.ps1)
+- ✅ **Módulos VBA** - Verificação de existência e duplicatas (monolithicMod.bas)
+- ✅ **Documentação** - Integridade de arquivos essenciais
+- ✅ **CHANGELOG** - Verificação de versão atual
+
+### Pré-requisitos
+
+- PowerShell 5.1+
+- Pester 3.4.0+ (instalado automaticamente se necessário)
+
+### Ver Resultados Detalhados
+
+```powershell
+cd chainsaw\tests
+powershell -NoProfile -ExecutionPolicy Bypass -File .\Run-Tests.ps1 -Detailed
+```
 
 ##  Segurança
 
--  Backups automáticos antes de qualquer modificação
--  Código fonte aberto (VBA + PowerShell)
--  Instalação 100% local (sem envio de dados)
--  Sem privilégios de administrador
+- ✅ Backups automáticos antes de qualquer modificação
+- ✅ Código fonte aberto (VBA + PowerShell)
+- ✅ Instalação 100% local (sem envio de dados)
+- ✅ Sem privilégios de administrador
 
 ##  Licença
 
@@ -100,3 +137,4 @@ MIT License - Veja [LICENSE](LICENSE)
 ---
 
 **Versão:** 2.0.2 | **Desenvolvido por:** chrmsantos | **Atualizado:** Nov 2025
+
