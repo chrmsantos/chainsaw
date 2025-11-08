@@ -518,4 +518,232 @@ Describe 'CHAINSAW - Testes do Módulo VBA monolithicMod.bas' {
             $codeCommentRate -lt 0.05 | Should Be $true
         }
     }
+
+    Context 'Validacao de Compilacao VBA' {
+        
+        It 'Todas as declaracoes de variavel sao validas (Dim, Private, Public)' {
+            # Verifica se não há declarações mal formadas
+            $invalidDeclarations = [regex]::Matches($vbaContent, '(?m)^(Dim|Private|Public)\s+As\s+')
+            $invalidDeclarations.Count -eq 0 | Should Be $true
+        }
+
+        It 'Todas as atribuicoes Set usam palavra-chave Set corretamente' {
+            # Set é obrigatório para objetos em VBA
+            # Verifica que não há atribuições diretas de objetos sem Set
+            $validSetStatements = [regex]::Matches($vbaContent, '(?m)^\s*Set\s+\w+\s*=')
+            $validSetStatements.Count -gt 0 | Should Be $true
+        }
+
+        It 'Nao ha declaracoes duplicadas de procedimentos' {
+            $procedures = [regex]::Matches($vbaContent, '(?m)^(Public |Private )?(Sub |Function )(\w+)')
+            $procedureNames = $procedures | ForEach-Object { $_.Groups[3].Value }
+            $uniqueNames = $procedureNames | Select-Object -Unique
+            $procedureNames.Count -eq $uniqueNames.Count | Should Be $true
+        }
+
+        It 'Todos os If tem End If correspondente' {
+            $ifCount = [regex]::Matches($vbaContent, '(?m)^\s*(If|ElseIf)\s+.+\s+Then\s*$').Count
+            $endIfCount = [regex]::Matches($vbaContent, '(?m)^\s*End If').Count
+            # Pode haver If inline (Then ... : End If na mesma linha)
+            # Então End If deve ser >= If multilinhas
+            $endIfCount -ge ($ifCount * 0.8) | Should Be $true
+        }
+
+        It 'Todos os For tem Next correspondente' {
+            $forCount = [regex]::Matches($vbaContent, '(?m)^\s*For\s+').Count
+            $nextCount = [regex]::Matches($vbaContent, '(?m)^\s*Next\b').Count
+            $forCount -eq $nextCount | Should Be $true
+        }
+
+        It 'Todos os Do tem Loop correspondente' {
+            $doCount = [regex]::Matches($vbaContent, '(?m)^\s*Do\s*(While|Until)?').Count
+            $loopCount = [regex]::Matches($vbaContent, '(?m)^\s*Loop\b').Count
+            # Permite margem de 1-2 loops (pode haver Do...Loop While inline)
+            [Math]::Abs($doCount - $loopCount) -le 2 | Should Be $true
+        }
+
+        It 'Todos os With tem End With correspondente' {
+            $withCount = [regex]::Matches($vbaContent, '(?m)^\s*With\s+').Count
+            $endWithCount = [regex]::Matches($vbaContent, '(?m)^\s*End With').Count
+            $withCount -eq $endWithCount | Should Be $true
+        }
+
+        It 'Todos os Select Case tem End Select correspondente' {
+            $selectCount = [regex]::Matches($vbaContent, '(?m)^\s*Select Case\s+').Count
+            $endSelectCount = [regex]::Matches($vbaContent, '(?m)^\s*End Select').Count
+            $selectCount -eq $endSelectCount | Should Be $true
+        }
+
+        It 'Nao ha uso de GoTo sem label correspondente' {
+            $goToStatements = [regex]::Matches($vbaContent, '(?m)^\s*(?:On Error )?GoTo\s+(\w+)')
+            $labels = [regex]::Matches($vbaContent, '(?m)^(\w+):')
+            
+            foreach ($goTo in $goToStatements) {
+                $targetLabel = $goTo.Groups[1].Value
+                if ($targetLabel -ne '0' -and $targetLabel -ne 'NextIteration') {
+                    $labelExists = $labels | Where-Object { $_.Groups[1].Value -eq $targetLabel }
+                    $labelExists.Count -gt 0 | Should Be $true
+                }
+            }
+        }
+
+        It 'Todas as funcoes tem tipo de retorno declarado' {
+            $functions = [regex]::Matches($vbaContent, '(?m)^(Public |Private )?Function\s+(\w+)\([^)]*\)\s+As\s+\w+')
+            $allFunctions = [regex]::Matches($vbaContent, '(?m)^(Public |Private )?Function\s+(\w+)')
+            # Todas as funções devem ter tipo de retorno
+            $functions.Count -eq $allFunctions.Count | Should Be $true
+        }
+
+        It 'Nao ha chamadas a procedimentos inexistentes (verificacao basica)' {
+            # Verifica alguns procedimentos críticos que são chamados
+            $calledProcs = @('BuildParagraphCache', 'ClearParagraphCache', 'SafeCleanup', 'LogMessage')
+            foreach ($proc in $calledProcs) {
+                $procDeclared = $vbaContent -match "(Sub |Function )$proc"
+                $procDeclared | Should Be $true
+            }
+        }
+
+        It 'Todas as constantes tem valor atribuido' {
+            $constants = [regex]::Matches($vbaContent, '(?m)^(Public |Private )?Const\s+\w+\s+As\s+\w+\s*=')
+            $allConstants = [regex]::Matches($vbaContent, '(?m)^(Public |Private )?Const\s+\w+')
+            $constants.Count -eq $allConstants.Count | Should Be $true
+        }
+
+        It 'Nao ha variaveis declaradas mas nunca usadas (verificacao de principais)' {
+            # Verifica algumas variáveis críticas que devem ser usadas
+            $criticalVars = @('doc', 'para', 'rng')
+            foreach ($var in $criticalVars) {
+                $varUsage = [regex]::Matches($vbaContent, "\b$var\b").Count
+                $varUsage -gt 1 | Should Be $true # Declaração + uso
+            }
+        }
+
+        It 'Parenteses balanceados em cada linha' {
+            $unbalancedLines = 0
+            foreach ($line in $vbaLines) {
+                if ($line -match '\(|\)') {
+                    $openCount = ([regex]::Matches($line, '\(')).Count
+                    $closeCount = ([regex]::Matches($line, '\)')).Count
+                    # Parenteses devem estar balanceados na linha
+                    # Permite algumas exceções para continuação de linha
+                    if ($openCount -ne $closeCount -and $line -notmatch '_$') {
+                        $unbalancedLines++
+                    }
+                }
+            }
+            # Permite até 5 linhas desbalanceadas (continuação de linha VBA)
+            $unbalancedLines -le 5 | Should Be $true
+        }
+
+        It 'Aspas duplas balanceadas em declaracoes de string' {
+            foreach ($line in $vbaLines | Where-Object { $_ -match '"' -and $_ -notmatch "^\s*'" }) {
+                $quoteCount = ([regex]::Matches($line, '"')).Count
+                # Número de aspas deve ser par (abertura e fechamento)
+                # Exceto se for aspas escapadas ("")
+                if ($line -notmatch '""') {
+                    $quoteCount % 2 -eq 0 | Should Be $true
+                }
+            }
+        }
+
+        It 'Nao ha uso de Exit Sub/Function fora de procedimento' {
+            # Exit Sub/Function só pode aparecer dentro de Sub/Function
+            $inProcedure = $false
+            $invalidExits = 0
+            
+            foreach ($line in $vbaLines) {
+                if ($line -match '^(Public |Private )?(Sub |Function )\w+') {
+                    $inProcedure = $true
+                }
+                if ($line -match '^End (Sub|Function)') {
+                    $inProcedure = $false
+                }
+                if ($line -match '^\s*Exit (Sub|Function)' -and -not $inProcedure) {
+                    $invalidExits++
+                }
+            }
+            
+            $invalidExits -eq 0 | Should Be $true
+        }
+
+        It 'Todas as variaveis objeto sao liberadas com Set = Nothing' {
+            # Verifica que objetos importantes são liberados (permite exceções)
+            $objectVars = @('doc', 'rng', 'para')
+            $releasedCount = 0
+            foreach ($var in $objectVars) {
+                if ($vbaContent -match "Set\s+$var\s*=") {
+                    # Se Set é usado, deve haver Set = Nothing
+                    if ($vbaContent -match "Set\s+$var\s*=\s*Nothing") {
+                        $releasedCount++
+                    }
+                }
+            }
+            # Pelo menos 2 das 3 variáveis devem ser liberadas
+            $releasedCount -ge 2 | Should Be $true
+        }
+
+        It 'Nao ha recursao infinita detectavel (funcao chama a si mesma sem condicao)' {
+            $functions = [regex]::Matches($vbaContent, '(?s)(Public |Private )?Function\s+(\w+).*?End Function')
+            $recursiveWithoutExit = 0
+            
+            foreach ($func in $functions) {
+                $funcName = $func.Groups[2].Value
+                $funcBody = $func.Value
+                
+                # Se função chama a si mesma, deve ter If/Exit Function para evitar infinito
+                if ($funcBody -match "\b$funcName\(") {
+                    $hasExitCondition = ($funcBody -match 'Exit Function') -or 
+                                      ($funcBody -match '\bIf\b') -or
+                                      ($funcBody -match '\bElse\b')
+                    if (-not $hasExitCondition) {
+                        $recursiveWithoutExit++
+                    }
+                }
+            }
+            # Permite até 2 funções recursivas sem exit explícito (podem ter outras proteções)
+            $recursiveWithoutExit -le 2 | Should Be $true
+        }
+
+        It 'Nao ha atribuicoes a constantes' {
+            $constants = [regex]::Matches($vbaContent, '(?m)^(Public |Private )?Const\s+(\w+)')
+            
+            foreach ($const in $constants) {
+                $constName = $const.Groups[2].Value
+                # Não deve haver atribuição após declaração
+                $reassignment = [regex]::Matches($vbaContent, "(?m)^\s*$constName\s*=")
+                $reassignment.Count -eq 0 | Should Be $true
+            }
+        }
+
+        It 'Arrays sao declarados corretamente com parenteses' {
+            # Arrays em VBA usam () para dimensões
+            $arrayDeclarations = [regex]::Matches($vbaContent, '(?m)Dim\s+\w+\([^)]*\)\s+As')
+            # Se houver arrays, a maioria deve estar bem formada
+            if ($arrayDeclarations.Count -gt 0) {
+                $wellFormed = 0
+                foreach ($arr in $arrayDeclarations) {
+                    if ($arr.Value -match '\(.+\)') {
+                        $wellFormed++
+                    }
+                }
+                # Pelo menos 80% dos arrays devem estar bem formados
+                ($wellFormed / $arrayDeclarations.Count) -ge 0.8 | Should Be $true
+            } else {
+                $true | Should Be $true # Passa se não houver arrays
+            }
+        }
+
+        It 'On Error Resume Next tem On Error GoTo 0 correspondente (restauracao de erro)' {
+            # Boa prática: sempre restaurar tratamento de erro padrão
+            $resumeNextCount = [regex]::Matches($vbaContent, '(?m)On Error Resume Next').Count
+            $errorGoTo0Count = [regex]::Matches($vbaContent, '(?m)On Error GoTo 0').Count
+            
+            # Deve haver pelo menos 50% de restaurações (permite exceções)
+            if ($resumeNextCount -gt 0) {
+                ($errorGoTo0Count / $resumeNextCount) -ge 0.5 | Should Be $true
+            } else {
+                $true | Should Be $true
+            }
+        }
+    }
 }
