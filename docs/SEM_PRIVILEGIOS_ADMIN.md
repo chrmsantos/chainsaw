@@ -4,7 +4,7 @@
 
 O script de instalação do Chainsaw (`install.ps1`) **FUNCIONA COMPLETAMENTE** sem privilégios de administrador e foi projetado especificamente para isso.
 
-## 📍 Áreas de Operação
+##  Áreas de Operação
 
 O script opera EXCLUSIVAMENTE nas seguintes áreas do perfil do usuário:
 
@@ -15,7 +15,7 @@ O script opera EXCLUSIVAMENTE nas seguintes áreas do perfil do usuário:
 
 O script de instalação do Chainsaw (`install.ps1`) **FUNCIONA COMPLETAMENTE** sem privilégios de administrador e foi projetado especificamente para isso.
 
-## 📍 Áreas de Operação
+##  Áreas de Operação
 
 O script opera EXCLUSIVAMENTE nas seguintes áreas do perfil do usuário:
 
@@ -189,7 +189,7 @@ Todas as classes .NET utilizadas são acessíveis:
 - [OK] `[Environment]` - Informações do ambiente
 - [OK] `[Security.Principal.WindowsPrincipal]` - Verificação de identidade
 
-## 🧪 Testes Realizados
+##  Testes Realizados
 
 Todos os seguintes testes foram implementados em `test-permissions.ps1`:
 
@@ -390,7 +390,7 @@ Todas as classes .NET utilizadas são acessíveis:
 - [OK] `[Environment]` - Informações do ambiente
 - [OK] `[Security.Principal.WindowsPrincipal]` - Verificação de identidade
 
-## 🧪 Testes Realizados
+##  Testes Realizados
 
 Todos os seguintes testes foram implementados em `test-permissions.ps1`:
 

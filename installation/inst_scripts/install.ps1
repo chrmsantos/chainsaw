@@ -102,7 +102,7 @@ if ([string]::IsNullOrWhiteSpace($SourcePath)) {
 # =============================================================================
 
 if (-not $BypassedExecution) {
-    Write-Host "🔒 Verificando política de execução..." -ForegroundColor Cyan
+    Write-Host " Verificando política de execução..." -ForegroundColor Cyan
     
     # Captura a política atual para documentação no log
     $currentPolicy = Get-ExecutionPolicy -Scope CurrentUser
@@ -119,8 +119,8 @@ if (-not $BypassedExecution) {
     }
     
     if ($needsBypass -or $currentPolicy -eq "Restricted" -or $currentPolicy -eq "AllSigned") {
-        Write-Host "⚠  Política de execução restritiva detectada." -ForegroundColor Yellow
-        Write-Host "🔄 Relançando script com bypass temporário..." -ForegroundColor Cyan
+        Write-Host "[AVISO]  Política de execução restritiva detectada." -ForegroundColor Yellow
+        Write-Host " Relançando script com bypass temporário..." -ForegroundColor Cyan
         Write-Host ""
         Write-Host "ℹ  SEGURANÇA:" -ForegroundColor Green
         Write-Host "   • Apenas ESTE script será executado com bypass" -ForegroundColor Gray
@@ -157,12 +157,12 @@ if (-not $BypassedExecution) {
         exit $processInfo.ExitCode
     }
     else {
-        Write-Host "✓ Política de execução adequada: $currentPolicy" -ForegroundColor Green
+        Write-Host "[OK] Política de execução adequada: $currentPolicy" -ForegroundColor Green
         Write-Host ""
     }
 }
 else {
-    Write-Host "✓ Executando com bypass temporário (seguro)" -ForegroundColor Green
+    Write-Host "[OK] Executando com bypass temporário (seguro)" -ForegroundColor Green
     Write-Host ""
 }
 
@@ -258,15 +258,15 @@ function Write-Log {
     if (-not $NoConsole) {
         switch ($Level) {
             "SUCCESS" {
-                Write-Host "✓ $Message" -ForegroundColor $ColorSuccess
+                Write-Host "[OK] $Message" -ForegroundColor $ColorSuccess
                 $script:SuccessCount++
             }
             "WARNING" {
-                Write-Host "⚠ $Message" -ForegroundColor $ColorWarning
+                Write-Host "[AVISO] $Message" -ForegroundColor $ColorWarning
                 $script:WarningCount++
             }
             "ERROR" {
-                Write-Host "✗ $Message" -ForegroundColor $ColorError
+                Write-Host "[ERRO] $Message" -ForegroundColor $ColorError
                 $script:ErrorCount++
             }
             default {
@@ -323,7 +323,7 @@ function Test-Prerequisites {
         $allOk = $false
     }
     else {
-        Write-Log "Sistema operacional: Windows $($osVersion.Major).$($osVersion.Minor) ✓" -Level SUCCESS
+        Write-Log "Sistema operacional: Windows $($osVersion.Major).$($osVersion.Minor) [OK]" -Level SUCCESS
     }
     
     # Verifica versão do PowerShell
@@ -333,7 +333,7 @@ function Test-Prerequisites {
         $allOk = $false
     }
     else {
-        Write-Log "PowerShell versão: $($psVersion.ToString()) ✓" -Level SUCCESS
+        Write-Log "PowerShell versão: $($psVersion.ToString()) [OK]" -Level SUCCESS
     }
     
     # Verifica acesso ao diretório de origem
@@ -344,7 +344,7 @@ function Test-Prerequisites {
         $allOk = $false
     }
     else {
-        Write-Log "Acesso ao diretório de origem confirmado ✓" -Level SUCCESS
+        Write-Log "Acesso ao diretório de origem confirmado [OK]" -Level SUCCESS
     }
     
     # Verifica permissões de escrita no perfil do usuário
@@ -352,7 +352,7 @@ function Test-Prerequisites {
     try {
         [System.IO.File]::WriteAllText($testFile, "test")
         Remove-Item $testFile -Force -ErrorAction SilentlyContinue
-        Write-Log "Permissões de escrita no perfil do usuário confirmadas ✓" -Level SUCCESS
+        Write-Log "Permissões de escrita no perfil do usuário confirmadas [OK]" -Level SUCCESS
     }
     catch {
         Write-Log "Sem permissões de escrita no perfil do usuário: $env:USERPROFILE" -Level ERROR
@@ -380,7 +380,7 @@ function Test-SourceFiles {
     $stampPath = Join-Path $SourcePath "assets\stamp.png"
     if (Test-Path $stampPath) {
         $SourceStampFile.Value = $stampPath
-        Write-Log "Arquivo stamp.png encontrado ✓" -Level SUCCESS
+        Write-Log "Arquivo stamp.png encontrado [OK]" -Level SUCCESS
     }
     else {
         Write-Log "Arquivo não encontrado: $stampPath" -Level ERROR
@@ -391,7 +391,7 @@ function Test-SourceFiles {
     $templatesPath = Join-Path $SourcePath "installation\inst_configs\Templates"
     if (Test-Path $templatesPath) {
         $SourceTemplatesFolder.Value = $templatesPath
-        Write-Log "Pasta Templates encontrada ✓" -Level SUCCESS
+        Write-Log "Pasta Templates encontrada [OK]" -Level SUCCESS
     }
     else {
         Write-Log "Pasta não encontrada: $templatesPath" -Level ERROR
@@ -437,7 +437,7 @@ function Backup-TemplatesFolder {
     if (Test-WordRunning) {
         Write-Host ""
         Write-Host "╔════════════════════════════════════════════════════════════════╗" -ForegroundColor Yellow
-        Write-Host "║                  ⚠ MICROSOFT WORD ABERTO ⚠                    ║" -ForegroundColor Yellow
+        Write-Host "║                  [AVISO] MICROSOFT WORD ABERTO [AVISO]                    ║" -ForegroundColor Yellow
         Write-Host "╚════════════════════════════════════════════════════════════════╝" -ForegroundColor Yellow
         Write-Host ""
         Write-Host "O Microsoft Word está em execução e deve ser fechado antes de" -ForegroundColor Yellow
@@ -458,7 +458,7 @@ function Backup-TemplatesFolder {
             throw "Microsoft Word deve ser fechado antes da instalação."
         }
         
-        Write-Host "✓ Word fechado, continuando..." -ForegroundColor Green
+        Write-Host "[OK] Word fechado, continuando..." -ForegroundColor Green
         Write-Host ""
     }
     
@@ -473,7 +473,7 @@ function Backup-TemplatesFolder {
     try {
         # Tenta usar Rename-Item primeiro (mais rápido)
         Rename-Item -Path $SourceFolder -NewName $backupName -Force -ErrorAction Stop
-        Write-Log "Backup criado com sucesso: $backupName ✓" -Level SUCCESS
+        Write-Log "Backup criado com sucesso: $backupName [OK]" -Level SUCCESS
         return $backupPath
     }
     catch [System.IO.IOException] {
@@ -490,7 +490,7 @@ function Backup-TemplatesFolder {
             # Remove a pasta original
             Remove-Item -Path $SourceFolder -Recurse -Force -ErrorAction Stop
             
-            Write-Log "Backup criado com sucesso (método cópia): $backupName ✓" -Level SUCCESS
+            Write-Log "Backup criado com sucesso (método cópia): $backupName [OK]" -Level SUCCESS
             return $backupPath
         }
         catch {
@@ -566,7 +566,7 @@ function Copy-StampFile {
         
         if ($sourceFullPath -eq $destFullPath) {
             Write-Log "Arquivo já está no local correto (origem = destino), pulando cópia" -Level INFO
-            Write-Log "Arquivo stamp.png já está instalado ✓" -Level SUCCESS
+            Write-Log "Arquivo stamp.png já está instalado [OK]" -Level SUCCESS
             return $true
         }
         
@@ -585,7 +585,7 @@ function Copy-StampFile {
             $destSize = (Get-Item $destFile).Length
             
             if ($sourceSize -eq $destSize) {
-                Write-Log "Arquivo stamp.png copiado com sucesso ✓" -Level SUCCESS
+                Write-Log "Arquivo stamp.png copiado com sucesso [OK]" -Level SUCCESS
                 return $true
             }
             else {
@@ -628,7 +628,7 @@ function Copy-TemplatesFolder {
         
         if ($sourceFullPath -eq $destFullPath) {
             Write-Log "A pasta Templates já está no local correto (origem = destino), pulando cópia" -Level INFO
-            Write-Log "Pasta Templates já está instalada ✓" -Level SUCCESS
+            Write-Log "Pasta Templates já está instalada [OK]" -Level SUCCESS
             return $true
         }
         
@@ -671,7 +671,7 @@ function Copy-TemplatesFolder {
         }
         
         Write-Progress -Activity "Copiando Templates" -Completed
-        Write-Log "Pasta Templates copiada com sucesso ($copiedItems arquivos) ✓" -Level SUCCESS
+        Write-Log "Pasta Templates copiada com sucesso ($copiedItems arquivos) [OK]" -Level SUCCESS
         return $true
     }
     catch {
@@ -751,7 +751,7 @@ function Backup-WordCustomizations {
             Write-Log "Personalizações UI backup criado: $($uiFiles.Count) arquivos" -Level INFO
         }
         
-        Write-Log "Backup de personalizações criado em: $backupPath ✓" -Level SUCCESS
+        Write-Log "Backup de personalizações criado em: $backupPath [OK]" -Level SUCCESS
         return $backupPath
     }
     catch {
@@ -780,7 +780,7 @@ function Import-NormalTemplate {
         }
         
         Copy-Item -Path $sourcePath -Destination $destPath -Force
-        Write-Log "Normal.dotm importado com sucesso ✓" -Level SUCCESS
+        Write-Log "Normal.dotm importado com sucesso [OK]" -Level SUCCESS
         return $true
     }
     catch {
@@ -860,7 +860,7 @@ function Import-BuildingBlocks {
     }
     
     if ($importedCount -gt 0) {
-        Write-Log "Building Blocks importados: $importedCount arquivos ✓" -Level SUCCESS
+        Write-Log "Building Blocks importados: $importedCount arquivos [OK]" -Level SUCCESS
         return $true
     }
     else {
@@ -936,7 +936,7 @@ function Import-DocumentThemes {
     }
     
     if ($importedCount -gt 0) {
-        Write-Log "Temas importados: $importedCount arquivos ✓" -Level SUCCESS
+        Write-Log "Temas importados: $importedCount arquivos [OK]" -Level SUCCESS
         return $true
     }
     else {
@@ -983,7 +983,7 @@ function Import-RibbonCustomization {
             }
         }
         
-        Write-Log "Personalização do Ribbon importada: $($files.Count) arquivos ✓" -Level SUCCESS
+        Write-Log "Personalização do Ribbon importada: $($files.Count) arquivos [OK]" -Level SUCCESS
         return $true
     }
     catch {
@@ -1022,7 +1022,7 @@ function Import-OfficeCustomUI {
             Copy-Item -Path $file.FullName -Destination $destFile -Force
         }
         
-        Write-Log "Personalizações UI importadas: $($files.Count) arquivos ✓" -Level SUCCESS
+        Write-Log "Personalizações UI importadas: $($files.Count) arquivos [OK]" -Level SUCCESS
         return $true
     }
     catch {
@@ -1040,7 +1040,7 @@ function Import-WordCustomizations {
     if (Test-WordRunning) {
         Write-Host ""
         Write-Host "╔════════════════════════════════════════════════════════════════╗" -ForegroundColor Yellow
-        Write-Host "║                  ⚠ MICROSOFT WORD ABERTO ⚠                    ║" -ForegroundColor Yellow
+        Write-Host "║                  [AVISO] MICROSOFT WORD ABERTO [AVISO]                    ║" -ForegroundColor Yellow
         Write-Host "╚════════════════════════════════════════════════════════════════╝" -ForegroundColor Yellow
         Write-Host ""
         Write-Host "O Microsoft Word está em execução e deve ser fechado antes de" -ForegroundColor Yellow
@@ -1060,7 +1060,7 @@ function Import-WordCustomizations {
     $backupPath = Backup-WordCustomizations -BackupReason "pré-importação de personalizações"
     if ($null -eq $backupPath -and -not $NoBackup) {
         Write-Host ""
-        Write-Host "⚠ Falha ao criar backup das personalizações atuais." -ForegroundColor Yellow
+        Write-Host "[AVISO] Falha ao criar backup das personalizações atuais." -ForegroundColor Yellow
         
         if (-not $Force) {
             $response = Read-Host "Continuar mesmo assim? (S/N)"
@@ -1087,7 +1087,7 @@ function Import-WordCustomizations {
     if (Import-OfficeCustomUI -ImportPath $ImportPath) { $importedCount++ }
     
     if ($importedCount -gt 0) {
-        Write-Log "Total de categorias de personalizações importadas: $importedCount ✓" -Level SUCCESS
+        Write-Log "Total de categorias de personalizações importadas: $importedCount [OK]" -Level SUCCESS
         return $true
     }
     else {
@@ -1194,7 +1194,7 @@ function Confirm-CloseWord {
     
     Write-Host ""
     Write-Host "╔════════════════════════════════════════════════════════════════╗" -ForegroundColor Yellow
-    Write-Host "║                          ⚠ ATENÇÃO ⚠                          ║" -ForegroundColor Yellow
+    Write-Host "║                          [AVISO] ATENÇÃO [AVISO]                          ║" -ForegroundColor Yellow
     Write-Host "╚════════════════════════════════════════════════════════════════╝" -ForegroundColor Yellow
     Write-Host ""
     Write-Host "O Microsoft Word está atualmente em execução!" -ForegroundColor Yellow
@@ -1215,7 +1215,7 @@ function Confirm-CloseWord {
     
     if ($response -notmatch '^[Ss]$') {
         Write-Host ""
-        Write-Host "✓ Instalação cancelada pelo usuário" -ForegroundColor Cyan
+        Write-Host "[OK] Instalação cancelada pelo usuário" -ForegroundColor Cyan
         Write-Host "  Salve seus documentos e execute o script novamente quando estiver pronto." -ForegroundColor Gray
         Write-Host ""
         Write-Log "Instalação cancelada - usuário optou por não fechar o Word" -Level WARNING
@@ -1228,14 +1228,14 @@ function Confirm-CloseWord {
     Write-Log "Usuário autorizou o fechamento do Word" -Level INFO
     
     if (Stop-WordProcesses -Force) {
-        Write-Host "✓ Word fechado com sucesso" -ForegroundColor Green
+        Write-Host "[OK] Word fechado com sucesso" -ForegroundColor Green
         Write-Host ""
         # Aguarda um pouco para garantir que recursos foram liberados
         Start-Sleep -Seconds 2
         return $true
     }
     else {
-        Write-Host "✗ Não foi possível fechar o Word completamente" -ForegroundColor Red
+        Write-Host "[ERRO] Não foi possível fechar o Word completamente" -ForegroundColor Red
         Write-Host ""
         Write-Log "Falha ao fechar Word - cancelando instalação" -Level ERROR
         
@@ -1268,7 +1268,7 @@ function Install-CHAINSAWConfig {
         Write-Warning "Continuando sem arquivo de log..."
     }
     else {
-        Write-Host "📝 Arquivo de log: $script:LogFile" -ForegroundColor Gray
+        Write-Host " Arquivo de log: $script:LogFile" -ForegroundColor Gray
         Write-Host ""
     }
     
@@ -1385,14 +1385,14 @@ function Install-CHAINSAWConfig {
         $vbaModulePath = Join-Path $SourcePath "source\backups\main\monolithicMod.bas"
         if (Test-Path $vbaModulePath) {
             Write-Log "Módulo VBA encontrado: $vbaModulePath" -Level INFO
-            Write-Host "📝 Importando módulo VBA mais recente..." -ForegroundColor Cyan
+            Write-Host " Importando módulo VBA mais recente..." -ForegroundColor Cyan
             
             try {
                 $normalDotmPath = Join-Path $templatesPath "Normal.dotm"
                 
                 if (-not (Test-Path $normalDotmPath)) {
                     Write-Log "Normal.dotm não encontrado em: $normalDotmPath" -Level ERROR
-                    Write-Host "✗ Normal.dotm não encontrado!" -ForegroundColor Red
+                    Write-Host "[ERRO] Normal.dotm não encontrado!" -ForegroundColor Red
                     Write-Host "  O módulo VBA precisa ser importado manualmente." -ForegroundColor Yellow
                 }
                 else {
@@ -1446,13 +1446,13 @@ function Install-CHAINSAWConfig {
                     [System.GC]::Collect()
                     [System.GC]::WaitForPendingFinalizers()
                     
-                    Write-Host "✓ Módulo VBA atualizado com sucesso!" -ForegroundColor Green
+                    Write-Host "[OK] Módulo VBA atualizado com sucesso!" -ForegroundColor Green
                     Write-Log "Módulo VBA importado e Normal.dotm salvo" -Level SUCCESS
                 }
             }
             catch {
                 Write-Log "Erro ao importar módulo VBA: $_" -Level ERROR
-                Write-Host "⚠ Não foi possível importar o módulo VBA automaticamente." -ForegroundColor Yellow
+                Write-Host "[AVISO] Não foi possível importar o módulo VBA automaticamente." -ForegroundColor Yellow
                 Write-Host ""
                 Write-Host "  Importação Manual:" -ForegroundColor Cyan
                 Write-Host "    1. Abra o Word" -ForegroundColor Gray
@@ -1470,7 +1470,7 @@ function Install-CHAINSAWConfig {
         }
         else {
             Write-Log "Módulo VBA não encontrado em: $vbaModulePath" -Level WARNING
-            Write-Host "⚠ Módulo VBA (monolithicMod.bas) não encontrado." -ForegroundColor Yellow
+            Write-Host "[AVISO] Módulo VBA (monolithicMod.bas) não encontrado." -ForegroundColor Yellow
             Write-Host "  Localização esperada: $vbaModulePath" -ForegroundColor Gray
         }
         
@@ -1484,10 +1484,10 @@ function Install-CHAINSAWConfig {
                 Write-Host "  PERSONALIZAÇÕES DO WORD DETECTADAS!" -ForegroundColor White
                 Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
                 Write-Host ""
-                Write-Host "✨ Personalizações exportadas foram encontradas em:" -ForegroundColor Cyan
+                Write-Host "* Personalizações exportadas foram encontradas em:" -ForegroundColor Cyan
                 Write-Host "   $exportedConfigPath" -ForegroundColor Gray
                 Write-Host ""
-                Write-Host "📦 Conteúdo que será importado:" -ForegroundColor White
+                Write-Host " Conteúdo que será importado:" -ForegroundColor White
                 Write-Host "   • Faixa de Opções Personalizada (Ribbon)" -ForegroundColor Gray
                 Write-Host "   • Partes Rápidas (Quick Parts)" -ForegroundColor Gray
                 Write-Host "   • Blocos de Construção (Building Blocks)" -ForegroundColor Gray
@@ -1507,7 +1507,7 @@ function Install-CHAINSAWConfig {
                     
                     if ($imported) {
                         Write-Host ""
-                        Write-Host "✓ Personalizações importadas com sucesso!" -ForegroundColor Green
+                        Write-Host "[OK] Personalizações importadas com sucesso!" -ForegroundColor Green
                         Write-Host ""
                         Write-Host "ℹ IMPORTANTE:" -ForegroundColor Cyan
                         Write-Host "   As personalizações serão visíveis na próxima vez" -ForegroundColor Yellow
@@ -1516,7 +1516,7 @@ function Install-CHAINSAWConfig {
                     }
                     else {
                         Write-Host ""
-                        Write-Host "⚠ Personalizações não foram importadas completamente." -ForegroundColor Yellow
+                        Write-Host "[AVISO] Personalizações não foram importadas completamente." -ForegroundColor Yellow
                         Write-Host "  Verifique o log para mais detalhes." -ForegroundColor Yellow
                         Write-Host ""
                     }
@@ -1546,7 +1546,7 @@ function Install-CHAINSAWConfig {
         Write-Host "║              INSTALAÇÃO CONCLUÍDA COM SUCESSO!                 ║" -ForegroundColor Green
         Write-Host "╚════════════════════════════════════════════════════════════════╝" -ForegroundColor Green
         Write-Host ""
-        Write-Host "📊 Resumo da Instalação:" -ForegroundColor Cyan
+        Write-Host " Resumo da Instalação:" -ForegroundColor Cyan
         Write-Host "   • Operações bem-sucedidas: $script:SuccessCount" -ForegroundColor Green
         Write-Host "   • Avisos: $script:WarningCount" -ForegroundColor Yellow
         Write-Host "   • Erros: $script:ErrorCount" -ForegroundColor Red
@@ -1554,12 +1554,12 @@ function Install-CHAINSAWConfig {
         Write-Host ""
         
         if ($backupPath) {
-            Write-Host "💾 Backup criado em:" -ForegroundColor Cyan
+            Write-Host " Backup criado em:" -ForegroundColor Cyan
             Write-Host "   $backupPath" -ForegroundColor Gray
             Write-Host ""
         }
         
-        Write-Host "📝 Log completo salvo em:" -ForegroundColor Cyan
+        Write-Host " Log completo salvo em:" -ForegroundColor Cyan
         Write-Host "   $script:LogFile" -ForegroundColor Gray
         Write-Host ""
         
@@ -1575,9 +1575,9 @@ function Install-CHAINSAWConfig {
         Write-Host "║                  ERRO NA INSTALAÇÃO!                           ║" -ForegroundColor Red
         Write-Host "╚════════════════════════════════════════════════════════════════╝" -ForegroundColor Red
         Write-Host ""
-        Write-Host "❌ Erro: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "[ERRO] Erro: $($_.Exception.Message)" -ForegroundColor Red
         Write-Host ""
-        Write-Host "📝 Verifique o arquivo de log para mais detalhes:" -ForegroundColor Yellow
+        Write-Host " Verifique o arquivo de log para mais detalhes:" -ForegroundColor Yellow
         Write-Host "   $script:LogFile" -ForegroundColor Gray
         Write-Host ""
         
@@ -1588,18 +1588,18 @@ function Install-CHAINSAWConfig {
         
         # Tenta reverter mudanças se possível
         if ($backupPath -and (Test-Path $backupPath)) {
-            Write-Host "🔄 Tentando reverter mudanças..." -ForegroundColor Yellow
+            Write-Host " Tentando reverter mudanças..." -ForegroundColor Yellow
             try {
                 $templatesPath = Join-Path $env:APPDATA "Microsoft\Templates"
                 if (Test-Path $templatesPath) {
                     Remove-Item -Path $templatesPath -Recurse -Force
                 }
                 Rename-Item -Path $backupPath -NewName "Templates" -Force
-                Write-Host "✓ Backup restaurado com sucesso" -ForegroundColor Green
+                Write-Host "[OK] Backup restaurado com sucesso" -ForegroundColor Green
                 Write-Log "Backup restaurado após falha na instalação" -Level INFO
             }
             catch {
-                Write-Host "✗ Não foi possível restaurar o backup automaticamente" -ForegroundColor Red
+                Write-Host "[ERRO] Não foi possível restaurar o backup automaticamente" -ForegroundColor Red
                 Write-Host "  Backup disponível em: $backupPath" -ForegroundColor Yellow
                 Write-Log "Falha ao restaurar backup: $_" -Level ERROR
             }
@@ -1618,17 +1618,17 @@ $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIde
 if ($isAdmin) {
     Write-Host ""
     Write-Host "╔════════════════════════════════════════════════════════════════╗" -ForegroundColor Red
-    Write-Host "║                      ⚠ AVISO IMPORTANTE ⚠                      ║" -ForegroundColor Red
+    Write-Host "║                      [AVISO] AVISO IMPORTANTE [AVISO]                      ║" -ForegroundColor Red
     Write-Host "╚════════════════════════════════════════════════════════════════╝" -ForegroundColor Red
     Write-Host ""
-    Write-Host "❌ Este script está sendo executado com privilégios de Administrador." -ForegroundColor Red
+    Write-Host "[ERRO] Este script está sendo executado com privilégios de Administrador." -ForegroundColor Red
     Write-Host ""
-    Write-Host "⚠  PROBLEMA:" -ForegroundColor Yellow
+    Write-Host "[AVISO]  PROBLEMA:" -ForegroundColor Yellow
     Write-Host "   Executar como Administrador pode causar problemas de permissões," -ForegroundColor Yellow
     Write-Host "   pois os arquivos serão criados com o proprietário 'Administrador'" -ForegroundColor Yellow
     Write-Host "   ao invés do seu usuário normal." -ForegroundColor Yellow
     Write-Host ""
-    Write-Host "✓  SOLUÇÃO:" -ForegroundColor Green
+    Write-Host "[OK]  SOLUÇÃO:" -ForegroundColor Green
     Write-Host "   1. Feche este PowerShell" -ForegroundColor White
     Write-Host "   2. Abra o PowerShell SEM privilégios de administrador:" -ForegroundColor White
     Write-Host "      - Pressione Win + X" -ForegroundColor Gray

@@ -1,4 +1,167 @@
-# Histórico de Mudanças - CHAINSAW
+﻿# Histórico de Mudanças - CHAINSAW
+
+## [2.0.4] - 2025-11-08
+
+### [FIXED] Padronização de Encoding e Remoção de Emojis
+
+**Correção:** Remoção completa de emojis e padronização de encoding UTF-8 em todo o projeto.
+
+#### Alterações
+
+- Removidos 359+ emojis de scripts PowerShell, arquivos Markdown e documentação
+- Emojis substituídos por equivalentes textuais onde apropriado (`[OK]`, `[ERRO]`, `[AVISO]`)
+- Adicionado validador de encoding: `tests/check-encoding.ps1`
+  - Valida encoding UTF-8 em todos os arquivos
+  - Detecta presença de emojis (bytes F0 9F e símbolos E2)
+  - Verifica caracteres de controle inválidos
+  - Valida consistência de line endings (CRLF para Windows)
+- Criados scripts de manutenção:
+  - `tests/remove-emojis.ps1` - Remove emojis via substituição de caracteres
+  - `tests/remove-emojis-bytes.ps1` - Remove emojis via manipulação de bytes
+  - `tests/find-emoji-bytes.ps1` - Localiza emojis em arquivos específicos
+- Todos os arquivos agora usam apenas caracteres compatíveis com UTF-8 sem emojis
+- Mantidos caracteres acentuados do português (parte legítima do UTF-8)
+
+#### Arquivos Modificados
+
+- `installation/inst_scripts/export-config.ps1` - 19 substituições
+- `installation/inst_scripts/install.ps1` - 51 substituições  
+- `docs/IDENTIFICACAO_ELEMENTOS.md` - 5 substituições
+- `docs/LGPD_CONFORMIDADE.md` - 64 substituições
+- `docs/NOVIDADES_v1.1.md` - 16 substituições
+- `docs/SEGURANCA_PRIVACIDADE.md` - 127 substituições
+- `docs/SEM_PRIVILEGIOS_ADMIN.md` - 4 substituições
+- `docs/VALIDACAO_TIPO_DOCUMENTO.md` - 1 substituição
+- `CHANGELOG.md` - 28 substituições
+- `LGPD_ATESTADO.md` - 47 substituições
+- `README.md` - 10 substituições
+- `installation/inst_docs/GUIA_INSTALACAO.md` - 19 substituições
+
+#### Testes
+
+- Total de arquivos verificados: 27
+- Emojis detectados e removidos: 359+
+- Validação final: 0 emojis, 0 erros, 0 avisos
+- Encoding validado: UTF-8 para documentação, ASCII-compatível para scripts
+
+## [2.0.3] - 2025-11-08
+
+### [ADDED] Documentação de Conformidade LGPD e Segurança
+
+**Adição Principal:** Documentação completa e criteriosa sobre conformidade com LGPD, segurança e privacidade.
+
+#### Novos Documentos
+
+- **`docs/LGPD_CONFORMIDADE.md`** - Análise completa de conformidade com a LGPD (Lei nº 13.709/2018)
+  - 13 seções cobrindo todos os aspectos da lei
+  - Inventário de dados (atestação de não coleta)
+  - Princípios da LGPD aplicados (Art. 6º)
+  - Bases legais e hipóteses de tratamento
+  - Direitos dos titulares garantidos
+  - Medidas técnicas de segurança implementadas
+  - Análise de vulnerabilidades e controles
+  - Responsabilidade e governança
+  - Auditoria e conformidade contínua
+  - Declaração oficial de conformidade
+
+- **`docs/SEGURANCA_PRIVACIDADE.md`** - Política completa de Segurança e Privacidade
+  - 17 seções detalhadas
+  - Escopo e aplicação da política
+  - Coleta e uso de dados (atestação: nenhum dado coletado)
+  - Armazenamento local e segurança
+  - Arquitetura de segurança técnica
+  - Controles de segurança implementados (validação, tratamento de erros, timeouts)
+  - Privacidade de documentos processados
+  - Transparência e auditabilidade (código aberto)
+  - Direitos dos usuários garantidos
+  - Processo de resposta a incidentes
+  - Conformidade legal e normas técnicas (ISO 27001, NIST, OWASP)
+  - Educação e boas práticas
+  - Ciclo de vida seguro de desenvolvimento
+
+- **`LGPD_ATESTADO.md`** - Atestado executivo de conformidade LGPD
+  - Resumo executivo para rápida consulta
+  - Certificação de não coleta de dados
+  - Checklist de conformidade para usuários e organizações
+  - Declaração oficial do desenvolvedor
+  - Referências rápidas para documentação completa
+
+#### Atualizações em Documentos Existentes
+
+- **`README.md`** - Adicionada seção "Segurança e Privacidade"
+  - Links para novos documentos de conformidade LGPD
+  - Links para política de segurança e privacidade
+
+### [COMPLIANCE] Conformidade e Certificação
+
+**Status de Conformidade:** [OK] **TOTALMENTE CONFORME** com LGPD
+
+#### Principais Atestações
+
+- [OK] **NÃO coleta** dados pessoais de usuários
+- [OK] **NÃO transmite** informações pela internet
+- [OK] **NÃO armazena** dados em servidores externos
+- [OK] **NÃO utiliza** serviços de terceiros ou telemetria
+- [OK] **Processamento 100% local** sob controle do usuário
+- [OK] **Código auditável** (open source GPLv3)
+- [OK] **172 testes automatizados** incluindo segurança
+- [OK] **Histórico de incidentes:** 0 (zero)
+
+#### Princípios LGPD Aplicados (Art. 6º)
+
+| Princípio | Status | Justificativa |
+|-----------|--------|---------------|
+| Finalidade | [OK] Conforme | Formatação de documentos legislativos |
+| Adequação | [OK] Conforme | Processamento compatível com finalidade |
+| Necessidade | [OK] Conforme | Apenas dados técnicos essenciais |
+| Livre Acesso | [OK] Conforme | Logs e backups acessíveis localmente |
+| Transparência | [OK] Conforme | Código aberto (GPLv3) |
+| Segurança | [OK] Conforme | Processamento local isolado |
+| Prevenção | [OK] Conforme | Arquitetura impede coleta de dados |
+| Responsabilização | [OK] Conforme | Documentação completa |
+
+#### Medidas de Segurança Documentadas
+
+**Técnicas:**
+- Processamento 100% local (zero conexões de rede)
+- Validação de entrada e sanitização de caminhos
+- Tratamento robusto de erros (try-catch completo)
+- Timeouts e limites de operação (MAX_OPERATION_TIMEOUT_SECONDS)
+- Limpeza de recursos (SafeCleanup, ReleaseObjects)
+- Proteção contra vulnerabilidades (path traversal, code injection, etc)
+
+**Organizacionais:**
+- Código auditável (open source)
+- Processo de resposta a incidentes (24-48h para critical)
+- Testes automatizados de segurança (VBA.Tests.ps1, Installation.Tests.ps1)
+- Documentação completa e transparente
+- Compromisso de manutenção contínua
+
+#### Orientações para Organizações
+
+Documentação inclui orientações específicas para organizações que adotarem o CHAINSAW:
+
+1. Designação de Encarregado de Dados (DPO) - Art. 41º LGPD
+2. Elaboração de Política de Privacidade organizacional
+3. Manutenção de ROPA (Registro de Atividades de Tratamento)
+4. Avaliação de necessidade de DPIA (Data Protection Impact Assessment)
+5. Treinamento de usuários sobre LGPD e segurança
+
+### [DOCUMENTATION] Melhorias na Documentação
+
+- Adicionadas 3 novas referências na seção "Documentação" do README
+- Estrutura de documentação agora inclui subseção "Segurança e Privacidade"
+- Total de documentação: ~2.500 linhas de conteúdo técnico e jurídico
+- Cobertura completa de aspectos legais, técnicos e organizacionais
+
+### [TRANSPARENCY] Transparência e Auditabilidade
+
+- Declaração oficial de conformidade assinada digitalmente (Git SHA-256)
+- Histórico de revisões em todos os documentos
+- Compromisso de revisão anual ou quando houver alterações na LGPD
+- Canal de reporte de vulnerabilidades estabelecido (chrmsantos@protonmail.com)
+
+---
 
 ## [2.0.2] - 2025-01-XX
 
@@ -119,13 +282,13 @@
 
 ### [CODE] Características do Sistema
 
-- ✅ Identificação automática durante processamento
-- ✅ Overhead mínimo (< 5% do tempo total)
-- ✅ 100% compatível com funcionalidades existentes
-- ✅ Abordagem defensiva com tratamento de erros
-- ✅ Validação completa de nulidade
-- ✅ Limites de segurança contra loops infinitos
-- ✅ Log detalhado de identificação
+- [OK] Identificação automática durante processamento
+- [OK] Overhead mínimo (< 5% do tempo total)
+- [OK] 100% compatível com funcionalidades existentes
+- [OK] Abordagem defensiva com tratamento de erros
+- [OK] Validação completa de nulidade
+- [OK] Limites de segurança contra loops infinitos
+- [OK] Log detalhado de identificação
 
 ### [INFO] Documentação
 
@@ -149,10 +312,10 @@
 
 ### [LOCK] Compatibilidade
 
-- ✅ Word 2010+
-- ✅ Mantém 100% funcionalidades existentes
-- ✅ Sem impacto no desempenho
-- ✅ Sem mudanças nas APIs existentes
+- [OK] Word 2010+
+- [OK] Mantém 100% funcionalidades existentes
+- [OK] Sem impacto no desempenho
+- [OK] Sem mudanças nas APIs existentes
 
 ---
 

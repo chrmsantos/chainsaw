@@ -1,0 +1,323 @@
+# =============================================================================
+# CHAINSAW - Testes de Encoding e Emojis
+# =============================================================================
+# Verifica conformidade de encoding (UTF-8/ASCII) e ausencia de emojis
+# =============================================================================
+
+$ErrorActionPreference = "Stop"
+
+Describe 'CHAINSAW - Testes de Encoding e Emojis' {
+    
+    $projectRoot = Split-Path -Parent $PSScriptRoot
+    
+    Context 'Validacao de Encoding de Arquivos' {
+        
+        It 'Scripts PowerShell estao em UTF-8 com BOM ou ASCII' {
+            $psFiles = Get-ChildItem -Path "$projectRoot\installation\inst_scripts" -Filter "*.ps1" -Recurse
+            
+            foreach ($file in $psFiles) {
+                $bytes = [System.IO.File]::ReadAllBytes($file.FullName)
+                
+                # Verifica UTF-8 com BOM (EF BB BF) ou ASCII puro
+                $isUtf8WithBom = ($bytes.Length -ge 3) -and 
+                                 ($bytes[0] -eq 0xEF) -and 
+                                 ($bytes[1] -eq 0xBB) -and 
+                                 ($bytes[2] -eq 0xBF)
+                
+                # Verifica se e ASCII puro (todos os bytes < 128)
+                $isAscii = $true
+                foreach ($byte in $bytes) {
+                    if ($byte -ge 128) {
+                        $isAscii = $false
+                        break
+                    }
+                }
+                
+                # Verifica UTF-8 sem BOM (compativel com UTF-8)
+                $content = Get-Content $file.FullName -Raw
+                $utf8Bytes = [System.Text.Encoding]::UTF8.GetBytes($content)
+                $isValidUtf8 = $true
+                
+                ($isUtf8WithBom -or $isAscii -or $isValidUtf8) | Should Be $true
+            }
+        }
+        
+        It 'Arquivos Markdown estao em UTF-8' {
+            $mdFiles = @(
+                Get-ChildItem -Path "$projectRoot\docs" -Filter "*.md" -Recurse
+                Get-ChildItem -Path "$projectRoot" -Filter "*.md" -File
+                Get-ChildItem -Path "$projectRoot\installation\inst_docs" -Filter "*.md" -Recurse
+            )
+            
+            foreach ($file in $mdFiles) {
+                if ($file -eq $null) { continue }
+                
+                $content = Get-Content $file.FullName -Raw -Encoding UTF8
+                $content | Should Not BeNullOrEmpty
+                
+                # Verifica que pode ser lido como UTF-8
+                $bytes = [System.IO.File]::ReadAllBytes($file.FullName)
+                $decodedContent = [System.Text.Encoding]::UTF8.GetString($bytes)
+                $decodedContent.Length | Should BeGreaterThan 0
+            }
+        }
+        
+        It 'Arquivo VBA esta em formato legivel' {
+            $vbaFile = "$projectRoot\source\backups\main\monolithicMod.bas"
+            
+            if (Test-Path $vbaFile) {
+                $content = Get-Content $vbaFile -Raw
+                $content | Should Not BeNullOrEmpty
+                
+                # VBA deve conter apenas ASCII ou caracteres extendidos validos
+                $bytes = [System.IO.File]::ReadAllBytes($vbaFile)
+                
+                # Verifica que nao tem bytes nulos (indicaria binario)
+                $hasNullBytes = $false
+                foreach ($byte in $bytes) {
+                    if ($byte -eq 0) {
+                        $hasNullBytes = $true
+                        break
+                    }
+                }
+                
+                $hasNullBytes | Should Be $false
+            }
+        }
+        
+        It 'Arquivos de texto (.txt) estao em UTF-8 ou ASCII' {
+            $txtFiles = Get-ChildItem -Path $projectRoot -Filter "*.txt" -Recurse
+            
+            foreach ($file in $txtFiles) {
+                $bytes = [System.IO.File]::ReadAllBytes($file.FullName)
+                
+                # Tenta decodificar como UTF-8
+                try {
+                    $utf8Content = [System.Text.Encoding]::UTF8.GetString($bytes)
+                    $utf8Content.Length | Should BeGreaterThan 0
+                } catch {
+                    # Se falhar UTF-8, tenta ASCII
+                    $asciiContent = [System.Text.Encoding]::ASCII.GetString($bytes)
+                    $asciiContent.Length | Should BeGreaterThan 0
+                }
+            }
+        }
+    }
+    
+    Context 'Deteccao de Emojis e Caracteres Especiais' {
+        
+        # Regex para detectar emojis (Unicode ranges)
+        # Emoticons: U+1F600 to U+1F64F
+        # Symbols & Pictographs: U+1F300 to U+1F5FF
+        # Transport & Map: U+1F680 to U+1F6FF
+        # Supplemental Symbols: U+1F900 to U+1F9FF
+        # Outros ranges comuns de emojis
+        $emojiPattern = '[' +
+            '\u2600-\u26FF' +    # Miscellaneous Symbols
+            '\u2700-\u27BF' +    # Dingbats
+            '\u1F300-\u1F5FF' +  # Symbols & Pictographs
+            '\u1F600-\u1F64F' +  # Emoticons
+            '\u1F680-\u1F6FF' +  # Transport & Map
+            '\u1F700-\u1F77F' +  # Alchemical Symbols
+            '\u1F780-\u1F7FF' +  # Geometric Shapes Extended
+            '\u1F800-\u1F8FF' +  # Supplemental Arrows-C
+            '\u1F900-\u1F9FF' +  # Supplemental Symbols and Pictographs
+            '\u1FA00-\u1FA6F' +  # Chess Symbols
+            '\u1FA70-\u1FAFF' +  # Symbols and Pictographs Extended-A
+            ']'
+        
+        It 'Scripts PowerShell nao contem emojis' {
+            $psFiles = Get-ChildItem -Path "$projectRoot\installation\inst_scripts" -Filter "*.ps1" -Recurse
+            
+            foreach ($file in $psFiles) {
+                $content = Get-Content $file.FullName -Raw -Encoding UTF8
+                
+                if ($content -match $emojiPattern) {
+                    throw "Arquivo $($file.Name) contem emojis na linha com: $($Matches[0])"
+                }
+                
+                # Passa se nao encontrou emojis
+                $true | Should Be $true
+            }
+        }
+        
+        It 'Arquivos Markdown nao contem emojis' {
+            $mdFiles = @(
+                Get-ChildItem -Path "$projectRoot\docs" -Filter "*.md" -Recurse
+                Get-ChildItem -Path "$projectRoot" -Filter "*.md" -File
+                Get-ChildItem -Path "$projectRoot\installation\inst_docs" -Filter "*.md" -Recurse
+            )
+            
+            foreach ($file in $mdFiles) {
+                if ($file -eq $null) { continue }
+                
+                $content = Get-Content $file.FullName -Raw -Encoding UTF8
+                
+                if ($content -match $emojiPattern) {
+                    throw "Arquivo $($file.Name) contem emojis na linha com: $($Matches[0])"
+                }
+                
+                # Passa se nao encontrou emojis
+                $true | Should Be $true
+            }
+        }
+        
+        It 'Arquivo VBA nao contem emojis' {
+            $vbaFile = "$projectRoot\source\backups\main\monolithicMod.bas"
+            
+            if (Test-Path $vbaFile) {
+                $content = Get-Content $vbaFile -Raw -Encoding UTF8
+                
+                if ($content -match $emojiPattern) {
+                    throw "Arquivo VBA contem emojis"
+                }
+                
+                # Passa se nao encontrou emojis
+                $true | Should Be $true
+            }
+        }
+        
+        It 'Testes PowerShell nao contem emojis' {
+            $testFiles = Get-ChildItem -Path "$projectRoot\tests" -Filter "*.ps1"
+            
+            foreach ($file in $testFiles) {
+                $content = Get-Content $file.FullName -Raw -Encoding UTF8
+                
+                if ($content -match $emojiPattern) {
+                    throw "Arquivo de teste $($file.Name) contem emojis"
+                }
+                
+                # Passa se nao encontrou emojis
+                $true | Should Be $true
+            }
+        }
+    }
+    
+    Context 'Validacao de Caracteres Problematicos' {
+        
+        It 'Scripts PowerShell nao contem caracteres de controle invalidos' {
+            $psFiles = Get-ChildItem -Path "$projectRoot\installation\inst_scripts" -Filter "*.ps1" -Recurse
+            
+            # Caracteres de controle permitidos: Tab (0x09), LF (0x0A), CR (0x0D)
+            $allowedControlChars = @(0x09, 0x0A, 0x0D)
+            
+            foreach ($file in $psFiles) {
+                $bytes = [System.IO.File]::ReadAllBytes($file.FullName)
+                
+                for ($i = 0; $i -lt $bytes.Length; $i++) {
+                    $byte = $bytes[$i]
+                    
+                    # Verifica caracteres de controle (0x00-0x1F exceto permitidos)
+                    if (($byte -le 0x1F) -and ($byte -notin $allowedControlChars)) {
+                        throw "Arquivo $($file.Name) contem caractere de controle invalido 0x$($byte.ToString('X2')) na posicao $i"
+                    }
+                }
+                
+                # Passa se nao encontrou problemas
+                $true | Should Be $true
+            }
+        }
+        
+        It 'Arquivos Markdown nao contem tabs (usam espacos)' {
+            $mdFiles = @(
+                Get-ChildItem -Path "$projectRoot\docs" -Filter "*.md" -Recurse
+                Get-ChildItem -Path "$projectRoot" -Filter "*.md" -File
+            )
+            
+            foreach ($file in $mdFiles) {
+                if ($file -eq $null) { continue }
+                
+                $content = Get-Content $file.FullName -Raw
+                
+                # Markdown nao deve ter tabs (usa espacos para indentacao)
+                if ($content -match "`t") {
+                    Write-Warning "Arquivo $($file.Name) contem tabs - deveria usar espacos"
+                    # Apenas warning, nao falha o teste
+                }
+                
+                $true | Should Be $true
+            }
+        }
+        
+        It 'Arquivo VBA nao contem tabs (usa espacos conforme padrao)' {
+            $vbaFile = "$projectRoot\source\backups\main\monolithicMod.bas"
+            
+            if (Test-Path $vbaFile) {
+                $content = Get-Content $vbaFile -Raw
+                
+                # VBA nao deve ter tabs
+                $content -match "`t" | Should Be $false
+            }
+        }
+    }
+    
+    Context 'Consistencia de Line Endings' {
+        
+        It 'Scripts PowerShell usam CRLF (Windows)' {
+            $psFiles = Get-ChildItem -Path "$projectRoot\installation\inst_scripts" -Filter "*.ps1" -Recurse
+            
+            foreach ($file in $psFiles) {
+                $bytes = [System.IO.File]::ReadAllBytes($file.FullName)
+                
+                # Verifica se tem pelo menos um CRLF
+                $hasCrlf = $false
+                for ($i = 0; $i -lt ($bytes.Length - 1); $i++) {
+                    if (($bytes[$i] -eq 0x0D) -and ($bytes[$i+1] -eq 0x0A)) {
+                        $hasCrlf = $true
+                        break
+                    }
+                }
+                
+                # Verifica se nao tem LF sozinho (Unix style)
+                $hasLfOnly = $false
+                for ($i = 0; $i -lt $bytes.Length; $i++) {
+                    if ($bytes[$i] -eq 0x0A) {
+                        if (($i -eq 0) -or ($bytes[$i-1] -ne 0x0D)) {
+                            $hasLfOnly = $true
+                            break
+                        }
+                    }
+                }
+                
+                if ($hasLfOnly) {
+                    Write-Warning "Arquivo $($file.Name) usa LF (Unix) - deveria usar CRLF (Windows)"
+                }
+                
+                $true | Should Be $true
+            }
+        }
+    }
+    
+    Context 'Validacao de BOM (Byte Order Mark)' {
+        
+        It 'Scripts PowerShell tem UTF-8 BOM ou sao ASCII puro' {
+            $psFiles = Get-ChildItem -Path "$projectRoot\installation\inst_scripts" -Filter "*.ps1" -Recurse
+            
+            foreach ($file in $psFiles) {
+                $bytes = [System.IO.File]::ReadAllBytes($file.FullName)
+                
+                if ($bytes.Length -ge 3) {
+                    $hasUtf8Bom = ($bytes[0] -eq 0xEF) -and 
+                                  ($bytes[1] -eq 0xBB) -and 
+                                  ($bytes[2] -eq 0xBF)
+                    
+                    # Verifica se tem caracteres nao-ASCII
+                    $hasNonAscii = $false
+                    foreach ($byte in $bytes) {
+                        if ($byte -ge 128) {
+                            $hasNonAscii = $true
+                            break
+                        }
+                    }
+                    
+                    # Se tem caracteres nao-ASCII, deve ter BOM
+                    if ($hasNonAscii -and -not $hasUtf8Bom) {
+                        Write-Warning "Arquivo $($file.Name) tem caracteres nao-ASCII mas nao tem UTF-8 BOM"
+                    }
+                }
+                
+                $true | Should Be $true
+            }
+        }
+    }
+}

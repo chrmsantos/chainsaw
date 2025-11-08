@@ -136,9 +136,9 @@ function Write-Log {
     }
     
     switch ($Level) {
-        "SUCCESS" { Write-Host "✓ $Message" -ForegroundColor $ColorSuccess }
-        "WARNING" { Write-Host "⚠ $Message" -ForegroundColor $ColorWarning }
-        "ERROR"   { Write-Host "✗ $Message" -ForegroundColor $ColorError }
+        "SUCCESS" { Write-Host "[OK] $Message" -ForegroundColor $ColorSuccess }
+        "WARNING" { Write-Host "[AVISO] $Message" -ForegroundColor $ColorWarning }
+        "ERROR"   { Write-Host "[ERRO] $Message" -ForegroundColor $ColorError }
         default   { Write-Host "ℹ $Message" -ForegroundColor $ColorInfo }
     }
 }
@@ -271,7 +271,7 @@ function Confirm-CloseWord {
     
     Write-Host ""
     Write-Host "╔════════════════════════════════════════════════════════════════╗" -ForegroundColor Yellow
-    Write-Host "║                          ⚠ ATENÇÃO ⚠                          ║" -ForegroundColor Yellow
+    Write-Host "║                          [AVISO] ATENÇÃO [AVISO]                          ║" -ForegroundColor Yellow
     Write-Host "╚════════════════════════════════════════════════════════════════╝" -ForegroundColor Yellow
     Write-Host ""
     Write-Host "O Microsoft Word está atualmente em execução!" -ForegroundColor Yellow
@@ -292,7 +292,7 @@ function Confirm-CloseWord {
     
     if ($response -notmatch '^[Ss]$') {
         Write-Host ""
-        Write-Host "✓ Exportação cancelada pelo usuário" -ForegroundColor Cyan
+        Write-Host "[OK] Exportação cancelada pelo usuário" -ForegroundColor Cyan
         Write-Host "  Salve seus documentos e execute o script novamente quando estiver pronto." -ForegroundColor Gray
         Write-Host ""
         Write-Log "Exportação cancelada - usuário optou por não fechar o Word" -Level WARNING
@@ -305,14 +305,14 @@ function Confirm-CloseWord {
     Write-Log "Usuário autorizou o fechamento do Word" -Level INFO
     
     if (Stop-WordProcesses -Force) {
-        Write-Host "✓ Word fechado com sucesso" -ForegroundColor Green
+        Write-Host "[OK] Word fechado com sucesso" -ForegroundColor Green
         Write-Host ""
         # Aguarda um pouco para garantir que recursos foram liberados
         Start-Sleep -Seconds 2
         return $true
     }
     else {
-        Write-Host "✗ Não foi possível fechar o Word completamente" -ForegroundColor Red
+        Write-Host "[ERRO] Não foi possível fechar o Word completamente" -ForegroundColor Red
         Write-Host ""
         Write-Log "Falha ao fechar Word - cancelando exportação" -Level ERROR
         
@@ -372,7 +372,7 @@ function Compile-VbaModule {
                 $null = $component.CodeModule.CountOfLines
             }
             
-            Write-Log "Módulo VBA compilado com sucesso ✓" -Level SUCCESS
+            Write-Log "Módulo VBA compilado com sucesso [OK]" -Level SUCCESS
             $compilationSuccess = $true
         }
         catch {
@@ -437,7 +437,7 @@ function Export-NormalTemplate {
             Size = (Get-Item $normalPath).Length
         }
         
-        Write-Log "Normal.dotm exportado com sucesso ✓" -Level SUCCESS
+        Write-Log "Normal.dotm exportado com sucesso [OK]" -Level SUCCESS
         return $true
     }
     catch {
@@ -525,7 +525,7 @@ function Export-BuildingBlocks {
     }
     
     if ($exportedCount -gt 0) {
-        Write-Log "Building Blocks exportados: $exportedCount arquivos ✓" -Level SUCCESS
+        Write-Log "Building Blocks exportados: $exportedCount arquivos [OK]" -Level SUCCESS
         return $true
     }
     else {
@@ -602,7 +602,7 @@ function Export-DocumentThemes {
     }
     
     if ($exportedCount -gt 0) {
-        Write-Log "Temas exportados: $exportedCount arquivos ✓" -Level SUCCESS
+        Write-Log "Temas exportados: $exportedCount arquivos [OK]" -Level SUCCESS
         return $true
     }
     else {
@@ -646,7 +646,7 @@ function Export-RibbonCustomization {
                     Size = (Get-Item $uiPath).Length
                 }
                 
-                Write-Log "Personalização do Ribbon exportada: $fileName ✓" -Level SUCCESS
+                Write-Log "Personalização do Ribbon exportada: $fileName [OK]" -Level SUCCESS
                 $exportedAny = $true
             }
             catch {
@@ -693,7 +693,7 @@ function Export-OfficeCustomUI {
                 }
             }
             
-            Write-Log "Personalizações UI exportadas: $($customFiles.Count) arquivos ✓" -Level SUCCESS
+            Write-Log "Personalizações UI exportadas: $($customFiles.Count) arquivos [OK]" -Level SUCCESS
             return $true
         }
         else {
@@ -757,7 +757,7 @@ function Export-RegistrySettings {
                 Invoke-Expression $regExport | Out-Null
                 
                 if (Test-Path $destFile) {
-                    Write-Log "Registro exportado: $regPath ✓" -Level SUCCESS
+                    Write-Log "Registro exportado: $regPath [OK]" -Level SUCCESS
                     $exportedAny = $true
                 }
             }
@@ -793,7 +793,7 @@ function Create-ExportManifest {
     $manifestPath = Join-Path $ExportPath "MANIFEST.json"
     $manifest | ConvertTo-Json -Depth 10 | Out-File -FilePath $manifestPath -Encoding UTF8
     
-    Write-Log "Manifesto criado: $manifestPath ✓" -Level SUCCESS
+    Write-Log "Manifesto criado: $manifestPath [OK]" -Level SUCCESS
     
     # Cria também um README
     $readmePath = Join-Path $ExportPath "README.txt"
@@ -854,7 +854,7 @@ Ou use o instalador principal:
 "@
     
     $readmeContent | Out-File -FilePath $readmePath -Encoding UTF8
-    Write-Log "README criado: $readmePath ✓" -Level SUCCESS
+    Write-Log "README criado: $readmePath [OK]" -Level SUCCESS
 }
 
 # =============================================================================
@@ -897,7 +897,7 @@ function Export-WordCustomizations {
         $compilationResult = Compile-VbaModule
         if (-not $compilationResult) {
             Write-Host ""
-            Write-Host "⚠ AVISO: Foram detectados erros de compilação no módulo VBA!" -ForegroundColor Yellow
+            Write-Host "[AVISO] AVISO: Foram detectados erros de compilação no módulo VBA!" -ForegroundColor Yellow
             Write-Host "  A exportação continuará, mas recomenda-se verificar o código." -ForegroundColor Gray
             Write-Host ""
             $continue = Read-Host "Deseja continuar a exportação mesmo assim? (S/N)"
@@ -939,12 +939,12 @@ function Export-WordCustomizations {
         Write-Host "║              EXPORTAÇÃO CONCLUÍDA COM SUCESSO!                 ║" -ForegroundColor Green
         Write-Host "╚════════════════════════════════════════════════════════════════╝" -ForegroundColor Green
         Write-Host ""
-        Write-Host "📊 Resumo:" -ForegroundColor Cyan
+        Write-Host " Resumo:" -ForegroundColor Cyan
         Write-Host "   • Itens exportados: $($script:ExportedItems.Count)" -ForegroundColor White
         Write-Host "   • Caminho: $ExportPath" -ForegroundColor Gray
         Write-Host "   • Tempo decorrido: $($duration.ToString('mm\:ss'))" -ForegroundColor Gray
         Write-Host ""
-        Write-Host "📝 Log: $script:LogFile" -ForegroundColor Gray
+        Write-Host " Log: $script:LogFile" -ForegroundColor Gray
         Write-Host ""
         
         Write-Log "=== EXPORTAÇÃO CONCLUÍDA COM SUCESSO ===" -Level SUCCESS
@@ -956,7 +956,7 @@ function Export-WordCustomizations {
         Write-Host "║                  ERRO NA EXPORTAÇÃO!                           ║" -ForegroundColor Red
         Write-Host "╚════════════════════════════════════════════════════════════════╝" -ForegroundColor Red
         Write-Host ""
-        Write-Host "❌ Erro: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "[ERRO] Erro: $($_.Exception.Message)" -ForegroundColor Red
         Write-Host ""
         
         Write-Log "=== EXPORTAÇÃO FALHOU ===" -Level ERROR

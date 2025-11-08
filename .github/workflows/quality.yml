@@ -1,0 +1,83 @@
+name: Validação de Qualidade
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  encoding-validation:
+    name: Validar Encoding e Emojis
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout código
+      uses: actions/checkout@v3
+    
+    - name: Executar validação de encoding
+      shell: pwsh
+      run: |
+        Write-Host "Executando validação de encoding e emojis..." -ForegroundColor Cyan
+        $result = & powershell -ExecutionPolicy Bypass -File tests/check-encoding.ps1
+        if ($LASTEXITCODE -ne 0) {
+          Write-Host "FALHA: Emojis detectados no código!" -ForegroundColor Red
+          exit 1
+        }
+        Write-Host "SUCESSO: Nenhum emoji encontrado!" -ForegroundColor Green
+    
+    - name: Upload relatório de validação
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: encoding-validation-report
+        path: tests/*.log
+        retention-days: 30
+
+  pester-tests:
+    name: Executar Testes Pester
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout código
+      uses: actions/checkout@v3
+    
+    - name: Instalar Pester 3.4.0
+      shell: pwsh
+      run: |
+        Install-Module -Name Pester -RequiredVersion 3.4.0 -Force -Scope CurrentUser
+    
+    - name: Executar testes
+      shell: pwsh
+      run: |
+        cd tests
+        Import-Module Pester -RequiredVersion 3.4.0
+        $result = Invoke-Pester -PassThru
+        if ($result.FailedCount -gt 0) {
+          Write-Host "FALHA: $($result.FailedCount) teste(s) falharam!" -ForegroundColor Red
+          exit 1
+        }
+        Write-Host "SUCESSO: Todos os $($result.PassedCount) testes passaram!" -ForegroundColor Green
+    
+    - name: Upload resultados dos testes
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: pester-test-results
+        path: tests/TestResults*.xml
+        retention-days: 30
+
+  markdown-lint:
+    name: Validar Markdown
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout código
+      uses: actions/checkout@v3
+    
+    - name: Lint Markdown
+      uses: DavidAnson/markdownlint-cli2-action@v11
+      with:
+        globs: '**/*.md'
+        config: '.markdownlint.json'
+      continue-on-error: true

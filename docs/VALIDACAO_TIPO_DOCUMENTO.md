@@ -1,4 +1,4 @@
-# Validação de Tipo de Documento
+﻿# Validação de Tipo de Documento
 
 ## Resumo
 
@@ -133,7 +133,7 @@ INDCAÇÃO N.º 123/2024
 **Resultado:**
 - [!] Primeira palavra identificada: "INDCAÇÃO"
 - [!] Exibe mensagem ao usuário (similar ao Cenário 4)
-- 🔍 Usuário pode perceber o erro e cancelar para corrigir
+-  Usuário pode perceber o erro e cancelar para corrigir
 - [OK] Ou pode prosseguir se for intencional
 
 ---

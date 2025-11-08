@@ -1,0 +1,44 @@
+# EditorConfig é incrível: https://EditorConfig.org
+
+# Configurações principais
+root = true
+
+# Todos os arquivos
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+# Scripts PowerShell
+[*.ps1]
+charset = utf-8-bom
+indent_size = 4
+max_line_length = 120
+
+# Arquivos Markdown
+[*.md]
+charset = utf-8
+trim_trailing_whitespace = false
+max_line_length = off
+
+# Arquivos VBA
+[*.bas]
+charset = utf-8
+indent_size = 4
+max_line_length = 120
+
+# Arquivos de configuração
+[*.{json,yml,yaml}]
+indent_size = 2
+
+# Arquivos CMD/Batch
+[*.{cmd,bat}]
+charset = utf-8
+end_of_line = crlf
+
+# Arquivos de texto
+[*.txt]
+charset = utf-8

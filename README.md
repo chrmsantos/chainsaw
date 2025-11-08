@@ -25,12 +25,19 @@ cd "$env:USERPROFILE\chainsaw\installation\inst_scripts"
 
 ##  Documentação
 
+### Instalação e Uso
+
 -  **[Guia de Instalação](installation/inst_docs/GUIA_INSTALACAO.md)** - Instalação detalhada e troubleshooting
 -  **[Novidades v1.1](docs/NOVIDADES_v1.1.md)** - Sistema de identificação de elementos
 -  **[Identificação](docs/IDENTIFICACAO_ELEMENTOS.md)** - API de identificação automática
 -  **[Sem Admin](docs/SEM_PRIVILEGIOS_ADMIN.md)** - Instalação em ambientes restritos
 -  **[Substituições](docs/SUBSTITUICOES_CONDICIONAIS.md)** - Lógica de substituições
 -  **[Validação](docs/VALIDACAO_TIPO_DOCUMENTO.md)** - Validação de tipos de documento
+
+### Segurança e Privacidade
+
+-  **[Conformidade LGPD](docs/LGPD_CONFORMIDADE.md)** - Conformidade com Lei Geral de Proteção de Dados
+-  **[Segurança e Privacidade](docs/SEGURANCA_PRIVACIDADE.md)** - Política completa de segurança e privacidade
 
 ##  Estrutura
 
@@ -86,7 +93,7 @@ Ou use o `install.cmd` (duplo-clique) que contorna automaticamente.
 2. Gerenciador de Tarefas → Finalize `WINWORD.EXE`
 3. Execute instalador novamente
 
-## 🧪 Testes Automatizados
+##  Testes Automatizados
 
 O projeto inclui um sistema completo de testes unitários usando **Pester** para garantir a qualidade do código.
 
@@ -106,10 +113,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\Run-Tests.ps1
 
 ### O que é testado
 
-- ✅ **Scripts PowerShell** - Validação de sintaxe (export-config.ps1, install.ps1, update-vba-module.ps1)
-- ✅ **Módulos VBA** - Verificação de existência e duplicatas (monolithicMod.bas)
-- ✅ **Documentação** - Integridade de arquivos essenciais
-- ✅ **CHANGELOG** - Verificação de versão atual
+- [OK] **Scripts PowerShell** - Validação de sintaxe (export-config.ps1, install.ps1, update-vba-module.ps1)
+- [OK] **Módulos VBA** - Verificação de existência e duplicatas (monolithicMod.bas)
+- [OK] **Documentação** - Integridade de arquivos essenciais
+- [OK] **CHANGELOG** - Verificação de versão atual
 
 ### Pré-requisitos
 
@@ -125,10 +132,21 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\Run-Tests.ps1 -Detailed
 
 ##  Segurança
 
-- ✅ Backups automáticos antes de qualquer modificação
-- ✅ Código fonte aberto (VBA + PowerShell)
-- ✅ Instalação 100% local (sem envio de dados)
-- ✅ Sem privilégios de administrador
+- [OK] Backups automáticos antes de qualquer modificação
+- [OK] Código fonte aberto (VBA + PowerShell)
+- [OK] Instalação 100% local (sem envio de dados)
+- [OK] Sem privilégios de administrador
+- [OK] Encoding UTF-8 padronizado, sem emojis
+- [OK] Validação automática de qualidade
+
+##  Contribuindo
+
+Contribuições são bem-vindas! Veja [CONTRIBUTING.md](CONTRIBUTING.md) para diretrizes:
+
+- Padrões de código e encoding
+- Processo de Pull Request
+- Como reportar bugs
+- **IMPORTANTE**: Projeto não permite emojis no código
 
 ##  Licença
 
@@ -136,5 +154,5 @@ MIT License - Veja [LICENSE](LICENSE)
 
 ---
 
-**Versão:** 2.0.2 | **Desenvolvido por:** chrmsantos | **Atualizado:** Nov 2025
+**Versão:** 2.0.4 | **Desenvolvido por:** chrmsantos | **Atualizado:** Nov 2025
 

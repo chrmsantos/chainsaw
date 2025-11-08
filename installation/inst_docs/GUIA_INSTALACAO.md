@@ -1,6 +1,6 @@
-# Guia de Instalação - CHAINSAW
+﻿# Guia de Instalação - CHAINSAW
 
-## 📋 Visão Geral
+##  Visão Geral
 
 Sistema automatizado para padronização de documentos legislativos no Microsoft Word.
 
@@ -11,7 +11,7 @@ Sistema automatizado para padronização de documentos legislativos no Microsoft
 - Microsoft Word 2010 ou superior
 - Word fechado durante a instalação
 
-## 🚀 Instalação Rápida
+##  Instalação Rápida
 
 ### Passo 1: Copiar Arquivos
 
@@ -39,15 +39,15 @@ cd "$env:USERPROFILE\chainsaw\installation\inst_scripts"
 O instalador executará automaticamente:
 
 ```
-✓ ETAPA 1: Verificação de Pré-requisitos
-✓ ETAPA 2: Validação de Arquivos
-✓ ETAPA 3: Backup Automático
-✓ ETAPA 4: Instalação de Templates
-✓ ETAPA 5: Atualização do Módulo VBA
-✓ ETAPA 6: Importação de Personalizações (se disponível)
+[OK] ETAPA 1: Verificação de Pré-requisitos
+[OK] ETAPA 2: Validação de Arquivos
+[OK] ETAPA 3: Backup Automático
+[OK] ETAPA 4: Instalação de Templates
+[OK] ETAPA 5: Atualização do Módulo VBA
+[OK] ETAPA 6: Importação de Personalizações (se disponível)
 ```
 
-## 🔄 Atualização do Módulo VBA
+##  Atualização do Módulo VBA
 
 Para atualizar apenas o módulo VBA (sem reinstalar tudo):
 
@@ -58,7 +58,7 @@ cd "$env:USERPROFILE\chainsaw\installation\inst_scripts"
 
 Ou dê duplo-clique em: `update-vba-module.cmd`
 
-## 📤 Exportar Personalizações
+##  Exportar Personalizações
 
 Para fazer backup de suas personalizações do Word:
 
@@ -73,7 +73,7 @@ Isso criará uma pasta `exported-config` com:
 - Blocos de Construção (Building Blocks)
 - Template Normal.dotm
 
-## 📥 Importar Personalizações
+##  Importar Personalizações
 
 Se você possui uma pasta `exported-config`:
 
@@ -81,7 +81,7 @@ Se você possui uma pasta `exported-config`:
 2. Execute `install.ps1` normalmente
 3. O instalador detectará e oferecerá importar automaticamente
 
-## 🔧 Opções Avançadas
+##  Opções Avançadas
 
 ### Instalação Silenciosa (sem confirmação):
 
@@ -101,14 +101,14 @@ Se você possui uma pasta `exported-config`:
 .\install.ps1 -SkipCustomizations
 ```
 
-## 📝 Logs
+##  Logs
 
 Todos os logs ficam em:
 ```
 chainsaw\installation\inst_docs\inst_logs\install_YYYYMMDD_HHMMSS.log
 ```
 
-## ❓ Resolução de Problemas
+## ? Resolução de Problemas
 
 ### Word está aberto
 
@@ -134,16 +134,16 @@ Para verificar se a instalação foi bem-sucedida:
 3. Verifique se o módulo `monolithicMod` está presente
 4. Verifique se a Faixa de Opções personalizada aparece
 
-## 🔒 Segurança
+##  Segurança
 
-- ✅ Não requer privilégios de administrador
-- ✅ Não modifica arquivos do sistema
-- ✅ Backup automático antes de qualquer alteração
-- ✅ Rollback em caso de erro
-- ✅ Bypass temporário seguro (não altera configurações permanentes)
-- ✅ Logs completos de todas as operações
+- [OK] Não requer privilégios de administrador
+- [OK] Não modifica arquivos do sistema
+- [OK] Backup automático antes de qualquer alteração
+- [OK] Rollback em caso de erro
+- [OK] Bypass temporário seguro (não altera configurações permanentes)
+- [OK] Logs completos de todas as operações
 
-## 📍 Localização dos Arquivos
+##  Localização dos Arquivos
 
 | Item | Localização |
 |------|-------------|
@@ -154,14 +154,14 @@ Para verificar se a instalação foi bem-sucedida:
 | **Configurações exportadas** | `chainsaw\installation\exported-config\` |
 | **Normal.dotm instalado** | `%APPDATA%\Microsoft\Templates\Normal.dotm` |
 
-## 📚 Documentação Adicional
+##  Documentação Adicional
 
 - [README.md](../README.md) - Visão geral do projeto
 - [CHANGELOG.md](../CHANGELOG.md) - Histórico de versões
 - [IDENTIFICACAO_ELEMENTOS.md](IDENTIFICACAO_ELEMENTOS.md) - Sistema de identificação de elementos
 - [NOVIDADES_v1.1.md](NOVIDADES_v1.1.md) - Novidades da versão 1.1
 
-## 💡 Dicas
+##  Dicas
 
 1. **Primeira instalação**: Execute sem opções adicionais
 2. **Reinstalação**: Use `-Force` para instalação rápida

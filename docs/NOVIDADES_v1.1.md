@@ -1,4 +1,4 @@
-# NOVIDADE: Sistema de Identificação de Elementos Estruturais v1.1
+﻿# NOVIDADE: Sistema de Identificação de Elementos Estruturais v1.1
 
 ## O que há de novo?
 
@@ -71,18 +71,18 @@ Todas as funções retornam um objeto `Range` ou `Nothing` se o elemento não fo
 
 ## Características
 
-✅ **Automático**: Identificação ocorre durante o processamento normal  
-✅ **Rápido**: Integrado ao cache de parágrafos, overhead < 5%  
-✅ **Compatível**: Não afeta nenhuma funcionalidade existente  
-✅ **Seguro**: Abordagem defensiva com tratamento de erros  
-✅ **Extensível**: Funções públicas para macros personalizadas  
-✅ **Documentado**: Documentação completa e 10 exemplos práticos  
+[OK] **Automático**: Identificação ocorre durante o processamento normal  
+[OK] **Rápido**: Integrado ao cache de parágrafos, overhead < 5%  
+[OK] **Compatível**: Não afeta nenhuma funcionalidade existente  
+[OK] **Seguro**: Abordagem defensiva com tratamento de erros  
+[OK] **Extensível**: Funções públicas para macros personalizadas  
+[OK] **Documentado**: Documentação completa e 10 exemplos práticos  
 
 ## Documentação Completa
 
-📖 **Guia Detalhado**: `docs/IDENTIFICACAO_ELEMENTOS.md`  
-💡 **10 Exemplos Práticos**: `src/Exemplos_Identificacao.bas`  
-📝 **Código Fonte**: `src/Módulo1.bas` (linhas 88-1244)  
+ **Guia Detalhado**: `docs/IDENTIFICACAO_ELEMENTOS.md`  
+ **10 Exemplos Práticos**: `src/Exemplos_Identificacao.bas`  
+ **Código Fonte**: `src/Módulo1.bas` (linhas 88-1244)  
 
 ## Validação de Estrutura
 
@@ -137,19 +137,19 @@ Integre com outros sistemas para processar seções específicas.
 ## Suporte
 
 Para dúvidas ou problemas:
-- 📧 Email: chrmsantos@protonmail.com
-- 📁 Logs: Verifique o arquivo de log na pasta do documento
-- 📖 Documentação: Consulte `docs/IDENTIFICACAO_ELEMENTOS.md`
+-  Email: chrmsantos@protonmail.com
+-  Logs: Verifique o arquivo de log na pasta do documento
+-  Documentação: Consulte `docs/IDENTIFICACAO_ELEMENTOS.md`
 
 ## Histórico de Versões
 
 ### v1.1-RC1-202511071045
-- ✨ Novo: Sistema de identificação de elementos estruturais
-- ✨ Novo: Funções públicas de acesso aos elementos
-- ✨ Novo: Integração com cache de parágrafos
-- ✨ Novo: Função GetElementInfo para relatórios
-- 📖 Novo: Documentação completa
-- 💡 Novo: 10 exemplos práticos de uso
+- * Novo: Sistema de identificação de elementos estruturais
+- * Novo: Funções públicas de acesso aos elementos
+- * Novo: Integração com cache de parágrafos
+- * Novo: Função GetElementInfo para relatórios
+-  Novo: Documentação completa
+-  Novo: 10 exemplos práticos de uso
 
 ---
 
