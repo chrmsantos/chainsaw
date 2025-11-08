@@ -13,7 +13,7 @@ Describe 'CHAINSAW - Testes do Módulo VBA monolithicMod.bas' {
 
     BeforeAll {
         $repoRoot = Get-RepoRoot
-        $vbaPath = Join-Path $repoRoot "source\backups\main\monolithicMod.bas"
+        $vbaPath = Join-Path $repoRoot "source\main\monolithicMod.bas"
         $vbaContent = Get-Content $vbaPath -Raw -Encoding UTF8
         $vbaLines = Get-Content $vbaPath -Encoding UTF8
     }

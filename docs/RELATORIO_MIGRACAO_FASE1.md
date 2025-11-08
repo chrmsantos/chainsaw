@@ -54,7 +54,7 @@ Public Function GetAssinaturaRange(doc As Document) As Range
 
 #### Função Migrada
 
-**Arquivo:** `source/backups/main/monolithicMod.bas`  
+**Arquivo:** `source/main/monolithicMod.bas`  
 **Função:** `GetElementInfo(doc As Document) As String`  
 **Tipo:** Função de diagnóstico/informação (não afeta formatação)  
 **Risco:** **BAIXO** - Função apenas exibe informações, não modifica documento
@@ -140,7 +140,7 @@ Caso necessário reverter a migração:
 ```powershell
 # Restaurar versão anterior
 Copy-Item "source\backups\backup_monolithicMod_20251108_101447.bas" `
-          "source\backups\main\monolithicMod.bas" -Force
+          "source\main\monolithicMod.bas" -Force
 
 # Reverter commit (se já commitado)
 git revert HEAD
@@ -152,7 +152,7 @@ git revert HEAD
 
 | Arquivo | Mudança | Linhas Afetadas |
 |---------|---------|-----------------|
-| `source/backups/main/monolithicMod.bas` | Refatoração da função GetElementInfo | ~1564-1630 |
+| `source/main/monolithicMod.bas` | Refatoração da função GetElementInfo | ~1564-1630 |
 | `CHANGELOG.md` | Nova seção v2.1.0 documentando migração | +73 linhas |
 | `tests/VBA-IdentifierFunctions.Tests.ps1` | Novo arquivo de testes | +268 linhas |
 | `source/backups/backup_monolithicMod_*.bas` | Backup de segurança | Arquivo novo |

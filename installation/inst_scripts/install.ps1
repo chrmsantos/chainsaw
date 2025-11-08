@@ -1382,7 +1382,7 @@ function Install-CHAINSAWConfig {
         Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
         Write-Host ""
         
-        $vbaModulePath = Join-Path $SourcePath "source\backups\main\monolithicMod.bas"
+        $vbaModulePath = Join-Path $SourcePath "source\main\monolithicMod.bas"
         if (Test-Path $vbaModulePath) {
             Write-Log "Módulo VBA encontrado: $vbaModulePath" -Level INFO
             Write-Host " Importando módulo VBA mais recente..." -ForegroundColor Cyan

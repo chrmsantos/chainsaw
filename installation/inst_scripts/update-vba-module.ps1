@@ -16,7 +16,7 @@ $ScriptPath = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $My
 $ProjectRoot = Split-Path -Parent $ScriptPath
 
 # Caminhos importantes
-$VbaModulePath = Join-Path $ProjectRoot "source\backups\main\monolithicMod.bas"
+$VbaModulePath = Join-Path $ProjectRoot "source\main\monolithicMod.bas"
 $NormalDotmPath = Join-Path $env:APPDATA "Microsoft\Templates\Normal.dotm"
 
 function Write-Banner {

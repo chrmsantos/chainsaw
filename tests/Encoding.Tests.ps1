@@ -63,7 +63,7 @@ Describe 'CHAINSAW - Testes de Encoding e Emojis' {
         }
         
         It 'Arquivo VBA esta em formato legivel' {
-            $vbaFile = "$projectRoot\source\backups\main\monolithicMod.bas"
+            $vbaFile = "$projectRoot\source\main\monolithicMod.bas"
             
             if (Test-Path $vbaFile) {
                 $content = Get-Content $vbaFile -Raw
@@ -163,7 +163,7 @@ Describe 'CHAINSAW - Testes de Encoding e Emojis' {
         }
         
         It 'Arquivo VBA nao contem emojis' {
-            $vbaFile = "$projectRoot\source\backups\main\monolithicMod.bas"
+            $vbaFile = "$projectRoot\source\main\monolithicMod.bas"
             
             if (Test-Path $vbaFile) {
                 $content = Get-Content $vbaFile -Raw -Encoding UTF8
@@ -240,7 +240,7 @@ Describe 'CHAINSAW - Testes de Encoding e Emojis' {
         }
         
         It 'Arquivo VBA nao contem tabs (usa espacos conforme padrao)' {
-            $vbaFile = "$projectRoot\source\backups\main\monolithicMod.bas"
+            $vbaFile = "$projectRoot\source\main\monolithicMod.bas"
             
             if (Test-Path $vbaFile) {
                 $content = Get-Content $vbaFile -Raw

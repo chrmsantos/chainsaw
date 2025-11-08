@@ -157,7 +157,7 @@ foreach ($file in $mdFiles) {
 # ==================================================================
 Write-Host "`nVerificando Arquivo VBA..." -ForegroundColor White
 
-$vbaFile = "$projectRoot\source\backups\main\monolithicMod.bas"
+$vbaFile = "$projectRoot\source\main\monolithicMod.bas"
 if (Test-Path $vbaFile) {
     Test-FileForEmojis -FilePath $vbaFile -FileType "VBA"
     Test-FileEncoding -FilePath $vbaFile -FileType "VBA"

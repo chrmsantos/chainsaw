@@ -47,7 +47,10 @@ chainsaw/
     inst_configs/     # Templates do Word
     inst_scripts/     # Scripts (.ps1, .cmd)
     inst_docs/        # Documentação e logs
- source/backups/main/  # Módulo VBA (monolithicMod.bas)
+ source/
+    main/             # Módulo VBA principal (monolithicMod.bas)
+    backups/          # Backups timestamped do módulo VBA
+    others/           # Exemplos e código auxiliar
  docs/                 # Documentação técnica
  assets/               # Recursos (imagens)
  README.md

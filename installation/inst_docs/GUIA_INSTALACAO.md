@@ -149,7 +149,7 @@ Para verificar se a instalação foi bem-sucedida:
 |------|-------------|
 | **Scripts de instalação** | `chainsaw\installation\inst_scripts\` |
 | **Templates** | `chainsaw\installation\inst_configs\Templates\` |
-| **Módulo VBA** | `chainsaw\source\backups\main\monolithicMod.bas` |
+| **Módulo VBA** | `chainsaw\source\main\monolithicMod.bas` |
 | **Logs** | `chainsaw\installation\inst_docs\inst_logs\` |
 | **Configurações exportadas** | `chainsaw\installation\exported-config\` |
 | **Normal.dotm instalado** | `%APPDATA%\Microsoft\Templates\Normal.dotm` |

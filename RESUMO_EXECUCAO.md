@@ -28,7 +28,7 @@ O commit inicial falhou devido a presenca de emojis detectados pelo pre-commit h
 [PRE-COMMIT] Verificando 4 arquivo(s)...
   [OK] CHANGELOG.md
   [OK] docs/RELATORIO_MIGRACAO_FASE1.md
-  [OK] source/backups/main/monolithicMod.bas
+  [OK] source/main/monolithicMod.bas
   [OK] tests/VBA-IdentifierFunctions.Tests.ps1
 
 [PRE-COMMIT] Validacao concluida - Nenhum emoji detectado!
@@ -41,7 +41,7 @@ O commit inicial falhou devido a presenca de emojis detectados pelo pre-commit h
 | Arquivo | Status | Mudancas |
 |---------|--------|----------|
 | CHANGELOG.md | modified | +73 linhas, 5 emojis removidos |
-| source/backups/main/monolithicMod.bas | modified | ~66 linhas refatoradas |
+| source/main/monolithicMod.bas | modified | ~66 linhas refatoradas |
 | tests/VBA-IdentifierFunctions.Tests.ps1 | new file | +268 linhas |
 | docs/RELATORIO_MIGRACAO_FASE1.md | new file | +252 linhas, 15 emojis removidos |
 

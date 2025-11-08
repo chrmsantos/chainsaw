@@ -157,7 +157,7 @@ foreach ($file in $mdFiles) {
 # ==================================================================
 Write-Host "`nProcessando Arquivo VBA...`n" -ForegroundColor White
 
-$vbaFile = "$projectRoot\source\backups\main\monolithicMod.bas"
+$vbaFile = "$projectRoot\source\main\monolithicMod.bas"
 if (Test-Path $vbaFile) {
     Process-File -FilePath $vbaFile
 }

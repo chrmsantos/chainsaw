@@ -25,7 +25,7 @@ Import-Module Pester -MinimumVersion 3.0 -ErrorAction Stop
 Describe "VBA Identifier Functions - Validacao de Consistencia" {
     
     BeforeAll {
-        $vbaFile = Join-Path $PSScriptRoot "..\source\backups\main\monolithicMod.bas"
+        $vbaFile = Join-Path $PSScriptRoot "..\source\main\monolithicMod.bas"
         
         if (-not (Test-Path $vbaFile)) {
             throw "Arquivo VBA nao encontrado: $vbaFile"
@@ -270,5 +270,7 @@ Invoke-Pester -Script $PSCommandPath -OutputFormat NUnitXml -OutputFile "TestRes
 [PRE-COMMIT] Validação concluída - Nenhum emoji detectado!
 [OK] CHANGELOG.md
 [OK] docs/RELATORIO_MIGRACAO_FASE1.md
-[OK] source/backups/main/monolithicMod.bas
+Contexto de teste correto criado automaticamente
+
+[OK] source/main/monolithicMod.bas
 [OK] tests/VBA-IdentifierFunctions.Tests.ps1

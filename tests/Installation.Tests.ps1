@@ -176,7 +176,7 @@ Describe 'CHAINSAW - Testes de Scripts de Instalação' {
     Context 'Validação de Caminhos Críticos' {
         
         It 'Módulo VBA monolítico existe' {
-            $vbaPath = Join-Path $repoRoot "source\backups\main\monolithicMod.bas"
+            $vbaPath = Join-Path $repoRoot "source\main\monolithicMod.bas"
             Test-Path $vbaPath | Should Be $true
         }
 

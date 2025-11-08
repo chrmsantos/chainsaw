@@ -21,7 +21,7 @@ Estas funções foram **declaradas mas não estavam sendo utilizadas** - o códi
 
 #### Migração Fase 1 - Função de Diagnóstico (BAIXO RISCO)
 
-**Arquivo:** `source/backups/main/monolithicMod.bas`  
+**Arquivo:** `source/main/monolithicMod.bas`  
 **Função:** `GetElementInfo(doc As Document)`  
 **Tipo:** Função de diagnóstico/informação
 
@@ -255,8 +255,8 @@ Documentação inclui orientações específicas para organizações que adotare
 - **Guias Redundantes**: Removidos guias rápidos redundantes:
   - `GUIA_RAPIDO_EXPORT_IMPORT.md`, `GUIA_RAPIDO_IDENTIFICACAO.md`
   - `EXPORTACAO_IMPORTACAO.md`, `ATUALIZACAO_MODULO_VBA.md`
-- **Backups Duplicados**: Removidos backups VBA obsoletos da raiz de `source/backups/`
-  - Mantido apenas `source/backups/main/monolithicMod.bas` (versão atual)
+- **Backups Duplicados**: Removidos backups VBA obsoletos
+  - Estrutura organizada: `source/main/` (código ativo), `source/backups/` (backups timestamped)
 
 ### [REFACTOR] Refatorado
 
