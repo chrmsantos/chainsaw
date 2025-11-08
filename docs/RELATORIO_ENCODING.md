@@ -69,10 +69,10 @@ SUCESSO: Nenhum emoji encontrado!
 - Substitui via regex com encoding-awareness
 
 **Mapeamento de Emojis**:
-- Validação:  → `[OK]`, / → `[ERRO]`, ⚠ → `[AVISO]`
-- Objetos:  → removidos (vazio)
-- Segurança:  → removidos
-- Outros:  → `*`,  → `->`,  → removidos
+- Validação: checkmark → `[OK]`, cross → `[ERRO]`, warning → `[AVISO]`
+- Objetos: gear/tools → removidos (vazio)
+- Segurança: lock → removidos
+- Outros: star → `*`, arrow → `->`, sparkles → removidos
 
 #### `tests/remove-emojis-bytes.ps1`
 **Propósito**: Remover emojis via manipulação direta de bytes UTF-8
@@ -109,7 +109,7 @@ SUCESSO: Nenhum emoji encontrado!
 #### Primeira Iteração
 - **Script**: `remove-emojis.ps1`
 - **Resultado**: 354 emojis removidos de 10 arquivos
-- **Emojis Comuns**:     ⚠ (símbolos 3-byte)
+- **Emojis Comuns**: checkmark, cross, warning (símbolos 3-byte)
 
 #### Segunda Iteração
 - **Script**: `remove-emojis-bytes.ps1`
@@ -128,8 +128,8 @@ SUCESSO: Nenhum emoji encontrado!
 
 | Arquivo | Emojis Removidos | Principais Substituições |
 |---------|------------------|--------------------------|
-| `export-config.ps1` | 19 | →[OK], →[ERRO], ⚠→[AVISO] |
-| `install.ps1` | 51 | →[OK], ⚠→[AVISO],  removidos |
+| `export-config.ps1` | 19 | checkmark→[OK], cross→[ERRO], warning→[AVISO] |
+| `install.ps1` | 51 | checkmark→[OK], warning→[AVISO], gear removidos |
 
 ### Documentação Markdown (10 arquivos, 289 emojis)
 
@@ -157,8 +157,8 @@ Todos os arquivos mantêm encoding UTF-8 para suportar:
 
 ### Caracteres Proibidos
 
-- **Emojis 4-byte** (U+1F000 - U+1FFFF):    etc.
-- **Símbolos Decorativos** (U+2600 - U+27BF):   ⚠  etc.
+- **Emojis 4-byte** (U+1F000 - U+1FFFF): smile, heart, thumbs-up etc.
+- **Símbolos Decorativos** (U+2600 - U+27BF): sun, star, warning etc.
 - **Caracteres de Controle** (exceto Tab, LF, CR)
 
 ### Line Endings

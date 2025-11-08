@@ -173,13 +173,13 @@ Seção dedicada com exemplos claros:
 ```markdown
 #### Caracteres PROIBIDOS
 
-- [PROIBIDO] Emojis (     ⚠ etc.)
-- [PROIBIDO] Símbolos decorativos Unicode
+- [PROIBIDO] Emojis (checkmark, cross, warning etc.)
+- [PROIBIDO] Simbolos decorativos Unicode
 
 **Use alternativas textuais**:
-- Em vez de  use `[OK]`
-- Em vez de  ou  use `[ERRO]`
-- Em vez de ⚠ use `[AVISO]`
+- Em vez de checkmark use `[OK]`
+- Em vez de cross ou X use `[ERRO]`
+- Em vez de warning use `[AVISO]`
 ```
 
 ## 4. GitHub Actions - CI/CD

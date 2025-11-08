@@ -64,34 +64,59 @@ Describe "VBA Identifier Functions - Validacao de Consistencia" {
     Context "Implementacao das Funcoes" {
         
         It "GetTituloRange deve usar tituloParaIndex internamente" {
-            # Extrai o corpo da funcao GetTituloRange
-            $funcMatch = [regex]::Match($vbaContent, '(?s)Public Function GetTituloRange\(.*?\nEnd Function')
-            $funcMatch.Success | Should Be $true
-            $funcMatch.Value | Should Match 'tituloParaIndex'
+            # Extrai o corpo da funcao GetTituloRange usando IndexOf
+            $funcStart = $vbaContent.IndexOf('Public Function GetTituloRange(')
+            $funcEnd = $vbaContent.IndexOf('End Function', $funcStart)
+            if ($funcStart -ge 0 -and $funcEnd -gt $funcStart) {
+                $funcBody = $vbaContent.Substring($funcStart, $funcEnd - $funcStart + 12)
+                $funcBody | Should Match 'tituloParaIndex'
+            } else {
+                throw "GetTituloRange function not found"
+            }
         }
         
         It "GetEmentaRange deve usar ementaParaIndex internamente" {
-            $funcMatch = [regex]::Match($vbaContent, '(?s)Public Function GetEmentaRange\(.*?\nEnd Function')
-            $funcMatch.Success | Should Be $true
-            $funcMatch.Value | Should Match 'ementaParaIndex'
+            $funcStart = $vbaContent.IndexOf('Public Function GetEmentaRange(')
+            $funcEnd = $vbaContent.IndexOf('End Function', $funcStart)
+            if ($funcStart -ge 0 -and $funcEnd -gt $funcStart) {
+                $funcBody = $vbaContent.Substring($funcStart, $funcEnd - $funcStart + 12)
+                $funcBody | Should Match 'ementaParaIndex'
+            } else {
+                throw "GetEmentaRange function not found"
+            }
         }
         
         It "GetJustificativaRange deve usar justificativaStartIndex internamente" {
-            $funcMatch = [regex]::Match($vbaContent, '(?s)Public Function GetJustificativaRange\(.*?\nEnd Function')
-            $funcMatch.Success | Should Be $true
-            $funcMatch.Value | Should Match 'justificativaStartIndex'
+            $funcStart = $vbaContent.IndexOf('Public Function GetJustificativaRange(')
+            $funcEnd = $vbaContent.IndexOf('End Function', $funcStart)
+            if ($funcStart -ge 0 -and $funcEnd -gt $funcStart) {
+                $funcBody = $vbaContent.Substring($funcStart, $funcEnd - $funcStart + 12)
+                $funcBody | Should Match 'justificativaStartIndex'
+            } else {
+                throw "GetJustificativaRange function not found"
+            }
         }
         
         It "GetDataRange deve usar dataParaIndex internamente" {
-            $funcMatch = [regex]::Match($vbaContent, '(?s)Public Function GetDataRange\(.*?\nEnd Function')
-            $funcMatch.Success | Should Be $true
-            $funcMatch.Value | Should Match 'dataParaIndex'
+            $funcStart = $vbaContent.IndexOf('Public Function GetDataRange(')
+            $funcEnd = $vbaContent.IndexOf('End Function', $funcStart)
+            if ($funcStart -ge 0 -and $funcEnd -gt $funcStart) {
+                $funcBody = $vbaContent.Substring($funcStart, $funcEnd - $funcStart + 12)
+                $funcBody | Should Match 'dataParaIndex'
+            } else {
+                throw "GetDataRange function not found"
+            }
         }
         
         It "GetAssinaturaRange deve usar assinaturaStartIndex internamente" {
-            $funcMatch = [regex]::Match($vbaContent, '(?s)Public Function GetAssinaturaRange\(.*?\nEnd Function')
-            $funcMatch.Success | Should Be $true
-            $funcMatch.Value | Should Match 'assinaturaStartIndex'
+            $funcStart = $vbaContent.IndexOf('Public Function GetAssinaturaRange(')
+            $funcEnd = $vbaContent.IndexOf('End Function', $funcStart)
+            if ($funcStart -ge 0 -and $funcEnd -gt $funcStart) {
+                $funcBody = $vbaContent.Substring($funcStart, $funcEnd - $funcStart + 12)
+                $funcBody | Should Match 'assinaturaStartIndex'
+            } else {
+                throw "GetAssinaturaRange function not found"
+            }
         }
     }
     

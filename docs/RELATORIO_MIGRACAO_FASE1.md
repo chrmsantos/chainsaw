@@ -24,17 +24,17 @@ Public Function GetAssinaturaRange(doc As Document) As Range
 ```
 
 **Evidências:**
--  6 declarações encontradas (linhas 1368-1501)
--  0 chamadas no código de formatação
-- ⚠️ Código usa diretamente: `tituloParaIndex`, `ementaParaIndex`, `justificativaStartIndex`, etc.
+- [CHECK] 6 declarações encontradas (linhas 1368-1501)
+- [EMPTY] 0 chamadas no código de formatação
+- [WARN] Código usa diretamente: `tituloParaIndex`, `ementaParaIndex`, `justificativaStartIndex`, etc.
 
 ### Impacto na Estabilidade
 
 **Situação Atual:**
--  **Estável**: Código funciona porque usa variáveis privadas diretamente
-- ⚠️ **Código Morto**: 6 funções públicas existem mas nunca são executadas
-- ⚠️ **Redundância**: Duplicação de lógica (variáveis + funções = mesma coisa)
-- ⚠️ **Manutenção**: Mudanças precisam ser feitas em dois lugares
+- [CHECK] **Estável**: Código funciona porque usa variáveis privadas diretamente
+- [WARN] **Código Morto**: 6 funções públicas existem mas nunca são executadas
+- [WARN] **Redundância**: Duplicação de lógica (variáveis + funções = mesma coisa)
+- [WARN] **Manutenção**: Mudanças precisam ser feitas em dois lugares
 
 ---
 
