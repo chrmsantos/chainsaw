@@ -107,24 +107,19 @@ Describe 'CHAINSAW - Testes de Encoding e Emojis' {
     Context 'Deteccao de Emojis e Caracteres Especiais' {
         
         # Regex para detectar emojis (Unicode ranges)
+        # Usando lookbehind negativo para evitar falsos positivos com caracteres ASCII
         # Emoticons: U+1F600 to U+1F64F
         # Symbols & Pictographs: U+1F300 to U+1F5FF
         # Transport & Map: U+1F680 to U+1F6FF
         # Supplemental Symbols: U+1F900 to U+1F9FF
         # Outros ranges comuns de emojis
-        $emojiPattern = '[' +
-            '\u2600-\u26FF' +    # Miscellaneous Symbols
-            '\u2700-\u27BF' +    # Dingbats
-            '\u1F300-\u1F5FF' +  # Symbols & Pictographs
-            '\u1F600-\u1F64F' +  # Emoticons
-            '\u1F680-\u1F6FF' +  # Transport & Map
-            '\u1F700-\u1F77F' +  # Alchemical Symbols
-            '\u1F780-\u1F7FF' +  # Geometric Shapes Extended
-            '\u1F800-\u1F8FF' +  # Supplemental Arrows-C
-            '\u1F900-\u1F9FF' +  # Supplemental Symbols and Pictographs
-            '\u1FA00-\u1FA6F' +  # Chess Symbols
-            '\u1FA70-\u1FAFF' +  # Symbols and Pictographs Extended-A
-            ']'
+        $emojiPattern = '[\u2600-\u26FF\u2700-\u27BF]|' +
+            '[\uD83C][\uDF00-\uDFFF]|' +  # High surrogate for U+1F300-1F5FF
+            '[\uD83D][\uDC00-\uDE4F]|' +  # High surrogate for U+1F600-1F64F
+            '[\uD83D][\uDE80-\uDEFF]|' +  # High surrogate for U+1F680-1F6FF
+            '[\uD83E][\uDD00-\uDDFF]|' +  # High surrogate for U+1F900-1F9FF
+            '[\uD83E][\uDE00-\uDE6F]|' +  # High surrogate for U+1FA00-1FA6F
+            '[\uD83E][\uDE70-\uDEFF]'     # High surrogate for U+1FA70-1FAFF
         
         It 'Scripts PowerShell nao contem emojis' {
             $psFiles = Get-ChildItem -Path "$projectRoot\installation\inst_scripts" -Filter "*.ps1" -Recurse

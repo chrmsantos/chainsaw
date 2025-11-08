@@ -16,8 +16,17 @@ function Get-PowerShellScripts {
 }
 function Get-VbaFiles {
     $root = Get-RepoRoot
-    $p = Join-Path $root 'source\backups'
-    return Get-ChildItem -Path $p -Filter *.bas -Recurse -File -ErrorAction SilentlyContinue
+    $sourceMain = Join-Path $root 'source\main'
+    $sourceBackups = Join-Path $root 'source\backups'
+    
+    $files = @()
+    if (Test-Path $sourceMain) {
+        $files += Get-ChildItem -Path $sourceMain -Filter *.bas -Recurse -File -ErrorAction SilentlyContinue
+    }
+    if (Test-Path $sourceBackups) {
+        $files += Get-ChildItem -Path $sourceBackups -Filter *.bas -Recurse -File -ErrorAction SilentlyContinue
+    }
+    return $files
 }
 function Get-Docs {
     $root = Get-RepoRoot
