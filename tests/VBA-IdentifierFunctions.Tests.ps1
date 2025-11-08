@@ -263,6 +263,3 @@ Describe "VBA Identifier Functions - Validacao de Consistencia" {
         }
     }
 }
-
-# Executa os testes
-Invoke-Pester -Script $PSCommandPath -OutputFormat NUnitXml -OutputFile "TestResults-VBA-IdentifierFunctions.xml" -PassThru
