@@ -1,5 +1,72 @@
 # Histórico de Mudanças - CHAINSAW
 
+## [2.0.2] - 2025-01-XX
+
+### [CLEANUP] Reestruturação e Simplificação Completa do Projeto
+
+**Mudança Principal:** Grande limpeza e reorganização da estrutura de pastas e documentação.
+
+### [REMOVED] Removido
+
+- **Documentos Obsoletos**: Removidos 8+ arquivos de documentação duplicados ou obsoletos:
+  - `ANALISE_SCRIPT.md`, `BYPASS_SEGURO.md`, `RESUMO_IMPLEMENTACAO.md`
+  - `CORRECAO_*.md` (5 arquivos de correção de processos antigos)
+  - `IMPLEMENTACAO_COMPLETA.md` (duplicado)
+- **Guias Duplicados**: Consolidados 3 guias de instalação em um único:
+  - Removidos: `INSTALACAO_LOCAL.md`, `GUIA_INSTALACAO_UNIFICADA.md`, `INSTALL.md`
+  - Criado: `installation/inst_docs/GUIA_INSTALACAO.md` (guia único consolidado)
+- **Guias Redundantes**: Removidos guias rápidos redundantes:
+  - `GUIA_RAPIDO_EXPORT_IMPORT.md`, `GUIA_RAPIDO_IDENTIFICACAO.md`
+  - `EXPORTACAO_IMPORTACAO.md`, `ATUALIZACAO_MODULO_VBA.md`
+- **Backups Duplicados**: Removidos backups VBA obsoletos da raiz de `source/backups/`
+  - Mantido apenas `source/backups/main/monolithicMod.bas` (versão atual)
+
+### [REFACTOR] Refatorado
+
+- **README.md**: Completamente reescrito e simplificado (981 → ~130 linhas)
+  - Foco em quick start e links para documentação detalhada
+  - Removida duplicação massiva de conteúdo
+- **Estrutura de Documentação**: De 19+ arquivos para 6 essenciais:
+  - `README.md` - Visão geral e quick start
+  - `installation/inst_docs/GUIA_INSTALACAO.md` - Instalação completa
+  - `docs/IDENTIFICACAO_ELEMENTOS.md` - Sistema de identificação
+  - `docs/NOVIDADES_v1.1.md` - Novidades da v1.1
+  - `docs/SEM_PRIVILEGIOS_ADMIN.md` - Instalação sem admin
+  - `docs/SUBSTITUICOES_CONDICIONAIS.md` - Lógica de substituições
+  - `docs/VALIDACAO_TIPO_DOCUMENTO.md` - Validação de documentos
+- **Scripts PowerShell**: Atualizados para nova estrutura:
+  - `install.ps1` - Caminhos corrigidos para `installation/`, `source/`
+  - `update-vba-module.ps1` - Caminho do módulo VBA atualizado
+  - `export-config.ps1` - Caminhos de exportação atualizados
+
+### [CHANGED] Alterado
+
+- **Estrutura de Pastas**: Organização final clara:
+
+  ```plaintext
+  chainsaw/
+  ├── .vscode/           # Configurações VS Code (auto-approve)
+  ├── assets/            # Recursos do projeto
+  ├── docs/              # 5 documentos técnicos essenciais
+  ├── installation/
+  │   ├── inst_configs/  # Configurações e templates
+  │   ├── inst_docs/     # Documentação de instalação
+  │   └── inst_scripts/  # Scripts de instalação
+  ├── source/
+  │   ├── backups/main/  # Módulo VBA principal
+  │   └── others/        # Exemplos
+  ├── CHANGELOG.md
+  ├── LICENSE
+  └── README.md
+  ```
+
+### [CONFIG] Configurado
+
+- **Auto-Approve do Copilot**: Configurado em `.vscode/settings.json`
+  - Aprovação automática de todas as sugestões do GitHub Copilot
+
+---
+
 ## [1.1.0] - 2024-11-07
 
 ### [NEW] Sistema de Identificação de Elementos Estruturais

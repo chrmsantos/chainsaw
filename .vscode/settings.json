@@ -1,0 +1,39 @@
+{
+  // GitHub Copilot - Auto Approve Settings
+  "github.copilot.editor.enableAutoCompletions": true,
+  
+  // Copilot Chat - Auto Approve todas as edições
+  "github.copilot.chat.autoApprove": true,
+  
+  // Configurações adicionais do Copilot
+  "github.copilot.enable": {
+    "*": true,
+    "yaml": true,
+    "plaintext": true,
+    "markdown": true,
+    "powershell": true,
+    "bat": true,
+    "cmd": true
+  },
+  
+  // Editor
+  "editor.formatOnSave": true,
+  "editor.wordWrap": "on",
+  "files.encoding": "utf8",
+  
+  // PowerShell
+  "powershell.codeFormatting.preset": "Stroustrup",
+  "powershell.integratedConsole.showOnStartup": false,
+  
+  // Arquivos
+  "files.associations": {
+    "*.bas": "vb",
+    "*.cmd": "bat",
+    "*.dotm": "plaintext"
+  },
+  
+  // Exclusões
+  "files.exclude": {
+    "**/.git": false
+  }
+}
