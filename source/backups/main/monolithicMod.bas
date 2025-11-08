@@ -1560,57 +1560,79 @@ End Function
 
 '--------------------------------------------------------------------------------
 ' GetElementInfo - Retorna informações sobre todos os elementos identificados
+' REFATORADO: Usa funções identificadoras ao invés de acesso direto às variáveis
 '--------------------------------------------------------------------------------
 Public Function GetElementInfo(doc As Document) As String
     On Error Resume Next
     
     Dim info As String
+    Dim rng As Range
+    
     info = "=== INFORMAÇÕES DOS ELEMENTOS ESTRUTURAIS ===" & vbCrLf
     
-    If tituloParaIndex > 0 Then
+    ' Título - usa GetTituloRange
+    Set rng = GetTituloRange(doc)
+    If Not rng Is Nothing Then
         info = info & "Título: Parágrafo " & tituloParaIndex & vbCrLf
     Else
         info = info & "Título: Não identificado" & vbCrLf
     End If
+    Set rng = Nothing
     
-    If ementaParaIndex > 0 Then
+    ' Ementa - usa GetEmentaRange
+    Set rng = GetEmentaRange(doc)
+    If Not rng Is Nothing Then
         info = info & "Ementa: Parágrafo " & ementaParaIndex & vbCrLf
     Else
         info = info & "Ementa: Não identificado" & vbCrLf
     End If
+    Set rng = Nothing
     
-    If proposicaoStartIndex > 0 And proposicaoEndIndex > 0 Then
+    ' Proposição - usa GetProposicaoRange
+    Set rng = GetProposicaoRange(doc)
+    If Not rng Is Nothing Then
         info = info & "Proposição: Parágrafos " & proposicaoStartIndex & " a " & proposicaoEndIndex & _
                       " (" & (proposicaoEndIndex - proposicaoStartIndex + 1) & " parágrafos)" & vbCrLf
     Else
         info = info & "Proposição: Não identificado" & vbCrLf
     End If
+    Set rng = Nothing
     
+    ' Título Justificativa - ainda usa variável direta (não tem função Get específica)
     If tituloJustificativaIndex > 0 Then
         info = info & "Título Justificativa: Parágrafo " & tituloJustificativaIndex & vbCrLf
     Else
         info = info & "Título Justificativa: Não identificado" & vbCrLf
     End If
     
-    If justificativaStartIndex > 0 And justificativaEndIndex > 0 Then
+    ' Justificativa - usa GetJustificativaRange
+    Set rng = GetJustificativaRange(doc)
+    If Not rng Is Nothing Then
         info = info & "Justificativa: Parágrafos " & justificativaStartIndex & " a " & justificativaEndIndex & _
                       " (" & (justificativaEndIndex - justificativaStartIndex + 1) & " parágrafos)" & vbCrLf
     Else
         info = info & "Justificativa: Não identificado" & vbCrLf
     End If
+    Set rng = Nothing
     
-    If dataParaIndex > 0 Then
+    ' Data - usa GetDataRange
+    Set rng = GetDataRange(doc)
+    If Not rng Is Nothing Then
         info = info & "Data (Plenário): Parágrafo " & dataParaIndex & vbCrLf
     Else
         info = info & "Data (Plenário): Não identificado" & vbCrLf
     End If
+    Set rng = Nothing
     
-    If assinaturaStartIndex > 0 And assinaturaEndIndex > 0 Then
+    ' Assinatura - usa GetAssinaturaRange
+    Set rng = GetAssinaturaRange(doc)
+    If Not rng Is Nothing Then
         info = info & "Assinatura: Parágrafos " & assinaturaStartIndex & " a " & assinaturaEndIndex & _
                       " (" & (assinaturaEndIndex - assinaturaStartIndex + 1) & " parágrafos)" & vbCrLf
     Else
         info = info & "Assinatura: Não identificado" & vbCrLf
     End If
+    Set rng = Nothing
     
     If tituloAnexoIndex > 0 Then
         info = info & "Título Anexo: Parágrafo " & tituloAnexoIndex & vbCrLf

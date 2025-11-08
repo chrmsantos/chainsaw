@@ -1,5 +1,79 @@
 ﻿# Histórico de Mudanças - CHAINSAW
 
+## [2.1.0] - 2025-11-08
+
+### [REFACTOR] Migração para Uso de Funções Identificadoras
+
+**Mudança:** Início da migração gradual do código para usar as funções públicas identificadoras ao invés de acesso direto às variáveis privadas.
+
+#### Contexto
+
+O módulo VBA v1.1-RC1 introduziu 6 funções públicas para acesso aos elementos estruturais do documento:
+
+- `GetTituloRange(doc)` - Retorna Range do título
+- `GetEmentaRange(doc)` - Retorna Range da ementa
+- `GetProposicaoRange(doc)` - Retorna Range da proposição
+- `GetJustificativaRange(doc)` - Retorna Range da justificativa
+- `GetDataRange(doc)` - Retorna Range da data (Plenário)
+- `GetAssinaturaRange(doc)` - Retorna Range da assinatura
+
+Estas funções foram **declaradas mas não estavam sendo utilizadas** - o código continuava usando diretamente as variáveis privadas `tituloParaIndex`, `ementaParaIndex`, etc.
+
+#### Migração Fase 1 - Função de Diagnóstico (BAIXO RISCO)
+
+**Arquivo:** `source/backups/main/monolithicMod.bas`  
+**Função:** `GetElementInfo(doc As Document)`  
+**Tipo:** Função de diagnóstico/informação
+
+**Mudanças:**
+
+1. Refatorada para usar as funções identificadoras ao invés de acesso direto
+2. Adicionada validação via `Not rng Is Nothing` para cada elemento
+3. Mantida compatibilidade - ainda exibe os índices numéricos originais
+4. Comentário adicionado indicando refatoração: `' REFATORADO: Usa funções identificadoras ao invés de acesso direto às variáveis`
+
+**Exemplo da migração:**
+
+```vb
+' ANTES (acesso direto):
+If tituloParaIndex > 0 Then
+    info = info & "Título: Parágrafo " & tituloParaIndex & vbCrLf
+End If
+
+' DEPOIS (usa função):
+Set rng = GetTituloRange(doc)
+If Not rng Is Nothing Then
+    info = info & "Título: Parágrafo " & tituloParaIndex & vbCrLf
+End If
+Set rng = Nothing
+```
+
+#### Segurança
+
+-  Criado backup timestamped antes de qualquer modificação
+-  Função modificada é apenas de diagnóstico (não afeta formatação)
+-  Funções identificadoras já implementadas e testadas
+-  Rollback disponível: `source/backups/backup_monolithicMod_YYYYMMDD_HHmmss.bas`
+
+#### Validação
+
+-  Criado arquivo de testes: `tests/VBA-IdentifierFunctions.Tests.ps1`
+  - Valida declaração das 6 funções públicas
+  - Valida implementação interna usando variáveis corretas
+  - Valida range checks e tratamento de erros
+  - Valida inicialização de retorno como `Nothing`
+  - Testes de encoding e qualidade de código
+
+#### Próximas Fases (Planejado)
+
+**Fase 2:** Migrar funções de formatação de baixo impacto  
+**Fase 3:** Migrar funções de formatação críticas  
+**Fase 4:** Verificar e remover código morto (acesso direto às variáveis)
+
+**Abordagem:** Migração gradual, incremental, com commit após cada fase bem-sucedida.
+
+---
+
 ## [2.0.4] - 2025-11-08
 
 ### [FIXED] Padronização de Encoding e Remoção de Emojis
