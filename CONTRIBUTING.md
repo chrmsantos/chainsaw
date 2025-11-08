@@ -82,14 +82,14 @@ Este projeto segue um código de conduta básico:
   
 #### Caracteres PROIBIDOS
 
-- [PROIBIDO] Emojis (     ⚠ etc.)
+- [PROIBIDO] Emojis (ex.: [AVISO] etc.)
 - [PROIBIDO] Símbolos decorativos Unicode
 - [PROIBIDO] Caracteres de controle inválidos
 
 **Use alternativas textuais**:
 - Em vez de  use `[OK]`
 - Em vez de  ou  use `[ERRO]`
-- Em vez de ⚠ use `[AVISO]`
+-- Em vez de [AVISO] use `[AVISO]`
 - Em vez de   etc. não use nada ou descreva em texto
 
 #### Validação Automática

@@ -79,7 +79,7 @@ Para informações detalhadas, consulte:
    - Responsabilidades e governança
    - Processo de resposta a incidentes
 
-### ⚖️ Base Legal
+### Base Legal
 
 **Não há tratamento de dados pessoais** pelo sistema CHAINSAW.
 

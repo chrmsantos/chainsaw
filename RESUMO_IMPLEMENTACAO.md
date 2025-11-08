@@ -59,9 +59,9 @@ Status: Funcionando corretamente
 **Política de Emojis:**
 ```
 - [PROIBIDO] Emojis
-- Use [OK] em vez de 
-- Use [ERRO] em vez de  ou 
-- Use [AVISO] em vez de ⚠
+- Use [OK] em vez de emojis de sucesso
+- Use [ERRO] em vez de emojis de erro
+- Use [AVISO] em vez de emojis de aviso
 ```
 
 ### 4. GitHub Actions Workflow

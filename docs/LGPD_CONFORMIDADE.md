@@ -13,7 +13,7 @@ Este documento atesta e descreve a **conformidade plena** do sistema CHAINSAW co
 
 ### Classificação de Conformidade
 
-[OK] **TOTALMENTE CONFORME** - O sistema não coleta, processa, armazena ou transmite dados pessoais.
+[OK] **TOTALMENTE CONFORME** - O sistema não coleta, processa, armazena ou transmite dados pessoais
 
 ---
 

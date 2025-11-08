@@ -1,4 +1,4 @@
-﻿# [SEC] Garantia de Execução sem Privilégios de Administrador
+﻿﻿# [SEC] Garantia de Execução sem Privilégios de Administrador
 
 ## [OK] Confirmação
 
@@ -73,7 +73,7 @@ Script `test-permissions.ps1` verifica:
 - [OK] Cópia de arquivos
 - [OK] Cópia recursiva de diretórios
 
-## ⚙️ Operações Realizadas e Permissões Necessárias
+## Operações Realizadas e Permissões Necessárias
 
 | Operação | Local | Permissão Necessária | Admin? |
 |----------|-------|---------------------|--------|
@@ -274,7 +274,7 @@ Script `test-permissions.ps1` verifica:
 - [OK] Cópia de arquivos
 - [OK] Cópia recursiva de diretórios
 
-## ⚙️ Operações Realizadas e Permissões Necessárias
+## Operações Realizadas e Permissões Necessárias
 
 | Operação | Local | Permissão Necessária | Admin? |
 |----------|-------|---------------------|--------|

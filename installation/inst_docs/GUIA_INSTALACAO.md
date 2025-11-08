@@ -4,7 +4,7 @@
 
 Sistema automatizado para padronização de documentos legislativos no Microsoft Word.
 
-## ⚙️ Requisitos
+## Requisitos
 
 - Windows 10 ou superior
 - PowerShell 5.1 ou superior
