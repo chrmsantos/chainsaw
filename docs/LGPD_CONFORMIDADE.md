@@ -423,7 +423,7 @@ Ver pasta `docs/` no repositório
 
 ---
 
-## ⚖️ CONCLUSÃO
+## CONCLUSÃO
 
 O sistema CHAINSAW está em **PLENA CONFORMIDADE** com a Lei Geral de Proteção de Dados Pessoais (LGPD - Lei nº 13.709/2018).
 
