@@ -1,5 +1,42 @@
 ﻿# Histórico de Mudanças - CHAINSAW
 
+## [2.2.0] - 2025-11-08
+
+### [FEAT] Remoção Automática de Realces, Bordas e Páginas Vazias
+
+**Novas Funcionalidades:**
+
+1. **Remoção de Realces e Bordas**
+   - `RemoveAllHighlightsAndBorders(doc)`: Remove todos os realces (highlighting) e bordas (borders) de parágrafos do documento
+   - Processamento em duas etapas: remoção de realces em nível de documento + remoção de bordas por parágrafo
+   - Inclui logging detalhado com contadores de elementos removidos
+   - Performance otimizada com DoEvents a cada 50 parágrafos
+
+2. **Remoção de Páginas Vazias no Final**
+   - `RemoveEmptyPagesAtEnd(doc)`: Remove páginas vazias no final do documento de forma inteligente
+   - **Detecção de Conteúdo**: Verifica texto E imagens (InlineShapes/Shapes) antes de remover
+   - **Segurança**: Só remove se a página estiver VERDADEIRAMENTE vazia (sem texto nem imagens)
+   - **Proteções**: Máximo 5 tentativas, máximo 10 parágrafos removidos por tentativa
+   - Previne remoção acidental de conteúdo importante
+
+3. **Integração no Pipeline**
+   - Ambas as funções integradas em `PreviousFormatting()` como etapas finais do processamento
+   - Executadas após todas as formatações padrão
+   - Não bloqueiam o processamento em caso de falha (logged como warnings)
+
+**Arquivos Modificados:**
+
+- `source/main/monolithicMod.bas` (~208 linhas adicionadas, 7437 → 7645 linhas)
+
+**Testes:**
+
+- [OK] Todos os 118 testes VBA passando
+- [OK] Compilacao VBA validada (sem erros de sintaxe)
+
+**Backup:**
+
+- `source/backups/backup_monolithicMod_20251108_122752.bas`
+
 ## [2.1.0] - 2025-11-08
 
 ### [REFACTOR] Migração para Uso de Funções Identificadoras

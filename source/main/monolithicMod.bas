@@ -2663,6 +2663,14 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     EnsureBlankLinesBetweenLongParagraphs doc
     LogStepComplete "Garantia de espaçamento entre parágrafos longos"
     
+    LogStepStart "Remoção de realces e bordas"
+    RemoveAllHighlightsAndBorders doc
+    LogStepComplete "Remoção de realces e bordas"
+    
+    LogStepStart "Remoção de páginas vazias no final"
+    RemoveEmptyPagesAtEnd doc
+    LogStepComplete "Remoção de páginas vazias no final"
+    
     LogMessage "Formatação completa aplicada com sucesso", LOG_LEVEL_INFO
     LogMetric "Total de parágrafos", doc.Paragraphs.count
     PreviousFormatting = True
@@ -6535,6 +6543,202 @@ Private Function ConfigureDocumentView(doc As Document) As Boolean
 ErrorHandler:
     LogMessage "Erro ao configurar visualização: " & Err.Description, LOG_LEVEL_WARNING
     ConfigureDocumentView = False ' Não falha o processo por isso
+End Function
+
+'================================================================================
+' REMOÇÃO DE REALCES E BORDAS - REMOVE HIGHLIGHTING AND BORDERS
+'================================================================================
+Private Function RemoveAllHighlightsAndBorders(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+    
+    Application.StatusBar = "Removendo realces e bordas..."
+    
+    Dim para As Paragraph
+    Dim highlightCount As Long
+    Dim borderCount As Long
+    Dim processedCount As Long
+    
+    highlightCount = 0
+    borderCount = 0
+    processedCount = 0
+    
+    ' Remove realce de todo o documento primeiro (mais rápido)
+    On Error Resume Next
+    doc.Range.HighlightColorIndex = 0 ' Remove realce
+    If Err.Number = 0 Then
+        highlightCount = 1
+        LogMessage "Realce removido do documento completo", LOG_LEVEL_INFO
+    End If
+    Err.Clear
+    On Error GoTo ErrorHandler
+    
+    ' Remove bordas de todos os parágrafos
+    For Each para In doc.Paragraphs
+        On Error Resume Next
+        
+        ' Remove bordas do parágrafo
+        With para.Borders
+            .Enable = False
+        End With
+        
+        If Err.Number = 0 Then
+            borderCount = borderCount + 1
+        End If
+        Err.Clear
+        
+        processedCount = processedCount + 1
+        
+        ' Responsividade
+        If processedCount Mod 50 = 0 Then
+            DoEvents
+            Application.StatusBar = "Removendo bordas: " & processedCount & " de " & doc.Paragraphs.count
+        End If
+        
+        On Error GoTo ErrorHandler
+    Next para
+    
+    LogMessage "Realces e bordas removidos: " & highlightCount & " realces, " & borderCount & " parágrafos com bordas", LOG_LEVEL_INFO
+    RemoveAllHighlightsAndBorders = True
+    Exit Function
+
+ErrorHandler:
+    LogMessage "Erro ao remover realces e bordas: " & Err.Description, LOG_LEVEL_WARNING
+    RemoveAllHighlightsAndBorders = False ' Não falha o processo por isso
+End Function
+
+'================================================================================
+' REMOÇÃO DE PÁGINAS VAZIAS NO FINAL - REMOVE EMPTY PAGES AT END
+'================================================================================
+Private Function RemoveEmptyPagesAtEnd(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+    
+    Application.StatusBar = "Verificando páginas vazias no final..."
+    
+    ' Verifica se há páginas vazias no final
+    Dim totalPages As Long
+    Dim lastPageRange As Range
+    Dim lastPageText As String
+    Dim pagesRemoved As Long
+    Dim maxAttempts As Long
+    Dim attemptCount As Long
+    
+    pagesRemoved = 0
+    maxAttempts = 5 ' Máximo de tentativas para evitar loop infinito
+    attemptCount = 0
+    
+    Do
+        attemptCount = attemptCount + 1
+        
+        ' Obtém número total de páginas
+        On Error Resume Next
+        totalPages = doc.ComputeStatistics(wdStatisticPages)
+        If Err.Number <> 0 Then
+            LogMessage "Não foi possível obter estatísticas de páginas: " & Err.Description, LOG_LEVEL_WARNING
+            Err.Clear
+            Exit Do
+        End If
+        Err.Clear
+        On Error GoTo ErrorHandler
+        
+        ' Se há apenas 1 página, não remove nada
+        If totalPages <= 1 Then
+            Exit Do
+        End If
+        
+        ' Obtém o range da última página
+        Set lastPageRange = doc.Range
+        lastPageRange.Start = doc.Range.End - 1
+        lastPageRange.End = doc.Range.End
+        
+        ' Expande para incluir toda a última página
+        lastPageRange.Expand wdParagraph
+        
+        ' Obtém texto da última página (últimos parágrafos)
+        Dim lastParaIndex As Long
+        Dim para As Paragraph
+        Dim hasContent As Boolean
+        
+        hasContent = False
+        lastParaIndex = doc.Paragraphs.count
+        
+        ' Verifica os últimos parágrafos em busca de conteúdo
+        Dim checkCount As Long
+        checkCount = 0
+        
+        Do While lastParaIndex > 0 And checkCount < 20
+            Set para = doc.Paragraphs(lastParaIndex)
+            lastPageText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+            
+            ' Se encontrou conteúdo de texto
+            If Len(lastPageText) > 0 Then
+                hasContent = True
+                Exit Do
+            End If
+            
+            ' Se encontrou imagem ou objeto
+            If para.Range.InlineShapes.count > 0 Or para.Range.Shapes.count > 0 Then
+                hasContent = True
+                Exit Do
+            End If
+            
+            lastParaIndex = lastParaIndex - 1
+            checkCount = checkCount + 1
+        Loop
+        
+        ' Se a última página NÃO tem conteúdo, remove parágrafos vazios do final
+        If Not hasContent Then
+            Dim removedInThisPass As Long
+            removedInThisPass = 0
+            
+            ' Remove parágrafos vazios do final (mínimo necessário)
+            lastParaIndex = doc.Paragraphs.count
+            Do While lastParaIndex > 0 And removedInThisPass < 10
+                Set para = doc.Paragraphs(lastParaIndex)
+                lastPageText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+                
+                ' Se é parágrafo vazio sem conteúdo visual
+                If Len(lastPageText) = 0 And para.Range.InlineShapes.count = 0 And para.Range.Shapes.count = 0 Then
+                    para.Range.Delete
+                    removedInThisPass = removedInThisPass + 1
+                    pagesRemoved = pagesRemoved + 1
+                    lastParaIndex = lastParaIndex - 1
+                Else
+                    ' Encontrou conteúdo, para de remover
+                    Exit Do
+                End If
+                
+                ' Proteção contra loop infinito
+                If removedInThisPass Mod 3 = 0 Then DoEvents
+            Loop
+            
+            ' Se não removeu nada nesta passada, termina
+            If removedInThisPass = 0 Then
+                Exit Do
+            End If
+        Else
+            ' Última página tem conteúdo, não remove
+            Exit Do
+        End If
+        
+        ' Proteção contra tentativas excessivas
+        If attemptCount >= maxAttempts Then
+            LogMessage "Atingido número máximo de tentativas de remoção de páginas vazias", LOG_LEVEL_WARNING
+            Exit Do
+        End If
+    Loop
+    
+    If pagesRemoved > 0 Then
+        LogMessage "Páginas vazias removidas do final: " & pagesRemoved & " parágrafo(s) vazio(s) removido(s)", LOG_LEVEL_INFO
+    Else
+        LogMessage "Nenhuma página vazia no final do documento", LOG_LEVEL_INFO
+    End If
+    
+    RemoveEmptyPagesAtEnd = True
+    Exit Function
+
+ErrorHandler:
+    LogMessage "Erro ao remover páginas vazias: " & Err.Description, LOG_LEVEL_WARNING
+    RemoveEmptyPagesAtEnd = False ' Não falha o processo por isso
 End Function
 
 '================================================================================
