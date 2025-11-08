@@ -877,7 +877,7 @@ Christian Martin dos Santos
 
 ---
 
-## ⚖️ COMPROMISSO FINAL
+## COMPROMISSO FINAL
 
 O CHAINSAW foi projetado com **privacidade em primeiro lugar**. Nossa arquitetura garante que seus dados nunca saiam da sua máquina. Continuaremos mantendo este compromisso em todas as versões futuras.
 
