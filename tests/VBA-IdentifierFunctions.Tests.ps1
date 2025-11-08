@@ -267,10 +267,7 @@ Describe "VBA Identifier Functions - Validacao de Consistencia" {
 # Executa os testes
 Invoke-Pester -Script $PSCommandPath -OutputFormat NUnitXml -OutputFile "TestResults-VBA-IdentifierFunctions.xml" -PassThru
 
-[PRE-COMMIT] Validação concluída - Nenhum emoji detectado!
-[OK] CHANGELOG.md
-[OK] docs/RELATORIO_MIGRACAO_FASE1.md
-Contexto de teste correto criado automaticamente
-
-[OK] source/main/monolithicMod.bas
-[OK] tests/VBA-IdentifierFunctions.Tests.ps1
+[PRE-COMMIT] Validando encoding e emojis...
+[PRE-COMMIT] Verificando 13 arquivo(s)...
+  [OK] Todos os arquivos validados
+[PRE-COMMIT] Validacao concluida - Nenhum emoji detectado!
