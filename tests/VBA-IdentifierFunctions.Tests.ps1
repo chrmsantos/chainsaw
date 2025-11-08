@@ -64,23 +64,34 @@ Describe "VBA Identifier Functions - Validacao de Consistencia" {
     Context "Implementacao das Funcoes" {
         
         It "GetTituloRange deve usar tituloParaIndex internamente" {
-            $vbaContent | Should Match 'GetTituloRange.*?tituloParaIndex'
+            # Extrai o corpo da funcao GetTituloRange
+            $funcMatch = [regex]::Match($vbaContent, '(?s)Public Function GetTituloRange\(.*?\nEnd Function')
+            $funcMatch.Success | Should Be $true
+            $funcMatch.Value | Should Match 'tituloParaIndex'
         }
         
         It "GetEmentaRange deve usar ementaParaIndex internamente" {
-            $vbaContent | Should Match 'GetEmentaRange.*?ementaParaIndex'
+            $funcMatch = [regex]::Match($vbaContent, '(?s)Public Function GetEmentaRange\(.*?\nEnd Function')
+            $funcMatch.Success | Should Be $true
+            $funcMatch.Value | Should Match 'ementaParaIndex'
         }
         
         It "GetJustificativaRange deve usar justificativaStartIndex internamente" {
-            $vbaContent | Should Match 'GetJustificativaRange.*?justificativaStartIndex'
+            $funcMatch = [regex]::Match($vbaContent, '(?s)Public Function GetJustificativaRange\(.*?\nEnd Function')
+            $funcMatch.Success | Should Be $true
+            $funcMatch.Value | Should Match 'justificativaStartIndex'
         }
         
         It "GetDataRange deve usar dataParaIndex internamente" {
-            $vbaContent | Should Match 'GetDataRange.*?dataParaIndex'
+            $funcMatch = [regex]::Match($vbaContent, '(?s)Public Function GetDataRange\(.*?\nEnd Function')
+            $funcMatch.Success | Should Be $true
+            $funcMatch.Value | Should Match 'dataParaIndex'
         }
         
         It "GetAssinaturaRange deve usar assinaturaStartIndex internamente" {
-            $vbaContent | Should Match 'GetAssinaturaRange.*?assinaturaStartIndex'
+            $funcMatch = [regex]::Match($vbaContent, '(?s)Public Function GetAssinaturaRange\(.*?\nEnd Function')
+            $funcMatch.Success | Should Be $true
+            $funcMatch.Value | Should Match 'assinaturaStartIndex'
         }
     }
     
