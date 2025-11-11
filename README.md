@@ -153,7 +153,7 @@ Contribuições são bem-vindas! Veja [CONTRIBUTING.md](CONTRIBUTING.md) para di
 
 ##  Licença
 
-MIT License - Veja [LICENSE](LICENSE)
+GPLv3 License - Veja [LICENSE](LICENSE)
 
 ---
 
