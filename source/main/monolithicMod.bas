@@ -6697,7 +6697,7 @@ Private Function RemoveEmptyPagesAtEnd(doc As Document) As Boolean
                 lastPageText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
 
                 ' Se é parágrafo vazio sem conteúdo visual
-                If Len(lastPageText) = 0 And para.Range.InlineShapes.count = 0 And para.Range.Shapes.count = 0 Then
+                If Len(lastPageText) = 0 And para.Range.InlineShapes.count = 0 Then
                     para.Range.Delete
                     removedInThisPass = removedInThisPass + 1
                     pagesRemoved = pagesRemoved + 1
