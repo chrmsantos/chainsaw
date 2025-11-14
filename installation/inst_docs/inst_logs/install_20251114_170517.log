@@ -1,0 +1,74 @@
+================================================================================
+CHAINSAW - Log de Instalação
+================================================================================
+Data/Hora Início: 14/11/2025 17:05:17
+Usuário: csantos
+Computador: NOTEPROCLEG01
+Sistema: Microsoft Windows NT 10.0.26100.0
+PowerShell: 5.1.26100.7019
+Caminho de Origem: C:\Users\csantos\chainsaw\installation\inst_scripts\max
+================================================================================
+
+[2025-11-14 17:05:17] [INFO] Caminho de Origem (resolvido): C:\Users\csantos\chainsaw\installation\inst_scripts\max
+[2025-11-14 17:05:17] [INFO] === INÍCIO DA INSTALAÇÃO ===
+[2025-11-14 17:05:17] [WARNING] Word em execução - solicitando confirmação do usuário
+[2025-11-14 17:05:21] [INFO] Usuário autorizou o fechamento do Word
+[2025-11-14 17:05:21] [INFO] Encontrados 1 processo(s) do Word em execução
+[2025-11-14 17:05:21] [INFO] Encerrando processo Word (PID: 13556)...
+[2025-11-14 17:05:21] [SUCCESS] Processo Word (PID: 13556) encerrado com sucesso
+[2025-11-14 17:05:22] [SUCCESS] Todos os processos do Word foram encerrados com sucesso
+[2025-11-14 17:05:24] [INFO] Verificando pré-requisitos...
+[2025-11-14 17:05:24] [SUCCESS] Sistema operacional: Windows 10.0 [OK]
+[2025-11-14 17:05:24] [SUCCESS] PowerShell versão: 5.1.26100.7019 [OK]
+[2025-11-14 17:05:24] [INFO] Verificando acesso ao diretório de origem: C:\Users\csantos\chainsaw\installation\inst_scripts\max
+[2025-11-14 17:05:24] [SUCCESS] Acesso ao diretório de origem confirmado [OK]
+[2025-11-14 17:05:24] [SUCCESS] Permissões de escrita no perfil do usuário confirmadas [OK]
+[2025-11-14 17:05:24] [INFO] Verificando arquivos de origem...
+[2025-11-14 17:05:24] [INFO] Raiz do projeto detectada: C:\Users\csantos\chainsaw
+[2025-11-14 17:05:24] [INFO] Raiz do projeto armazenada: C:\Users\csantos\chainsaw
+[2025-11-14 17:05:24] [SUCCESS] Arquivo stamp.png encontrado [OK]
+[2025-11-14 17:05:24] [SUCCESS] Pasta Templates encontrada [OK]
+[2025-11-14 17:05:26] [INFO] Copiando arquivo stamp.png...
+[2025-11-14 17:05:26] [INFO] Origem: C:\Users\csantos\chainsaw\assets\stamp.png
+[2025-11-14 17:05:26] [INFO] Destino: C:\Users\csantos\CHAINSAW\assets\stamp.png
+[2025-11-14 17:05:26] [INFO] Arquivo já está no local correto (origem = destino), pulando cópia
+[2025-11-14 17:05:26] [SUCCESS] Arquivo stamp.png já está instalado [OK]
+[2025-11-14 17:05:26] [INFO] Criando backup da pasta Templates...
+[2025-11-14 17:05:26] [INFO] Origem: C:\Users\csantos\AppData\Roaming\Microsoft\Templates
+[2025-11-14 17:05:26] [INFO] Destino: C:\Users\csantos\AppData\Roaming\Microsoft\Templates_backup_20251114_170526
+[2025-11-14 17:05:26] [SUCCESS] Backup criado com sucesso: Templates_backup_20251114_170526 [OK]
+[2025-11-14 17:05:26] [INFO] Removendo backups antigos (mantendo os 5 mais recentes)...
+[2025-11-14 17:05:26] [INFO] Backup removido: Templates_backup_20251107_161707
+[2025-11-14 17:05:26] [INFO] Copiando pasta Templates...
+[2025-11-14 17:05:26] [INFO] Origem: C:\Users\csantos\chainsaw\installation\inst_configs\Templates
+[2025-11-14 17:05:26] [INFO] Destino: C:\Users\csantos\AppData\Roaming\Microsoft\Templates
+[2025-11-14 17:05:26] [INFO] Total de itens a copiar: 45
+[2025-11-14 17:05:26] [SUCCESS] Pasta Templates copiada com sucesso (37 arquivos) [OK]
+[2025-11-14 17:05:26] [INFO] Módulo VBA encontrado: C:\Users\csantos\chainsaw\source\main\monolithicMod.bas
+[2025-11-14 17:05:28] [INFO] Backup do módulo 'CHAINSAW_MODX' criado: C:\Users\csantos\chainsaw\source\backups\backup_CHAINSAW_MODX_20251114_170528.bas
+[2025-11-14 17:05:28] [INFO] Módulo 'CHAINSAW_MODX' removido
+[2025-11-14 17:05:28] [SUCCESS] Módulo 'monolithicMod' importado com sucesso
+[2025-11-14 17:05:32] [SUCCESS] Módulo VBA importado e Normal.dotm salvo
+[2025-11-14 17:05:32] [INFO] Manifesto encontrado: 5 itens
+[2025-11-14 17:05:32] [INFO] Exportado em: 2025-11-07 04:23:48 por csantos
+[2025-11-14 17:05:39] [INFO] Iniciando importação de personalizações...
+[2025-11-14 17:05:39] [INFO] === Iniciando importação de personalizações ===
+[2025-11-14 17:05:39] [INFO] Criando backup das personalizações do Word (pré-importação de personalizações)...
+[2025-11-14 17:05:39] [INFO] Normal.dotm backup criado
+[2025-11-14 17:05:40] [INFO] Personalizações UI backup criado: 2 arquivos
+[2025-11-14 17:05:40] [SUCCESS] Backup de personalizações criado em: C:\Users\csantos\CHAINSAW\backups\word-customizations_20251114_170539 [OK]
+[2025-11-14 17:05:40] [INFO] Importando Normal.dotm...
+[2025-11-14 17:05:40] [SUCCESS] Normal.dotm importado com sucesso [OK]
+[2025-11-14 17:05:40] [INFO] Importando Building Blocks...
+[2025-11-14 17:05:40] [INFO] Nenhum Building Block para importar
+[2025-11-14 17:05:40] [INFO] Importando temas de documentos...
+[2025-11-14 17:05:40] [INFO] Nenhum tema para importar
+[2025-11-14 17:05:40] [INFO] Importando personalização da Faixa de Opções...
+[2025-11-14 17:05:40] [INFO] Ribbon importado para: C:\Users\csantos\AppData\Local\Microsoft\Office\Word.officeUI
+[2025-11-14 17:05:40] [INFO] Ribbon importado para: C:\Users\csantos\AppData\Roaming\Microsoft\Office\Word.officeUI
+[2025-11-14 17:05:40] [SUCCESS] Personalização do Ribbon importada: 1 arquivos [OK]
+[2025-11-14 17:05:40] [INFO] Importando personalizações da interface...
+[2025-11-14 17:05:40] [INFO] Nenhuma personalização UI para importar
+[2025-11-14 17:05:40] [SUCCESS] Total de categorias de personalizações importadas: 2 [OK]
+[2025-11-14 17:05:40] [SUCCESS] === INSTALAÇÃO CONCLUÍDA COM SUCESSO ===
+[2025-11-14 17:05:40] [INFO] Duração: 00:23

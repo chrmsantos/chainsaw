@@ -43,6 +43,11 @@ param(
     [switch]$IncludeRegistry
 )
 
+# Remove argumento de maximização se presente
+if ($ExportPath -eq "__MAXIMIZED__") {
+    $ExportPath = ".\exported-config"
+}
+
 # Maximiza a janela do PowerShell
 if ($Host.Name -eq "ConsoleHost") {
     $psWindow = (Get-Host).UI.RawUI

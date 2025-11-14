@@ -1,0 +1,31 @@
+================================================================================
+CHAINSAW - Log de Instalação
+================================================================================
+Data/Hora Início: 14/11/2025 17:11:42
+Usuário: csantos
+Computador: NOTEPROCLEG01
+Sistema: Microsoft Windows NT 10.0.26100.0
+PowerShell: 5.1.26100.7019
+Caminho de Origem: max
+================================================================================
+
+[2025-11-14 17:11:42] [INFO] Caminho de Origem (resolvido): max
+[2025-11-14 17:11:42] [INFO] === INÍCIO DA INSTALAÇÃO ===
+[2025-11-14 17:11:42] [WARNING] Word em execução - solicitando confirmação do usuário
+[2025-11-14 17:11:45] [INFO] Usuário autorizou o fechamento do Word
+[2025-11-14 17:11:45] [INFO] Encontrados 1 processo(s) do Word em execução
+[2025-11-14 17:11:45] [INFO] Encerrando processo Word (PID: 14664)...
+[2025-11-14 17:11:45] [SUCCESS] Processo Word (PID: 14664) encerrado com sucesso
+[2025-11-14 17:11:46] [SUCCESS] Todos os processos do Word foram encerrados com sucesso
+[2025-11-14 17:11:48] [INFO] Verificando pré-requisitos...
+[2025-11-14 17:11:48] [SUCCESS] Sistema operacional: Windows 10.0 [OK]
+[2025-11-14 17:11:48] [SUCCESS] PowerShell versão: 5.1.26100.7019 [OK]
+[2025-11-14 17:11:48] [INFO] Verificando acesso ao diretório de origem: max
+[2025-11-14 17:11:48] [ERROR] Não foi possível acessar o diretório de origem: max
+[2025-11-14 17:11:48] [ERROR] Verifique se o diretório existe e você tem permissões de acesso.
+[2025-11-14 17:11:48] [SUCCESS] Permissões de escrita no perfil do usuário confirmadas [OK]
+[2025-11-14 17:11:48] [ERROR] === INSTALAÇÃO FALHOU ===
+[2025-11-14 17:11:48] [ERROR] Erro: Pré-requisitos não atendidos. Verifique os erros acima.
+[2025-11-14 17:11:48] [ERROR] Stack trace: em Install-CHAINSAWConfig, C:\Users\csantos\chainsaw\installation\inst_scripts\install.ps1: linha 1360
+em <ScriptBlock>, C:\Users\csantos\chainsaw\installation\inst_scripts\install.ps1: linha 1723
+[2025-11-14 17:11:48] [INFO] Duração até falha: 00:05

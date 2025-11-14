@@ -70,6 +70,11 @@ param(
     [switch]$BypassedExecution
 )
 
+# Remove argumento de maximização se presente
+if ($SourcePath -eq "__MAXIMIZED__") {
+    $SourcePath = ""
+}
+
 # Maximiza a janela do PowerShell
 if ($Host.Name -eq "ConsoleHost") {
     $psWindow = (Get-Host).UI.RawUI
@@ -79,7 +84,8 @@ if ($Host.Name -eq "ConsoleHost") {
     try {
         $psWindow.BufferSize = $newSize
         $psWindow.WindowSize = $psWindow.MaxPhysicalWindowSize
-    } catch {
+    }
+    catch {
         # Ignora erros se não for possível maximizar
     }
 }
@@ -148,10 +154,10 @@ if (-not $BypassedExecution) {
         
         # Relança o script com bypass temporário
         $processInfo = Start-Process -FilePath "powershell.exe" `
-                                     -ArgumentList $arguments `
-                                     -Wait `
-                                     -NoNewWindow `
-                                     -PassThru
+            -ArgumentList $arguments `
+            -Wait `
+            -NoNewWindow `
+            -PassThru
         
         # Retorna o código de saída do processo relançado
         exit $processInfo.ExitCode
@@ -369,17 +375,67 @@ function Test-SourceFiles {
     #>
     param(
         [ref]$SourceStampFile,
-        [ref]$SourceTemplatesFolder
+        [ref]$SourceTemplatesFolder,
+        [ref]$ProjectRoot
     )
     
     Write-Log "Verificando arquivos de origem..." -Level INFO
     
     $allOk = $true
     
+    # Detecta a raiz do projeto procurando por assets\stamp.png
+    $detectedProjectRoot = $SourcePath
+    $currentPath = $SourcePath
+    $maxLevels = 5
+    $level = 0
+    
+    while ($level -lt $maxLevels) {
+        $testStampPath = Join-Path $currentPath "assets\stamp.png"
+        if (Test-Path $testStampPath) {
+            $detectedProjectRoot = $currentPath
+            Write-Log "Raiz do projeto detectada: $detectedProjectRoot" -Level INFO
+            break
+        }
+        $parentPath = Split-Path $currentPath -Parent
+        if ([string]::IsNullOrEmpty($parentPath) -or $parentPath -eq $currentPath) {
+            break
+        }
+        $currentPath = $parentPath
+        $level++
+    }
+    
+    # Validação: se não encontrou a raiz do projeto nas iterações acima, usa o SourcePath como fallback
+    if ($detectedProjectRoot -eq $SourcePath -and -not (Test-Path (Join-Path $SourcePath "assets\stamp.png"))) {
+        Write-Log "Aviso: Não foi possível detectar a raiz do projeto automaticamente" -Level WARNING
+        Write-Log "Usando caminho de origem como fallback: $SourcePath" -Level WARNING
+    }
+    
+    # Retorna a raiz do projeto detectada (após validação)
+    # Verifica se $ProjectRoot é uma referência válida antes de tentar definir Value
+    if ($null -ne $ProjectRoot) {
+        try {
+            $ProjectRoot.Value = $detectedProjectRoot
+            Write-Log "Raiz do projeto armazenada: $detectedProjectRoot" -Level INFO
+        }
+        catch {
+            Write-Log "Erro ao armazenar raiz do projeto: $_" -Level ERROR
+        }
+    }
+    else {
+        Write-Log "AVISO: ProjectRoot é null, não foi possível armazenar" -Level WARNING
+    }
+    
     # Verifica arquivo stamp.png
-    $stampPath = Join-Path $SourcePath "assets\stamp.png"
+    $stampPath = Join-Path $detectedProjectRoot "assets\stamp.png"
     if (Test-Path $stampPath) {
-        $SourceStampFile.Value = $stampPath
+        if ($null -ne $SourceStampFile) {
+            try {
+                $SourceStampFile.Value = $stampPath
+            }
+            catch {
+                Write-Log "Erro ao armazenar caminho stamp.png: $_" -Level ERROR
+            }
+        }
         Write-Log "Arquivo stamp.png encontrado [OK]" -Level SUCCESS
     }
     else {
@@ -387,10 +443,17 @@ function Test-SourceFiles {
         $allOk = $false
     }
     
-    # Verifica pasta Templates (nova estrutura)
-    $templatesPath = Join-Path $SourcePath "installation\inst_configs\Templates"
+    # Verifica pasta Templates usando a raiz do projeto detectada
+    $templatesPath = Join-Path $detectedProjectRoot "installation\inst_configs\Templates"
     if (Test-Path $templatesPath) {
-        $SourceTemplatesFolder.Value = $templatesPath
+        if ($null -ne $SourceTemplatesFolder) {
+            try {
+                $SourceTemplatesFolder.Value = $templatesPath
+            }
+            catch {
+                Write-Log "Erro ao armazenar caminho Templates: $_" -Level ERROR
+            }
+        }
         Write-Log "Pasta Templates encontrada [OK]" -Level SUCCESS
     }
     else {
@@ -519,7 +582,7 @@ function Remove-OldBackups {
     
     $backupParent = Split-Path $BackupFolder -Parent
     $backups = Get-ChildItem -Path $backupParent -Directory -Filter "Templates_backup_*" |
-               Sort-Object Name -Descending
+    Sort-Object Name -Descending
     
     if ($backups.Count -gt $KeepCount) {
         $toRemove = $backups | Select-Object -Skip $KeepCount
@@ -1311,8 +1374,9 @@ function Install-CHAINSAWConfig {
         
         $sourceStampFile = $null
         $sourceTemplatesFolder = $null
+        $projectRoot = $null
         
-        if (-not (Test-SourceFiles -SourceStampFile ([ref]$sourceStampFile) -SourceTemplatesFolder ([ref]$sourceTemplatesFolder))) {
+        if (-not (Test-SourceFiles -SourceStampFile ([ref]$sourceStampFile) -SourceTemplatesFolder ([ref]$sourceTemplatesFolder) -ProjectRoot ([ref]$projectRoot))) {
             throw "Arquivos de origem não encontrados. Verifique os erros acima."
         }
         
@@ -1382,7 +1446,8 @@ function Install-CHAINSAWConfig {
         Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
         Write-Host ""
         
-        $vbaModulePath = Join-Path $SourcePath "source\main\monolithicMod.bas"
+        # Usa a raiz do projeto detectada para encontrar o módulo VBA
+        $vbaModulePath = Join-Path $projectRoot "source\main\monolithicMod.bas"
         if (Test-Path $vbaModulePath) {
             Write-Log "Módulo VBA encontrado: $vbaModulePath" -Level INFO
             Write-Host " Importando módulo VBA mais recente..." -ForegroundColor Cyan
@@ -1413,7 +1478,7 @@ function Install-CHAINSAWConfig {
                             $module = $vbProject.VBComponents.Item($moduleName)
                             if ($module) {
                                 # Faz backup do módulo antigo (nova estrutura)
-                                $backupDir = Join-Path $SourcePath "source\backups"
+                                $backupDir = Join-Path $projectRoot "source\backups"
                                 if (-not (Test-Path $backupDir)) {
                                     New-Item -Path $backupDir -ItemType Directory -Force | Out-Null
                                 }
@@ -1476,7 +1541,12 @@ function Install-CHAINSAWConfig {
         
         # 7. Detectar e importar personalizações (se disponíveis)
         if (-not $SkipCustomizations) {
-            $exportedConfigPath = Join-Path $SourcePath "installation\exported-config"
+            # Usa a raiz do projeto detectada anteriormente
+            # Se por algum motivo $projectRoot estiver vazio, usa $SourcePath como fallback
+            $configProjectRoot = if ([string]::IsNullOrEmpty($projectRoot)) { $SourcePath } else { $projectRoot }
+            
+            # Usa a raiz do projeto para encontrar exported-config
+            $exportedConfigPath = Join-Path $configProjectRoot "installation\exported-config"
             
             if (Test-CustomizationsAvailable -ImportPath $exportedConfigPath) {
                 Write-Host ""
