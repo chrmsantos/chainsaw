@@ -1,3 +1,4 @@
+Attribute VB_Name = "monolithicMod.bas"
 ' =============================================================================
 ' CHAINSAW - Sistema de Padronização de Proposituras Legislativas
 ' =============================================================================
