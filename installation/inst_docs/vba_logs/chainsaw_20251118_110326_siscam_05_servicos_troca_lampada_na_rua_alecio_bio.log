@@ -1,0 +1,288 @@
+﻿================================================================================
+CHAINSAW - LOG DE PROCESSAMENTO DE DOCUMENTO
+================================================================================
+
+[SESSÃO]
+  Início: 18/11/2025 11:03:26
+  ID: 20251118110326
+
+[AMBIENTE]
+  Usuário: csantos
+  Computador: NOTEPROCLEG01
+  Domínio: CMSBONET
+  SO: Windows Windows_NT
+  Word: 16.0 (Word 2016/2019/2021/365)
+
+[DOCUMENTO]
+  Nome: siscam_05_servicos_troca_lampada_na_rua_alecio_biondi_145_185_recreio_alvoradazao2v130.docx
+  Caminho: C:\Users\csantos\AppData\Local\Temp
+  Tamanho: 1,1 KB
+  Parágrafos: 31
+  Páginas: 1
+  Proteção: Sem proteção
+  Idioma: 1046
+
+[CONFIGURAÇÃO]
+  Debug: Desativado
+  Log: C:\Users\csantos\chainsaw\installation\inst_docs\vba_logs\chainsaw_20251118_110326_siscam_05_servicos_troca_lampada_na_rua_alecio_bio.log
+  Backup: C:\Users\csantos\AppData\Local\Temp\backups\
+
+================================================================================
+
+
+11:03:26.820 [00:00,0] INFO  ? Iniciando padronização do documento: siscam_05_servicos_troca_lampada_na_rua_alecio_biondi_145_185_recreio_alvoradazao2v130.docx
+11:03:26.820 [00:00,0] INFO  ? UndoRecord iniciado com sucesso
+
+
+--------------------------------------------------------------------------------
+SEÇÃO: VERIFICAÇÕES INICIAIS
+--------------------------------------------------------------------------------
+11:03:26.852 [00:00,0] INFO  ? ? Iniciando: Validação de documento
+11:03:26.852 [00:00,0] INFO  ? Endereços validados com sucesso: ementa x 1º parágrafo textual
+11:03:26.852 [00:00,0] INFO  ? Verificação de dados sensíveis concluída - nenhum campo sensível detectado
+11:03:26.852 [00:00,0] INFO  ? ? Concluído: Validação de documento | Todas as verificações passaram
+11:03:26.852 [00:00,0] INFO  ? Verificações de segurança concluídas com sucesso
+11:03:27.016 [00:01,0] INFO  ? Backup criado com sucesso: siscam_05_servicos_troca_lampada_na_rua_alecio_biondi_145_185_recreio_alvoradazao2v130_backup_2025-11-18_110326.docx
+11:03:27.098 [00:01,0] INFO  ? Backup das configurações de visualização concluído
+11:03:27.113 [00:01,0] INFO  ? Backup de propriedades de imagens concluído: 0 imagens catalogadas
+11:03:27.113 [00:01,0] INFO  ? === PIPELINE DE FORMATAÇÃO - PASSAGEM 1 DE 2 ===
+11:03:27.121 [00:01,0] INFO  ? Iniciando construção do cache de parágrafos...
+11:03:27.137 [00:01,0] INFO  ? Cache construído: 31 parágrafos em 0,02s
+11:03:27.137 [00:01,0] INFO  ? Identificando estrutura do documento...
+11:03:27.156 [00:01,0] INFO  ? Título da Justificativa identificado no parágrafo 15
+11:03:27.172 [00:01,0] INFO  ? Data (Plenário) identificada no parágrafo 24
+11:03:27.180 [00:01,0] INFO  ? === ESTRUTURA DO DOCUMENTO IDENTIFICADA ===
+11:03:27.180 [00:01,0] INFO  ? Título: parágrafo 0
+11:03:27.180 [00:01,0] INFO  ? Ementa: parágrafo 0
+11:03:27.180 [00:01,0] INFO  ? Proposição: parágrafos 0 a 0
+11:03:27.180 [00:01,0] INFO  ? Título Justificativa: parágrafo 15
+11:03:27.180 [00:01,0] INFO  ? Justificativa: parágrafos 16 a 23
+11:03:27.180 [00:01,0] INFO  ? Data: parágrafo 24
+11:03:27.180 [00:01,0] INFO  ? Assinatura: parágrafos 0 a 0
+11:03:27.180 [00:01,0] INFO  ? Título Anexo: parágrafo 0
+11:03:27.180 [00:01,0] INFO  ? Anexo: parágrafos 0 a 0
+11:03:27.180 [00:01,0] INFO  ? ==========================================
+
+
+--------------------------------------------------------------------------------
+SEÇÃO: LIMPEZA E FORMATAÇÃO
+--------------------------------------------------------------------------------
+11:03:27.945 [00:01,0] INFO  ? ? Iniciando: Limpeza de formatação
+11:03:28.133 [00:02,0] INFO  ? Formatação limpa: 31 parágrafos resetados
+11:03:28.133 [00:02,0] INFO  ? ? Concluído: Limpeza de formatação
+11:03:28.133 [00:02,0] INFO  ? ? Iniciando: Normalização de quebras
+11:03:28.145 [00:02,0] INFO  ? ? Concluído: Normalização de quebras
+11:03:28.145 [00:02,0] INFO  ? ? Iniciando: Limpeza estrutural
+11:03:28.324 [00:02,0] INFO  ? Estrutura limpa: 1 linhas vazias removidas
+11:03:28.332 [00:02,0] INFO  ? ? Concluído: Limpeza estrutural
+11:03:28.332 [00:02,0] INFO  ? ? Iniciando: Formatação de título
+11:03:28.332 [00:02,0] INFO  ? Título de proposição formatado: INDICAÇÃO Nº $NUMERO$/$ANO$ (centralizado, caixa alta, negrito, sublinhado)
+11:03:28.340 [00:02,0] INFO  ? ? Concluído: Formatação de título
+11:03:28.340 [00:02,0] INFO  ? ? Iniciando: Aplicação de fonte padrão
+11:03:28.340 [00:02,0] INFO  ? Aplicando fonte padrão (modo otimizado com cache)...
+
+11:03:28.355 [00:02,0] ERROR ? Erro em ApplyStdFontOptimized: O membro solicitado da coleção não existe.
+11:03:28.363 [00:02,0] WARN  ? Falha na formatação de fontes (otimizada) - tentando método tradicional
+11:03:28.430 [00:02,0] INFO  ? ? Concluído: Aplicação de fonte padrão | 30 parágrafos
+11:03:28.430 [00:02,0] INFO  ? ? Iniciando: Aplicação de formatação de parágrafos
+11:03:28.727 [00:02,0] INFO  ? ? Concluído: Aplicação de formatação de parágrafos
+
+
+--------------------------------------------------------------------------------
+SEÇÃO: FORMATAÇÕES ESPECÍFICAS
+--------------------------------------------------------------------------------
+11:03:28.734 [00:02,0] INFO  ? ? Iniciando: Formatação de parágrafos 1 e 2
+11:03:28.742 [00:02,0] INFO  ? 2º parágrafo formatado com 2 linhas em branco antes e depois (posição: 6)
+11:03:28.742 [00:02,0] INFO  ? ? Concluído: Formatação de parágrafos 1 e 2
+11:03:28.742 [00:02,0] INFO  ? ? Iniciando: Formatação de considerandos
+11:03:28.762 [00:02,0] INFO  ? Formatação 'considerando' aplicada: 0 ocorrências em negrito e caixa alta
+11:03:28.762 [00:02,0] INFO  ? ? Concluído: Formatação de considerandos
+11:03:28.762 [00:02,0] INFO  ? ? Iniciando: Aplicação de substituições de texto
+
+11:03:28.770 [00:02,0] ERROR ? Erro crítico nas substituições de texto: Argumento ou chamada de procedimento inválida (Variante: 0)
+11:03:28.773 [00:02,0] INFO  ? ? Concluído: Aplicação de substituições de texto
+11:03:28.773 [00:02,0] INFO  ? ? Iniciando: Remoção de marca d'água e inserção de carimbo
+11:03:29.098 [00:03,0] INFO  ? ? Concluído: Remoção de marca d'água e inserção de carimbo
+
+
+--------------------------------------------------------------------------------
+SEÇÃO: LIMPEZA FINAL
+--------------------------------------------------------------------------------
+11:03:29.113 [00:03,0] INFO  ? ? Iniciando: Limpeza de espaços múltiplos
+11:03:29.176 [00:03,0] INFO  ? Limpeza de espaços concluída: 1 correções aplicadas (com proteção CONSIDERANDO)
+11:03:29.176 [00:03,0] INFO  ? ? Concluído: Limpeza de espaços múltiplos
+11:03:29.176 [00:03,0] INFO  ? ? Iniciando: Controle de linhas em branco
+11:03:29.254 [00:03,0] INFO  ? Controle de linhas vazias concluído em 2 passada(s): 10 linhas excedentes removidas (máximo 1 sequencial)
+11:03:29.254 [00:03,0] INFO  ? Linhas em branco do 2º parágrafo reforçadas (antes: 2, depois: 2)
+11:03:29.277 [00:03,0] INFO  ? Linhas em branco do Plenário reforçadas: 2 antes e 2 depois
+11:03:29.277 [00:03,0] INFO  ? ? Concluído: Controle de linhas em branco
+11:03:29.277 [00:03,0] INFO  ? ? Iniciando: Substituição de datas do plenário
+11:03:29.309 [00:03,0] INFO  ? Parágrafo de plenário substituído e formatado
+11:03:29.309 [00:03,0] INFO  ? ? Concluído: Substituição de datas do plenário
+
+
+--------------------------------------------------------------------------------
+SEÇÃO: FINALIZAÇÃO
+--------------------------------------------------------------------------------
+11:03:29.320 [00:03,0] INFO  ? ? Iniciando: Configuração de visualização
+11:03:29.328 [00:03,0] INFO  ? Visualização configurada: zoom definido para 110%, demais configurações preservadas
+11:03:29.328 [00:03,0] INFO  ? ? Concluído: Configuração de visualização
+11:03:29.328 [00:03,0] INFO  ? ? Iniciando: Inserção de rodapé
+11:03:29.359 [00:03,0] INFO  ? ? Concluído: Inserção de rodapé
+11:03:29.359 [00:03,0] INFO  ? ? Iniciando: Ajustes finais de negrito e formatação
+11:03:29.367 [00:03,0] INFO  ? Negrito e alinhamento aplicados a 1 parágrafos especiais
+11:03:29.383 [00:03,0] INFO  ? Parágrafo 'Vereador' formatado (sem negrito) com linhas adjacentes centralizadas (posição: 21)
+11:03:29.383 [00:03,0] INFO  ? Formatação 'Vereador': 1 ocorrências formatadas
+11:03:29.441 [00:03,0] INFO  ? Linhas em branco ajustadas: exatamente 2 antes e 2 depois de 'Justificativa'
+11:03:29.484 [00:03,0] INFO  ? 2 linhas em branco inseridas antes e depois de 'Plenário Dr. Tancredo Neves'
+11:03:29.508 [00:03,0] INFO  ? 2 linhas em branco inseridas após 'Excelentíssimo Senhor Prefeito Municipal,'
+11:03:29.508 [00:03,0] INFO  ? ? Concluído: Ajustes finais de negrito e formatação
+11:03:29.508 [00:03,0] INFO  ? ? Iniciando: Formatações especiais (diante do exposto, requeiro)
+11:03:29.523 [00:03,0] INFO  ? ? Concluído: Formatações especiais (diante do exposto, requeiro)
+11:03:29.523 [00:03,0] INFO  ? ? Iniciando: Garantia de espaçamento entre parágrafos longos
+11:03:29.539 [00:03,0] INFO  ? ? Concluído: Garantia de espaçamento entre parágrafos longos
+11:03:29.539 [00:03,0] INFO  ? ? Iniciando: Remoção de realces e bordas
+11:03:29.555 [00:03,0] INFO  ? Realce removido do documento completo
+11:03:29.574 [00:03,0] INFO  ? Realces e bordas removidos: 1 realces, 24 parágrafos com bordas
+11:03:29.574 [00:03,0] INFO  ? ? Concluído: Remoção de realces e bordas
+11:03:29.574 [00:03,0] INFO  ? ? Iniciando: Remoção de páginas vazias no final
+11:03:29.590 [00:03,0] INFO  ? Nenhuma página vazia no final do documento
+11:03:29.590 [00:03,0] INFO  ? ? Concluído: Remoção de páginas vazias no final
+11:03:29.590 [00:03,0] INFO  ? Formatação completa aplicada com sucesso
+11:03:29.590 [00:03,0] INFO  ? ?? Total de parágrafos: 24
+11:03:29.664 [00:03,0] INFO  ? === FIM DA PASSAGEM 1 ===
+11:03:29.664 [00:03,0] INFO  ? === PIPELINE DE FORMATAÇÃO - PASSAGEM 2 DE 2 ===
+11:03:29.664 [00:03,0] INFO  ? Iniciando construção do cache de parágrafos...
+11:03:29.684 [00:03,0] INFO  ? Cache construído: 24 parágrafos em 0,02s
+11:03:29.684 [00:03,0] INFO  ? Identificando estrutura do documento...
+11:03:29.707 [00:03,0] INFO  ? Título da Justificativa identificado no parágrafo 14
+11:03:29.715 [00:03,0] INFO  ? Data (Plenário) identificada no parágrafo 20
+11:03:29.723 [00:03,0] INFO  ? === ESTRUTURA DO DOCUMENTO IDENTIFICADA ===
+11:03:29.723 [00:03,0] INFO  ? Título: parágrafo 0
+11:03:29.723 [00:03,0] INFO  ? Ementa: parágrafo 0
+11:03:29.723 [00:03,0] INFO  ? Proposição: parágrafos 0 a 0
+11:03:29.723 [00:03,0] INFO  ? Título Justificativa: parágrafo 14
+11:03:29.723 [00:03,0] INFO  ? Justificativa: parágrafos 15 a 19
+11:03:29.723 [00:03,0] INFO  ? Data: parágrafo 20
+11:03:29.723 [00:03,0] INFO  ? Assinatura: parágrafos 0 a 0
+11:03:29.723 [00:03,0] INFO  ? Título Anexo: parágrafo 0
+11:03:29.723 [00:03,0] INFO  ? Anexo: parágrafos 0 a 0
+11:03:29.723 [00:03,0] INFO  ? ==========================================
+
+
+--------------------------------------------------------------------------------
+SEÇÃO: LIMPEZA E FORMATAÇÃO
+--------------------------------------------------------------------------------
+11:03:29.812 [00:03,0] INFO  ? ? Iniciando: Limpeza de formatação
+11:03:29.871 [00:03,0] INFO  ? Formatação limpa: 24 parágrafos resetados
+11:03:29.871 [00:03,0] INFO  ? ? Concluído: Limpeza de formatação
+11:03:29.871 [00:03,0] INFO  ? ? Iniciando: Normalização de quebras
+11:03:29.875 [00:03,0] INFO  ? ? Concluído: Normalização de quebras
+11:03:29.875 [00:03,0] INFO  ? ? Iniciando: Limpeza estrutural
+11:03:29.891 [00:03,0] INFO  ? ? Concluído: Limpeza estrutural
+11:03:29.891 [00:03,0] INFO  ? ? Iniciando: Formatação de título
+11:03:29.898 [00:03,0] INFO  ? Título de proposição formatado: INDICAÇÃO Nº $NUMERO$/$ANO$ (centralizado, caixa alta, negrito, sublinhado)
+11:03:29.898 [00:03,0] INFO  ? ? Concluído: Formatação de título
+11:03:29.898 [00:03,0] INFO  ? ? Iniciando: Aplicação de fonte padrão
+11:03:29.898 [00:03,0] INFO  ? Aplicando fonte padrão (modo otimizado com cache)...
+11:03:29.906 [00:03,0] INFO  ? Fonte padrão aplicada: 9 parágrafos em 0,01s
+11:03:29.906 [00:03,0] INFO  ? ? Concluído: Aplicação de fonte padrão | 24 parágrafos
+11:03:29.906 [00:03,0] INFO  ? ? Iniciando: Aplicação de formatação de parágrafos
+11:03:30.020 [00:04,0] INFO  ? ? Concluído: Aplicação de formatação de parágrafos
+
+
+--------------------------------------------------------------------------------
+SEÇÃO: FORMATAÇÕES ESPECÍFICAS
+--------------------------------------------------------------------------------
+11:03:30.031 [00:04,0] INFO  ? ? Iniciando: Formatação de parágrafos 1 e 2
+11:03:30.039 [00:04,0] INFO  ? 2º parágrafo formatado com 2 linhas em branco antes e depois (posição: 7)
+11:03:30.039 [00:04,0] INFO  ? ? Concluído: Formatação de parágrafos 1 e 2
+11:03:30.039 [00:04,0] INFO  ? ? Iniciando: Formatação de considerandos
+11:03:30.055 [00:04,0] INFO  ? Formatação 'considerando' aplicada: 0 ocorrências em negrito e caixa alta
+11:03:30.055 [00:04,0] INFO  ? ? Concluído: Formatação de considerandos
+11:03:30.055 [00:04,0] INFO  ? ? Iniciando: Aplicação de substituições de texto
+
+11:03:30.055 [00:04,0] ERROR ? Erro crítico nas substituições de texto: Argumento ou chamada de procedimento inválida (Variante: 0)
+11:03:30.062 [00:04,0] INFO  ? ? Concluído: Aplicação de substituições de texto
+11:03:30.062 [00:04,0] INFO  ? ? Iniciando: Remoção de marca d'água e inserção de carimbo
+11:03:30.352 [00:04,0] INFO  ? ? Concluído: Remoção de marca d'água e inserção de carimbo
+
+
+--------------------------------------------------------------------------------
+SEÇÃO: LIMPEZA FINAL
+--------------------------------------------------------------------------------
+11:03:30.367 [00:04,0] INFO  ? ? Iniciando: Limpeza de espaços múltiplos
+11:03:30.402 [00:04,0] INFO  ? Limpeza de espaços concluída: 0 correções aplicadas (com proteção CONSIDERANDO)
+11:03:30.402 [00:04,0] INFO  ? ? Concluído: Limpeza de espaços múltiplos
+11:03:30.402 [00:04,0] INFO  ? ? Iniciando: Controle de linhas em branco
+11:03:30.480 [00:04,0] INFO  ? Controle de linhas vazias concluído em 2 passada(s): 8 linhas excedentes removidas (máximo 1 sequencial)
+11:03:30.484 [00:04,0] INFO  ? Linhas em branco do 2º parágrafo reforçadas (antes: 2, depois: 2)
+11:03:30.520 [00:04,0] INFO  ? Linhas em branco do Plenário reforçadas: 2 antes e 2 depois
+11:03:30.520 [00:04,0] INFO  ? ? Concluído: Controle de linhas em branco
+11:03:30.520 [00:04,0] INFO  ? ? Iniciando: Substituição de datas do plenário
+11:03:30.543 [00:04,0] INFO  ? Parágrafo de plenário substituído e formatado
+11:03:30.543 [00:04,0] INFO  ? ? Concluído: Substituição de datas do plenário
+
+
+--------------------------------------------------------------------------------
+SEÇÃO: FINALIZAÇÃO
+--------------------------------------------------------------------------------
+11:03:30.555 [00:04,0] INFO  ? ? Iniciando: Configuração de visualização
+11:03:30.562 [00:04,0] INFO  ? Visualização configurada: zoom definido para 110%, demais configurações preservadas
+11:03:30.562 [00:04,0] INFO  ? ? Concluído: Configuração de visualização
+11:03:30.562 [00:04,0] INFO  ? ? Iniciando: Inserção de rodapé
+11:03:30.602 [00:04,0] INFO  ? ? Concluído: Inserção de rodapé
+11:03:30.602 [00:04,0] INFO  ? ? Iniciando: Ajustes finais de negrito e formatação
+11:03:30.613 [00:04,0] INFO  ? Negrito e alinhamento aplicados a 1 parágrafos especiais
+11:03:30.629 [00:04,0] INFO  ? Parágrafo 'Vereador' formatado (sem negrito) com linhas adjacentes centralizadas (posição: 21)
+11:03:30.629 [00:04,0] INFO  ? Formatação 'Vereador': 1 ocorrências formatadas
+11:03:30.676 [00:04,0] INFO  ? Linhas em branco ajustadas: exatamente 2 antes e 2 depois de 'Justificativa'
+11:03:30.715 [00:04,0] INFO  ? 2 linhas em branco inseridas antes e depois de 'Plenário Dr. Tancredo Neves'
+11:03:30.730 [00:04,0] INFO  ? 2 linhas em branco inseridas após 'Excelentíssimo Senhor Prefeito Municipal,'
+11:03:30.730 [00:04,0] INFO  ? ? Concluído: Ajustes finais de negrito e formatação
+11:03:30.730 [00:04,0] INFO  ? ? Iniciando: Formatações especiais (diante do exposto, requeiro)
+11:03:30.742 [00:04,0] INFO  ? ? Concluído: Formatações especiais (diante do exposto, requeiro)
+11:03:30.742 [00:04,0] INFO  ? ? Iniciando: Garantia de espaçamento entre parágrafos longos
+11:03:30.766 [00:04,0] INFO  ? ? Concluído: Garantia de espaçamento entre parágrafos longos
+11:03:30.766 [00:04,0] INFO  ? ? Iniciando: Remoção de realces e bordas
+11:03:30.766 [00:04,0] INFO  ? Realce removido do documento completo
+11:03:30.801 [00:04,0] INFO  ? Realces e bordas removidos: 1 realces, 24 parágrafos com bordas
+11:03:30.801 [00:04,0] INFO  ? ? Concluído: Remoção de realces e bordas
+11:03:30.801 [00:04,0] INFO  ? ? Iniciando: Remoção de páginas vazias no final
+11:03:30.812 [00:04,0] INFO  ? Nenhuma página vazia no final do documento
+11:03:30.812 [00:04,0] INFO  ? ? Concluído: Remoção de páginas vazias no final
+11:03:30.812 [00:04,0] INFO  ? Formatação completa aplicada com sucesso
+11:03:30.812 [00:04,0] INFO  ? ?? Total de parágrafos: 24
+11:03:31.055 [00:05,0] INFO  ? === FIM DA PASSAGEM 2 ===
+11:03:31.414 [00:05,0] INFO  ? Configurações de visualização originais restauradas (zoom mantido em 110%)
+11:03:31.426 [00:05,0] INFO  ? Documento padronizado com sucesso
+11:03:32.430 [00:06,0] INFO  ? UndoRecord finalizado com sucesso
+11:03:32.434 [00:06,0] INFO  ? Variáveis de proteção de imagens limpas
+11:03:32.434 [00:06,0] INFO  ? Variáveis de configurações de visualização limpas
+
+
+================================================================================
+RESUMO DA SESSÃO
+================================================================================
+
+[STATUS]
+  Final: CONCLUÍDO COM ERROS ?
+  Término: 18/11/2025 11:03:32
+  Duração: 6,0s
+
+[ESTATÍSTICAS]
+  Total de eventos: 181
+  Informações: 177 (97,8%)
+  Avisos: 1 (0,6%)
+  Erros: 3 (1,7%)
+
+[PERFORMANCE]
+  Eventos/segundo: 30,2
+  Tempo médio/evento: 33,1ms
+
+[RECOMENDAÇÕES]
+  • Verifique os erros acima e corrija problemas no documento
+
+================================================================================
+FIM DO LOG
+================================================================================
