@@ -5115,6 +5115,7 @@ End Function
 ' APLICAÇÃO DE SUBSTITUIÇÕES DE TEXTO
 '================================================================================
 Private Function ApplyTextReplacements(doc As Document) As Boolean
+    Dim errorContext As String
     On Error GoTo ErrorHandler
 
     ' Validação de documento
@@ -5161,19 +5162,16 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
     ' Processa cada variante de forma segura
     For i = 0 To UBound(dOesteVariants)
         On Error Resume Next
-
+        errorContext = "dOesteVariants(" & i & ")"
         ' Valida a variante antes de usar
         If IsEmpty(dOesteVariants(i)) Or dOesteVariants(i) = "" Then
             GoTo NextVariant
         End If
-
         ' Cria novo range para cada busca
         Set rng = Nothing
         Set rng = doc.Range
-
         ' Verifica se o range foi criado com sucesso
         If rng Is Nothing Then GoTo NextVariant
-
         ' Configura os parâmetros de busca e substituição
         With rng.Find
             .ClearFormatting
@@ -5188,13 +5186,10 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
             .MatchWildcards = False
             .MatchSoundsLike = False
             .MatchAllWordForms = False
-
             ' Executa a substituição e conta
             replacementCount = .Execute(Replace:=wdReplaceAll)
-
             ' Verifica se houve erro
             If Err.Number = 0 Then
-                ' Conta quantas substituições foram feitas
                 If replacementCount Then
                     totalReplacements = totalReplacements + 1
                 End If
@@ -5205,11 +5200,11 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
                 Err.Clear
             End If
         End With
-
 NextVariant:
         On Error GoTo ErrorHandler
         Err.Clear
     Next i
+    errorContext = "ao Setor,"
 
     If totalReplacements > 0 Then
         LogMessage "Substituições de texto aplicadas: " & totalReplacements & " variante(s) substituída(s)", LOG_LEVEL_INFO
@@ -5233,14 +5228,16 @@ NextVariant:
             .MatchCase = True
             .MatchWholeWord = False
             .MatchWildcards = False
-
             replacementCount = .Execute(Replace:=wdReplaceAll)
             If Err.Number = 0 And replacementCount Then
                 LogMessage "Substituição aplicada: ' ao Setor, ' → ' ao setor competente'", LOG_LEVEL_INFO
+            ElseIf Err.Number <> 0 Then
+                LogMessage "Erro ao substituir 'ao Setor,': " & Err.Description, LOG_LEVEL_WARNING
             End If
         End With
     End If
     Err.Clear
+    errorContext = "Setor Competente"
     On Error GoTo ErrorHandler
 
     ' Funcionalidade 12: Substitui " Setor Competente " por " setor competente " (case insensitive)
@@ -5259,21 +5256,29 @@ NextVariant:
             .MatchCase = False
             .MatchWholeWord = False
             .MatchWildcards = False
-
             replacementCount = .Execute(Replace:=wdReplaceAll)
             If Err.Number = 0 And replacementCount Then
                 LogMessage "Substituição aplicada: ' Setor Competente ' → ' setor competente '", LOG_LEVEL_INFO
+            ElseIf Err.Number <> 0 Then
+                LogMessage "Erro ao substituir 'Setor Competente': " & Err.Description, LOG_LEVEL_WARNING
             End If
         End With
     End If
     Err.Clear
+    errorContext = ""
     On Error GoTo ErrorHandler
 
     ApplyTextReplacements = True
     Exit Function
 
 ErrorHandler:
-    LogMessage "Erro crítico nas substituições de texto: " & Err.Description & " (Variante: " & i & ")", LOG_LEVEL_ERROR
+    If errorContext <> "" Then
+        LogMessage "Erro crítico nas substituições de texto (contexto: " & errorContext & "): " & Err.Description, LOG_LEVEL_ERROR
+    ElseIf IsNumeric(i) Then
+        LogMessage "Erro crítico nas substituições de texto (variante: " & i & "): " & Err.Description, LOG_LEVEL_ERROR
+    Else
+        LogMessage "Erro crítico nas substituições de texto: " & Err.Description, LOG_LEVEL_ERROR
+    End If
     ApplyTextReplacements = False
 End Function
 
