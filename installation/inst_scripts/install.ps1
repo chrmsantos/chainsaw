@@ -800,10 +800,10 @@ function Backup-CompleteConfiguration {
         
         $backupManifest = @{
             Timestamp = $timestamp
-            Date = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-            User = $env:USERNAME
-            Computer = $env:COMPUTERNAME
-            Items = @{}
+            Date      = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+            User      = $env:USERNAME
+            Computer  = $env:COMPUTERNAME
+            Items     = @{}
         }
         
         # 1. Backup completo da pasta Templates
@@ -815,9 +815,9 @@ function Backup-CompleteConfiguration {
             
             $templatesSize = (Get-ChildItem -Path $templatesBackupPath -Recurse -File | Measure-Object -Property Length -Sum).Sum / 1MB
             $backupManifest.Items.Templates = @{
-                Path = $templatesBackupPath
+                Path   = $templatesBackupPath
                 SizeMB = [math]::Round($templatesSize, 2)
-                Files = (Get-ChildItem -Path $templatesBackupPath -Recurse -File).Count
+                Files  = (Get-ChildItem -Path $templatesBackupPath -Recurse -File).Count
             }
             Write-Log "Templates backup: $([math]::Round($templatesSize, 2)) MB, $($backupManifest.Items.Templates.Files) arquivos" -Level INFO
         }
@@ -831,7 +831,7 @@ function Backup-CompleteConfiguration {
             $stampBackupPath = Join-Path $backupPath "stamp.png"
             Copy-Item -Path $stampPath -Destination $stampBackupPath -Force -ErrorAction Stop
             $backupManifest.Items.Stamp = @{
-                Path = $stampBackupPath
+                Path   = $stampBackupPath
                 SizeKB = [math]::Round((Get-Item $stampBackupPath).Length / 1KB, 2)
             }
             Write-Log "stamp.png backup criado: $($backupManifest.Items.Stamp.SizeKB) KB" -Level INFO
@@ -1012,6 +1012,77 @@ function Backup-WordCustomizations {
     catch {
         Write-Log "Erro ao criar backup de personalizações: $_" -Level ERROR
         return $null
+    }
+}
+
+function Import-VbaModule {
+    param([string]$ImportPath)
+    
+    Write-Log "Importando módulo VBA..." -Level INFO
+    
+    $sourcePath = Join-Path $ImportPath "VBAModule\monolithicMod.bas"
+    
+    if (-not (Test-Path $sourcePath)) {
+        Write-Log "Módulo VBA não encontrado no pacote de importação" -Level INFO
+        return $false
+    }
+    
+    try {
+        $normalPath = Join-Path $env:APPDATA "Microsoft\Templates\Normal.dotm"
+        
+        if (-not (Test-Path $normalPath)) {
+            Write-Log "Normal.dotm não encontrado - criando novo" -Level WARNING
+            $word = New-Object -ComObject Word.Application
+            $word.Visible = $false
+            $word.DisplayAlerts = 0
+            $template = $word.NormalTemplate
+            $template.Save()
+            $word.Quit()
+            [System.Runtime.Interopservices.Marshal]::ReleaseComObject($word) | Out-Null
+        }
+        
+        $word = New-Object -ComObject Word.Application
+        $word.Visible = $false
+        $word.DisplayAlerts = 0
+        
+        $template = $word.Documents.Open($normalPath)
+        $vbProject = $template.VBProject
+        
+        # Remove módulo existente se houver
+        foreach ($component in $vbProject.VBComponents) {
+            if ($component.Name -eq "monolithicMod") {
+                $vbProject.VBComponents.Remove($component)
+                Write-Log "Módulo VBA existente removido" -Level INFO
+                break
+            }
+        }
+        
+        # Importa novo módulo
+        $vbProject.VBComponents.Import($sourcePath) | Out-Null
+        $template.Save()
+        
+        Write-Log "Módulo VBA importado: monolithicMod [OK]" -Level SUCCESS
+        
+        $template.Close($false)
+        $word.Quit()
+        [System.Runtime.Interopservices.Marshal]::ReleaseComObject($word) | Out-Null
+        [System.GC]::Collect()
+        [System.GC]::WaitForPendingFinalizers()
+        
+        return $true
+    }
+    catch {
+        Write-Log "Erro ao importar módulo VBA: $_" -Level ERROR
+        
+        try {
+            if ($word) {
+                $word.Quit()
+                [System.Runtime.Interopservices.Marshal]::ReleaseComObject($word) | Out-Null
+            }
+        }
+        catch { }
+        
+        return $false
     }
 }
 
@@ -1332,12 +1403,10 @@ function Import-WordCustomizations {
     Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
     Write-Host ""
     
-    # Importações
+    # Importações simplificadas: apenas VBA module e UI
     $importedCount = 0
     
-    if (Import-NormalTemplate -ImportPath $ImportPath) { $importedCount++ }
-    if (Import-BuildingBlocks -ImportPath $ImportPath) { $importedCount++ }
-    if (Import-DocumentThemes -ImportPath $ImportPath) { $importedCount++ }
+    if (Import-VbaModule -ImportPath $ImportPath) { $importedCount++ }
     if (Import-RibbonCustomization -ImportPath $ImportPath) { $importedCount++ }
     if (Import-OfficeCustomUI -ImportPath $ImportPath) { $importedCount++ }
     
@@ -1795,11 +1864,10 @@ function Install-CHAINSAWConfig {
                 Write-Host "   $exportedConfigPath" -ForegroundColor Gray
                 Write-Host ""
                 Write-Host " Conteúdo que será importado:" -ForegroundColor White
+                Write-Host "   • Módulo VBA (monolithicMod)" -ForegroundColor Gray
                 Write-Host "   • Faixa de Opções Personalizada (Ribbon)" -ForegroundColor Gray
-                Write-Host "   • Partes Rápidas (Quick Parts)" -ForegroundColor Gray
-                Write-Host "   • Blocos de Construção (Building Blocks)" -ForegroundColor Gray
-                Write-Host "   • Temas de Documentos" -ForegroundColor Gray
-                Write-Host "   • Template Normal.dotm" -ForegroundColor Gray
+                Write-Host "   • Barra de Ferramentas de Acesso Rápido (QAT)" -ForegroundColor Gray
+                Write-Host "   • Outras personalizações da interface" -ForegroundColor Gray
                 Write-Host ""
                 
                 $importCustomizations = $true

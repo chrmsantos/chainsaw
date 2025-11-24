@@ -8,15 +8,14 @@
 
 <#
 .SYNOPSIS
-    Exporta todas as personalizações do Word do usuário atual.
+    Exporta o módulo VBA e personalizações da interface do Word.
 
 .DESCRIPTION
     Este script exporta:
-    1. Normal.dotm (template global com macros e personalizações)
+    1. Módulo VBA monolithicMod do Normal.dotm
     2. Faixa de Opções Customizada (Ribbon UI)
-    3. Blocos de Construção (Building Blocks)
-    4. Configurações de temas e estilos
-    5. Partes rápidas (Quick Parts)
+    3. Barra de Ferramentas de Acesso Rápido (QAT)
+    4. Outras personalizações da interface (.officeUI)
     
 .PARAMETER ExportPath
     Caminho onde as personalizações serão exportadas.
@@ -401,6 +400,88 @@ function Compile-VbaModule {
         Write-Log "Erro ao verificar compilação: $_" -Level ERROR
         
         # Tenta limpar recursos
+        try {
+            if ($word) {
+                $word.Quit()
+                [System.Runtime.Interopservices.Marshal]::ReleaseComObject($word) | Out-Null
+            }
+        }
+        catch { }
+        
+        return $false
+    }
+}
+
+function Export-VbaModule {
+    <#
+    .SYNOPSIS
+        Exporta o módulo VBA monolithicMod do Normal.dotm.
+    #>
+    Write-Log "Exportando módulo VBA..." -Level INFO
+    
+    $normalPath = Join-Path $TemplatesPath "Normal.dotm"
+    
+    if (-not (Test-Path $normalPath)) {
+        Write-Log "Normal.dotm não encontrado em: $normalPath" -Level ERROR
+        return $false
+    }
+    
+    try {
+        $word = New-Object -ComObject Word.Application
+        $word.Visible = $false
+        $word.DisplayAlerts = 0 # wdAlertsNone
+        
+        $template = $word.Documents.Open($normalPath, $false, $true) # ReadOnly
+        
+        if ($template.VBProject -eq $null) {
+            Write-Log "Nenhum projeto VBA encontrado" -Level WARNING
+            $template.Close($false)
+            $word.Quit()
+            [System.Runtime.Interopservices.Marshal]::ReleaseComObject($word) | Out-Null
+            return $false
+        }
+        
+        $vbProject = $template.VBProject
+        $moduleFound = $false
+        
+        foreach ($component in $vbProject.VBComponents) {
+            if ($component.Name -eq "monolithicMod") {
+                $destPath = Join-Path $ExportPath "VBAModule"
+                if (-not (Test-Path $destPath)) {
+                    New-Item -Path $destPath -ItemType Directory -Force | Out-Null
+                }
+                
+                $exportFile = Join-Path $destPath "monolithicMod.bas"
+                $component.Export($exportFile)
+                
+                $script:ExportedItems += [PSCustomObject]@{
+                    Type = "VBA Module"
+                    Source = "Normal.dotm::monolithicMod"
+                    Destination = $exportFile
+                    Size = (Get-Item $exportFile).Length
+                }
+                
+                Write-Log "Módulo VBA exportado: monolithicMod.bas [OK]" -Level SUCCESS
+                $moduleFound = $true
+                break
+            }
+        }
+        
+        if (-not $moduleFound) {
+            Write-Log "Módulo 'monolithicMod' não encontrado no Normal.dotm" -Level WARNING
+        }
+        
+        $template.Close($false)
+        $word.Quit()
+        [System.Runtime.Interopservices.Marshal]::ReleaseComObject($word) | Out-Null
+        [System.GC]::Collect()
+        [System.GC]::WaitForPendingFinalizers()
+        
+        return $moduleFound
+    }
+    catch {
+        Write-Log "Erro ao exportar módulo VBA: $_" -Level ERROR
+        
         try {
             if ($word) {
                 $word.Quit()
@@ -912,28 +993,14 @@ function Export-WordCustomizations {
             }
         }
         
-        # 1. Normal.dotm
-        Export-NormalTemplate | Out-Null
+        # 1. Exportar módulo VBA
+        Export-VbaModule | Out-Null
         
-        # 2. Building Blocks
-        Export-BuildingBlocks | Out-Null
-        
-        # 3. Temas
-        Export-DocumentThemes | Out-Null
-        
-        # 4. Ribbon
+        # 2. Ribbon e UI customizations
         Export-RibbonCustomization | Out-Null
-        
-        # 5. Custom UI
         Export-OfficeCustomUI | Out-Null
         
-        # 6. QAT
-        Export-QuickAccessToolbar | Out-Null
-        
-        # 7. Registro (opcional)
-        Export-RegistrySettings | Out-Null
-        
-        # 8. Manifesto
+        # 3. Manifesto
         Create-ExportManifest
         
         $endTime = Get-Date
