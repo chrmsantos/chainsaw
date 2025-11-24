@@ -1,0 +1,71 @@
+================================================================================
+CHAINSAW - Log de Instalação
+================================================================================
+Data/Hora Início: 24/11/2025 18:27:27
+Usuário: csantos
+Computador: NOTEPROCLEG07
+Sistema: Microsoft Windows NT 10.0.22000.0
+PowerShell: 5.1.22000.2538
+Caminho de Origem: C:\Users\csantos\chainsaw\installation\inst_scripts
+================================================================================
+
+[2025-11-24 18:27:27] [INFO] Caminho de Origem (resolvido): C:\Users\csantos\chainsaw\installation\inst_scripts
+[2025-11-24 18:27:27] [INFO] === INÍCIO DA INSTALAÇÃO ===
+[2025-11-24 18:27:27] [SUCCESS] Word não está em execução - prosseguindo...
+[2025-11-24 18:27:27] [INFO] Verificando pré-requisitos...
+[2025-11-24 18:27:27] [SUCCESS] Sistema operacional: Windows 10.0 [OK]
+[2025-11-24 18:27:27] [SUCCESS] PowerShell versão: 5.1.22000.2538 [OK]
+[2025-11-24 18:27:27] [INFO] Verificando acesso ao diretório de origem: C:\Users\csantos\chainsaw\installation\inst_scripts
+[2025-11-24 18:27:27] [SUCCESS] Acesso ao diretório de origem confirmado [OK]
+[2025-11-24 18:27:27] [SUCCESS] Permissões de escrita no perfil do usuário confirmadas [OK]
+[2025-11-24 18:27:27] [INFO] Verificando arquivos de origem...
+[2025-11-24 18:27:27] [INFO] Raiz do projeto detectada: C:\Users\csantos\chainsaw
+[2025-11-24 18:27:28] [INFO] Raiz do projeto armazenada: C:\Users\csantos\chainsaw
+[2025-11-24 18:27:28] [SUCCESS] Arquivo stamp.png encontrado [OK]
+[2025-11-24 18:27:28] [SUCCESS] Pasta Templates encontrada [OK]
+[2025-11-24 18:27:28] [INFO] Criando backup completo da configuração atual...
+[2025-11-24 18:27:28] [INFO] Fazendo backup da pasta Templates...
+[2025-11-24 18:27:28] [INFO] Templates backup: 0.21 MB, 2 arquivos
+[2025-11-24 18:27:28] [INFO] stamp.png backup criado: 54.36 KB
+[2025-11-24 18:27:28] [INFO] Normal.dotm backup adicional criado
+[2025-11-24 18:27:28] [SUCCESS] Backup completo criado com sucesso em: C:\Users\csantos\CHAINSAW\backups\full_backup_20251124_182728 [OK]
+[2025-11-24 18:27:28] [INFO] Manifesto salvo em: C:\Users\csantos\CHAINSAW\backups\full_backup_20251124_182728\backup_manifest.json
+[2025-11-24 18:27:28] [INFO] Copiando arquivo stamp.png...
+[2025-11-24 18:27:28] [INFO] Origem: C:\Users\csantos\chainsaw\assets\stamp.png
+[2025-11-24 18:27:28] [INFO] Destino: C:\Users\csantos\CHAINSAW\assets\stamp.png
+[2025-11-24 18:27:28] [INFO] Arquivo já está no local correto (origem = destino), pulando cópia
+[2025-11-24 18:27:28] [SUCCESS] Arquivo stamp.png já está instalado [OK]
+[2025-11-24 18:27:28] [INFO] Criando backup da pasta Templates...
+[2025-11-24 18:27:28] [INFO] Origem: C:\Users\csantos\AppData\Roaming\Microsoft\Templates
+[2025-11-24 18:27:28] [INFO] Destino: C:\Users\csantos\AppData\Roaming\Microsoft\Templates_backup_20251124_182728
+[2025-11-24 18:27:28] [SUCCESS] Backup criado com sucesso: Templates_backup_20251124_182728 [OK]
+[2025-11-24 18:27:28] [INFO] Removendo backups antigos (mantendo os 5 mais recentes)...
+[2025-11-24 18:27:28] [INFO] Backup removido: Templates_backup_20251124_151102
+[2025-11-24 18:27:28] [INFO] Copiando pasta Templates...
+[2025-11-24 18:27:28] [INFO] Origem: C:\Users\csantos\chainsaw\installation\inst_configs\Templates
+[2025-11-24 18:27:28] [INFO] Destino: C:\Users\csantos\AppData\Roaming\Microsoft\Templates
+[2025-11-24 18:27:28] [INFO] Total de itens a copiar: 45
+[2025-11-24 18:27:28] [SUCCESS] Pasta Templates copiada com sucesso (37 arquivos) [OK]
+[2025-11-24 18:27:28] [INFO] Módulo VBA encontrado: C:\Users\csantos\chainsaw\source\main\monolithicMod.bas
+[2025-11-24 18:27:31] [INFO] Backup do módulo 'CHAINSAW_MODX' criado: C:\Users\csantos\chainsaw\source\backups\backup_CHAINSAW_MODX_20251124_182731.bas
+[2025-11-24 18:27:31] [INFO] Módulo 'CHAINSAW_MODX' removido
+[2025-11-24 18:27:31] [SUCCESS] Módulo 'monolithicMod' importado com sucesso
+[2025-11-24 18:27:35] [SUCCESS] Módulo VBA importado e Normal.dotm salvo
+[2025-11-24 18:27:35] [INFO] Manifesto encontrado: 2 itens
+[2025-11-24 18:27:35] [INFO] Exportado em: 2025-11-24 18:25:56 por csantos
+[2025-11-24 18:27:35] [INFO] Iniciando importação de personalizações...
+[2025-11-24 18:27:35] [INFO] === Iniciando importação de personalizações ===
+[2025-11-24 18:27:35] [INFO] Criando backup das personalizações do Word (pré-importação de personalizações)...
+[2025-11-24 18:27:35] [INFO] Normal.dotm backup criado
+[2025-11-24 18:27:35] [SUCCESS] Backup de personalizações criado em: C:\Users\csantos\CHAINSAW\backups\word-customizations_20251124_182735 [OK]
+[2025-11-24 18:27:35] [INFO] Importando Normal.dotm...
+[2025-11-24 18:27:35] [SUCCESS] Normal.dotm importado com sucesso [OK]
+[2025-11-24 18:27:35] [INFO] Importando personalização da Faixa de Opções...
+[2025-11-24 18:27:35] [INFO] Ribbon importado para: C:\Users\csantos\AppData\Local\Microsoft\Office\Word.officeUI
+[2025-11-24 18:27:35] [INFO] Ribbon importado para: C:\Users\csantos\AppData\Roaming\Microsoft\Office\Word.officeUI
+[2025-11-24 18:27:35] [SUCCESS] Personalização do Ribbon importada: 1 arquivos [OK]
+[2025-11-24 18:27:35] [INFO] Importando personalizações da interface...
+[2025-11-24 18:27:35] [SUCCESS] Personalizações UI importadas: 2 arquivos [OK]
+[2025-11-24 18:27:35] [SUCCESS] Total de categorias de personalizações importadas: 3 [OK]
+[2025-11-24 18:27:36] [SUCCESS] === INSTALAÇÃO CONCLUÍDA COM SUCESSO ===
+[2025-11-24 18:27:36] [INFO] Duração: 00:08

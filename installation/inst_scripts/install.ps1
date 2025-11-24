@@ -1419,10 +1419,10 @@ function Import-WordCustomizations {
         }
     }
     
-    # Importações simplificadas: apenas VBA module e UI
+    # Importações simplificadas: Normal.dotm (com VBA) e UI customizations
     $importedCount = 0
     
-    if (Import-VbaModule -ImportPath $ImportPath) { $importedCount++ }
+    if (Import-NormalTemplate -ImportPath $ImportPath) { $importedCount++ }
     if (Import-RibbonCustomization -ImportPath $ImportPath) { $importedCount++ }
     if (Import-OfficeCustomUI -ImportPath $ImportPath) { $importedCount++ }
     

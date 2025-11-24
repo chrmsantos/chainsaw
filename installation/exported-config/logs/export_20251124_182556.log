@@ -1,0 +1,25 @@
+================================================================================
+CHAINSAW - Exportação de Personalizações do Word
+================================================================================
+Data/Hora: 24/11/2025 18:25:56
+Usuário: csantos
+Computador: NOTEPROCLEG07
+Sistema: Microsoft Windows NT 10.0.22000.0
+PowerShell: 5.1.22000.2538
+Caminho de Exportação: .\exported-config
+================================================================================
+
+[2025-11-24 18:25:56] [INFO] === INÍCIO DA EXPORTAÇÃO ===
+[2025-11-24 18:25:56] [INFO] Acesso ao VBA já está habilitado
+[2025-11-24 18:25:56] [SUCCESS] Word não está em execução - prosseguindo...
+[2025-11-24 18:25:56] [INFO] Exportando Normal.dotm...
+[2025-11-24 18:25:56] [SUCCESS] Normal.dotm exportado com sucesso [OK]
+[2025-11-24 18:25:56] [INFO] Exportando personalização da Faixa de Opções...
+[2025-11-24 18:25:56] [SUCCESS] Personalização do Ribbon exportada: Word.officeUI [OK]
+[2025-11-24 18:25:56] [INFO] Exportando personalizações da interface...
+[2025-11-24 18:25:56] [INFO] Nenhum arquivo de personalização UI encontrado
+[2025-11-24 18:25:56] [INFO] Criando manifesto de exportação...
+[2025-11-24 18:25:56] [SUCCESS] Manifesto criado: .\exported-config\MANIFEST.json [OK]
+[2025-11-24 18:25:56] [SUCCESS] README criado: .\exported-config\README.txt [OK]
+[2025-11-24 18:25:56] [SUCCESS] === EXPORTAÇÃO CONCLUÍDA COM SUCESSO ===
+[2025-11-24 18:25:56] [INFO] Total de itens: 2

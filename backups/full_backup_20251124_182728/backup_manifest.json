@@ -1,0 +1,17 @@
+﻿{
+    "Date":  "2025-11-24 18:27:28",
+    "Timestamp":  "20251124_182728",
+    "User":  "csantos",
+    "Computer":  "NOTEPROCLEG07",
+    "Items":  {
+                  "Templates":  {
+                                    "Path":  "C:\\Users\\csantos\\CHAINSAW\\backups\\full_backup_20251124_182728\\Templates",
+                                    "Files":  2,
+                                    "SizeMB":  0.21
+                                },
+                  "Stamp":  {
+                                "Path":  "C:\\Users\\csantos\\CHAINSAW\\backups\\full_backup_20251124_182728\\stamp.png",
+                                "SizeKB":  54.36
+                            }
+              }
+}
