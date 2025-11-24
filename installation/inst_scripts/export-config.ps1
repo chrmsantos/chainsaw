@@ -56,7 +56,8 @@ if ($Host.Name -eq "ConsoleHost") {
     try {
         $psWindow.BufferSize = $newSize
         $psWindow.WindowSize = $psWindow.MaxPhysicalWindowSize
-    } catch {
+    }
+    catch {
         # Ignora erros se não for possível maximizar
     }
 }
@@ -80,8 +81,6 @@ $ColorInfo = "Cyan"
 $AppDataPath = $env:APPDATA
 $LocalAppDataPath = $env:LOCALAPPDATA
 $TemplatesPath = Join-Path $AppDataPath "Microsoft\Templates"
-$WordSettingsPath = Join-Path $AppDataPath "Microsoft\Word"
-$UiCustomizationPath = Join-Path $LocalAppDataPath "Microsoft\Office"
 
 # =============================================================================
 # FUNÇÕES DE LOG
@@ -142,8 +141,8 @@ function Write-Log {
     switch ($Level) {
         "SUCCESS" { Write-Host "[OK] $Message" -ForegroundColor $ColorSuccess }
         "WARNING" { Write-Host "[AVISO] $Message" -ForegroundColor $ColorWarning }
-        "ERROR"   { Write-Host "[ERRO] $Message" -ForegroundColor $ColorError }
-        default   { Write-Host "ℹ $Message" -ForegroundColor $ColorInfo }
+        "ERROR" { Write-Host "[ERRO] $Message" -ForegroundColor $ColorError }
+        default { Write-Host "ℹ $Message" -ForegroundColor $ColorInfo }
     }
 }
 
@@ -332,7 +331,7 @@ function Confirm-CloseWord {
 # FUNÇÕES DE EXPORTAÇÃO
 # =============================================================================
 
-function Compile-VbaModule {
+function Test-VbaModuleCompilation {
     <#
     .SYNOPSIS
         Compila o módulo VBA antes da exportação para verificar erros.
@@ -359,7 +358,7 @@ function Compile-VbaModule {
         $template = $word.Documents.Open($normalPath, $false, $false)
         
         # Verifica se há projeto VBA
-        if ($template.VBProject -eq $null) {
+        if ($null -eq $template.VBProject) {
             Write-Log "Nenhum projeto VBA encontrado - compilação ignorada" -Level INFO
             $template.Close($false)
             $word.Quit()
@@ -433,7 +432,7 @@ function Export-VbaModule {
         
         $template = $word.Documents.Open($normalPath, $false, $true) # ReadOnly
         
-        if ($template.VBProject -eq $null) {
+        if ($null -eq $template.VBProject) {
             Write-Log "Nenhum projeto VBA encontrado" -Level WARNING
             $template.Close($false)
             $word.Quit()
@@ -455,10 +454,10 @@ function Export-VbaModule {
                 $component.Export($exportFile)
                 
                 $script:ExportedItems += [PSCustomObject]@{
-                    Type = "VBA Module"
-                    Source = "Normal.dotm::monolithicMod"
+                    Type        = "VBA Module"
+                    Source      = "Normal.dotm::monolithicMod"
                     Destination = $exportFile
-                    Size = (Get-Item $exportFile).Length
+                    Size        = (Get-Item $exportFile).Length
                 }
                 
                 Write-Log "Módulo VBA exportado: monolithicMod.bas [OK]" -Level SUCCESS
@@ -517,10 +516,10 @@ function Export-NormalTemplate {
         Copy-Item -Path $normalPath -Destination $destPath -Force
         
         $script:ExportedItems += [PSCustomObject]@{
-            Type = "Normal Template"
-            Source = $normalPath
+            Type        = "Normal Template"
+            Source      = $normalPath
             Destination = Join-Path $destPath "Normal.dotm"
-            Size = (Get-Item $normalPath).Length
+            Size        = (Get-Item $normalPath).Length
         }
         
         Write-Log "Normal.dotm exportado com sucesso [OK]" -Level SUCCESS
@@ -596,10 +595,10 @@ function Export-BuildingBlocks {
                 $exportedCount++
                 
                 $script:ExportedItems += [PSCustomObject]@{
-                    Type = "Building Block (User)"
-                    Source = $file.FullName
+                    Type        = "Building Block (User)"
+                    Source      = $file.FullName
                     Destination = $destFile
-                    Size = $file.Length
+                    Size        = $file.Length
                 }
             }
             
@@ -726,10 +725,10 @@ function Export-RibbonCustomization {
                 Copy-Item -Path $uiPath -Destination $destFile -Force
                 
                 $script:ExportedItems += [PSCustomObject]@{
-                    Type = "Ribbon Customization"
-                    Source = $uiPath
+                    Type        = "Ribbon Customization"
+                    Source      = $uiPath
                     Destination = $destFile
-                    Size = (Get-Item $uiPath).Length
+                    Size        = (Get-Item $uiPath).Length
                 }
                 
                 Write-Log "Personalização do Ribbon exportada: $fileName [OK]" -Level SUCCESS
@@ -772,10 +771,10 @@ function Export-OfficeCustomUI {
                 Copy-Item -Path $file.FullName -Destination $destFile -Force
                 
                 $script:ExportedItems += [PSCustomObject]@{
-                    Type = "Office Custom UI"
-                    Source = $file.FullName
+                    Type        = "Office Custom UI"
+                    Source      = $file.FullName
                     Destination = $destFile
-                    Size = $file.Length
+                    Size        = $file.Length
                 }
             }
             
@@ -860,7 +859,7 @@ function Export-RegistrySettings {
     return $exportedAny
 }
 
-function Create-ExportManifest {
+function New-ExportManifest {
     <#
     .SYNOPSIS
         Cria um manifesto com informações sobre os itens exportados.
@@ -868,12 +867,12 @@ function Create-ExportManifest {
     Write-Log "Criando manifesto de exportação..." -Level INFO
     
     $manifest = @{
-        ExportDate = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-        UserName = $env:USERNAME
+        ExportDate   = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+        UserName     = $env:USERNAME
         ComputerName = $env:COMPUTERNAME
-        WordVersion = Get-WordVersion
-        TotalItems = $script:ExportedItems.Count
-        Items = $script:ExportedItems
+        WordVersion  = Get-WordVersion
+        TotalItems   = $script:ExportedItems.Count
+        Items        = $script:ExportedItems
     }
     
     $manifestPath = Join-Path $ExportPath "MANIFEST.json"
@@ -980,7 +979,7 @@ function Export-WordCustomizations {
         Write-Host ""
         
         # 0. Compilar módulo VBA antes de exportar
-        $compilationResult = Compile-VbaModule
+        $compilationResult = Test-VbaModuleCompilation
         if (-not $compilationResult) {
             Write-Host ""
             Write-Host "[AVISO] AVISO: Foram detectados erros de compilação no módulo VBA!" -ForegroundColor Yellow
@@ -1001,7 +1000,7 @@ function Export-WordCustomizations {
         Export-OfficeCustomUI | Out-Null
         
         # 3. Manifesto
-        Create-ExportManifest
+        New-ExportManifest
         
         $endTime = Get-Date
         $duration = $endTime - $startTime
