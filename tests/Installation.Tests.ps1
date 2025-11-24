@@ -17,6 +17,7 @@ Describe 'CHAINSAW - Testes de Scripts de Instalação' {
         $installScript = Join-Path $scriptsPath "install.ps1"
         $exportScript = Join-Path $scriptsPath "export-config.ps1"
         $updateScript = Join-Path $scriptsPath "update-vba-module.ps1"
+        $restoreScript = Join-Path $scriptsPath "restore-backup.ps1"
     }
 
     Context 'Estrutura de Arquivos de Instalação' {
@@ -35,6 +36,15 @@ Describe 'CHAINSAW - Testes de Scripts de Instalação' {
 
         It 'update-vba-module.ps1 existe' {
             Test-Path $updateScript | Should Be $true
+        }
+
+        It 'restore-backup.ps1 existe' {
+            Test-Path $restoreScript | Should Be $true
+        }
+
+        It 'restore-backup.cmd existe' {
+            $cmdPath = Join-Path $scriptsPath "restore-backup.cmd"
+            Test-Path $cmdPath | Should Be $true
         }
 
         It 'Pasta inst_configs existe' {
@@ -91,6 +101,10 @@ Describe 'CHAINSAW - Testes de Scripts de Instalação' {
 
         It 'Implementa função de log' {
             $content -match 'log|Log|Write-Log' | Should Be $true
+        }
+
+        It 'Implementa backup completo' {
+            $content -match 'Backup-CompleteConfiguration|full_backup' | Should Be $true
         }
 
         It 'Valida versão do PowerShell' {
@@ -173,6 +187,53 @@ Describe 'CHAINSAW - Testes de Scripts de Instalação' {
         }
     }
 
+    Context 'restore-backup.ps1 - Validação de Conteúdo' {
+        
+        BeforeAll {
+            $content = Get-Content $restoreScript -Raw
+        }
+
+        It 'Contém cabeçalho CHAINSAW' {
+            $content -match 'CHAINSAW|chainsaw' | Should Be $true
+        }
+
+        It 'Contém documentação de help' {
+            $content -match '\.SYNOPSIS' | Should Be $true
+        }
+
+        It 'Define parâmetro BackupPath' {
+            $content -match '\$BackupPath' | Should Be $true
+        }
+
+        It 'Define parâmetro List' {
+            $content -match '\[switch\]\$List' | Should Be $true
+        }
+
+        It 'Define parâmetro Force' {
+            $content -match '\[switch\]\$Force' | Should Be $true
+        }
+
+        It 'Implementa função Get-AvailableBackups' {
+            $content -match 'Get-AvailableBackups|function\s+Get-AvailableBackups' | Should Be $true
+        }
+
+        It 'Implementa função Restore-TemplatesFromBackup' {
+            $content -match 'Restore-TemplatesFromBackup|function\s+Restore-TemplatesFromBackup' | Should Be $true
+        }
+
+        It 'Implementa verificação de Word em execução' {
+            $content -match 'Test-WordRunning|WINWORD' | Should Be $true
+        }
+
+        It 'Referencia backups completos' {
+            $content -match 'full_backup|Templates_backup' | Should Be $true
+        }
+
+        It 'Implementa logging' {
+            $content -match 'Write-Log|log' | Should Be $true
+        }
+    }
+
     Context 'Validação de Caminhos Críticos' {
         
         It 'Módulo VBA monolítico existe' {
@@ -193,6 +254,11 @@ Describe 'CHAINSAW - Testes de Scripts de Instalação' {
         It 'Pasta de logs existe' {
             $logsPath = Join-Path $repoRoot "installation\inst_docs\inst_logs"
             Test-Path $logsPath | Should Be $true
+        }
+
+        It 'Documentação de backup existe' {
+            $backupDoc = Join-Path $repoRoot "installation\inst_docs\GUIA_BACKUP_RESTAURACAO.md"
+            Test-Path $backupDoc | Should Be $true
         }
     }
 
@@ -391,6 +457,12 @@ Describe 'CHAINSAW - Testes de Scripts de Instalação' {
             $content = Get-Content $updateScript -Raw
             $conditionals = ([regex]::Matches($content, '\bif\b|\belse\b|\belseif\b|\bswitch\b')).Count
             $conditionals -lt 20 | Should Be $true
+        }
+
+        It 'restore-backup.ps1 tem complexidade moderada (< 60 condicionais)' {
+            $content = Get-Content $restoreScript -Raw
+            $conditionals = ([regex]::Matches($content, '\bif\b|\belse\b|\belseif\b|\bswitch\b')).Count
+            $conditionals -lt 60 | Should Be $true
         }
     }
 

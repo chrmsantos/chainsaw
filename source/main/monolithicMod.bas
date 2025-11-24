@@ -1,7 +1,7 @@
 ' =============================================================================
 ' CHAINSAW - Sistema de Padronização de Proposituras Legislativas
 ' =============================================================================
-' Versão: 1.3-RC-202511141626
+' Versão: 1.4-RC-202511241436
 ' Licença: GNU GPLv3 (https://www.gnu.org/licenses/gpl-3.0.html)
 ' Compatibilidade: Microsoft Word 2010+
 ' Autor: Christian Martin dos Santos (chrmsantos@protonmail.com)
@@ -663,7 +663,7 @@ Private Function GetCleanParagraphText(para As Paragraph) As String
     ' Remove pontuação final com proteção contra loop infinito
     Dim safetyCounter As Long
     safetyCounter = 0
-    Do While Len(txt) > 0 And InStr(".,;:", Right(txt, 1)) > 0 And safetyCounter < 100
+    Do While Len(txt) > 0 And InStr(".,;:", Right(txt, 1)) > 0 And safetyCounter < MAX_LOOP_ITERATIONS
         txt = Left(txt, Len(txt) - 1)
         safetyCounter = safetyCounter + 1
     Loop
@@ -1062,6 +1062,9 @@ Private Sub IdentifyDocumentStructure(doc As Document)
 
     ' Percorre todos os parágrafos
     For i = 1 To cacheSize
+        ' Proteção contra mudanças no documento durante execução
+        If i > doc.Paragraphs.count Then Exit For
+        
         Set para = doc.Paragraphs(i)
 
         ' Atualiza cache com identificação
@@ -4509,6 +4512,13 @@ Private Function ClearAllFormatting(doc As Document) As Boolean
     Next para
 
     LogMessage "Formatação limpa: " & paraCount & " parágrafos resetados", LOG_LEVEL_INFO
+    
+    ' Cleanup do cache de conteúdo visual para evitar memory leak
+    If Not visualContentCache Is Nothing Then
+        visualContentCache.RemoveAll
+        Set visualContentCache = Nothing
+    End If
+    
     ClearAllFormatting = True
     Exit Function
 
@@ -4988,16 +4998,13 @@ Private Function FormatDocumentTitle(doc As Document) As Boolean
     End If
 
     ' Se for proposição, substitui a última palavra por $NUMERO$/$ANO$
-    If isProposition And UBound(words) >= 0 Then
+    If isProposition And UBound(words) > 0 Then ' FIX: Changed >= 0 to > 0
         ' Reconstrói o texto substituindo a última palavra com validação
         newText = ""
-        If UBound(words) > 0 Then ' Verifica se há palavras suficientes
-            For i = 0 To UBound(words) - 1
-                If i <= UBound(words) Then ' Validação adicional
-                    If i > 0 Then newText = newText & " "
-                    newText = newText & words(i)
-                End If
-            Next i
+        For i = 0 To UBound(words) - 1
+            If i > 0 Then newText = newText & " "
+            newText = newText & words(i)
+        Next i
         End If
 
         ' Adiciona $NUMERO$/$ANO$ no lugar da última palavra
@@ -5186,11 +5193,11 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
             .MatchWildcards = False
             .MatchSoundsLike = False
             .MatchAllWordForms = False
-            ' Executa a substituição e conta
-            replacementCount = .Execute(Replace:=wdReplaceAll)
+            ' Executa a substituição e armazena resultado booleano
+            wasReplaced = .Execute(Replace:=wdReplaceAll)
             ' Verifica se houve erro
             If Err.Number = 0 Then
-                If replacementCount Then
+                If wasReplaced Then
                     totalReplacements = totalReplacements + 1
                 End If
             Else
@@ -5228,8 +5235,8 @@ NextVariant:
             .MatchCase = True
             .MatchWholeWord = False
             .MatchWildcards = False
-            replacementCount = .Execute(Replace:=wdReplaceAll)
-            If Err.Number = 0 And replacementCount Then
+            wasReplaced = .Execute(Replace:=wdReplaceAll)
+            If Err.Number = 0 And wasReplaced Then
                 LogMessage "Substituição aplicada: ' ao Setor, ' → ' ao setor competente'", LOG_LEVEL_INFO
             ElseIf Err.Number <> 0 Then
                 LogMessage "Erro ao substituir 'ao Setor,': " & Err.Description, LOG_LEVEL_WARNING
@@ -5256,8 +5263,8 @@ NextVariant:
             .MatchCase = False
             .MatchWholeWord = False
             .MatchWildcards = False
-            replacementCount = .Execute(Replace:=wdReplaceAll)
-            If Err.Number = 0 And replacementCount Then
+            wasReplaced = .Execute(Replace:=wdReplaceAll)
+            If Err.Number = 0 And wasReplaced Then
                 LogMessage "Substituição aplicada: ' Setor Competente ' → ' setor competente '", LOG_LEVEL_INFO
             ElseIf Err.Number <> 0 Then
                 LogMessage "Erro ao substituir 'Setor Competente': " & Err.Description, LOG_LEVEL_WARNING
