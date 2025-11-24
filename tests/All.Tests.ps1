@@ -63,4 +63,18 @@ Describe 'CHAINSAW - Testes de Integridade' {
         }
     }
 
+    Context 'Test Suites' {
+        It 'Existe suite de testes de exportação/instalação' {
+            Test-Path (Join-Path (Get-RepoRoot) "tests\Export-Install.Tests.ps1") | Should Be $true
+        }
+
+        It 'Existe suite de testes de instalação' {
+            Test-Path (Join-Path (Get-RepoRoot) "tests\Installation.Tests.ps1") | Should Be $true
+        }
+
+        It 'Existe suite de testes VBA' {
+            Test-Path (Join-Path (Get-RepoRoot) "tests\VBA.Tests.ps1") | Should Be $true
+        }
+    }
+
 }
