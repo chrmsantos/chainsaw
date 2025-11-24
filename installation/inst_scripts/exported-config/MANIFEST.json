@@ -1,0 +1,39 @@
+﻿{
+    "TotalItems":  5,
+    "UserName":  "csantos",
+    "ComputerName":  "NOTEPROCLEG01",
+    "Items":  [
+                  {
+                      "Type":  "Normal Template",
+                      "Source":  "C:\\Users\\csantos\\AppData\\Roaming\\Microsoft\\Templates\\Normal.dotm",
+                      "Destination":  ".\\exported-config\\Templates\\Normal.dotm",
+                      "Size":  308856
+                  },
+                  {
+                      "Type":  "Ribbon Customization",
+                      "Source":  "C:\\Users\\csantos\\AppData\\Local\\Microsoft\\Office\\Word.officeUI",
+                      "Destination":  ".\\exported-config\\RibbonCustomization\\Word.officeUI",
+                      "Size":  1610
+                  },
+                  {
+                      "Type":  "Ribbon Customization",
+                      "Source":  "C:\\Users\\csantos\\AppData\\Roaming\\Microsoft\\Office\\Word.officeUI",
+                      "Destination":  ".\\exported-config\\RibbonCustomization\\Word.officeUI",
+                      "Size":  1610
+                  },
+                  {
+                      "Type":  "Office Custom UI",
+                      "Source":  "C:\\Users\\csantos\\AppData\\Local\\Microsoft\\Office\\Excel.officeUI",
+                      "Destination":  ".\\exported-config\\OfficeCustomUI\\Excel.officeUI",
+                      "Size":  1114
+                  },
+                  {
+                      "Type":  "Office Custom UI",
+                      "Source":  "C:\\Users\\csantos\\AppData\\Local\\Microsoft\\Office\\Word.officeUI",
+                      "Destination":  ".\\exported-config\\OfficeCustomUI\\Word.officeUI",
+                      "Size":  1610
+                  }
+              ],
+    "ExportDate":  "2025-11-24 15:39:27",
+    "WordVersion":  "16.0.19328.20244"
+}
