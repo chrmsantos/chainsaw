@@ -5005,7 +5005,6 @@ Private Function FormatDocumentTitle(doc As Document) As Boolean
             If i > 0 Then newText = newText & " "
             newText = newText & words(i)
         Next i
-        End If
 
         ' Adiciona $NUMERO$/$ANO$ no lugar da última palavra
         If newText <> "" Then newText = newText & " "
@@ -5140,6 +5139,7 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
 
     Dim rng As Range
     Dim replacementCount As Long
+    Dim wasReplaced As Boolean
     Dim totalReplacements As Long
     totalReplacements = 0
 
