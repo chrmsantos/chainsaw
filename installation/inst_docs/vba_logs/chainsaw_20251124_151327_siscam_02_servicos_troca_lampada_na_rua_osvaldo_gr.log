@@ -1,0 +1,39 @@
+﻿================================================================================
+CHAINSAW - LOG DE PROCESSAMENTO DE DOCUMENTO
+================================================================================
+
+[SESSÃƒO]
+  InÃ­cio: 24/11/2025 15:13:27
+  ID: 20251124151327
+
+[AMBIENTE]
+  UsuÃ¡rio: csantos
+  Computador: NOTEPROCLEG07
+  DomÃ­nio: CMSBONET
+  SO: Windows Windows_NT
+  Word: 16.0 (Word 2016/2019/2021/365)
+
+[DOCUMENTO]
+  Nome: siscam_02_servicos_troca_lampada_na_rua_osvaldo_graciane_51_vale_cigarrasmzpak5vn_backup_2025-11-18_105553.docx
+  Caminho: C:\Users\csantos\chainsaw\installation\inst_docs\vba_backups
+  Tamanho: 1,1 KB
+  ParÃ¡grafos: 31
+  PÃ¡ginas: 1
+  ProteÃ§Ã£o: Sem proteÃ§Ã£o
+  Idioma: 1046
+
+[CONFIGURAÃ‡ÃƒO]
+  Debug: Desativado
+  Log: C:\Users\csantos\chainsaw\installation\inst_docs\vba_logs\chainsaw_20251124_151327_siscam_02_servicos_troca_lampada_na_rua_osvaldo_gr.log
+  Backup: C:\Users\csantos\chainsaw\installation\inst_docs\vba_backups\backups\
+
+================================================================================
+
+
+15:13:27.219 [00:00,0] INFO  ? Iniciando padronizaÃ§Ã£o do documento: siscam_02_servicos_troca_lampada_na_rua_osvaldo_graciane_51_vale_cigarrasmzpak5vn_backup_2025-11-18_105553.docx
+15:13:27.223 [00:00,0] INFO  ? UndoRecord iniciado com sucesso
+
+
+--------------------------------------------------------------------------------
+SEÃ‡ÃƒO: VERIFICAÃ‡Ã•ES INICIAIS
+--------------------------------------------------------------------------------

@@ -7311,11 +7311,11 @@ Private Function EnsureBackupDirectory(doc As Document) As String
 
 ErrorHandler:
     LogMessage "Erro ao criar pasta de backup: " & Err.Description, LOG_LEVEL_ERROR
-    ' Retorna pasta do documento ou .chainsaw como fallback
+    ' Retorna pasta do documento ou TEMP como fallback
     If doc.Path <> "" Then
         EnsureBackupDirectory = doc.Path
     Else
-        EnsureBackupDirectory = GetChainsawTempPath()
+        EnsureBackupDirectory = Environ("TEMP")
     End If
 End Function
 
