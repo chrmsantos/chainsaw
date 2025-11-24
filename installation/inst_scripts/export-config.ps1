@@ -176,6 +176,88 @@ function Get-WordVersion {
     return $null
 }
 
+function Get-WordRegistryVersion {
+    <#
+    .SYNOPSIS
+        Detecta a versão do Word no registro (16.0, 15.0, 14.0).
+    #>
+    $OfficeVersions = @("16.0", "15.0", "14.0")
+    foreach ($version in $OfficeVersions) {
+        $regPath = "HKCU:\Software\Microsoft\Office\$version\Word"
+        if (Test-Path $regPath) {
+            return $version
+        }
+    }
+    return $null
+}
+
+function Test-VBAAccessEnabled {
+    <#
+    .SYNOPSIS
+        Verifica se o acesso programático ao VBA está habilitado.
+    #>
+    $wordVersion = Get-WordRegistryVersion
+    if ($null -eq $wordVersion) {
+        return $false
+    }
+    
+    $regPath = "HKCU:\Software\Microsoft\Office\$wordVersion\Word\Security"
+    if (Test-Path $regPath) {
+        $accessVBOM = Get-ItemProperty -Path $regPath -Name "AccessVBOM" -ErrorAction SilentlyContinue
+        return ($null -ne $accessVBOM -and $accessVBOM.AccessVBOM -eq 1)
+    }
+    return $false
+}
+
+function Enable-VBAAccess {
+    <#
+    .SYNOPSIS
+        Habilita o acesso programático ao VBA.
+    #>
+    param(
+        [switch]$Silent
+    )
+    
+    $wordVersion = Get-WordRegistryVersion
+    if ($null -eq $wordVersion) {
+        if (-not $Silent) {
+            Write-Log "Word não encontrado no registro" -Level WARNING
+        }
+        return $false
+    }
+    
+    $regPath = "HKCU:\Software\Microsoft\Office\$wordVersion\Word\Security"
+    
+    try {
+        if (-not (Test-Path $regPath)) {
+            New-Item -Path $regPath -Force | Out-Null
+        }
+        
+        Set-ItemProperty -Path $regPath -Name "AccessVBOM" -Value 1 -Type DWord -Force
+        
+        $currentValue = Get-ItemProperty -Path $regPath -Name "AccessVBOM" -ErrorAction SilentlyContinue
+        
+        if ($currentValue.AccessVBOM -eq 1) {
+            if (-not $Silent) {
+                Write-Log "Acesso ao VBA habilitado com sucesso" -Level SUCCESS
+            }
+            return $true
+        }
+        else {
+            if (-not $Silent) {
+                Write-Log "Falha ao verificar habilitação do VBA" -Level ERROR
+            }
+            return $false
+        }
+    }
+    catch {
+        if (-not $Silent) {
+            Write-Log "Erro ao habilitar acesso ao VBA: $_" -Level ERROR
+        }
+        return $false
+    }
+}
+
 # =============================================================================
 # GERENCIAMENTO DO WORD
 # =============================================================================
@@ -479,7 +561,18 @@ function Export-VbaModule {
         return $moduleFound
     }
     catch {
-        Write-Log "Erro ao exportar módulo VBA: $_" -Level ERROR
+        $errorMsg = $_.Exception.Message
+        Write-Log "Erro ao exportar módulo VBA: $errorMsg" -Level ERROR
+        
+        # Verifica se é erro de acesso ao VBA
+        if ($errorMsg -match "0x800AC35C" -or $errorMsg -match "programmatic access") {
+            Write-Log "DIAGNÓSTICO: Erro 0x800AC35C - Acesso programático ao VBA bloqueado" -Level WARNING
+            Write-Log "Possíveis causas:" -Level INFO
+            Write-Log "  1. Word precisa ser reiniciado após habilitar AccessVBOM" -Level INFO
+            Write-Log "  2. Configuração de segurança de macros muito restritiva" -Level INFO
+            Write-Log "  3. Política de grupo impedindo acesso" -Level INFO
+            Write-Log "ALTERNATIVA: Copiar Normal.dotm diretamente (contém o módulo VBA)" -Level INFO
+        }
         
         try {
             if ($word) {
@@ -957,6 +1050,34 @@ function Export-WordCustomizations {
     Initialize-LogFile | Out-Null
     Write-Log "=== INÍCIO DA EXPORTAÇÃO ===" -Level INFO
     
+    # Verifica e habilita acesso ao VBA se necessário
+    $vbaAccessWasEnabled = Test-VBAAccessEnabled
+    if (-not $vbaAccessWasEnabled) {
+        Write-Host ""
+        Write-Host "[AVISO] Acesso programático ao VBA não está habilitado" -ForegroundColor Yellow
+        Write-Host "  Esta configuração é necessária para exportar módulos VBA." -ForegroundColor Gray
+        Write-Host ""
+        Write-Log "Acesso ao VBA não habilitado - habilitando automaticamente" -Level WARNING
+        
+        if (Enable-VBAAccess -Silent) {
+            Write-Host "[OK] Acesso ao VBA habilitado automaticamente" -ForegroundColor Green
+            Write-Log "Acesso ao VBA habilitado automaticamente" -Level SUCCESS
+            Write-Host ""
+            Write-Host "[INFO] IMPORTANTE: Se o Word foi aberto recentemente, a configuração" -ForegroundColor Cyan
+            Write-Host "       só terá efeito após reiniciar o Word completamente." -ForegroundColor Cyan
+            Write-Host ""
+        }
+        else {
+            Write-Host "[ERRO] Não foi possível habilitar acesso ao VBA automaticamente" -ForegroundColor Red
+            Write-Host "  Execute: .\enable-vba-access.ps1" -ForegroundColor Gray
+            Write-Log "Falha ao habilitar acesso ao VBA - exportação pode falhar" -Level ERROR
+        }
+        Write-Host ""
+    }
+    else {
+        Write-Log "Acesso ao VBA já está habilitado" -Level INFO
+    }
+    
     # Verifica e fecha Word se necessário
     if (-not (Confirm-CloseWord)) {
         Write-Log "Exportação cancelada - Word não foi fechado" -Level WARNING
@@ -978,22 +1099,16 @@ function Export-WordCustomizations {
         Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
         Write-Host ""
         
-        # 0. Compilar módulo VBA antes de exportar
-        $compilationResult = Test-VbaModuleCompilation
-        if (-not $compilationResult) {
-            Write-Host ""
-            Write-Host "[AVISO] AVISO: Foram detectados erros de compilação no módulo VBA!" -ForegroundColor Yellow
-            Write-Host "  A exportação continuará, mas recomenda-se verificar o código." -ForegroundColor Gray
-            Write-Host ""
-            $continue = Read-Host "Deseja continuar a exportação mesmo assim? (S/N)"
-            if ($continue -notmatch '^[Ss]$') {
-                Write-Log "Exportação cancelada devido a erros de compilação" -Level WARNING
-                return
-            }
+        # 1. Exportar Normal.dotm completo (contém todos os módulos VBA)
+        Write-Host ""
+        Write-Host "Exportando Normal.dotm..." -ForegroundColor Cyan
+        if (Export-NormalTemplate) {
+            Write-Host "[OK] Normal.dotm exportado com sucesso (contém todos os módulos VBA)" -ForegroundColor Green
         }
-        
-        # 1. Exportar módulo VBA
-        Export-VbaModule | Out-Null
+        else {
+            Write-Host "[AVISO] Falha ao exportar Normal.dotm" -ForegroundColor Yellow
+        }
+        Write-Host ""
         
         # 2. Ribbon e UI customizations
         Export-RibbonCustomization | Out-Null

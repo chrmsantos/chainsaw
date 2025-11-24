@@ -1,0 +1,25 @@
+================================================================================
+CHAINSAW - Exportação de Personalizações do Word
+================================================================================
+Data/Hora: 24/11/2025 18:14:37
+Usuário: csantos
+Computador: NOTEPROCLEG01
+Sistema: Microsoft Windows NT 10.0.26100.0
+PowerShell: 5.1.26100.7019
+Caminho de Exportação: .\exported-config
+================================================================================
+
+[2025-11-24 18:14:37] [INFO] === INÍCIO DA EXPORTAÇÃO ===
+[2025-11-24 18:14:37] [INFO] Acesso ao VBA já está habilitado
+[2025-11-24 18:14:37] [SUCCESS] Word não está em execução - prosseguindo...
+[2025-11-24 18:14:37] [INFO] Compilando módulo VBA...
+[2025-11-24 18:14:40] [SUCCESS] Módulo VBA compilado com sucesso [OK]
+[2025-11-24 18:14:43] [INFO] Exportando módulo VBA...
+[2025-11-24 18:14:46] [ERROR] Erro ao exportar módulo VBA: Exceção de HRESULT: 0x800AC35C
+[2025-11-24 18:14:46] [WARNING] DIAGNÓSTICO: Erro 0x800AC35C - Acesso program?tico ao VBA bloqueado
+[2025-11-24 18:14:46] [INFO] Possíveis causas:
+[2025-11-24 18:14:46] [INFO]   1. Word precisa ser reiniciado após habilitar AccessVBOM
+[2025-11-24 18:14:46] [INFO]   2. Configuração de segurança de macros muito restritiva
+[2025-11-24 18:14:46] [INFO]   3. Política de grupo impedindo acesso
+[2025-11-24 18:14:46] [ERROR] === EXPORTAÇÃO FALHOU ===
+[2025-11-24 18:14:46] [ERROR] Erro: Não é possível associar o argumento ao parâmetro 'Message' porque ele é uma cadeia de caracteres vazia.

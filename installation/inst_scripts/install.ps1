@@ -1403,6 +1403,22 @@ function Import-WordCustomizations {
     Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
     Write-Host ""
     
+    # Verifica e habilita acesso ao VBA se necessário
+    if (-not (Test-VBAAccessEnabled)) {
+        Write-Host "[INFO] Habilitando acesso programático ao VBA..." -ForegroundColor Cyan
+        Write-Log "Acesso ao VBA não habilitado - tentando habilitar automaticamente" -Level INFO
+        
+        if (Enable-VBAAccess -Silent) {
+            Write-Host "[OK] Acesso ao VBA habilitado" -ForegroundColor Green
+            Write-Log "Acesso ao VBA habilitado automaticamente" -Level SUCCESS
+        }
+        else {
+            Write-Host "[AVISO] Não foi possível habilitar acesso ao VBA" -ForegroundColor Yellow
+            Write-Host "  Importação de módulos VBA pode falhar" -ForegroundColor Gray
+            Write-Log "Falha ao habilitar acesso ao VBA - importação pode falhar" -Level WARNING
+        }
+    }
+    
     # Importações simplificadas: apenas VBA module e UI
     $importedCount = 0
     
@@ -1423,6 +1439,88 @@ function Import-WordCustomizations {
 # =============================================================================
 # GERENCIAMENTO DO WORD
 # =============================================================================
+
+function Get-WordRegistryVersion {
+    <#
+    .SYNOPSIS
+        Detecta a versão do Word no registro (16.0, 15.0, 14.0).
+    #>
+    $OfficeVersions = @("16.0", "15.0", "14.0")
+    foreach ($version in $OfficeVersions) {
+        $regPath = "HKCU:\Software\Microsoft\Office\$version\Word"
+        if (Test-Path $regPath) {
+            return $version
+        }
+    }
+    return $null
+}
+
+function Test-VBAAccessEnabled {
+    <#
+    .SYNOPSIS
+        Verifica se o acesso programático ao VBA está habilitado.
+    #>
+    $wordVersion = Get-WordRegistryVersion
+    if ($null -eq $wordVersion) {
+        return $false
+    }
+    
+    $regPath = "HKCU:\Software\Microsoft\Office\$wordVersion\Word\Security"
+    if (Test-Path $regPath) {
+        $accessVBOM = Get-ItemProperty -Path $regPath -Name "AccessVBOM" -ErrorAction SilentlyContinue
+        return ($null -ne $accessVBOM -and $accessVBOM.AccessVBOM -eq 1)
+    }
+    return $false
+}
+
+function Enable-VBAAccess {
+    <#
+    .SYNOPSIS
+        Habilita o acesso programático ao VBA.
+    #>
+    param(
+        [switch]$Silent
+    )
+    
+    $wordVersion = Get-WordRegistryVersion
+    if ($null -eq $wordVersion) {
+        if (-not $Silent) {
+            Write-Log "Word não encontrado no registro" -Level WARNING
+        }
+        return $false
+    }
+    
+    $regPath = "HKCU:\Software\Microsoft\Office\$wordVersion\Word\Security"
+    
+    try {
+        if (-not (Test-Path $regPath)) {
+            New-Item -Path $regPath -Force | Out-Null
+        }
+        
+        Set-ItemProperty -Path $regPath -Name "AccessVBOM" -Value 1 -Type DWord -Force
+        
+        $currentValue = Get-ItemProperty -Path $regPath -Name "AccessVBOM" -ErrorAction SilentlyContinue
+        
+        if ($currentValue.AccessVBOM -eq 1) {
+            if (-not $Silent) {
+                Write-Log "Acesso ao VBA habilitado com sucesso" -Level SUCCESS
+            }
+            return $true
+        }
+        else {
+            if (-not $Silent) {
+                Write-Log "Falha ao verificar habilitação do VBA" -Level ERROR
+            }
+            return $false
+        }
+    }
+    catch {
+        if (-not $Silent) {
+            Write-Log "Erro ao habilitar acesso ao VBA: $_" -Level ERROR
+        }
+        return $false
+    }
+}
 
 function Test-WordRunning {
     <#
