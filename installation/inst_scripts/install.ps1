@@ -772,6 +772,198 @@ function Test-CustomizationsAvailable {
     return $true
 }
 
+function Backup-CompleteConfiguration {
+    <#
+    .SYNOPSIS
+        Cria um backup completo de TODAS as configurações antes da instalação.
+    .DESCRIPTION
+        Este backup permite restaurar completamente o estado anterior à instalação.
+        Inclui: Templates, Normal.dotm, personalizações UI, stamp.png, e metadados.
+    #>
+    
+    if ($NoBackup) {
+        Write-Log "Backup completo desabilitado (-NoBackup)" -Level WARNING
+        return $null
+    }
+    
+    Write-Log "Criando backup completo da configuração atual..." -Level INFO
+    
+    $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
+    $backupBasePath = Join-Path $env:USERPROFILE "CHAINSAW\backups"
+    $backupPath = Join-Path $backupBasePath "full_backup_$timestamp"
+    
+    try {
+        # Cria estrutura de diretórios
+        if (-not (Test-Path $backupPath)) {
+            New-Item -Path $backupPath -ItemType Directory -Force | Out-Null
+        }
+        
+        $backupManifest = @{
+            Timestamp = $timestamp
+            Date = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+            User = $env:USERNAME
+            Computer = $env:COMPUTERNAME
+            Items = @{}
+        }
+        
+        # 1. Backup completo da pasta Templates
+        $templatesPath = Join-Path $env:APPDATA "Microsoft\Templates"
+        if (Test-Path $templatesPath) {
+            $templatesBackupPath = Join-Path $backupPath "Templates"
+            Write-Log "Fazendo backup da pasta Templates..." -Level INFO
+            Copy-Item -Path $templatesPath -Destination $templatesBackupPath -Recurse -Force -ErrorAction Stop
+            
+            $templatesSize = (Get-ChildItem -Path $templatesBackupPath -Recurse -File | Measure-Object -Property Length -Sum).Sum / 1MB
+            $backupManifest.Items.Templates = @{
+                Path = $templatesBackupPath
+                SizeMB = [math]::Round($templatesSize, 2)
+                Files = (Get-ChildItem -Path $templatesBackupPath -Recurse -File).Count
+            }
+            Write-Log "Templates backup: $([math]::Round($templatesSize, 2)) MB, $($backupManifest.Items.Templates.Files) arquivos" -Level INFO
+        }
+        else {
+            Write-Log "Pasta Templates não existe - pulando" -Level INFO
+        }
+        
+        # 2. Backup do stamp.png (se existir)
+        $stampPath = Join-Path $env:USERPROFILE "CHAINSAW\assets\stamp.png"
+        if (Test-Path $stampPath) {
+            $stampBackupPath = Join-Path $backupPath "stamp.png"
+            Copy-Item -Path $stampPath -Destination $stampBackupPath -Force -ErrorAction Stop
+            $backupManifest.Items.Stamp = @{
+                Path = $stampBackupPath
+                SizeKB = [math]::Round((Get-Item $stampBackupPath).Length / 1KB, 2)
+            }
+            Write-Log "stamp.png backup criado: $($backupManifest.Items.Stamp.SizeKB) KB" -Level INFO
+        }
+        
+        # 3. Backup de personalizações (Normal.dotm, UI customizations)
+        $customBackupPath = Join-Path $backupPath "Customizations"
+        New-Item -Path $customBackupPath -ItemType Directory -Force | Out-Null
+        
+        # Normal.dotm (cópia adicional)
+        $normalPath = Join-Path $templatesPath "Normal.dotm"
+        if (Test-Path $normalPath) {
+            $normalBackupPath = Join-Path $customBackupPath "Templates"
+            New-Item -Path $normalBackupPath -ItemType Directory -Force | Out-Null
+            Copy-Item -Path $normalPath -Destination $normalBackupPath -Force
+            Write-Log "Normal.dotm backup adicional criado" -Level INFO
+        }
+        
+        # Personalizações UI do Office
+        $localAppDataPath = $env:LOCALAPPDATA
+        $uiPath = Join-Path $localAppDataPath "Microsoft\Office"
+        $uiFiles = Get-ChildItem -Path $uiPath -Filter "*.officeUI" -Recurse -ErrorAction SilentlyContinue
+        
+        if ($uiFiles.Count -gt 0) {
+            $destUI = Join-Path $customBackupPath "OfficeCustomUI"
+            New-Item -Path $destUI -ItemType Directory -Force | Out-Null
+            foreach ($file in $uiFiles) {
+                Copy-Item -Path $file.FullName -Destination (Join-Path $destUI $file.Name) -Force
+            }
+            $backupManifest.Items.Customizations = @{
+                UIFiles = $uiFiles.Count
+            }
+            Write-Log "Personalizações UI backup: $($uiFiles.Count) arquivos" -Level INFO
+        }
+        
+        # 4. Salva manifesto do backup
+        $manifestPath = Join-Path $backupPath "backup_manifest.json"
+        $backupManifest | ConvertTo-Json -Depth 10 | Out-File -FilePath $manifestPath -Encoding UTF8
+        
+        # 5. Cria arquivo README no backup
+        $readmePath = Join-Path $backupPath "README.txt"
+        $readmeContent = @"
+================================================================================
+CHAINSAW - BACKUP COMPLETO
+================================================================================
+
+Data do Backup: $($backupManifest.Date)
+Usuário: $($backupManifest.User)
+Computador: $($backupManifest.Computer)
+
+Este backup contém uma cópia completa das configurações do Word antes da
+instalação do CHAINSAW.
+
+================================================================================
+CONTEÚDO DO BACKUP
+================================================================================
+
+"@
+        
+        if ($backupManifest.Items.Templates) {
+            $readmeContent += @"
+
+[Templates]
+  - Pasta completa: Templates\
+  - Tamanho: $($backupManifest.Items.Templates.SizeMB) MB
+  - Arquivos: $($backupManifest.Items.Templates.Files)
+  - Inclui: Normal.dotm, Building Blocks, Temas, Estilos, etc.
+
+"@
+        }
+        
+        if ($backupManifest.Items.Stamp) {
+            $readmeContent += @"
+
+[Stamp]
+  - Arquivo: stamp.png
+  - Tamanho: $($backupManifest.Items.Stamp.SizeKB) KB
+
+"@
+        }
+        
+        if ($backupManifest.Items.Customizations) {
+            $readmeContent += @"
+
+[Personalizações]
+  - Pasta: Customizations\
+  - Arquivos UI: $($backupManifest.Items.Customizations.UIFiles)
+  - Inclui: Ribbon customizations, Quick Access Toolbar, etc.
+
+"@
+        }
+        
+        $readmeContent += @"
+
+================================================================================
+RESTAURAÇÃO
+================================================================================
+
+Para restaurar este backup, execute:
+
+    .\restore-backup.cmd
+
+Ou manualmente:
+
+    powershell.exe -ExecutionPolicy Bypass -File restore-backup.ps1 -BackupPath "$backupPath"
+
+================================================================================
+IMPORTANTE
+================================================================================
+
+- Este backup é criado AUTOMATICAMENTE antes de cada instalação
+- Backups antigos são mantidos por segurança
+- Para liberar espaço, remova manualmente backups antigos desta pasta:
+  $backupBasePath
+
+================================================================================
+"@
+        
+        $readmeContent | Out-File -FilePath $readmePath -Encoding UTF8
+        
+        Write-Log "Backup completo criado com sucesso em: $backupPath [OK]" -Level SUCCESS
+        Write-Log "Manifesto salvo em: $manifestPath" -Level INFO
+        
+        return $backupPath
+    }
+    catch {
+        Write-Log "Erro ao criar backup completo: $_" -Level ERROR
+        Write-Log "Stack trace: $($_.ScriptStackTrace)" -Level ERROR
+        return $null
+    }
+}
+
 function Backup-WordCustomizations {
     param([string]$BackupReason = "pré-importação")
     
@@ -1380,7 +1572,46 @@ function Install-CHAINSAWConfig {
             throw "Arquivos de origem não encontrados. Verifique os erros acima."
         }
         
-        # 3. Confirmação do usuário
+        # 3. Backup completo da configuração atual (ANTES de qualquer modificação)
+        $fullBackupPath = $null
+        if (-not $NoBackup) {
+            Write-Host ""
+            Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+            Write-Host "  ETAPA 3: Backup Completo da Configuração Atual" -ForegroundColor White
+            Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+            Write-Host ""
+            Write-Host "ℹ Criando backup completo antes da instalação..." -ForegroundColor Cyan
+            Write-Host "  Este backup permitirá restaurar completamente o estado atual" -ForegroundColor Gray
+            Write-Host ""
+            
+            $fullBackupPath = Backup-CompleteConfiguration
+            
+            if ($fullBackupPath) {
+                Write-Host ""
+                Write-Host "✓ Backup completo criado com sucesso!" -ForegroundColor Green
+                Write-Host "  Localização: $fullBackupPath" -ForegroundColor Gray
+                Write-Host ""
+                Write-Host "  Para restaurar este backup, execute:" -ForegroundColor Yellow
+                Write-Host "    .\restore-backup.cmd" -ForegroundColor White
+                Write-Host ""
+            }
+            else {
+                Write-Host ""
+                Write-Host "⚠ Não foi possível criar backup completo" -ForegroundColor Yellow
+                Write-Host "  A instalação pode continuar, mas não será possível restaurar" -ForegroundColor Yellow
+                Write-Host ""
+                
+                if (-not $Force) {
+                    $response = Read-Host "Deseja continuar mesmo assim? (S/N)"
+                    if ($response -notmatch '^[Ss]$') {
+                        Write-Log "Instalação cancelada pelo usuário (falha no backup)" -Level WARNING
+                        return
+                    }
+                }
+            }
+        }
+        
+        # 4. Confirmação do usuário
         if (-not $Force) {
             Write-Host ""
             Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
@@ -1393,6 +1624,12 @@ function Install-CHAINSAWConfig {
             Write-Host "  3. Copiar nova pasta Templates do diretório local" -ForegroundColor White
             Write-Host ""
             
+            if ($fullBackupPath) {
+                Write-Host "✓ Backup completo já foi criado em:" -ForegroundColor Green
+                Write-Host "  $fullBackupPath" -ForegroundColor Gray
+                Write-Host ""
+            }
+            
             $response = Read-Host "Deseja continuar? (S/N)"
             if ($response -notmatch '^[Ss]$') {
                 Write-Log "Instalação cancelada pelo usuário." -Level WARNING
@@ -1400,23 +1637,23 @@ function Install-CHAINSAWConfig {
             }
         }
         
-        # 4. Copiar arquivo stamp.png
+        # 5. Copiar arquivo stamp.png
         Write-Host ""
         Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
-        Write-Host "  ETAPA 3: Cópia do Arquivo stamp.png" -ForegroundColor White
+        Write-Host "  ETAPA 4: Cópia do Arquivo stamp.png" -ForegroundColor White
         Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
         Write-Host ""
         
         Copy-StampFile -SourceFile $sourceStampFile | Out-Null
         
-        # 5. Backup da pasta Templates
+        # 6. Backup da pasta Templates
         $templatesPath = Join-Path $env:APPDATA "Microsoft\Templates"
         $backupPath = $null
         
         if (-not $NoBackup) {
             Write-Host ""
             Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
-            Write-Host "  ETAPA 4: Backup da Pasta Templates" -ForegroundColor White
+            Write-Host "  ETAPA 5: Backup da Pasta Templates" -ForegroundColor White
             Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
             Write-Host ""
             
@@ -1430,19 +1667,19 @@ function Install-CHAINSAWConfig {
             Write-Log "Backup desabilitado pelo parâmetro -NoBackup" -Level WARNING
         }
         
-        # 6. Copiar pasta Templates
+        # 7. Copiar pasta Templates
         Write-Host ""
         Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
-        Write-Host "  ETAPA 5: Cópia da Pasta Templates" -ForegroundColor White
+        Write-Host "  ETAPA 6: Cópia da Pasta Templates" -ForegroundColor White
         Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
         Write-Host ""
         
         Copy-TemplatesFolder -SourceFolder $sourceTemplatesFolder -DestFolder $templatesPath | Out-Null
         
-        # 6.5. Atualizar módulo VBA no Normal.dotm
+        # 8. Atualizar módulo VBA no Normal.dotm
         Write-Host ""
         Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
-        Write-Host "  ETAPA 6: Atualização do Módulo VBA" -ForegroundColor White
+        Write-Host "  ETAPA 7: Atualização do Módulo VBA" -ForegroundColor White
         Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
         Write-Host ""
         

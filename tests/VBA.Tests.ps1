@@ -1,4 +1,4 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 Import-Module Pester -ErrorAction Stop
 . $PSScriptRoot\Helpers.ps1
 

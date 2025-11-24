@@ -1,17 +1,15 @@
 @echo off
 REM =============================================================================
-REM CHAINSAW - Launcher para Atualiza√ß√£o do M√≥dulo VBA
+REM CHAINSAW - Launcher para AtualizaÁ„o do MÛdulo VBA
 REM =============================================================================
-REM Vers√£o: 2.0.0
-REM Licen√ßa: GNU GPLv3
+REM Vers„o: 2.0.0
+REM LicenÁa: GNU GPLv3
 REM =============================================================================
 
 setlocal EnableDelayedExpansion EnableExtensions
 
-REM Define codepage UTF-8 para melhor compatibilidade
-chcp 65001 >nul 2>&1
 
-REM Maximiza a janela do console (tenta, mas n√£o falha se n√£o conseguir)
+REM Maximiza a janela do console (tenta, mas n„o falha se n„o conseguir)
 mode con cols=120 lines=50 >nul 2>&1
 if not "%1"=="__MAXIMIZED__" (
     start /MAX cmd /c "%~f0" __MAXIMIZED__ %* & exit/b
@@ -29,10 +27,10 @@ echo [i] Update Launcher - Versao 2.0.0
 echo.
 
 REM =============================================================================
-REM VERIFICA√á√ïES
+REM VERIFICA«’ES
 REM =============================================================================
 
-REM Verifica se est√° no Windows
+REM Verifica se est· no Windows
 if not "%OS%"=="Windows_NT" (
     echo [X] ERRO: Este script requer Windows NT ou superior!
     echo.
@@ -55,7 +53,7 @@ if not exist "%PS_SCRIPT%" (
     exit /b 1
 )
 
-REM Verifica se PowerShell est√° dispon√≠vel
+REM Verifica se PowerShell est· disponÌvel
 where powershell.exe >nul 2>&1
 if errorlevel 1 (
     echo [X] ERRO: PowerShell nao encontrado no sistema!
@@ -64,7 +62,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-REM Verifica se o Word est√° em execu√ß√£o (aviso)
+REM Verifica se o Word est· em execuÁ„o (aviso)
 tasklist /FI "IMAGENAME eq WINWORD.EXE" 2>NUL | find /I /N "WINWORD.EXE" >NUL
 if not errorlevel 1 (
     echo [!] AVISO: Microsoft Word esta em execucao!
@@ -73,7 +71,7 @@ if not errorlevel 1 (
 )
 
 REM =============================================================================
-REM EXECU√á√ÉO
+REM EXECU«√O
 REM =============================================================================
 
 echo [*] Iniciando atualizacao do modulo VBA...
@@ -81,10 +79,10 @@ echo.
 echo ========================================================================
 echo.
 
-REM Executa o script PowerShell com bypass de execu√ß√£o
+REM Executa o script PowerShell com bypass de execuÁ„o
 powershell.exe -NoProfile -NoLogo -ExecutionPolicy Bypass -File "%PS_SCRIPT%" %*
 
-REM Captura o c√≥digo de sa√≠da
+REM Captura o cÛdigo de saÌda
 set "EXIT_CODE=%ERRORLEVEL%"
 
 REM =============================================================================
