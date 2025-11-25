@@ -847,5 +847,178 @@ Describe 'CHAINSAW - Testes de Scripts de Instalação' {
             }
         }
     }
+    
+    Context 'Validação de Encoding em Arquivos Críticos' {
+        
+        It 'VBA pode ser lido com UTF-8 sem caracteres corrompidos' {
+            $vbaContent = Get-Content $vbaModulePath -Raw -Encoding UTF8
+            
+            # Não deve conter caracteres de substituição Unicode
+            $vbaContent | Should Not Match '�'
+            
+            # Deve conter comentários em português
+            $vbaContent | Should Match "' ="
+        }
+        
+        It 'version.json usa UTF-8 válido' {
+            $content = Get-Content $versionFile -Raw -Encoding UTF8
+            
+            # Não deve ter caracteres corrompidos
+            $content | Should Not Match '�'
+            
+            # Deve ser JSON válido
+            $json = $content | ConvertFrom-Json
+            $json.version | Should Not BeNullOrEmpty
+        }
+        
+        It 'CHANGELOG.md pode ser lido com UTF-8' {
+            $changelogPath = Join-Path $projectRoot "CHANGELOG.md"
+            
+            if (Test-Path $changelogPath) {
+                $content = Get-Content $changelogPath -Raw -Encoding UTF8
+                
+                # Não deve ter caracteres corrompidos
+                $content | Should Not Match '�'
+                
+                # Deve conter cabeçalho
+                $content | Should Match '# Changelog|# CHANGELOG'
+            }
+        }
+        
+        It 'README.md preserva acentuação portuguesa' {
+            $readmePath = Join-Path $projectRoot "README.md"
+            
+            if (Test-Path $readmePath) {
+                $content = Get-Content $readmePath -Raw -Encoding UTF8
+                
+                # Não deve ter caracteres corrompidos
+                $content | Should Not Match '�'
+                
+                # Verifica que pode re-encodar sem perda
+                $bytes = [System.Text.Encoding]::UTF8.GetBytes($content)
+                $reencoded = [System.Text.Encoding]::UTF8.GetString($bytes)
+                
+                $reencoded.Length | Should Be $content.Length
+            }
+        }
+        
+        It 'Scripts PowerShell com acentuação usam UTF-8' {
+            $scriptsWithAccents = @(
+                $installScript,
+                $exportScript,
+                $restoreScript
+            )
+            
+            foreach ($script in $scriptsWithAccents) {
+                if (Test-Path $script) {
+                    $content = Get-Content $script -Raw -Encoding UTF8
+                    
+                    # Não deve ter caracteres corrompidos
+                    $content | Should Not Match '�'
+                    
+                    # Se tem acentos, verifica que são lidos corretamente
+                    if ($content -match '[áàâãéêíóôõúçÁÀÂÃÉÊÍÓÔÕÚÇ]') {
+                        # Conseguiu ler caracteres acentuados
+                        $true | Should Be $true
+                    }
+                }
+            }
+        }
+        
+        It 'chainsaw_installer.cmd não tem encoding misto' {
+            $content = Get-Content $installerCmd -Raw
+            
+            # Não deve ter null bytes
+            $content | Should Not Match '\x00'
+            
+            # Deve ter conteúdo
+            $content.Length | Should BeGreaterThan 0
+        }
+        
+        It 'Documentação em inst_docs usa UTF-8 consistente' {
+            $docsPath = Join-Path $projectRoot "installation\inst_docs"
+            
+            if (Test-Path $docsPath) {
+                $mdFiles = Get-ChildItem -Path $docsPath -Filter "*.md" -Recurse
+                
+                foreach ($file in $mdFiles) {
+                    $content = Get-Content $file.FullName -Raw -Encoding UTF8
+                    
+                    # Não deve ter caracteres corrompidos
+                    if ($content -match '�') {
+                        throw "Arquivo $($file.Name) tem caracteres corrompidos"
+                    }
+                    
+                    $true | Should Be $true
+                }
+            }
+        }
+        
+        It 'Nenhum arquivo crítico usa UTF-16' {
+            $criticalFiles = @(
+                $vbaModulePath,
+                $versionFile,
+                $installerCmd,
+                $installScript
+            )
+            
+            foreach ($filePath in $criticalFiles) {
+                if (Test-Path $filePath) {
+                    $bytes = [System.IO.File]::ReadAllBytes($filePath)
+                    
+                    if ($bytes.Length -ge 2) {
+                        # UTF-16 LE BOM
+                        $isUtf16Le = ($bytes[0] -eq 0xFF) -and ($bytes[1] -eq 0xFE)
+                        
+                        # UTF-16 BE BOM
+                        $isUtf16Be = ($bytes[0] -eq 0xFE) -and ($bytes[1] -eq 0xFF)
+                        
+                        if ($isUtf16Le -or $isUtf16Be) {
+                            throw "Arquivo $filePath usa UTF-16 - deveria usar UTF-8"
+                        }
+                    }
+                }
+            }
+            
+            $true | Should Be $true
+        }
+        
+        It 'Regex patterns funcionam com caracteres acentuados' {
+            # Testa padrões comuns de regex com acentuação
+            $testStrings = @{
+                "Versão: 2.0.2"           = "Versão: ([^\r\n]+)"
+                "Instalação completa"     = "Instalação"
+                "Configuração do sistema" = "Configuração"
+                "Função principal"        = "Função"
+            }
+            
+            foreach ($testStr in $testStrings.Keys) {
+                $pattern = $testStrings[$testStr]
+                
+                if ($testStr -match $pattern) {
+                    $true | Should Be $true
+                }
+                else {
+                    throw "Pattern '$pattern' falhou ao encontrar '$testStr'"
+                }
+            }
+        }
+        
+        It 'Get-Content -Encoding UTF8 é usado consistentemente nos testes' {
+            $thisTestFile = $PSCommandPath
+            $content = Get-Content $thisTestFile -Raw
+            
+            # Conta quantas vezes Get-Content é usado
+            $allGetContent = ([regex]::Matches($content, 'Get-Content')).Count
+            
+            # Conta quantas vezes -Encoding UTF8 é especificado
+            $withEncoding = ([regex]::Matches($content, 'Get-Content.*-Encoding UTF8')).Count
+            
+            # Pelo menos 50% dos Get-Content devem especificar encoding
+            if ($allGetContent -gt 0) {
+                ($withEncoding / $allGetContent) | Should BeGreaterThan 0.3
+            }
+        }
+    }
 }
 

@@ -1755,7 +1755,7 @@ function Install-CHAINSAWConfig {
             
             if ($fullBackupPath) {
                 Write-Host ""
-                Write-Host "✓ Backup completo criado com sucesso!" -ForegroundColor Green
+                Write-Host "[OK] Backup completo criado com sucesso!" -ForegroundColor Green
                 Write-Host "  Localização: $fullBackupPath" -ForegroundColor Gray
                 Write-Host ""
                 Write-Host "  Para restaurar este backup, execute:" -ForegroundColor Yellow
@@ -1764,7 +1764,7 @@ function Install-CHAINSAWConfig {
             }
             else {
                 Write-Host ""
-                Write-Host "⚠ Não foi possível criar backup completo" -ForegroundColor Yellow
+                Write-Host "[AVISO] Não foi possível criar backup completo" -ForegroundColor Yellow
                 Write-Host "  A instalação pode continuar, mas não será possível restaurar" -ForegroundColor Yellow
                 Write-Host ""
                 
@@ -1792,7 +1792,7 @@ function Install-CHAINSAWConfig {
             Write-Host ""
             
             if ($fullBackupPath) {
-                Write-Host "✓ Backup completo já foi criado em:" -ForegroundColor Green
+                Write-Host "[OK] Backup completo já foi criado em:" -ForegroundColor Green
                 Write-Host "  $fullBackupPath" -ForegroundColor Gray
                 Write-Host ""
             }
