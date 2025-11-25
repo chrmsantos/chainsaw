@@ -225,9 +225,8 @@ if exist "%INSTALL_DIR%" (
         exit /b 1
     )
     
-    REM Conta arquivos no backup
-    set BACKUP_FILE_COUNT=0
-    for /r "!BACKUP_DIR!" %%f in (*) do set /a BACKUP_FILE_COUNT=BACKUP_FILE_COUNT+1
+    REM Conta arquivos no backup usando PowerShell (mais rápido)
+    for /f %%i in ('powershell -NoProfile -Command "(Get-ChildItem -Path '!BACKUP_DIR!' -Recurse -File -ErrorAction SilentlyContinue | Measure-Object).Count"') do set BACKUP_FILE_COUNT=%%i
     
     if %BACKUP_FILE_COUNT% LSS 5 (
         call :Log "[ERRO CRITICO] Backup contem muito poucos arquivos: %BACKUP_FILE_COUNT%"
@@ -337,9 +336,8 @@ if %VALIDATION_FAILED% equ 1 (
 
 call :Log "[OK] Conteudo extraido validado com sucesso!"
 
-REM Conta arquivos no conteúdo extraído
-set EXTRACTED_FILE_COUNT=0
-for /r "%SOURCE_DIR%" %%f in (*) do set /a EXTRACTED_FILE_COUNT=EXTRACTED_FILE_COUNT+1
+REM Conta arquivos no conteúdo extraído usando PowerShell (mais rápido)
+for /f %%i in ('powershell -NoProfile -Command "(Get-ChildItem -Path '%SOURCE_DIR%' -Recurse -File -ErrorAction SilentlyContinue | Measure-Object).Count"') do set EXTRACTED_FILE_COUNT=%%i
 
 call :Log "[INFO] Total de arquivos extraidos: %EXTRACTED_FILE_COUNT%"
 
