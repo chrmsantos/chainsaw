@@ -2,26 +2,50 @@
 
 Sistema automatizado para padronização de documentos legislativos no Microsoft Word.
 
+---
+
+## 🚀 Instalação em 2 Cliques
+
+```
+1. Baixe: chainsaw_installer.cmd
+2. Dê duplo-clique
+```
+
+**✨ O instalador faz tudo sozinho!**
+
+[📖 Ver instruções detalhadas](#-instalação-automática-recomendado)
+
+---
+
 ##  Requisitos
 
 - Windows 10+ | PowerShell 5.1+
 - Microsoft Word 2010+
 - Permissões de usuário normal (não requer admin)
+- Conexão com internet (apenas no primeiro uso)
 
-##  Instalação Rápida
+##  Instalação Automática (Recomendado)
 
-1. Copie a pasta `chainsaw` para: `C:\Users\[seu_usuario]\chainsaw`
-2. Navegue até: `chainsaw\installation\inst_scripts\`
-3. Dê duplo-clique em: `install.cmd`
+**Um único comando faz tudo:**
 
-**Pronto!** O instalador fará tudo automaticamente.
+1. Baixe apenas o arquivo: **`chainsaw_installer.cmd`**
+2. Dê duplo-clique nele
+3. **Pronto!** O instalador irá:
+   - ✅ Baixar automaticamente do GitHub
+   - ✅ Criar backup da instalação existente
+   - ✅ Validar integridade dos arquivos
+   - ✅ Instalar tudo automaticamente
 
-### Alternativa (PowerShell):
+**Não é necessário baixar/clonar o repositório completo!**
 
-```powershell
-cd "$env:USERPROFILE\chainsaw\installation\inst_scripts"
-.\install.ps1
-```
+---
+
+### Instalação Manual (Alternativa)
+
+Se você já tem a pasta completa do repositório:
+
+1. Navegue até a pasta onde está `chainsaw_installer.cmd`
+2. Dê duplo-clique em: `chainsaw_installer.cmd`
 
 ##  Documentação
 

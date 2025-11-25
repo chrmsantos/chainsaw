@@ -9,29 +9,56 @@ Sistema automatizado para padronização de documentos legislativos no Microsoft
 - Windows 10 ou superior
 - PowerShell 5.1 ou superior
 - Microsoft Word 2010 ou superior
-- Word fechado durante a instalação
+- Conexão com a internet (para download inicial)
 
-##  Instalação Rápida
+---
 
-### Passo 1: Copiar Arquivos
+##  Instalação Automática (Recomendado)
 
-Copie a pasta `chainsaw` completa para:
+### ✨ Método Mais Simples - Um Único Arquivo
+
+**Você precisa de apenas 1 arquivo:**
+
+1. **Baixe**: `chainsaw_installer.cmd` da raiz do repositório
+2. **Execute**: Dê duplo-clique no arquivo
+3. **Pronto!** O instalador fará tudo sozinho
+
+#### O que o instalador automático faz:
+
 ```
-C:\Users\[seu_usuario]\chainsaw
+✓ Baixa o código-fonte completo do GitHub
+✓ Valida a integridade dos arquivos baixados
+✓ Cria backup da instalação existente (se houver)
+✓ Extrai para: C:\Users\[seu_usuario]\chainsaw
+✓ Executa a instalação automaticamente
+✓ Valida a instalação final
+✓ Cria logs detalhados
 ```
 
-### Passo 2: Executar Instalação
+**Vantagens**:
+- ✅ Sempre baixa a versão mais recente
+- ✅ Não precisa clonar repositório completo
+- ✅ Backup automático e validado
+- ✅ Rollback em caso de falha
+- ✅ Logs completos para diagnóstico
 
-#### Método Recomendado (duplo-clique):
+---
 
-1. Navegue até: `chainsaw\installation\inst_scripts\`
-2. Dê duplo-clique em: `install.cmd`
+##  Instalação Manual (Se já tem o repositório)
 
-#### Método Alternativo (PowerShell):
+Se você já clonou/baixou o repositório completo:
 
-```powershell
-cd "$env:USERPROFILE\chainsaw\installation\inst_scripts"
-.\install.ps1
+### Passo 1: Posicionar na raiz do projeto
+
+Navegue até a pasta onde está o `chainsaw_installer.cmd`
+
+### Passo 2: Executar o Instalador
+
+Dê duplo-clique em: `chainsaw_installer.cmd`
+
+**OU** execute via linha de comando:
+```batch
+chainsaw_installer.cmd
 ```
 
 ### Passo 3: Aguardar Conclusão
