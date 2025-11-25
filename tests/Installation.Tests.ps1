@@ -828,19 +828,21 @@ Describe 'CHAINSAW - Testes de Scripts de Instalação' {
             if ($vbaContent -match 'Private Const CHAINSAW_VERSION As String = "([^"]+)"') {
                 $vbaVersion = $matches[1]
                 $vbaVersion | Should Be $versionJson.version
-            } else {
+            }
+            else {
                 throw "CHAINSAW_VERSION não encontrado no VBA"
             }
         }
 
         It 'Versão no cabeçalho VBA corresponde ao version.json' {
             $versionJson = Get-Content $versionFile -Raw | ConvertFrom-Json
-            $vbaContent = Get-Content $vbaModulePath -Raw
+            $vbaContent = Get-Content $vbaModulePath -Raw -Encoding UTF8
             
             if ($vbaContent -match "' Versão: ([^\r\n]+)") {
                 $headerVersion = $matches[1].Trim()
                 $headerVersion | Should Be $versionJson.version
-            } else {
+            }
+            else {
                 throw "Versão não encontrada no cabeçalho VBA"
             }
         }
