@@ -1,7 +1,7 @@
 ' =============================================================================
 ' CHAINSAW - Sistema de Padronização de Proposituras Legislativas
 ' =============================================================================
-' Versão: 1.4.5-RC-202511241436
+' Versão: 2.0.2
 ' Licença: GNU GPLv3 (https://www.gnu.org/licenses/gpl-3.0.html)
 ' Compatibilidade: Microsoft Word 2010+
 ' Autor: Christian Martin dos Santos (chrmsantos@protonmail.com)
@@ -77,6 +77,7 @@ Private Const HEADER_IMAGE_HEIGHT_RATIO As Double = 0.19
 '================================================================================
 ' CONSTANTES DE SISTEMA
 '================================================================================
+Private Const CHAINSAW_VERSION As String = "2.0.2"
 Private Const MIN_SUPPORTED_VERSION As Long = 14
 Private Const REQUIRED_STRING As String = "$NUMERO$/$ANO$"
 Private Const MAX_BACKUP_FILES As Long = 10
@@ -7318,6 +7319,318 @@ ErrorHandler:
         EnsureBackupDirectory = Environ("TEMP")
     End If
 End Function
+
+'================================================================================
+' VERIFICAÇÃO DE VERSÃO E ATUALIZAÇÃO
+'================================================================================
+
+' Função: CheckForUpdates
+' Descrição: Verifica se há uma nova versão disponível no GitHub
+' Retorna: True se houver atualização disponível, False caso contrário
+'================================================================================
+Public Function CheckForUpdates() As Boolean
+    On Error GoTo ErrorHandler
+    
+    Dim localVersion As String
+    Dim remoteVersion As String
+    Dim updateAvailable As Boolean
+    
+    CheckForUpdates = False
+    
+    ' Obtém versão local
+    localVersion = GetLocalVersion()
+    If localVersion = "" Then
+        LogMessage "Não foi possível obter versão local", LOG_LEVEL_WARNING
+        Exit Function
+    End If
+    
+    ' Obtém versão remota do GitHub
+    remoteVersion = GetRemoteVersion()
+    If remoteVersion = "" Then
+        LogMessage "Não foi possível obter versão remota", LOG_LEVEL_WARNING
+        Exit Function
+    End If
+    
+    ' Compara versões
+    updateAvailable = CompareVersions(remoteVersion, localVersion) > 0
+    
+    If updateAvailable Then
+        LogMessage "Atualização disponível: " & localVersion & " -> " & remoteVersion, LOG_LEVEL_INFO
+        CheckForUpdates = True
+    Else
+        LogMessage "Sistema está atualizado (v" & localVersion & ")", LOG_LEVEL_INFO
+    End If
+    
+    Exit Function
+    
+ErrorHandler:
+    LogMessage "Erro ao verificar atualizações: " & Err.Description, LOG_LEVEL_ERROR
+    CheckForUpdates = False
+End Function
+
+' Função: GetLocalVersion
+' Descrição: Lê a versão instalada do arquivo version.json local
+' Retorna: String com a versão local ou "" em caso de erro
+'================================================================================
+Private Function GetLocalVersion() As String
+    On Error GoTo ErrorHandler
+    
+    Dim fso As Object
+    Dim versionFile As String
+    Dim fileContent As String
+    Dim version As String
+    
+    GetLocalVersion = ""
+    
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    
+    ' Caminho do arquivo de versão local
+    versionFile = Environ("USERPROFILE") & "\chainsaw\installation\inst_configs\version.json"
+    
+    If Not fso.FileExists(versionFile) Then
+        LogMessage "Arquivo de versão local não encontrado: " & versionFile, LOG_LEVEL_WARNING
+        Exit Function
+    End If
+    
+    ' Lê o arquivo
+    fileContent = ReadTextFile(versionFile)
+    
+    ' Extrai versão usando regex simples
+    version = ExtractJsonValue(fileContent, "version")
+    
+    GetLocalVersion = version
+    
+    Exit Function
+    
+ErrorHandler:
+    LogMessage "Erro ao obter versão local: " & Err.Description, LOG_LEVEL_ERROR
+    GetLocalVersion = ""
+End Function
+
+' Função: GetRemoteVersion
+' Descrição: Baixa e lê a versão disponível no GitHub
+' Retorna: String com a versão remota ou "" em caso de erro
+'================================================================================
+Private Function GetRemoteVersion() As String
+    On Error GoTo ErrorHandler
+    
+    Dim http As Object
+    Dim url As String
+    Dim response As String
+    Dim version As String
+    
+    GetRemoteVersion = ""
+    
+    ' URL do arquivo version.json no GitHub
+    url = "https://raw.githubusercontent.com/chrmsantos/chainsaw/main/version.json"
+    
+    ' Cria objeto HTTP
+    Set http = CreateObject("MSXML2.XMLHTTP")
+    
+    ' Faz requisição GET
+    http.Open "GET", url, False
+    http.setRequestHeader "Cache-Control", "no-cache"
+    http.send
+    
+    ' Verifica resposta
+    If http.Status = 200 Then
+        response = http.responseText
+        version = ExtractJsonValue(response, "version")
+        GetRemoteVersion = version
+    Else
+        LogMessage "Erro HTTP ao buscar versão remota: " & http.Status, LOG_LEVEL_WARNING
+    End If
+    
+    Exit Function
+    
+ErrorHandler:
+    LogMessage "Erro ao obter versão remota: " & Err.Description, LOG_LEVEL_ERROR
+    GetRemoteVersion = ""
+End Function
+
+' Função: ExtractJsonValue
+' Descrição: Extrai um valor de um JSON simples usando regex
+' Parâmetros:
+'   - jsonText: String contendo o JSON
+'   - key: Chave a ser extraída
+' Retorna: Valor da chave ou "" se não encontrado
+'================================================================================
+Private Function ExtractJsonValue(ByVal jsonText As String, ByVal key As String) As String
+    On Error GoTo ErrorHandler
+    
+    Dim regex As Object
+    Dim matches As Object
+    Dim pattern As String
+    
+    ExtractJsonValue = ""
+    
+    Set regex = CreateObject("VBScript.RegExp")
+    
+    ' Pattern para extrair valor de string JSON: "key": "value"
+    pattern = """" & key & """\s*:\s*""([^""]+)"""
+    
+    regex.pattern = pattern
+    regex.IgnoreCase = True
+    regex.Global = False
+    
+    Set matches = regex.Execute(jsonText)
+    
+    If matches.Count > 0 Then
+        ExtractJsonValue = matches(0).SubMatches(0)
+    End If
+    
+    Exit Function
+    
+ErrorHandler:
+    LogMessage "Erro ao extrair valor JSON: " & Err.Description, LOG_LEVEL_ERROR
+    ExtractJsonValue = ""
+End Function
+
+' Função: CompareVersions
+' Descrição: Compara duas versões no formato X.Y.Z
+' Parâmetros:
+'   - version1: Primeira versão
+'   - version2: Segunda versão
+' Retorna: 1 se version1 > version2, -1 se version1 < version2, 0 se iguais
+'================================================================================
+Private Function CompareVersions(ByVal version1 As String, ByVal version2 As String) As Integer
+    On Error GoTo ErrorHandler
+    
+    Dim v1Parts() As String
+    Dim v2Parts() As String
+    Dim i As Integer
+    Dim v1Num As Long, v2Num As Long
+    
+    CompareVersions = 0
+    
+    ' Remove espaços
+    version1 = Trim(version1)
+    version2 = Trim(version2)
+    
+    ' Divide versões em partes
+    v1Parts = Split(version1, ".")
+    v2Parts = Split(version2, ".")
+    
+    ' Compara cada parte
+    For i = 0 To 2
+        v1Num = 0
+        v2Num = 0
+        
+        If i <= UBound(v1Parts) Then v1Num = CLng(v1Parts(i))
+        If i <= UBound(v2Parts) Then v2Num = CLng(v2Parts(i))
+        
+        If v1Num > v2Num Then
+            CompareVersions = 1
+            Exit Function
+        ElseIf v1Num < v2Num Then
+            CompareVersions = -1
+            Exit Function
+        End If
+    Next i
+    
+    Exit Function
+    
+ErrorHandler:
+    LogMessage "Erro ao comparar versões: " & Err.Description, LOG_LEVEL_ERROR
+    CompareVersions = 0
+End Function
+
+' Função: ReadTextFile
+' Descrição: Lê o conteúdo completo de um arquivo de texto
+' Parâmetros:
+'   - filePath: Caminho completo do arquivo
+' Retorna: Conteúdo do arquivo como String
+'================================================================================
+Private Function ReadTextFile(ByVal filePath As String) As String
+    On Error GoTo ErrorHandler
+    
+    Dim fso As Object
+    Dim file As Object
+    Dim content As String
+    
+    ReadTextFile = ""
+    
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    
+    If fso.FileExists(filePath) Then
+        Set file = fso.OpenTextFile(filePath, 1, False, -1) ' -1 = Unicode
+        content = file.ReadAll
+        file.Close
+        ReadTextFile = content
+    End If
+    
+    Exit Function
+    
+ErrorHandler:
+    LogMessage "Erro ao ler arquivo: " & Err.Description, LOG_LEVEL_ERROR
+    ReadTextFile = ""
+End Function
+
+' Sub: PromptForUpdate
+' Descrição: Verifica se há atualização e pergunta ao usuário se deseja atualizar
+'================================================================================
+Public Sub PromptForUpdate()
+    On Error GoTo ErrorHandler
+    
+    Dim updateAvailable As Boolean
+    Dim response As VbMsgBoxResult
+    Dim installerPath As String
+    Dim shellCmd As String
+    
+    ' Verifica se há atualizações
+    updateAvailable = CheckForUpdates()
+    
+    If Not updateAvailable Then
+        MsgBox "Seu sistema CHAINSAW está atualizado!", vbInformation, "CHAINSAW - Verificação de Versão"
+        Exit Sub
+    End If
+    
+    ' Pergunta ao usuário se deseja atualizar
+    response = MsgBox("Uma nova versão do CHAINSAW está disponível!" & vbCrLf & vbCrLf & _
+                      "Deseja atualizar agora?" & vbCrLf & vbCrLf & _
+                      "O instalador será executado e o Word será fechado.", _
+                      vbYesNo + vbQuestion, "CHAINSAW - Atualização Disponível")
+    
+    If response = vbYes Then
+        ' Caminho do instalador
+        installerPath = Environ("USERPROFILE") & "\chainsaw\chainsaw_installer.cmd"
+        
+        ' Verifica se o instalador existe
+        Dim fso As Object
+        Set fso = CreateObject("Scripting.FileSystemObject")
+        
+        If fso.FileExists(installerPath) Then
+            ' Executa o instalador
+            shellCmd = "cmd.exe /c """ & installerPath & """"
+            
+            ' Salva todos os documentos abertos
+            Dim doc As Object
+            For Each doc In Application.Documents
+                If doc.Saved = False Then
+                    doc.Save
+                End If
+            Next doc
+            
+            ' Executa instalador e fecha o Word
+            CreateObject("WScript.Shell").Run shellCmd, 1, False
+            
+            MsgBox "O instalador será executado. O Word será fechado agora.", vbInformation, "CHAINSAW - Atualização"
+            Application.Quit SaveChanges:=wdSaveChanges
+        Else
+            MsgBox "Instalador não encontrado em:" & vbCrLf & installerPath & vbCrLf & vbCrLf & _
+                   "Baixe manualmente de: https://github.com/chrmsantos/chainsaw", _
+                   vbExclamation, "CHAINSAW - Erro"
+        End If
+    End If
+    
+    Exit Sub
+    
+ErrorHandler:
+    MsgBox "Erro ao processar atualização: " & Err.Description, vbCritical, "CHAINSAW - Erro"
+End Sub
+
+
+
 
 
 

@@ -1,0 +1,32 @@
+{
+    "version": "2.0.2",
+    "releaseDate": "2025-11-25",
+    "minimumSupportedVersion": "2.0.0",
+    "downloadUrl": "https://github.com/chrmsantos/chainsaw/archive/refs/heads/main.zip",
+    "installerUrl": "https://raw.githubusercontent.com/chrmsantos/chainsaw/main/chainsaw_installer.cmd",
+    "changelog": [
+        {
+            "version": "2.0.2",
+            "date": "2025-11-25",
+            "changes": [
+                "Sistema de logging completo no instalador",
+                "Sistema de backup automático da instalação existente",
+                "Verificação de versão automática",
+                "Melhorias na segurança do processo de instalação"
+            ]
+        },
+        {
+            "version": "2.0.1",
+            "date": "2025-11-24",
+            "changes": [
+                "Estrutura inicial do projeto CHAINSAW",
+                "Scripts de instalação automatizada",
+                "Conformidade com LGPD"
+            ]
+        }
+    ],
+    "updateInstructions": {
+        "pt-BR": "Execute chainsaw_installer.cmd para atualizar automaticamente.",
+        "en-US": "Run chainsaw_installer.cmd to update automatically."
+    }
+}

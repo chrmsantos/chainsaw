@@ -741,4 +741,109 @@ Describe 'CHAINSAW - Testes de Scripts de Instalação' {
             $bytes.Count -gt 0 | Should Be $true
         }
     }
+
+    Context 'Sistema de Verificação de Versão' {
+        
+        BeforeAll {
+            $versionFile = Join-Path $repoRoot 'version.json'
+            $vbaModulePath = Join-Path $repoRoot 'source\main\monolithicMod.bas'
+        }
+
+        It 'Arquivo version.json existe na raiz do repositório' {
+            Test-Path $versionFile | Should Be $true
+        }
+
+        It 'version.json contém versão válida (formato X.Y.Z)' {
+            $content = Get-Content $versionFile -Raw | ConvertFrom-Json
+            $content.version | Should Match '^\d+\.\d+\.\d+$'
+        }
+
+        It 'version.json contém URL de download' {
+            $content = Get-Content $versionFile -Raw | ConvertFrom-Json
+            $content.downloadUrl | Should Not BeNullOrEmpty
+            $content.downloadUrl | Should Match 'github\.com'
+        }
+
+        It 'version.json contém URL do instalador' {
+            $content = Get-Content $versionFile -Raw | ConvertFrom-Json
+            $content.installerUrl | Should Not BeNullOrEmpty
+            $content.installerUrl | Should Match 'chainsaw_installer\.cmd'
+        }
+
+        It 'version.json contém data de release' {
+            $content = Get-Content $versionFile -Raw | ConvertFrom-Json
+            $content.releaseDate | Should Not BeNullOrEmpty
+        }
+
+        It 'VBA contém constante CHAINSAW_VERSION' {
+            $vbaContent = Get-Content $vbaModulePath -Raw
+            $vbaContent | Should Match 'Private Const CHAINSAW_VERSION As String'
+        }
+
+        It 'VBA contém função CheckForUpdates' {
+            $vbaContent = Get-Content $vbaModulePath -Raw
+            $vbaContent | Should Match 'Public Function CheckForUpdates\(\) As Boolean'
+        }
+
+        It 'VBA contém função GetLocalVersion' {
+            $vbaContent = Get-Content $vbaModulePath -Raw
+            $vbaContent | Should Match 'Private Function GetLocalVersion\(\) As String'
+        }
+
+        It 'VBA contém função GetRemoteVersion' {
+            $vbaContent = Get-Content $vbaModulePath -Raw
+            $vbaContent | Should Match 'Private Function GetRemoteVersion\(\) As String'
+        }
+
+        It 'VBA contém função CompareVersions' {
+            $vbaContent = Get-Content $vbaModulePath -Raw
+            $vbaContent | Should Match 'Private Function CompareVersions\('
+        }
+
+        It 'VBA contém sub PromptForUpdate' {
+            $vbaContent = Get-Content $vbaModulePath -Raw
+            $vbaContent | Should Match 'Public Sub PromptForUpdate\(\)'
+        }
+
+        It 'GetRemoteVersion usa URL correto do GitHub' {
+            $vbaContent = Get-Content $vbaModulePath -Raw
+            $vbaContent | Should Match 'raw\.githubusercontent\.com/chrmsantos/chainsaw/main/version\.json'
+        }
+
+        It 'PromptForUpdate executa chainsaw_installer.cmd' {
+            $vbaContent = Get-Content $vbaModulePath -Raw
+            $vbaContent | Should Match 'chainsaw_installer\.cmd'
+        }
+
+        It 'chainsaw_installer.cmd cria version.json local' {
+            $installerContent = Get-Content $installerCmd -Raw
+            $installerContent | Should Match 'LOCAL_VERSION_FILE.*version\.json'
+            $installerContent | Should Match 'ConvertTo-Json'
+        }
+
+        It 'Versão no VBA corresponde ao version.json' {
+            $versionJson = Get-Content $versionFile -Raw | ConvertFrom-Json
+            $vbaContent = Get-Content $vbaModulePath -Raw
+            
+            if ($vbaContent -match 'Private Const CHAINSAW_VERSION As String = "([^"]+)"') {
+                $vbaVersion = $matches[1]
+                $vbaVersion | Should Be $versionJson.version
+            } else {
+                throw "CHAINSAW_VERSION não encontrado no VBA"
+            }
+        }
+
+        It 'Versão no cabeçalho VBA corresponde ao version.json' {
+            $versionJson = Get-Content $versionFile -Raw | ConvertFrom-Json
+            $vbaContent = Get-Content $vbaModulePath -Raw
+            
+            if ($vbaContent -match "' Versão: ([^\r\n]+)") {
+                $headerVersion = $matches[1].Trim()
+                $headerVersion | Should Be $versionJson.version
+            } else {
+                throw "Versão não encontrada no cabeçalho VBA"
+            }
+        }
+    }
 }
+

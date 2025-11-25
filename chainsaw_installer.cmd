@@ -201,6 +201,20 @@ if errorlevel 1 (
 
 call :Log "[OK] Arquivos copiados com sucesso!"
 
+REM Cria arquivo de versão local
+call :Log "[INFO] Criando arquivo de versao local..."
+set "LOCAL_VERSION_FILE=%INSTALL_DIR%\installation\inst_configs\version.json"
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+    "$version = @{" ^
+    "  version = '2.0.2';" ^
+    "  installedDate = (Get-Date -Format 'yyyy-MM-dd');" ^
+    "  installPath = '%INSTALL_DIR%';" ^
+    "  lastUpdateCheck = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')" ^
+    "} | ConvertTo-Json -Depth 3 | Out-File -FilePath '%LOCAL_VERSION_FILE%' -Encoding UTF8"
+if not errorlevel 1 (
+    call :Log "[OK] Arquivo de versao criado: %LOCAL_VERSION_FILE%"
+)
+
 REM Limpeza de arquivos temporários
 call :Log "[INFO] Limpando arquivos temporarios..."
 if exist "%TEMP_ZIP%" del /f /q "%TEMP_ZIP%" >nul 2>&1

@@ -8,6 +8,13 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 ## [2.0.2] - 2025-11-25
 
 ### Adicionado
+- **Sistema de verificação automática de versão**
+  - Função VBA `CheckForUpdates()` verifica versão remota no GitHub
+  - Função VBA `PromptForUpdate()` notifica usuário sobre atualizações disponíveis
+  - Arquivo `version.json` no repositório para controle de versões
+  - Arquivo `version.json` local criado durante instalação
+  - Comparação inteligente de versões (formato semântico X.Y.Z)
+  - Opção de atualização com um clique via `chainsaw_installer.cmd`
 - Sistema de logging completo no `chainsaw_installer.cmd`
   - Log salvo no diretório do instalador
   - Log copiado para `installation/inst_docs/inst_logs/`
@@ -19,14 +26,18 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
   - Validação de estrutura e conteúdo
   - Validação de ordem de execução
   - Validação de segurança e logging
+  - Validação do sistema de verificação de versão
 
 ### Modificado
+- `installer.cmd` renomeado para `chainsaw_installer.cmd`
 - `chainsaw_installer.cmd` agora executa operações na ordem correta:
   1. Download do código-fonte
   2. Verificação do download
   3. Criação de backup (se instalação existente)
   4. Remoção da instalação antiga
   5. Extração e instalação da nova versão
+  6. Criação do arquivo de versão local
+- Constante de versão adicionada ao VBA: `CHAINSAW_VERSION`
 - Melhorias na segurança: pasta antiga só é removida após confirmação de download bem-sucedido
 
 ### Corrigido
