@@ -673,10 +673,37 @@ function Copy-StampFile {
         }
         
         Write-Log "Arquivo stamp.png copiado e validado com sucesso [OK]" -Level SUCCESS
+        
+        # VALIDAÇÃO CRÍTICA FINAL: Verifica integridade completa do arquivo
+        try {
+            $finalCheck = Get-Item $destFile -ErrorAction Stop
+            if ($finalCheck.Length -lt 100) {
+                Write-Log "[ERRO CRÍTICO] Validação final falhou - arquivo corrompido" -Level ERROR
+                Remove-Item -Path $destFile -Force -ErrorAction SilentlyContinue
+                throw "Arquivo stamp.png está corrompido após cópia."
+            }
+        }
+        catch {
+            Write-Log "[ERRO CRÍTICO] Falha na validação final: $_" -Level ERROR
+            throw
+        }
+        
         return $true
     }
     catch {
         Write-Log "Erro ao copiar stamp.png: $_" -Level ERROR
+        
+        # SEGURANÇA: Remove arquivo parcial ou corrompido
+        if (Test-Path $destFile) {
+            try {
+                Remove-Item -Path $destFile -Force -ErrorAction SilentlyContinue
+                Write-Log "Arquivo parcial/corrompido removido" -Level WARNING
+            }
+            catch {
+                Write-Log "Não foi possível remover arquivo corrompido: $_" -Level ERROR
+            }
+        }
+        
         throw
     }
 }
@@ -786,247 +813,163 @@ function Test-CustomizationsAvailable {
     return $true
 }
 
-function Backup-CompleteConfiguration {
+# Funções de backup removidas - não criar backups na pasta CHAINSAW do usuário
+
+# =============================================================================
+# FUNÇÕES DE LIMPEZA E SEGURANÇA
+# =============================================================================
+
+function Validate-ChainsawInstallation {
     <#
     .SYNOPSIS
-        Cria um backup completo de TODAS as configurações antes da instalação.
+        Valida a instalação completa da pasta CHAINSAW.
     .DESCRIPTION
-        Este backup permite restaurar completamente o estado anterior à instalação.
-        Inclui: Templates, Normal.dotm, personalizações UI, stamp.png, e metadados.
+        Verifica se todos os arquivos necessários foram instalados corretamente.
+        Retorna $true se válido, $false caso contrário.
     #>
     
-    if ($NoBackup) {
-        Write-Log "Backup completo desabilitado (-NoBackup)" -Level WARNING
-        return $null
-    }
-    
-    Write-Log "Criando backup completo da configuração atual..." -Level INFO
-    
-    $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
-    $backupBasePath = Join-Path $env:USERPROFILE "CHAINSAW\backups"
-    $backupPath = Join-Path $backupBasePath "full_backup_$timestamp"
+    Write-Log "Validando instalação da pasta CHAINSAW..." -Level INFO
     
     try {
-        # Cria estrutura de diretórios
-        if (-not (Test-Path $backupPath)) {
-            New-Item -Path $backupPath -ItemType Directory -Force | Out-Null
+        $chainsawPath = Join-Path $env:USERPROFILE "CHAINSAW"
+        
+        # Verifica se a pasta existe
+        if (-not (Test-Path $chainsawPath)) {
+            Write-Log "[VALIDAÇÃO] Pasta CHAINSAW não existe" -Level ERROR
+            return $false
         }
         
-        $backupManifest = @{
-            Timestamp = $timestamp
-            Date      = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-            User      = $env:USERNAME
-            Computer  = $env:COMPUTERNAME
-            Items     = @{}
+        # Verifica stamp.png
+        $stampPath = Join-Path $chainsawPath "assets\stamp.png"
+        if (-not (Test-Path $stampPath)) {
+            Write-Log "[VALIDAÇÃO] stamp.png não encontrado" -Level ERROR
+            return $false
         }
         
-        # 1. Backup completo da pasta Templates
-        $templatesPath = Join-Path $env:APPDATA "Microsoft\Templates"
-        if (Test-Path $templatesPath) {
-            $templatesBackupPath = Join-Path $backupPath "Templates"
-            Write-Log "Fazendo backup da pasta Templates..." -Level INFO
-            Copy-Item -Path $templatesPath -Destination $templatesBackupPath -Recurse -Force -ErrorAction Stop
-            
-            $templatesSize = (Get-ChildItem -Path $templatesBackupPath -Recurse -File | Measure-Object -Property Length -Sum).Sum / 1MB
-            $backupManifest.Items.Templates = @{
-                Path   = $templatesBackupPath
-                SizeMB = [math]::Round($templatesSize, 2)
-                Files  = (Get-ChildItem -Path $templatesBackupPath -Recurse -File).Count
-            }
-            Write-Log "Templates backup: $([math]::Round($templatesSize, 2)) MB, $($backupManifest.Items.Templates.Files) arquivos" -Level INFO
-        }
-        else {
-            Write-Log "Pasta Templates não existe - pulando" -Level INFO
+        $stampInfo = Get-Item $stampPath
+        if ($stampInfo.Length -lt 100) {
+            Write-Log "[VALIDAÇÃO] stamp.png inválido (tamanho: $($stampInfo.Length) bytes)" -Level ERROR
+            return $false
         }
         
-        # 2. Backup do stamp.png (se existir)
-        $stampPath = Join-Path $env:USERPROFILE "CHAINSAW\assets\stamp.png"
-        if (Test-Path $stampPath) {
-            $stampBackupPath = Join-Path $backupPath "stamp.png"
-            Copy-Item -Path $stampPath -Destination $stampBackupPath -Force -ErrorAction Stop
-            $backupManifest.Items.Stamp = @{
-                Path   = $stampBackupPath
-                SizeKB = [math]::Round((Get-Item $stampBackupPath).Length / 1KB, 2)
-            }
-            Write-Log "stamp.png backup criado: $($backupManifest.Items.Stamp.SizeKB) KB" -Level INFO
-        }
-        
-        # 3. Backup de personalizações (Normal.dotm, UI customizations)
-        $customBackupPath = Join-Path $backupPath "Customizations"
-        New-Item -Path $customBackupPath -ItemType Directory -Force | Out-Null
-        
-        # Normal.dotm (cópia adicional)
-        $normalPath = Join-Path $templatesPath "Normal.dotm"
-        if (Test-Path $normalPath) {
-            $normalBackupPath = Join-Path $customBackupPath "Templates"
-            New-Item -Path $normalBackupPath -ItemType Directory -Force | Out-Null
-            Copy-Item -Path $normalPath -Destination $normalBackupPath -Force
-            Write-Log "Normal.dotm backup adicional criado" -Level INFO
-        }
-        
-        # Personalizações UI do Office
-        $localAppDataPath = $env:LOCALAPPDATA
-        $uiPath = Join-Path $localAppDataPath "Microsoft\Office"
-        $uiFiles = Get-ChildItem -Path $uiPath -Filter "*.officeUI" -Recurse -ErrorAction SilentlyContinue
-        
-        if ($uiFiles.Count -gt 0) {
-            $destUI = Join-Path $customBackupPath "OfficeCustomUI"
-            New-Item -Path $destUI -ItemType Directory -Force | Out-Null
-            foreach ($file in $uiFiles) {
-                Copy-Item -Path $file.FullName -Destination (Join-Path $destUI $file.Name) -Force
-            }
-            $backupManifest.Items.Customizations = @{
-                UIFiles = $uiFiles.Count
-            }
-            Write-Log "Personalizações UI backup: $($uiFiles.Count) arquivos" -Level INFO
-        }
-        
-        # 4. Salva manifesto do backup
-        $manifestPath = Join-Path $backupPath "backup_manifest.json"
-        $backupManifest | ConvertTo-Json -Depth 10 | Out-File -FilePath $manifestPath -Encoding UTF8
-        
-        # 5. Cria arquivo README no backup
-        $readmePath = Join-Path $backupPath "README.txt"
-        $readmeContent = @"
-================================================================================
-CHAINSAW - BACKUP COMPLETO
-================================================================================
-
-Data do Backup: $($backupManifest.Date)
-Usuário: $($backupManifest.User)
-Computador: $($backupManifest.Computer)
-
-Este backup contém uma cópia completa das configurações do Word antes da
-instalação do CHAINSAW.
-
-================================================================================
-CONTEÚDO DO BACKUP
-================================================================================
-
-"@
-        
-        if ($backupManifest.Items.Templates) {
-            $readmeContent += @"
-
-[Templates]
-  - Pasta completa: Templates\
-  - Tamanho: $($backupManifest.Items.Templates.SizeMB) MB
-  - Arquivos: $($backupManifest.Items.Templates.Files)
-  - Inclui: Normal.dotm, Building Blocks, Temas, Estilos, etc.
-
-"@
-        }
-        
-        if ($backupManifest.Items.Stamp) {
-            $readmeContent += @"
-
-[Stamp]
-  - Arquivo: stamp.png
-  - Tamanho: $($backupManifest.Items.Stamp.SizeKB) KB
-
-"@
-        }
-        
-        if ($backupManifest.Items.Customizations) {
-            $readmeContent += @"
-
-[Personalizações]
-  - Pasta: Customizations\
-  - Arquivos UI: $($backupManifest.Items.Customizations.UIFiles)
-  - Inclui: Ribbon customizations, Quick Access Toolbar, etc.
-
-"@
-        }
-        
-        $readmeContent += @"
-
-================================================================================
-RESTAURAÇÃO
-================================================================================
-
-Para restaurar este backup, execute:
-
-    .\restore-backup.cmd
-
-Ou manualmente:
-
-    powershell.exe -ExecutionPolicy Bypass -File restore-backup.ps1 -BackupPath "$backupPath"
-
-================================================================================
-IMPORTANTE
-================================================================================
-
-- Este backup é criado AUTOMATICAMENTE antes de cada instalação
-- Backups antigos são mantidos por segurança
-- Para liberar espaço, remova manualmente backups antigos desta pasta:
-  $backupBasePath
-
-================================================================================
-"@
-        
-        $readmeContent | Out-File -FilePath $readmePath -Encoding UTF8
-        
-        Write-Log "Backup completo criado com sucesso em: $backupPath [OK]" -Level SUCCESS
-        Write-Log "Manifesto salvo em: $manifestPath" -Level INFO
-        
-        return $backupPath
+        Write-Log "Validação da instalação: OK ($($stampInfo.Length) bytes)" -Level SUCCESS
+        return $true
     }
     catch {
-        Write-Log "Erro ao criar backup completo: $_" -Level ERROR
-        Write-Log "Stack trace: $($_.ScriptStackTrace)" -Level ERROR
-        return $null
+        Write-Log "[VALIDAÇÃO] Erro durante validação: $_" -Level ERROR
+        return $false
     }
 }
 
-function Backup-WordCustomizations {
-    param([string]$BackupReason = "pré-importação")
+function Remove-ChainsawUserFolder {
+    <#
+    .SYNOPSIS
+        Remove completamente a pasta CHAINSAW do perfil do usuário de forma segura.
+    .DESCRIPTION
+        Esta função garante que em caso de erro, a pasta CHAINSAW seja completamente
+        removida, evitando deixar arquivos corrompidos ou instalação parcial.
+    #>
+    param(
+        [Parameter()]
+        [switch]$Force
+    )
     
-    if ($NoBackup) {
-        Write-Log "Backup de personalizações desabilitado (-NoBackup)" -Level WARNING
-        return $null
+    $chainsawPath = Join-Path $env:USERPROFILE "CHAINSAW"
+    
+    if (-not (Test-Path $chainsawPath)) {
+        Write-Log "Pasta CHAINSAW não existe - nada a remover" -Level INFO
+        return $true
     }
     
-    Write-Log "Criando backup das personalizações do Word ($BackupReason)..." -Level INFO
-    
-    $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
-    $backupPath = Join-Path $env:USERPROFILE "CHAINSAW\backups\word-customizations_$timestamp"
+    Write-Log "Iniciando remoção segura da pasta CHAINSAW..." -Level INFO
     
     try {
-        if (-not (Test-Path $backupPath)) {
-            New-Item -Path $backupPath -ItemType Directory -Force | Out-Null
-        }
+        # Tenta remover normalmente
+        Remove-Item -Path $chainsawPath -Recurse -Force -ErrorAction Stop
         
-        $templatesPath = Join-Path $env:APPDATA "Microsoft\Templates"
-        $localAppDataPath = $env:LOCALAPPDATA
-        
-        # Backup do Normal.dotm
-        $normalPath = Join-Path $templatesPath "Normal.dotm"
-        if (Test-Path $normalPath) {
-            $destNormal = Join-Path $backupPath "Templates"
-            New-Item -Path $destNormal -ItemType Directory -Force | Out-Null
-            Copy-Item -Path $normalPath -Destination $destNormal -Force
-            Write-Log "Normal.dotm backup criado" -Level INFO
-        }
-        
-        # Backup de personalizações UI
-        $uiPath = Join-Path $localAppDataPath "Microsoft\Office"
-        $uiFiles = Get-ChildItem -Path $uiPath -Filter "*.officeUI" -Recurse -ErrorAction SilentlyContinue
-        if ($uiFiles.Count -gt 0) {
-            $destUI = Join-Path $backupPath "OfficeCustomUI"
-            New-Item -Path $destUI -ItemType Directory -Force | Out-Null
-            foreach ($file in $uiFiles) {
-                Copy-Item -Path $file.FullName -Destination (Join-Path $destUI $file.Name) -Force
+        # Valida remoção
+        if (Test-Path $chainsawPath) {
+            Write-Log "[ERRO CRÍTICO] Pasta CHAINSAW ainda existe após remoção" -Level ERROR
+            
+            # Segunda tentativa com método alternativo
+            Start-Sleep -Milliseconds 500
+            Remove-Item -Path $chainsawPath -Recurse -Force -ErrorAction Stop
+            
+            if (Test-Path $chainsawPath) {
+                Write-Log "[ERRO CRÍTICO] Falha crítica ao remover pasta CHAINSAW" -Level ERROR
+                return $false
             }
-            Write-Log "Personalizações UI backup criado: $($uiFiles.Count) arquivos" -Level INFO
         }
         
-        Write-Log "Backup de personalizações criado em: $backupPath [OK]" -Level SUCCESS
-        return $backupPath
+        Write-Log "Pasta CHAINSAW removida com sucesso [OK]" -Level SUCCESS
+        return $true
     }
     catch {
-        Write-Log "Erro ao criar backup de personalizações: $_" -Level ERROR
-        return $null
+        Write-Log "Erro ao remover pasta CHAINSAW: $_" -Level ERROR
+        
+        # Tenta método mais agressivo
+        try {
+            Write-Log "Tentando método alternativo de remoção..." -Level WARNING
+            
+            # Remove atributos read-only recursivamente
+            Get-ChildItem -Path $chainsawPath -Recurse -Force -ErrorAction SilentlyContinue | 
+            ForEach-Object { $_.Attributes = 'Normal' }
+            
+            # Aguarda e tenta novamente
+            Start-Sleep -Milliseconds 500
+            Remove-Item -Path $chainsawPath -Recurse -Force -ErrorAction Stop
+            
+            if (Test-Path $chainsawPath) {
+                Write-Log "[ERRO CRÍTICO] Método alternativo falhou - pasta ainda existe" -Level ERROR
+                return $false
+            }
+            
+            Write-Log "Pasta CHAINSAW removida com método alternativo [OK]" -Level SUCCESS
+            return $true
+        }
+        catch {
+            Write-Log "Falha crítica ao remover pasta CHAINSAW (método alternativo): $_" -Level ERROR
+            return $false
+        }
     }
+}
+    
+try {
+    if (-not (Test-Path $backupPath)) {
+        New-Item -Path $backupPath -ItemType Directory -Force | Out-Null
+    }
+        
+    $templatesPath = Join-Path $env:APPDATA "Microsoft\Templates"
+    $localAppDataPath = $env:LOCALAPPDATA
+        
+    # Backup do Normal.dotm
+    $normalPath = Join-Path $templatesPath "Normal.dotm"
+    if (Test-Path $normalPath) {
+        $destNormal = Join-Path $backupPath "Templates"
+        New-Item -Path $destNormal -ItemType Directory -Force | Out-Null
+        Copy-Item -Path $normalPath -Destination $destNormal -Force
+        Write-Log "Normal.dotm backup criado" -Level INFO
+    }
+        
+    # Backup de personalizações UI
+    $uiPath = Join-Path $localAppDataPath "Microsoft\Office"
+    $uiFiles = Get-ChildItem -Path $uiPath -Filter "*.officeUI" -Recurse -ErrorAction SilentlyContinue
+    if ($uiFiles.Count -gt 0) {
+        $destUI = Join-Path $backupPath "OfficeCustomUI"
+        New-Item -Path $destUI -ItemType Directory -Force | Out-Null
+        foreach ($file in $uiFiles) {
+            Copy-Item -Path $file.FullName -Destination (Join-Path $destUI $file.Name) -Force
+        }
+        Write-Log "Personalizações UI backup criado: $($uiFiles.Count) arquivos" -Level INFO
+    }
+        
+    Write-Log "Backup de personalizações criado em: $backupPath [OK]" -Level SUCCESS
+    return $backupPath
+}
+catch {
+    Write-Log "Erro ao criar backup de personalizações: $_" -Level ERROR
+    return $null
+}
 }
 
 function Import-VbaModule {
@@ -1396,20 +1339,7 @@ function Import-WordCustomizations {
         return $false
     }
     
-    # Cria backup
-    $backupPath = Backup-WordCustomizations -BackupReason "pré-importação de personalizações"
-    if ($null -eq $backupPath -and -not $NoBackup) {
-        Write-Host ""
-        Write-Host "[AVISO] Falha ao criar backup das personalizações atuais." -ForegroundColor Yellow
-        
-        if (-not $Force) {
-            $response = Read-Host "Continuar mesmo assim? (S/N)"
-            if ($response -notmatch '^[Ss]$') {
-                Write-Log "Importação cancelada: falha no backup" -Level WARNING
-                return $false
-            }
-        }
-    }
+    # Backup removido - não criar backups na pasta CHAINSAW do usuário
     
     Write-Host ""
     Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
@@ -1753,44 +1683,7 @@ function Install-CHAINSAWConfig {
             throw "Arquivos de origem não encontrados. Verifique os erros acima."
         }
         
-        # 3. Backup completo da configuração atual (ANTES de qualquer modificação)
-        $fullBackupPath = $null
-        if (-not $NoBackup) {
-            Write-Host ""
-            Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
-            Write-Host "  ETAPA 3: Backup Completo da Configuração Atual" -ForegroundColor White
-            Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
-            Write-Host ""
-            Write-Host "ℹ Criando backup completo antes da instalação..." -ForegroundColor Cyan
-            Write-Host "  Este backup permitirá restaurar completamente o estado atual" -ForegroundColor Gray
-            Write-Host ""
-            
-            $fullBackupPath = Backup-CompleteConfiguration
-            
-            if ($fullBackupPath) {
-                Write-Host ""
-                Write-Host "[OK] Backup completo criado com sucesso!" -ForegroundColor Green
-                Write-Host "  Localização: $fullBackupPath" -ForegroundColor Gray
-                Write-Host ""
-                Write-Host "  Para restaurar este backup, execute:" -ForegroundColor Yellow
-                Write-Host "    .\restore-backup.cmd" -ForegroundColor White
-                Write-Host ""
-            }
-            else {
-                Write-Host ""
-                Write-Host "[AVISO] Não foi possível criar backup completo" -ForegroundColor Yellow
-                Write-Host "  A instalação pode continuar, mas não será possível restaurar" -ForegroundColor Yellow
-                Write-Host ""
-                
-                if (-not $Force) {
-                    $response = Read-Host "Deseja continuar mesmo assim? (S/N)"
-                    if ($response -notmatch '^[Ss]$') {
-                        Write-Log "Instalação cancelada pelo usuário (falha no backup)" -Level WARNING
-                        return
-                    }
-                }
-            }
-        }
+        # 3. Backup completo removido - instalação direta sem backup na pasta CHAINSAW
         
         # 4. Confirmação do usuário
         if (-not $Force) {
@@ -1804,12 +1697,6 @@ function Install-CHAINSAWConfig {
             Write-Host "  2. Fazer backup da pasta Templates atual (se existir)" -ForegroundColor White
             Write-Host "  3. Copiar nova pasta Templates do diretório local" -ForegroundColor White
             Write-Host ""
-            
-            if ($fullBackupPath) {
-                Write-Host "[OK] Backup completo já foi criado em:" -ForegroundColor Green
-                Write-Host "  $fullBackupPath" -ForegroundColor Gray
-                Write-Host ""
-            }
             
             $response = Read-Host "Deseja continuar? (S/N)"
             if ($response -notmatch '^[Ss]$') {
@@ -2028,6 +1915,36 @@ function Install-CHAINSAWConfig {
         $endTime = Get-Date
         $duration = $endTime - $startTime
         
+        # VALIDAÇÃO FINAL CRÍTICA: Verifica se instalação está íntegra
+        Write-Host ""
+        Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+        Write-Host "  VALIDAÇÃO FINAL" -ForegroundColor White
+        Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+        Write-Host ""
+        
+        if (-not (Validate-ChainsawInstallation)) {
+            Write-Host "[ERRO CRÍTICO] Validação final falhou!" -ForegroundColor Red
+            Write-Log "[ERRO CRÍTICO] Instalação inválida detectada na validação final" -Level ERROR
+            
+            # Remove instalação corrompida
+            Write-Host " Removendo instalação corrompida..." -ForegroundColor Yellow
+            $cleanupSuccess = Remove-ChainsawUserFolder -Force
+            
+            if ($cleanupSuccess) {
+                Write-Host "[OK] Instalação corrompida removida" -ForegroundColor Green
+                Write-Log "Instalação corrompida removida com sucesso" -Level SUCCESS
+            }
+            else {
+                Write-Host "[ERRO] Falha ao remover instalação corrompida!" -ForegroundColor Red
+                Write-Log "[ERRO CRÍTICO] Falha ao remover instalação corrompida" -Level ERROR
+            }
+            
+            throw "Validação final da instalação falhou - instalação abortada e removida."
+        }
+        
+        Write-Host "[OK] Validação final bem-sucedida" -ForegroundColor Green
+        Write-Log "Validação final: instalação íntegra [OK]" -Level SUCCESS
+        
         Write-Host ""
         Write-Host "╔════════════════════════════════════════════════════════════════╗" -ForegroundColor Green
         Write-Host "║              INSTALAÇÃO CONCLUÍDA COM SUCESSO!                 ║" -ForegroundColor Green
@@ -2039,12 +1956,6 @@ function Install-CHAINSAWConfig {
         Write-Host "   • Erros: $script:ErrorCount" -ForegroundColor Red
         Write-Host "   • Tempo decorrido: $($duration.ToString('mm\:ss'))" -ForegroundColor Gray
         Write-Host ""
-        
-        if ($backupPath) {
-            Write-Host " Backup criado em:" -ForegroundColor Cyan
-            Write-Host "   $backupPath" -ForegroundColor Gray
-            Write-Host ""
-        }
         
         Write-Host " Log completo salvo em:" -ForegroundColor Cyan
         Write-Host "   $script:LogFile" -ForegroundColor Gray
@@ -2064,19 +1975,35 @@ function Install-CHAINSAWConfig {
         Write-Host ""
         Write-Host "[ERRO] Erro: $($_.Exception.Message)" -ForegroundColor Red
         Write-Host ""
-        Write-Host " Verifique o arquivo de log para mais detalhes:" -ForegroundColor Yellow
-        Write-Host "   $script:LogFile" -ForegroundColor Gray
-        Write-Host ""
         
         Write-Log "=== INSTALAÇÃO FALHOU ===" -Level ERROR
         Write-Log "Erro: $($_.Exception.Message)" -Level ERROR
         Write-Log "Stack trace: $($_.ScriptStackTrace)" -Level ERROR
         Write-Log "Duração até falha: $($duration.ToString('mm\:ss'))" -Level INFO
         
-        # Tenta reverter mudanças se possível
+        # SEGURANÇA CRÍTICA: Remove pasta CHAINSAW em caso de erro
+        Write-Host ""
+        Write-Host " Iniciando limpeza de segurança..." -ForegroundColor Yellow
+        Write-Log "Iniciando remoção da pasta CHAINSAW por segurança" -Level WARNING
+        
+        $cleanupSuccess = Remove-ChainsawUserFolder -Force
+        
+        if ($cleanupSuccess) {
+            Write-Host "[OK] Limpeza concluída - pasta CHAINSAW removida" -ForegroundColor Green
+            Write-Log "Pasta CHAINSAW removida com sucesso após falha [OK]" -Level SUCCESS
+        }
+        else {
+            Write-Host "[ERRO CRÍTICO] Falha ao remover pasta CHAINSAW!" -ForegroundColor Red
+            Write-Host "  AÇÃO MANUAL NECESSÁRIA:" -ForegroundColor Yellow
+            Write-Host "    Remova manualmente a pasta: $env:USERPROFILE\CHAINSAW" -ForegroundColor White
+            Write-Log "[ERRO CRÍTICO] Falha crítica ao remover pasta CHAINSAW" -Level ERROR
+        }
+        
+        # Tenta reverter mudanças se possível (apenas Templates)
         if ($backupPath -and (Test-Path $backupPath)) {
-            Write-Host " Tentando reverter mudanças usando backup..." -ForegroundColor Yellow
-            Write-Log "Iniciando rollback automático" -Level WARNING
+            Write-Host ""
+            Write-Host " Tentando reverter mudanças nos Templates..." -ForegroundColor Yellow
+            Write-Log "Iniciando rollback dos Templates" -Level WARNING
             
             try {
                 # VALIDA BACKUP ANTES DE RESTAURAR
@@ -2090,7 +2017,7 @@ function Install-CHAINSAWConfig {
                 
                 $templatesPath = Join-Path $env:APPDATA "Microsoft\Templates"
                 if (Test-Path $templatesPath) {
-                    Write-Log "Removendo instalação parcial..." -Level INFO
+                    Write-Log "Removendo instalação parcial dos Templates..." -Level INFO
                     Remove-Item -Path $templatesPath -Recurse -Force -ErrorAction Stop
                 }
                 
@@ -2100,23 +2027,27 @@ function Install-CHAINSAWConfig {
                 # Valida restauração
                 $restoredPath = Join-Path $env:APPDATA "Microsoft\Templates"
                 if (Test-Path $restoredPath) {
-                    Write-Host "[OK] Backup restaurado com sucesso" -ForegroundColor Green
-                    Write-Log "Backup restaurado após falha na instalação [OK]" -Level SUCCESS
+                    Write-Host "[OK] Templates restaurados com sucesso" -ForegroundColor Green
+                    Write-Log "Templates restaurados após falha na instalação [OK]" -Level SUCCESS
                 }
                 else {
-                    Write-Log "[ERRO] Falha ao validar restauração" -Level ERROR
+                    Write-Log "[ERRO] Falha ao validar restauração dos Templates" -Level ERROR
                 }
             }
             catch {
-                Write-Host "[ERRO] Não foi possível restaurar o backup automaticamente" -ForegroundColor Red
+                Write-Host "[ERRO] Não foi possível restaurar o backup dos Templates" -ForegroundColor Red
                 Write-Host "  Backup preservado em: $backupPath" -ForegroundColor Yellow
-                Write-Host "  Para restaurar manualmente, execute: .\restore-backup.cmd" -ForegroundColor Yellow
-                Write-Log "Falha ao restaurar backup: $_" -Level ERROR
+                Write-Log "Falha ao restaurar backup dos Templates: $_" -Level ERROR
             }
         }
         else {
-            Write-Log "Backup não disponível para rollback" -Level WARNING
+            Write-Log "Backup dos Templates não disponível para rollback" -Level WARNING
         }
+        
+        Write-Host ""
+        Write-Host " Verifique o arquivo de log para mais detalhes:" -ForegroundColor Yellow
+        Write-Host "   $script:LogFile" -ForegroundColor Gray
+        Write-Host ""
         
         throw
     }

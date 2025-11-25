@@ -200,9 +200,9 @@ chainsaw_installer.cmd
    - `chainsaw_installer_YYYYMMDD_HHMMSS.log`
    - `installation\inst_docs\inst_logs\install_*.log`
 
-2. **Verifique backups**:
+2. **Verifique backups** (criados pelo instalador):
    - `%USERPROFILE%\chainsaw_backup_*`
-   - `%USERPROFILE%\CHAINSAW\backups\`
+   - `%APPDATA%\Microsoft\Templates_backup_*`
 
 3. **Consulte a documentação**:
    - `docs/PROTECOES_SEGURANCA.md`
