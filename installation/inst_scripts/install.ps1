@@ -623,6 +623,21 @@ function Copy-StampFile {
     Write-Log "Destino: $destFile" -Level INFO
     
     try {
+        # VALIDAÇÃO CRÍTICA 1: Verifica se arquivo de origem existe
+        if (-not (Test-Path $SourceFile)) {
+            Write-Log "[ERRO CRITICO] Arquivo de origem não existe: $SourceFile" -Level ERROR
+            throw "Arquivo stamp.png não encontrado na origem. Instalação abortada."
+        }
+        
+        # VALIDAÇÃO CRÍTICA 2: Verifica tamanho mínimo do arquivo
+        $sourceFileInfo = Get-Item $SourceFile
+        if ($sourceFileInfo.Length -lt 100) {
+            Write-Log "[ERRO CRITICO] Arquivo stamp.png muito pequeno ou corrompido: $($sourceFileInfo.Length) bytes" -Level ERROR
+            throw "Arquivo stamp.png inválido (tamanho suspeito). Instalação abortada."
+        }
+        
+        Write-Log "Tamanho do arquivo de origem: $($sourceFileInfo.Length) bytes [OK]" -Level INFO
+        
         # Verifica se origem e destino são o mesmo arquivo
         $sourceFullPath = (Resolve-Path $SourceFile).Path
         $destFullPath = if (Test-Path $destFile) { (Resolve-Path $destFile).Path } else { $null }
@@ -642,24 +657,23 @@ function Copy-StampFile {
         # Copia o arquivo
         Copy-Item -Path $SourceFile -Destination $destFile -Force -ErrorAction Stop
         
-        # Verifica se o arquivo foi copiado corretamente
-        if (Test-Path $destFile) {
-            $sourceSize = (Get-Item $SourceFile).Length
-            $destSize = (Get-Item $destFile).Length
-            
-            if ($sourceSize -eq $destSize) {
-                Write-Log "Arquivo stamp.png copiado com sucesso [OK]" -Level SUCCESS
-                return $true
-            }
-            else {
-                Write-Log "Tamanhos diferentes: origem=$sourceSize, destino=$destSize" -Level WARNING
-                return $false
-            }
+        # VALIDAÇÃO CRÍTICA 3: Verifica se o arquivo foi copiado corretamente
+        if (-not (Test-Path $destFile)) {
+            Write-Log "[ERRO CRITICO] Arquivo não foi copiado!" -Level ERROR
+            throw "Falha na cópia do arquivo stamp.png. Instalação abortada."
         }
-        else {
-            Write-Log "Arquivo não foi copiado corretamente" -Level ERROR
-            return $false
+        
+        $sourceSize = (Get-Item $SourceFile).Length
+        $destSize = (Get-Item $destFile).Length
+        
+        if ($sourceSize -ne $destSize) {
+            Write-Log "[ERRO CRITICO] Tamanhos diferentes após cópia: origem=$sourceSize, destino=$destSize" -Level ERROR
+            Remove-Item -Path $destFile -Force -ErrorAction SilentlyContinue
+            throw "Cópia de stamp.png falhou (tamanhos diferentes). Instalação abortada."
         }
+        
+        Write-Log "Arquivo stamp.png copiado e validado com sucesso [OK]" -Level SUCCESS
+        return $true
     }
     catch {
         Write-Log "Erro ao copiar stamp.png: $_" -Level ERROR
@@ -2061,21 +2075,47 @@ function Install-CHAINSAWConfig {
         
         # Tenta reverter mudanças se possível
         if ($backupPath -and (Test-Path $backupPath)) {
-            Write-Host " Tentando reverter mudanças..." -ForegroundColor Yellow
+            Write-Host " Tentando reverter mudanças usando backup..." -ForegroundColor Yellow
+            Write-Log "Iniciando rollback automático" -Level WARNING
+            
             try {
+                # VALIDA BACKUP ANTES DE RESTAURAR
+                $backupItems = Get-ChildItem -Path $backupPath -Recurse -File -ErrorAction Stop
+                if ($backupItems.Count -eq 0) {
+                    Write-Log "[ERRO] Backup está vazio - não é seguro restaurar" -Level ERROR
+                    throw "Backup inválido"
+                }
+                
+                Write-Log "Backup validado: $($backupItems.Count) arquivos" -Level INFO
+                
                 $templatesPath = Join-Path $env:APPDATA "Microsoft\Templates"
                 if (Test-Path $templatesPath) {
-                    Remove-Item -Path $templatesPath -Recurse -Force
+                    Write-Log "Removendo instalação parcial..." -Level INFO
+                    Remove-Item -Path $templatesPath -Recurse -Force -ErrorAction Stop
                 }
-                Rename-Item -Path $backupPath -NewName "Templates" -Force
-                Write-Host "[OK] Backup restaurado com sucesso" -ForegroundColor Green
-                Write-Log "Backup restaurado após falha na instalação" -Level INFO
+                
+                Write-Log "Restaurando backup de: $backupPath" -Level INFO
+                Rename-Item -Path $backupPath -NewName "Templates" -Force -ErrorAction Stop
+                
+                # Valida restauração
+                $restoredPath = Join-Path $env:APPDATA "Microsoft\Templates"
+                if (Test-Path $restoredPath) {
+                    Write-Host "[OK] Backup restaurado com sucesso" -ForegroundColor Green
+                    Write-Log "Backup restaurado após falha na instalação [OK]" -Level SUCCESS
+                }
+                else {
+                    Write-Log "[ERRO] Falha ao validar restauração" -Level ERROR
+                }
             }
             catch {
                 Write-Host "[ERRO] Não foi possível restaurar o backup automaticamente" -ForegroundColor Red
-                Write-Host "  Backup disponível em: $backupPath" -ForegroundColor Yellow
+                Write-Host "  Backup preservado em: $backupPath" -ForegroundColor Yellow
+                Write-Host "  Para restaurar manualmente, execute: .\restore-backup.cmd" -ForegroundColor Yellow
                 Write-Log "Falha ao restaurar backup: $_" -Level ERROR
             }
+        }
+        else {
+            Write-Log "Backup não disponível para rollback" -Level WARNING
         }
         
         throw

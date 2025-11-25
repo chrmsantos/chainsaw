@@ -64,19 +64,25 @@ REM Remove arquivo ZIP antigo se existir
 if exist "%TEMP_ZIP%" del /f /q "%TEMP_ZIP%" >nul 2>&1
 
 REM Baixa o arquivo ZIP usando PowerShell
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-    "$ProgressPreference = 'SilentlyContinue'; " ^
-    "try { " ^
-    "    Write-Host '[INFO] Iniciando download...' -ForegroundColor Cyan; " ^
-    "    Invoke-WebRequest -Uri '%REPO_URL%' -OutFile '%TEMP_ZIP%' -UseBasicParsing; " ^
-    "    Write-Host '[OK] Download concluido!' -ForegroundColor Green; " ^
-    "    exit 0; " ^
-    "} catch { " ^
-    "    Write-Host '[ERRO] Falha no download: ' $_.Exception.Message -ForegroundColor Red; " ^
-    "    exit 1; " ^
-    "}"
+set "PS_SCRIPT=%TEMP%\chainsaw_download.ps1"
+(
+echo $ProgressPreference='SilentlyContinue'
+echo try {
+echo     Write-Host '[INFO] Iniciando download...' -ForegroundColor Cyan
+echo     Invoke-WebRequest -Uri '%REPO_URL%' -OutFile '%TEMP_ZIP%' -UseBasicParsing
+echo     Write-Host '[OK] Download concluido!' -ForegroundColor Green
+echo     exit 0
+echo } catch {
+echo     Write-Host "[ERRO] Falha no download: $_" -ForegroundColor Red
+echo     exit 1
+echo }
+) > "%PS_SCRIPT%"
 
-if errorlevel 1 (
+powershell -NoProfile -ExecutionPolicy Bypass -File "%PS_SCRIPT%"
+set DOWNLOAD_EXIT=%ERRORLEVEL%
+del /f /q "%PS_SCRIPT%" >nul 2>&1
+
+if %DOWNLOAD_EXIT% neq 0 (
     echo.
     call :Log "[ERRO] Falha ao baixar o codigo-fonte do GitHub."
     call :Log "       Verifique sua conexao com a internet e tente novamente."
@@ -93,11 +99,72 @@ if not exist "%TEMP_ZIP%" (
 
 call :Log "[OK] Download verificado com sucesso."
 
+REM =============================================================================
+REM ETAPA 1.5: VALIDAÇÃO COMPLETA DO ARQUIVO BAIXADO
+REM =============================================================================
+echo.
+call :Log "================================================================================"
+call :Log "  ETAPA 1.5: Validacao do Arquivo Baixado"
+call :Log "================================================================================"
+echo.
+
+REM Verifica tamanho mínimo (arquivo válido deve ter pelo menos 100KB)
+for %%A in ("%TEMP_ZIP%") do set "ZIP_SIZE=%%~zA"
+call :Log "[INFO] Tamanho do arquivo ZIP: %ZIP_SIZE% bytes"
+
+if %ZIP_SIZE% LSS 102400 (
+    call :Log "[ERRO] Arquivo ZIP muito pequeno (possivelmente corrompido)"
+    call :Log "       Tamanho esperado: > 100KB, recebido: %ZIP_SIZE% bytes"
+    del /f /q "%TEMP_ZIP%" >nul 2>&1
+    pause
+    exit /b 1
+)
+
+call :Log "[OK] Tamanho do arquivo validado."
+
+REM Testa a integridade do ZIP ANTES de fazer qualquer modificação
+call :Log "[INFO] Testando integridade do arquivo ZIP..."
+set "PS_TEST=%TEMP%\chainsaw_test_zip.ps1"
+(
+echo $ProgressPreference='SilentlyContinue'
+echo try {
+echo     Add-Type -AssemblyName System.IO.Compression.FileSystem
+echo     $zip = [System.IO.Compression.ZipFile]::OpenRead('%TEMP_ZIP%'^)
+echo     $entryCount = $zip.Entries.Count
+echo     $zip.Dispose(^)
+echo     if ($entryCount -lt 10^) {
+echo         Write-Host "[ERRO] ZIP contem muito poucos arquivos: $entryCount" -ForegroundColor Red
+echo         exit 1
+echo     }
+echo     Write-Host "[OK] ZIP valido com $entryCount arquivos" -ForegroundColor Green
+echo     exit 0
+echo } catch {
+echo     Write-Host "[ERRO] ZIP corrompido ou invalido: $_" -ForegroundColor Red
+echo     exit 1
+echo }
+) > "%PS_TEST%"
+
+powershell -NoProfile -ExecutionPolicy Bypass -File "%PS_TEST%"
+set "ZIP_TEST_EXIT=%ERRORLEVEL%"
+del /f /q "%PS_TEST%" >nul 2>&1
+
+if %ZIP_TEST_EXIT% neq 0 (
+    call :Log "[ERRO] Arquivo ZIP corrompido ou invalido!"
+    call :Log "       Nao e seguro continuar. Abortando instalacao."
+    del /f /q "%TEMP_ZIP%" >nul 2>&1
+    pause
+    exit /b 1
+)
+
+call :Log "[OK] Integridade do ZIP validada com sucesso!"
+
 REM Download bem-sucedido! Agora cria backup da pasta antiga se existir
 echo.
 call :Log "================================================================================"
-call :Log "  ETAPA 2: Backup da Instalacao Existente"
+call :Log "  ETAPA 2: Backup OBRIGATORIO da Instalacao Existente"
 call :Log "================================================================================"
+echo.
+call :Log "[IMPORTANTE] Backup e OBRIGATORIO para protecao contra perda de dados."
 echo.
 
 if exist "%INSTALL_DIR%" (
@@ -106,100 +173,284 @@ if exist "%INSTALL_DIR%" (
     call :Log "[INFO] Destino do backup: !BACKUP_DIR!"
     
     REM Cria backup completo da pasta existente
+    call :Log "[CRITICO] Criando backup OBRIGATORIO antes de qualquer modificacao..."
+    
+    REM Tenta backup completo primeiro
     xcopy "%INSTALL_DIR%\*" "!BACKUP_DIR!\" /E /H /C /I /Y >nul 2>&1
-    if errorlevel 1 (
-        call :Log "[AVISO] Falha ao criar backup completo. Tentando backup seletivo..."
+    set "BACKUP_EXIT=%ERRORLEVEL%"
+    
+    if %BACKUP_EXIT% neq 0 (
+        call :Log "[AVISO] Falha no backup completo (erro %BACKUP_EXIT%). Tentando backup seletivo..."
         
-        REM Tenta backup apenas de arquivos críticos
+        REM Tenta backup seletivo de pastas críticas
         if not exist "!BACKUP_DIR!" mkdir "!BACKUP_DIR!"
-        if exist "%INSTALL_DIR%\installation" xcopy "%INSTALL_DIR%\installation\*" "!BACKUP_DIR!\installation\" /E /H /C /I /Y >nul 2>&1
-        if exist "%INSTALL_DIR%\source" xcopy "%INSTALL_DIR%\source\*" "!BACKUP_DIR!\source\" /E /H /C /I /Y >nul 2>&1
+        
+        set "BACKUP_FAILED=0"
+        if exist "%INSTALL_DIR%\installation" (
+            xcopy "%INSTALL_DIR%\installation\*" "!BACKUP_DIR!\installation\" /E /H /C /I /Y >nul 2>&1
+            if errorlevel 1 set "BACKUP_FAILED=1"
+        )
+        if exist "%INSTALL_DIR%\source" (
+            xcopy "%INSTALL_DIR%\source\*" "!BACKUP_DIR!\source\" /E /H /C /I /Y >nul 2>&1
+            if errorlevel 1 set "BACKUP_FAILED=1"
+        )
+        if exist "%INSTALL_DIR%\docs" (
+            xcopy "%INSTALL_DIR%\docs\*" "!BACKUP_DIR!\docs\" /E /H /C /I /Y >nul 2>&1
+            if errorlevel 1 set "BACKUP_FAILED=1"
+        )
+        
+        if !BACKUP_FAILED! equ 1 (
+            call :Log "[ERRO CRITICO] Falha ao criar backup de seguranca!"
+            call :Log "[ERRO] NAO E SEGURO CONTINUAR sem backup valido."
+            call :Log "[ERRO] Instalacao ABORTADA para proteger seus dados."
+            echo.
+            call :Log "Solucao: Feche todos os programas que possam estar usando"
+            call :Log "         arquivos em %INSTALL_DIR% e tente novamente."
+            pause
+            exit /b 1
+        )
         
         call :Log "[OK] Backup seletivo criado."
     ) else (
         call :Log "[OK] Backup completo criado com sucesso!"
     )
     
-    echo.
-    call :Log "[INFO] Removendo pasta antiga..."
+    REM VALIDAÇÃO DO BACKUP - CRÍTICO!
+    call :Log "[INFO] Validando backup criado..."
     
-    REM Tentativa 1: Deletar pasta completa
-    rd /s /q "%INSTALL_DIR%" >nul 2>&1
-    if not exist "%INSTALL_DIR%" (
-        call :Log "[OK] Pasta antiga removida com sucesso."
-        goto :extract
+    if not exist "!BACKUP_DIR!" (
+        call :Log "[ERRO CRITICO] Pasta de backup nao existe!"
+        call :Log "[ERRO] Instalacao ABORTADA - backup invalido."
+        pause
+        exit /b 1
     )
     
-    REM Tentativa 2: Deletar conteúdo da pasta
-    call :Log "[AVISO] Nao foi possivel remover a pasta. Tentando limpar conteudo..."
-    del /f /s /q "%INSTALL_DIR%\*.*" >nul 2>&1
-    for /d %%p in ("%INSTALL_DIR%\*") do rd /s /q "%%p" >nul 2>&1
+    REM Conta arquivos no backup
+    set "BACKUP_FILE_COUNT=0"
+    for /r "!BACKUP_DIR!" %%f in (*) do set /a BACKUP_FILE_COUNT+=1
     
-    REM Tentativa 3: Força substituição durante extração
-    if exist "%INSTALL_DIR%\*" (
-        call :Log "[AVISO] Alguns arquivos nao puderam ser removidos."
-        call :Log "[AVISO] A extracao ira substituir os arquivos existentes."
-    ) else (
-        call :Log "[OK] Conteudo da pasta removido."
+    if %BACKUP_FILE_COUNT% LSS 5 (
+        call :Log "[ERRO CRITICO] Backup contem muito poucos arquivos: %BACKUP_FILE_COUNT%"
+        call :Log "[ERRO] Instalacao ABORTADA - backup parece incompleto."
+        rd /s /q "!BACKUP_DIR!" >nul 2>&1
+        pause
+        exit /b 1
     )
+    
+    call :Log "[OK] Backup validado: %BACKUP_FILE_COUNT% arquivos copiados com sucesso!"
+    call :Log "[SEGURANCA] Backup criado em: !BACKUP_DIR!"
+    call :Log "[SEGURANCA] Seus dados estao protegidos. Continuando instalacao..."
+    
 ) else (
-    call :Log "[INFO] Nenhuma instalacao anterior encontrada. Continuando..."
+    call :Log "[INFO] Nenhuma instalacao anterior encontrada. Instalacao limpa."
 )
 
-:extract
-
 echo.
 call :Log "================================================================================"
-call :Log "  ETAPA 3: Extracao dos Arquivos"
+call :Log "  ETAPA 3: Extracao e Validacao dos Arquivos"
 call :Log "================================================================================"
 echo.
+call :Log "[SEGURANCA] Extraindo para area temporaria primeiro (protecao de dados)..."
 
 REM Remove pasta temporária de extração se existir
 if exist "%TEMP_EXTRACT%" rd /s /q "%TEMP_EXTRACT%" >nul 2>&1
 
 REM Extrai o ZIP usando PowerShell
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-    "$ProgressPreference = 'SilentlyContinue'; " ^
-    "try { " ^
-    "    Write-Host '[INFO] Extraindo arquivos...' -ForegroundColor Cyan; " ^
-    "    Expand-Archive -Path '%TEMP_ZIP%' -DestinationPath '%TEMP_EXTRACT%' -Force; " ^
-    "    Write-Host '[OK] Extracao concluida!' -ForegroundColor Green; " ^
-    "    exit 0; " ^
-    "} catch { " ^
-    "    Write-Host '[ERRO] Falha na extracao: ' $_.Exception.Message -ForegroundColor Red; " ^
-    "    exit 1; " ^
-    "}"
+set "PS_SCRIPT=%TEMP%\chainsaw_extract.ps1"
+(
+echo $ProgressPreference='SilentlyContinue'
+echo try {
+echo     Write-Host '[INFO] Extraindo arquivos...' -ForegroundColor Cyan
+echo     Expand-Archive -Path '%TEMP_ZIP%' -DestinationPath '%TEMP_EXTRACT%' -Force
+echo     Write-Host '[OK] Extracao concluida!' -ForegroundColor Green
+echo     exit 0
+echo } catch {
+echo     Write-Host "[ERRO] Falha na extracao: $_" -ForegroundColor Red
+echo     exit 1
+echo }
+) > "%PS_SCRIPT%"
 
-if errorlevel 1 (
+powershell -NoProfile -ExecutionPolicy Bypass -File "%PS_SCRIPT%"
+set EXTRACT_EXIT=%ERRORLEVEL%
+del /f /q "%PS_SCRIPT%" >nul 2>&1
+
+if %EXTRACT_EXIT% neq 0 (
     call :Log "[ERRO] Falha ao extrair o arquivo ZIP."
     pause
     exit /b 1
 )
 
-REM Move os arquivos extraídos para o destino final
-call :Log "[INFO] Movendo arquivos para %INSTALL_DIR%..."
+REM =============================================================================
+REM VALIDAÇÃO CRÍTICA DO CONTEÚDO EXTRAÍDO
+REM =============================================================================
 
 REM O GitHub cria uma pasta "chainsaw-main" dentro do ZIP
 set "SOURCE_DIR=%TEMP_EXTRACT%\chainsaw-main"
 
+call :Log "[CRITICO] Validando conteudo extraido ANTES de instalar..."
+
 if not exist "%SOURCE_DIR%" (
-    call :Log "[ERRO] Pasta extraida nao encontrada em: %SOURCE_DIR%"
+    call :Log "[ERRO CRITICO] Pasta extraida nao encontrada em: %SOURCE_DIR%"
+    call :Log "[ERRO] Estrutura do ZIP inesperada. Abortando instalacao."
+    if exist "%TEMP_EXTRACT%" rd /s /q "%TEMP_EXTRACT%" >nul 2>&1
     pause
     exit /b 1
 )
+
+REM Valida presença de pastas essenciais
+set "VALIDATION_FAILED=0"
+
+if not exist "%SOURCE_DIR%\installation" (
+    call :Log "[ERRO] Pasta 'installation' nao encontrada no conteudo extraido!"
+    set "VALIDATION_FAILED=1"
+)
+
+if not exist "%SOURCE_DIR%\installation\inst_scripts" (
+    call :Log "[ERRO] Pasta 'installation\inst_scripts' nao encontrada!"
+    set "VALIDATION_FAILED=1"
+)
+
+if not exist "%SOURCE_DIR%\installation\inst_scripts\install.cmd" (
+    call :Log "[ERRO] Script 'install.cmd' nao encontrado!"
+    set "VALIDATION_FAILED=1"
+)
+
+if not exist "%SOURCE_DIR%\installation\inst_scripts\install.ps1" (
+    call :Log "[ERRO] Script 'install.ps1' nao encontrado!"
+    set "VALIDATION_FAILED=1"
+)
+
+if not exist "%SOURCE_DIR%\installation\inst_configs" (
+    call :Log "[ERRO] Pasta 'installation\inst_configs' nao encontrada!"
+    set "VALIDATION_FAILED=1"
+)
+
+if %VALIDATION_FAILED% equ 1 (
+    call :Log "[ERRO CRITICO] Conteudo extraido INVALIDO ou INCOMPLETO!"
+    call :Log "[ERRO] NAO E SEGURO instalar arquivos incompletos."
+    call :Log "[ERRO] Instalacao ABORTADA para proteger sua instalacao atual."
+    echo.
+    if exist "%TEMP_EXTRACT%" rd /s /q "%TEMP_EXTRACT%" >nul 2>&1
+    pause
+    exit /b 1
+)
+
+call :Log "[OK] Conteudo extraido validado com sucesso!"
+
+REM Conta arquivos no conteúdo extraído
+set "EXTRACTED_FILE_COUNT=0"
+for /r "%SOURCE_DIR%" %%f in (*) do set /a EXTRACTED_FILE_COUNT+=1
+
+call :Log "[INFO] Total de arquivos extraidos: %EXTRACTED_FILE_COUNT%"
+
+if %EXTRACTED_FILE_COUNT% LSS 20 (
+    call :Log "[ERRO] Conteudo extraido contem muito poucos arquivos: %EXTRACTED_FILE_COUNT%"
+    call :Log "[ERRO] Download pode estar incompleto. Abortando."
+    if exist "%TEMP_EXTRACT%" rd /s /q "%TEMP_EXTRACT%" >nul 2>&1
+    pause
+    exit /b 1
+)
+
+call :Log "[OK] Validacao completa! Seguro para instalar."
+
+REM =============================================================================
+REM AGORA SIM: Move os arquivos validados para o destino final
+REM =============================================================================
+
+echo.
+call :Log "[INFO] Removendo pasta antiga (backup ja criado e validado)..."
+
+if exist "%INSTALL_DIR%" (
+    REM Tentativa 1: Deletar pasta completa
+    rd /s /q "%INSTALL_DIR%" >nul 2>&1
+    if not exist "%INSTALL_DIR%" (
+        call :Log "[OK] Pasta antiga removida com sucesso."
+    ) else (
+        REM Tentativa 2: Deletar conteúdo da pasta
+        call :Log "[AVISO] Tentando limpar conteudo da pasta..."
+        del /f /s /q "%INSTALL_DIR%\*.*" >nul 2>&1
+        for /d %%p in ("%INSTALL_DIR%\*") do rd /s /q "%%p" >nul 2>&1
+        
+        if exist "%INSTALL_DIR%\*" (
+            call :Log "[AVISO] Alguns arquivos nao puderam ser removidos."
+            call :Log "[INFO] Substituicao ira sobrescrever arquivos existentes."
+        ) else (
+            call :Log "[OK] Conteudo da pasta removido."
+        )
+    )
+)
+
+call :Log "[INFO] Instalando novos arquivos validados em %INSTALL_DIR%..."
 
 REM Cria pasta de destino se não existir
 if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%"
 
 REM Copia todos os arquivos e pastas
 xcopy "%SOURCE_DIR%\*" "%INSTALL_DIR%\" /E /H /C /I /Y >nul
-if errorlevel 1 (
-    call :Log "[ERRO] Falha ao copiar arquivos para o destino."
+set "COPY_EXIT=%ERRORLEVEL%"
+
+if %COPY_EXIT% neq 0 (
+    call :Log "[ERRO CRITICO] Falha ao copiar arquivos para o destino (erro %COPY_EXIT%)!"
+    echo.
+    call :Log "[ROLLBACK] Tentando restaurar backup..."
+    
+    if exist "!BACKUP_DIR!" (
+        REM Remove instalação parcial
+        if exist "%INSTALL_DIR%" rd /s /q "%INSTALL_DIR%" >nul 2>&1
+        
+        REM Restaura backup
+        xcopy "!BACKUP_DIR!\*" "%INSTALL_DIR%\" /E /H /C /I /Y >nul 2>&1
+        if errorlevel 1 (
+            call :Log "[ERRO] Falha ao restaurar backup automaticamente!"
+            call :Log "[IMPORTANTE] Backup preservado em: !BACKUP_DIR!"
+            call :Log "[IMPORTANTE] Restaure manualmente se necessario."
+        ) else (
+            call :Log "[OK] Backup restaurado com sucesso!"
+            call :Log "[INFO] Sistema retornou ao estado anterior."
+        )
+    ) else (
+        call :Log "[AVISO] Backup nao disponivel para rollback."
+    )
+    
     pause
     exit /b 1
 )
 
 call :Log "[OK] Arquivos copiados com sucesso!"
+
+REM =============================================================================
+REM VALIDAÇÃO FINAL DA INSTALAÇÃO
+REM =============================================================================
+
+call :Log "[INFO] Validando instalacao final..."
+
+set "FINAL_VALIDATION_FAILED=0"
+
+if not exist "%INSTALL_DIR%\installation\inst_scripts\install.cmd" (
+    call :Log "[ERRO] install.cmd nao encontrado apos instalacao!"
+    set "FINAL_VALIDATION_FAILED=1"
+)
+
+if not exist "%INSTALL_DIR%\installation\inst_scripts\install.ps1" (
+    call :Log "[ERRO] install.ps1 nao encontrado apos instalacao!"
+    set "FINAL_VALIDATION_FAILED=1"
+)
+
+if %FINAL_VALIDATION_FAILED% equ 1 (
+    call :Log "[ERRO CRITICO] Validacao final FALHOU!"
+    call :Log "[ROLLBACK] Restaurando backup..."
+    
+    if exist "!BACKUP_DIR!" (
+        rd /s /q "%INSTALL_DIR%" >nul 2>&1
+        xcopy "!BACKUP_DIR!\*" "%INSTALL_DIR%\" /E /H /C /I /Y >nul 2>&1
+        call :Log "[OK] Backup restaurado."
+    )
+    
+    pause
+    exit /b 1
+)
+
+call :Log "[OK] Validacao final concluida com sucesso!"
 
 REM Cria arquivo de versão local
 call :Log "[INFO] Criando arquivo de versao local..."

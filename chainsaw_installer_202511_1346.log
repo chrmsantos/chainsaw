@@ -1,0 +1,27 @@
+================================================================================ 
+ CHAINSAW - Log de Instalacao 
+================================================================================ 
+ Data/Hora de inicio: 25/11/2025 13:46:50,63 
+ Sistema: Windows_NT 
+ Usuario: csantos 
+ Diretorio de instalacao: C:\Users\csantos\chainsaw 
+================================================================================ 
+ 
+================================================================================ 
+  CHAINSAW - Instalador Automatico 
+================================================================================ 
+ Este instalador ira: 
+  1. Baixar o codigo-fonte completo do GitHub 
+  2. Criar backup da instalacao existente (se houver) 
+  3. Extrair para: C:\Users\csantos\chainsaw 
+  4. Executar a instalacao automaticamente 
+================================================================================ 
+ Log sendo salvo em: C:\Users\csantos\chainsaw\chainsaw_installer_202511_1346.log 
+================================================================================ 
+================================================================================ 
+  ETAPA 1: Download do Codigo-Fonte 
+================================================================================ 
+ Baixando de: https://github.com/chrmsantos/chainsaw/archive/refs/heads/main.zip 
+ Destino temporario: C:\Users\csantos\AppData\Local\Temp\chainsaw-main.zip 
+[ERRO] Falha ao baixar o codigo-fonte do GitHub. 
+       Verifique sua conexao com a internet e tente novamente. 
