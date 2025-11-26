@@ -304,23 +304,33 @@ echo.
 call :Log "[INFO] Preparando instalacao em %INSTALL_DIR%..."
 
 if exist "%INSTALL_DIR%" (
-    REM Tentativa 1: Deletar pasta completa
-    rd /s /q "%INSTALL_DIR%" >nul 2>&1
-    if not exist "%INSTALL_DIR%" (
-        call :Log "[OK] Pasta antiga removida com sucesso."
-    ) else (
-        REM Tentativa 2: Deletar conteúdo da pasta
-        call :Log "[AVISO] Tentando limpar conteudo da pasta..."
-        del /f /s /q "%INSTALL_DIR%\*.*" >nul 2>&1
-        for /d %%p in ("%INSTALL_DIR%\*") do rd /s /q "%%p" >nul 2>&1
-        
-        if exist "%INSTALL_DIR%\*" (
-            call :Log "[AVISO] Alguns arquivos nao puderam ser removidos."
-            call :Log "[INFO] Substituicao ira sobrescrever arquivos existentes."
+    REM PROTECAO CRITICA: Preservar pasta .git se existir
+    set "GIT_BACKUP_DIR=%TEMP%\chainsaw-git-backup-%RANDOM%"
+    if exist "%INSTALL_DIR%\.git" (
+        call :Log "[CRITICO] Detectada pasta .git - criando backup temporario..."
+        mkdir "%GIT_BACKUP_DIR%" >nul 2>&1
+        xcopy "%INSTALL_DIR%\.git" "%GIT_BACKUP_DIR%\.git\" /E /H /C /I /Y >nul 2>&1
+        if exist "%GIT_BACKUP_DIR%\.git" (
+            call :Log "[OK] Backup do .git criado em: %GIT_BACKUP_DIR%"
         ) else (
-            call :Log "[OK] Conteudo da pasta removido."
+            call :Log "[ERRO] Falha ao criar backup do .git!"
         )
     )
+    
+    REM Deletar conteúdo da pasta (EXCETO .git)
+    call :Log "[INFO] Removendo conteudo antigo (preservando .git)..."
+    
+    REM Remove apenas arquivos na raiz
+    del /f /q "%INSTALL_DIR%\*.*" >nul 2>&1
+    
+    REM Remove pastas EXCETO .git
+    for /d %%p in ("%INSTALL_DIR%\*") do (
+        if /I not "%%~nxp"==".git" (
+            rd /s /q "%%p" >nul 2>&1
+        )
+    )
+    
+    call :Log "[OK] Conteudo removido (exceto .git)"
 )
 
 call :Log "[INFO] Instalando novos arquivos validados em %INSTALL_DIR%..."
@@ -340,6 +350,19 @@ if %COPY_EXIT% neq 0 (
 )
 
 call :Log "[OK] Arquivos copiados com sucesso!"
+
+REM Restaura backup do .git se existir
+if exist "%GIT_BACKUP_DIR%\.git" (
+    call :Log "[INFO] Restaurando backup do .git..."
+    xcopy "%GIT_BACKUP_DIR%\.git" "%INSTALL_DIR%\.git\" /E /H /C /I /Y >nul 2>&1
+    if exist "%INSTALL_DIR%\.git" (
+        call :Log "[OK] .git restaurado com sucesso!"
+    ) else (
+        call :Log "[ERRO] Falha ao restaurar .git - backup em: %GIT_BACKUP_DIR%"
+    )
+    REM Limpa backup temporário
+    rd /s /q "%GIT_BACKUP_DIR%" >nul 2>&1
+)
 
 REM =============================================================================
 REM VALIDAÇÃO FINAL DA INSTALAÇÃO
