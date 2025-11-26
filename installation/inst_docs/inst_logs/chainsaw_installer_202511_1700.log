@@ -1,7 +1,7 @@
 ================================================================================ 
  CHAINSAW - Log de Instalacao 
 ================================================================================ 
- Data/Hora de inicio: 26/11/2025 12:46:51,21 
+ Data/Hora de inicio: 26/11/2025 17:00:56,31 
  Sistema: Windows_NT 
  Usuario: csantos 
  Diretorio de instalacao: C:\Users\csantos\chainsaw 
@@ -12,11 +12,10 @@
 ================================================================================ 
  Este instalador ira: 
   1. Baixar o codigo-fonte completo do GitHub 
-  2. Criar backup da instalacao existente (se houver) 
-  3. Extrair para: C:\Users\csantos\chainsaw 
-  4. Executar a instalacao automaticamente 
+  2. Extrair para: C:\Users\csantos\chainsaw 
+  3. Executar a instalacao automaticamente 
 ================================================================================ 
- Log sendo salvo em: c:\Users\csantos\chainsaw\chainsaw_installer_202511_1246.log 
+ Log sendo salvo em: C:\Users\csantos\AppData\Local\Temp\chainsaw-install-temp\chainsaw_installer_202511_1700.log 
 ================================================================================ 
 ================================================================================ 
   ETAPA 1: Download do Codigo-Fonte 
@@ -27,11 +26,26 @@
 ================================================================================ 
   ETAPA 1.5: Validacao do Arquivo Baixado 
 ================================================================================ 
-[INFO] Tamanho do arquivo ZIP: 52399149 bytes 
+[INFO] Tamanho do arquivo ZIP: 26812826 bytes 
 [OK] Tamanho do arquivo validado. 
 [INFO] Testando integridade do arquivo ZIP... 
 [OK] Integridade do ZIP validada com sucesso 
 ================================================================================ 
-  ETAPA 2: Backup OBRIGATORIO da Instalacao Existente 
+  ETAPA 2: Extracao e Validacao dos Arquivos 
 ================================================================================ 
-[IMPORTANTE] Backup e OBRIGATORIO para protecao contra perda de dados. 
+[INFO] Preparando extracao dos arquivos... 
+[CRITICO] Validando conteudo extraido ANTES de instalar... 
+[OK] Conteudo extraido validado com sucesso 
+[INFO] Total de arquivos extraidos: 131 
+[OK] Validacao completa Seguro para instalar. 
+[INFO] Preparando instalacao em C:\Users\csantos\chainsaw... 
+[AVISO] Tentando limpar conteudo da pasta... 
+[AVISO] Alguns arquivos nao puderam ser removidos. 
+[INFO] Substituicao ira sobrescrever arquivos existentes. 
+[INFO] Instalando novos arquivos validados em C:\Users\csantos\chainsaw... 
+[OK] Arquivos copiados com sucesso 
+[INFO] Validando instalacao final... 
+[OK] Validacao final concluida com sucesso 
+[INFO] Criando arquivo de versao local... 
+[OK] Arquivo de versao criado: C:\Users\csantos\chainsaw\installation\inst_configs\version.json 
+[INFO] Limpando arquivos temporarios... 
