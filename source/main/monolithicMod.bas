@@ -7629,6 +7629,83 @@ ErrorHandler:
     MsgBox "Erro ao processar atualização: " & Err.Description, vbCritical, "CHAINSAW - Erro"
 End Sub
 
+'================================================================================
+' Sub: ExecutarInstalador
+' Descrição: Executa o chainsaw_installer.cmd a partir da interface do Word
+' Uso: Pode ser chamado de um botão na ribbon ou atalho de teclado
+'================================================================================
+Public Sub ExecutarInstalador()
+    On Error GoTo ErrorHandler
+    
+    Dim installerPath As String
+    Dim shellCmd As String
+    Dim fso As Object
+    Dim response As VbMsgBoxResult
+    
+    ' Pergunta confirmação ao usuário
+    response = MsgBox("Deseja executar o instalador do CHAINSAW?" & vbCrLf & vbCrLf & _
+                      "Isso irá:" & vbCrLf & _
+                      "• Baixar a versão mais recente do GitHub" & vbCrLf & _
+                      "• Instalar/atualizar o sistema" & vbCrLf & _
+                      "• Fechar o Word ao final da instalação" & vbCrLf & vbCrLf & _
+                      "Continuar?", _
+                      vbYesNo + vbQuestion, "CHAINSAW - Executar Instalador")
+    
+    If response <> vbYes Then
+        Exit Sub
+    End If
+    
+    ' Caminho do instalador
+    installerPath = Environ("USERPROFILE") & "\chainsaw\chainsaw_installer.cmd"
+    
+    ' Verifica se o instalador existe
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    
+    If Not fso.FileExists(installerPath) Then
+        MsgBox "Instalador não encontrado em:" & vbCrLf & installerPath & vbCrLf & vbCrLf & _
+               "Baixe manualmente de: https://github.com/chrmsantos/chainsaw/raw/main/chainsaw_installer.cmd", _
+               vbExclamation, "CHAINSAW - Instalador Não Encontrado"
+        Exit Sub
+    End If
+    
+    ' Salva todos os documentos abertos antes de executar o instalador
+    Dim doc As Object
+    For Each doc In Application.Documents
+        If doc.Saved = False Then
+            On Error Resume Next
+            doc.Save
+            On Error GoTo ErrorHandler
+        End If
+    Next doc
+    
+    ' Executa o instalador em uma nova janela de comando
+    shellCmd = "cmd.exe /c """ & installerPath & """"
+    CreateObject("WScript.Shell").Run shellCmd, 1, False
+    
+    ' Mensagem informativa
+    MsgBox "O instalador foi iniciado em uma nova janela." & vbCrLf & vbCrLf & _
+           "O Word será fechado ao final da instalação.", _
+           vbInformation, "CHAINSAW - Instalador Iniciado"
+    
+    ' Fecha o Word após 2 segundos (tempo para o instalador iniciar)
+    Application.OnTime Now + TimeValue("00:00:02"), "FecharWord"
+    
+    Exit Sub
+    
+ErrorHandler:
+    MsgBox "Erro ao executar instalador: " & Err.Description, vbCritical, "CHAINSAW - Erro"
+    LogMessage "Erro ao executar instalador: " & Err.Description, LOG_LEVEL_ERROR
+End Sub
+
+'================================================================================
+' Sub: FecharWord
+' Descrição: Fecha o Word (usado após executar o instalador)
+'================================================================================
+Private Sub FecharWord()
+    On Error Resume Next
+    Application.Quit SaveChanges:=wdSaveChanges
+End Sub
+
 
 
 
