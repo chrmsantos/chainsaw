@@ -11,12 +11,14 @@
 O projeto foi **completamente deletado DUAS VEZES** durante operações de limpeza.
 
 ### Incidente 1
+
 - **Quando:** Durante limpeza de diretórios vazios
 - **Causa:** Comando `Remove-Item` sem validações adequadas
 - **Resultado:** Projeto inteiro deletado
 - **Recuperação:** Clone do GitHub
 
 ### Incidente 2  
+
 - **Quando:** Após implementar correções (causa ainda sob investigação)
 - **Causa:** DESCONHECIDA - possivelmente edição automática ou formatação
 - **Resultado:** Projeto inteiro deletado NOVAMENTE
@@ -27,6 +29,7 @@ O projeto foi **completamente deletado DUAS VEZES** durante operações de limpe
 ## 🛡️ MEDIDAS EMERGENCIAIS IMPLEMENTADAS
 
 ### 1. Monitor de Integridade
+
 **Arquivo:** `tests/Check-ProjectIntegrity.ps1`
 
 ```powershell
@@ -35,6 +38,7 @@ powershell -ExecutionPolicy Bypass -File .\tests\Check-ProjectIntegrity.ps1
 ```
 
 **Validações:**
+
 - ✅ Diretório do projeto existe
 - ✅ `.git` está presente
 - ✅ Diretórios essenciais existem
@@ -42,6 +46,7 @@ powershell -ExecutionPolicy Bypass -File .\tests\Check-ProjectIntegrity.ps1
 - ✅ Contagem de arquivos está saudável
 
 ### 2. Sistema de Proteção
+
 **Arquivo:** `tests/ProjectProtection.psm1`
 
 ```powershell
@@ -53,12 +58,14 @@ Remove-SafeItem -Path ".\backups" -Recurse -Force
 ```
 
 **Proteções:**
+
 - ✅ Bloqueia remoção de diretórios protegidos
 - ✅ Valida presença de `.git` antes de operações
 - ✅ Confirma operações recursivas grandes
 - ✅ Previne exclusão do projeto root
 
 ### 3. Script de Limpeza Segura
+
 **Arquivo:** `tests/Cleanup-EmptyDirs.ps1`
 
 ```powershell
@@ -215,6 +222,7 @@ Get-ChildItem -Recurse | Sort-Object LastWriteTime -Descending | Select-Object -
 > **NUNCA confie em comandos destrutivos sem múltiplas camadas de validação.**
 
 Mesmo com validações implementadas, algo pode dar errado. A única proteção real é:
+
 1. Git com commits frequentes
 2. Push regular para GitHub
 3. Validação de integridade constante
