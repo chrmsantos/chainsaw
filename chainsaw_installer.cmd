@@ -12,6 +12,7 @@ set "REPO_URL=https://github.com/chrmsantos/chainsaw/archive/refs/heads/main.zip
 set "INSTALL_DIR=%USERPROFILE%\chainsaw"
 set "TEMP_ZIP=%TEMP%\chainsaw-main.zip"
 set "TEMP_EXTRACT=%TEMP%\chainsaw-extract"
+set "SAFE_INSTALL_DIR=%TEMP%\chainsaw-install-temp"
 
 REM Configuração de logs
 for /f "tokens=2-4 delims=/ " %%a in ('date /t') do set "DATESTAMP=%%c%%b%%a"
@@ -25,6 +26,54 @@ set "LOG_FILE=%SCRIPT_DIR%chainsaw_installer_%DATETIME%.log"
 
 REM Função para log (redireciona saída para arquivo e console)
 call :LogInit
+
+REM =============================================================================
+REM PROTECAO CRITICA: Detecta se esta sendo executado de dentro da pasta destino
+REM =============================================================================
+
+set "CURRENT_DIR=%CD%"
+set "NORMALIZED_CURRENT=%CURRENT_DIR%"
+set "NORMALIZED_INSTALL=%INSTALL_DIR%"
+
+REM Normaliza os caminhos (remove trailing backslash)
+if "%NORMALIZED_CURRENT:~-1%"=="\" set "NORMALIZED_CURRENT=%NORMALIZED_CURRENT:~0,-1%"
+if "%NORMALIZED_INSTALL:~-1%"=="\" set "NORMALIZED_INSTALL=%NORMALIZED_INSTALL:~0,-1%"
+
+REM Compara se esta dentro da pasta de destino
+echo %NORMALIZED_CURRENT% | findstr /I /C:"%NORMALIZED_INSTALL%" >nul
+if not errorlevel 1 (
+    echo.
+    echo ===============================================================================
+    echo  AVISO: Este instalador esta sendo executado de dentro da pasta de destino!
+    echo ===============================================================================
+    echo.
+    echo  Pasta atual: %CURRENT_DIR%
+    echo  Pasta destino: %INSTALL_DIR%
+    echo.
+    echo  O instalador sera copiado para um local temporario e re-executado de la
+    echo  para evitar a exclusao dos proprios arquivos de instalacao.
+    echo.
+    echo ===============================================================================
+    pause
+    
+    REM Cria diretorio temporario
+    if not exist "%SAFE_INSTALL_DIR%" mkdir "%SAFE_INSTALL_DIR%"
+    
+    REM Copia o instalador para local seguro
+    copy "%~f0" "%SAFE_INSTALL_DIR%\chainsaw_installer.cmd" >nul
+    
+    REM Executa de la
+    echo.
+    echo Re-executando de local seguro: %SAFE_INSTALL_DIR%
+    echo.
+    cd /d "%SAFE_INSTALL_DIR%"
+    call "%SAFE_INSTALL_DIR%\chainsaw_installer.cmd"
+    
+    REM Limpa e sai
+    cd /d "%USERPROFILE%"
+    rd /s /q "%SAFE_INSTALL_DIR%" >nul 2>&1
+    exit /b 0
+)
 
 echo.
 call :Log "================================================================================"
