@@ -33,9 +33,8 @@ call :Log "=====================================================================
 echo.
 call :Log " Este instalador ira:"
 call :Log "  1. Baixar o codigo-fonte completo do GitHub"
-call :Log "  2. Criar backup da instalacao existente (se houver)"
-call :Log "  3. Extrair para: %INSTALL_DIR%"
-call :Log "  4. Executar a instalacao automaticamente"
+call :Log "  2. Extrair para: %INSTALL_DIR%"
+call :Log "  3. Executar a instalacao automaticamente"
 echo.
 call :Log "================================================================================"
 call :Log " Log sendo salvo em: %LOG_FILE%"
@@ -158,98 +157,12 @@ if %ZIP_TEST_EXIT% neq 0 (
 
 call :Log "[OK] Integridade do ZIP validada com sucesso!"
 
-REM Download bem-sucedido! Agora cria backup da pasta antiga se existir
 echo.
 call :Log "================================================================================"
-call :Log "  ETAPA 2: Backup OBRIGATORIO da Instalacao Existente"
+call :Log "  ETAPA 2: Extracao e Validacao dos Arquivos"
 call :Log "================================================================================"
 echo.
-call :Log "[IMPORTANTE] Backup e OBRIGATORIO para protecao contra perda de dados."
-echo.
-
-if exist "%INSTALL_DIR%" (
-    set "BACKUP_DIR=%USERPROFILE%\chainsaw_backup_%DATETIME%"
-    call :Log "[INFO] Pasta existente encontrada. Criando backup..."
-    call :Log "[INFO] Destino do backup: !BACKUP_DIR!"
-    
-    REM Cria backup completo da pasta existente
-    call :Log "[CRITICO] Criando backup OBRIGATORIO antes de qualquer modificacao..."
-    
-    REM Tenta backup completo primeiro
-    xcopy "%INSTALL_DIR%\*" "!BACKUP_DIR!\" /E /H /C /I /Y >nul 2>&1
-    set "BACKUP_EXIT=%ERRORLEVEL%"
-    
-    if %BACKUP_EXIT% neq 0 (
-        call :Log "[AVISO] Falha no backup completo (erro %BACKUP_EXIT%). Tentando backup seletivo..."
-        
-        REM Tenta backup seletivo de pastas críticas
-        if not exist "!BACKUP_DIR!" mkdir "!BACKUP_DIR!"
-        
-        set "BACKUP_FAILED=0"
-        if exist "%INSTALL_DIR%\installation" (
-            xcopy "%INSTALL_DIR%\installation\*" "!BACKUP_DIR!\installation\" /E /H /C /I /Y >nul 2>&1
-            if errorlevel 1 set "BACKUP_FAILED=1"
-        )
-        if exist "%INSTALL_DIR%\source" (
-            xcopy "%INSTALL_DIR%\source\*" "!BACKUP_DIR!\source\" /E /H /C /I /Y >nul 2>&1
-            if errorlevel 1 set "BACKUP_FAILED=1"
-        )
-        if exist "%INSTALL_DIR%\docs" (
-            xcopy "%INSTALL_DIR%\docs\*" "!BACKUP_DIR!\docs\" /E /H /C /I /Y >nul 2>&1
-            if errorlevel 1 set "BACKUP_FAILED=1"
-        )
-        
-        if !BACKUP_FAILED! equ 1 (
-            call :Log "[ERRO CRITICO] Falha ao criar backup de seguranca!"
-            call :Log "[ERRO] NAO E SEGURO CONTINUAR sem backup valido."
-            call :Log "[ERRO] Instalacao ABORTADA para proteger seus dados."
-            echo.
-            call :Log "Solucao: Feche todos os programas que possam estar usando"
-            call :Log "         arquivos em %INSTALL_DIR% e tente novamente."
-            pause
-            exit /b 1
-        )
-        
-        call :Log "[OK] Backup seletivo criado."
-    ) else (
-        call :Log "[OK] Backup completo criado com sucesso!"
-    )
-    
-    REM VALIDAÇÃO DO BACKUP - CRÍTICO!
-    call :Log "[INFO] Validando backup criado..."
-    
-    if not exist "!BACKUP_DIR!" (
-        call :Log "[ERRO CRITICO] Pasta de backup nao existe!"
-        call :Log "[ERRO] Instalacao ABORTADA - backup invalido."
-        pause
-        exit /b 1
-    )
-    
-    REM Conta arquivos no backup usando PowerShell (mais rápido)
-    for /f %%i in ('powershell -NoProfile -Command "(Get-ChildItem -Path '!BACKUP_DIR!' -Recurse -File -ErrorAction SilentlyContinue | Measure-Object).Count"') do set BACKUP_FILE_COUNT=%%i
-    
-    if %BACKUP_FILE_COUNT% LSS 5 (
-        call :Log "[ERRO CRITICO] Backup contem muito poucos arquivos: %BACKUP_FILE_COUNT%"
-        call :Log "[ERRO] Instalacao ABORTADA - backup parece incompleto."
-        rd /s /q "!BACKUP_DIR!" >nul 2>&1
-        pause
-        exit /b 1
-    )
-    
-    call :Log "[OK] Backup validado: %BACKUP_FILE_COUNT% arquivos copiados com sucesso!"
-    call :Log "[SEGURANCA] Backup criado em: !BACKUP_DIR!"
-    call :Log "[SEGURANCA] Seus dados estao protegidos. Continuando instalacao..."
-    
-) else (
-    call :Log "[INFO] Nenhuma instalacao anterior encontrada. Instalacao limpa."
-)
-
-echo.
-call :Log "================================================================================"
-call :Log "  ETAPA 3: Extracao e Validacao dos Arquivos"
-call :Log "================================================================================"
-echo.
-call :Log "[SEGURANCA] Extraindo para area temporaria primeiro (protecao de dados)..."
+call :Log "[INFO] Preparando extracao dos arquivos..."
 
 REM Remove pasta temporária de extração se existir
 if exist "%TEMP_EXTRACT%" rd /s /q "%TEMP_EXTRACT%" >nul 2>&1
@@ -352,11 +265,11 @@ if %EXTRACTED_FILE_COUNT% LSS 20 (
 call :Log "[OK] Validacao completa! Seguro para instalar."
 
 REM =============================================================================
-REM AGORA SIM: Move os arquivos validados para o destino final
+REM Move os arquivos validados para o destino final
 REM =============================================================================
 
 echo.
-call :Log "[INFO] Removendo pasta antiga (backup ja criado e validado)..."
+call :Log "[INFO] Preparando instalacao em %INSTALL_DIR%..."
 
 if exist "%INSTALL_DIR%" (
     REM Tentativa 1: Deletar pasta completa
@@ -389,27 +302,7 @@ set "COPY_EXIT=%ERRORLEVEL%"
 
 if %COPY_EXIT% neq 0 (
     call :Log "[ERRO CRITICO] Falha ao copiar arquivos para o destino (erro %COPY_EXIT%)!"
-    echo.
-    call :Log "[ROLLBACK] Tentando restaurar backup..."
-    
-    if exist "!BACKUP_DIR!" (
-        REM Remove instalação parcial
-        if exist "%INSTALL_DIR%" rd /s /q "%INSTALL_DIR%" >nul 2>&1
-        
-        REM Restaura backup
-        xcopy "!BACKUP_DIR!\*" "%INSTALL_DIR%\" /E /H /C /I /Y >nul 2>&1
-        if errorlevel 1 (
-            call :Log "[ERRO] Falha ao restaurar backup automaticamente!"
-            call :Log "[IMPORTANTE] Backup preservado em: !BACKUP_DIR!"
-            call :Log "[IMPORTANTE] Restaure manualmente se necessario."
-        ) else (
-            call :Log "[OK] Backup restaurado com sucesso!"
-            call :Log "[INFO] Sistema retornou ao estado anterior."
-        )
-    ) else (
-        call :Log "[AVISO] Backup nao disponivel para rollback."
-    )
-    
+    call :Log "[ERRO] Instalacao nao pode ser concluida."
     pause
     exit /b 1
 )
@@ -436,14 +329,7 @@ if not exist "%INSTALL_DIR%\installation\inst_scripts\install.ps1" (
 
 if %FINAL_VALIDATION_FAILED% equ 1 (
     call :Log "[ERRO CRITICO] Validacao final FALHOU!"
-    call :Log "[ROLLBACK] Restaurando backup..."
-    
-    if exist "!BACKUP_DIR!" (
-        rd /s /q "%INSTALL_DIR%" >nul 2>&1
-        xcopy "!BACKUP_DIR!\*" "%INSTALL_DIR%\" /E /H /C /I /Y >nul 2>&1
-        call :Log "[OK] Backup restaurado."
-    )
-    
+    call :Log "[ERRO] Instalacao nao pode ser concluida."
     pause
     exit /b 1
 )
