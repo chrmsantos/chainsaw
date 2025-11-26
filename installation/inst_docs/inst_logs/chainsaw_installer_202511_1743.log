@@ -1,0 +1,52 @@
+================================================================================ 
+ CHAINSAW - Log de Instalacao 
+================================================================================ 
+ Data/Hora de inicio: 26/11/2025 17:43:44,04 
+ Sistema: Windows_NT 
+ Usuario: csantos 
+ Diretorio de instalacao: C:\Users\csantos\chainsaw 
+================================================================================ 
+ 
+================================================================================ 
+  CHAINSAW - Instalador Automatico 
+================================================================================ 
+ Este instalador ira: 
+  1. Baixar o codigo-fonte completo do GitHub 
+  2. Extrair para: C:\Users\csantos\chainsaw 
+  3. Executar a instalacao automaticamente 
+================================================================================ 
+ Log sendo salvo em: C:\Users\csantos\AppData\Local\Temp\chainsaw-install-temp\chainsaw_installer_202511_1743.log 
+================================================================================ 
+================================================================================ 
+  ETAPA 1: Download do Codigo-Fonte 
+================================================================================ 
+ Baixando de: https://github.com/chrmsantos/chainsaw/archive/refs/heads/main.zip 
+ Destino temporario: C:\Users\csantos\AppData\Local\Temp\chainsaw-main.zip 
+[OK] Download verificado com sucesso. 
+================================================================================ 
+  ETAPA 1.5: Validacao do Arquivo Baixado 
+================================================================================ 
+[INFO] Tamanho do arquivo ZIP: 26866105 bytes 
+[OK] Tamanho do arquivo validado. 
+[INFO] Testando integridade do arquivo ZIP... 
+[OK] Integridade do ZIP validada com sucesso 
+================================================================================ 
+  ETAPA 2: Extracao e Validacao dos Arquivos 
+================================================================================ 
+[INFO] Preparando extracao dos arquivos... 
+[CRITICO] Validando conteudo extraido ANTES de instalar... 
+[OK] Conteudo extraido validado com sucesso 
+[INFO] Total de arquivos extraidos: 137 
+[OK] Validacao completa Seguro para instalar. 
+[INFO] Preparando instalacao em C:\Users\csantos\chainsaw... 
+[CRITICO] Detectada pasta .git - criando backup temporario... 
+[OK] Backup do .git criado em:  
+[INFO] Removendo conteudo antigo (preservando .git)... 
+[OK] Conteudo removido (exceto .git) 
+[INFO] Instalando novos arquivos validados em C:\Users\csantos\chainsaw... 
+[OK] Arquivos copiados com sucesso 
+[INFO] Validando instalacao final... 
+[OK] Validacao final concluida com sucesso 
+[INFO] Criando arquivo de versao local... 
+[OK] Arquivo de versao criado: C:\Users\csantos\chainsaw\installation\inst_configs\version.json 
+[INFO] Limpando arquivos temporarios... 
