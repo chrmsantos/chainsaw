@@ -933,43 +933,50 @@ function Remove-ChainsawUserFolder {
         }
     }
 }
+
+function Backup-WordCustomizations {
+    <#
+    .SYNOPSIS
+        Cria backup das personalizações do Word.
+    #>
+    param([string]$BackupPath)
     
-try {
-    if (-not (Test-Path $backupPath)) {
-        New-Item -Path $backupPath -ItemType Directory -Force | Out-Null
-    }
-        
-    $templatesPath = Join-Path $env:APPDATA "Microsoft\Templates"
-    $localAppDataPath = $env:LOCALAPPDATA
-        
-    # Backup do Normal.dotm
-    $normalPath = Join-Path $templatesPath "Normal.dotm"
-    if (Test-Path $normalPath) {
-        $destNormal = Join-Path $backupPath "Templates"
-        New-Item -Path $destNormal -ItemType Directory -Force | Out-Null
-        Copy-Item -Path $normalPath -Destination $destNormal -Force
-        Write-Log "Normal.dotm backup criado" -Level INFO
-    }
-        
-    # Backup de personalizações UI
-    $uiPath = Join-Path $localAppDataPath "Microsoft\Office"
-    $uiFiles = Get-ChildItem -Path $uiPath -Filter "*.officeUI" -Recurse -ErrorAction SilentlyContinue
-    if ($uiFiles.Count -gt 0) {
-        $destUI = Join-Path $backupPath "OfficeCustomUI"
-        New-Item -Path $destUI -ItemType Directory -Force | Out-Null
-        foreach ($file in $uiFiles) {
-            Copy-Item -Path $file.FullName -Destination (Join-Path $destUI $file.Name) -Force
+    try {
+        if (-not (Test-Path $BackupPath)) {
+            New-Item -Path $BackupPath -ItemType Directory -Force | Out-Null
         }
-        Write-Log "Personalizações UI backup criado: $($uiFiles.Count) arquivos" -Level INFO
+            
+        $templatesPath = Join-Path $env:APPDATA "Microsoft\Templates"
+        $localAppDataPath = $env:LOCALAPPDATA
+            
+        # Backup do Normal.dotm
+        $normalPath = Join-Path $templatesPath "Normal.dotm"
+        if (Test-Path $normalPath) {
+            $destNormal = Join-Path $BackupPath "Templates"
+            New-Item -Path $destNormal -ItemType Directory -Force | Out-Null
+            Copy-Item -Path $normalPath -Destination $destNormal -Force
+            Write-Log "Normal.dotm backup criado" -Level INFO
+        }
+            
+        # Backup de personalizações UI
+        $uiPath = Join-Path $localAppDataPath "Microsoft\Office"
+        $uiFiles = Get-ChildItem -Path $uiPath -Filter "*.officeUI" -Recurse -ErrorAction SilentlyContinue
+        if ($uiFiles.Count -gt 0) {
+            $destUI = Join-Path $BackupPath "OfficeCustomUI"
+            New-Item -Path $destUI -ItemType Directory -Force | Out-Null
+            foreach ($file in $uiFiles) {
+                Copy-Item -Path $file.FullName -Destination (Join-Path $destUI $file.Name) -Force
+            }
+            Write-Log "Personalizações UI backup criado: $($uiFiles.Count) arquivos" -Level INFO
+        }
+            
+        Write-Log "Backup de personalizações criado em: $BackupPath [OK]" -Level SUCCESS
+        return $BackupPath
     }
-        
-    Write-Log "Backup de personalizações criado em: $backupPath [OK]" -Level SUCCESS
-    return $backupPath
-}
-catch {
-    Write-Log "Erro ao criar backup de personalizações: $_" -Level ERROR
-    return $null
-}
+    catch {
+        Write-Log "Erro ao criar backup de personalizações: $_" -Level ERROR
+        return $null
+    }
 }
 
 function Import-VbaModule {
