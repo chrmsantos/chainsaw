@@ -42,20 +42,6 @@ if "%NORMALIZED_INSTALL:~-1%"=="\" set "NORMALIZED_INSTALL=%NORMALIZED_INSTALL:~
 REM Compara se esta dentro da pasta de destino
 echo %NORMALIZED_CURRENT% | findstr /I /C:"%NORMALIZED_INSTALL%" >nul
 if not errorlevel 1 (
-    echo.
-    echo ===============================================================================
-    echo  AVISO: Este instalador esta sendo executado de dentro da pasta de destino!
-    echo ===============================================================================
-    echo.
-    echo  Pasta atual: %CURRENT_DIR%
-    echo  Pasta destino: %INSTALL_DIR%
-    echo.
-    echo  O instalador sera copiado para um local temporario e re-executado de la
-    echo  para evitar a exclusao dos proprios arquivos de instalacao.
-    echo.
-    echo ===============================================================================
-    pause
-    
     REM Cria diretorio temporario
     if not exist "%SAFE_INSTALL_DIR%" mkdir "%SAFE_INSTALL_DIR%"
     
@@ -63,9 +49,6 @@ if not errorlevel 1 (
     copy "%~f0" "%SAFE_INSTALL_DIR%\chainsaw_installer.cmd" >nul
     
     REM Executa de la
-    echo.
-    echo Re-executando de local seguro: %SAFE_INSTALL_DIR%
-    echo.
     cd /d "%SAFE_INSTALL_DIR%"
     call "%SAFE_INSTALL_DIR%\chainsaw_installer.cmd"
     
