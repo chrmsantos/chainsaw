@@ -1,23 +1,16 @@
 @echo off
 REM =============================================================================
-REM CHAINSAW - Launcher Seguro para Instalação
+REM CHAINSAW - Launcher Seguro para Instalacao (Wrapper)
 REM =============================================================================
-REM Versão: 2.0.0
-REM Este arquivo .cmd garante que o script PowerShell seja executado mesmo com
-REM políticas restritivas de execução, usando bypass temporário seguro.
+REM Este arquivo agora redireciona para o launcher unificado chainsaw.cmd
+REM Mantido para compatibilidade com scripts existentes
 REM =============================================================================
 
-setlocal EnableDelayedExpansion EnableExtensions
-
-
-REM Maximiza a janela do console (tenta, mas não falha se não conseguir)
-mode con cols=120 lines=50 >nul 2>&1
-if not "%1"=="__MAXIMIZED__" (
-    start /MAX cmd /c "%~f0" __MAXIMIZED__ %* & exit/b
-)
+"%~dp0chainsaw.cmd" install %*
+exit /b %ERRORLEVEL%
 
 REM =============================================================================
-REM BANNER E INFORMAÇÕES
+REM BANNER E INFORMAï¿½ï¿½ES
 REM =============================================================================
 echo.
 echo ========================================================================
@@ -28,10 +21,10 @@ echo [i] Launcher Seguro - Versao 2.0.0
 echo.
 
 REM =============================================================================
-REM VERIFICAÇÕES DE SISTEMA
+REM VERIFICAï¿½ï¿½ES DE SISTEMA
 REM =============================================================================
 
-REM Verifica se está no Windows (redundante, mas garante)
+REM Verifica se estï¿½ no Windows (redundante, mas garante)
 if not "%OS%"=="Windows_NT" (
     echo [X] ERRO: Este script requer Windows NT ou superior!
     echo.
@@ -39,14 +32,14 @@ if not "%OS%"=="Windows_NT" (
     exit /b 1
 )
 
-REM Verifica versão do Windows (Windows 7 ou superior)
+REM Verifica versï¿½o do Windows (Windows 7 ou superior)
 REM Windows 7 = 6.1, Windows 8 = 6.2, Windows 8.1 = 6.3, Windows 10 = 10.0
 for /f "tokens=4-5 delims=. " %%i in ('ver') do set VERSION=%%i.%%j
 
-REM Extrai apenas o número principal da versão para comparação
+REM Extrai apenas o nï¿½mero principal da versï¿½o para comparaï¿½ï¿½o
 for /f "tokens=1 delims=." %%a in ("%VERSION%") do set MAJOR_VERSION=%%a
 
-REM Verifica se é Windows 7 (6.1) ou superior
+REM Verifica se ï¿½ Windows 7 (6.1) ou superior
 REM Windows 10+ tem major version >= 10, Windows 7-8.1 tem major version = 6
 if %MAJOR_VERSION% LSS 6 (
     echo [X] ERRO: Windows 7 ou superior e necessario!
@@ -57,10 +50,10 @@ if %MAJOR_VERSION% LSS 6 (
 )
 
 REM =============================================================================
-REM VERIFICAÇÕES DE ARQUIVOS
+REM VERIFICAï¿½ï¿½ES DE ARQUIVOS
 REM =============================================================================
 
-REM Verifica se install.ps1 existe no mesmo diretório
+REM Verifica se install.ps1 existe no mesmo diretï¿½rio
 if not exist "%~dp0install.ps1" (
     echo [X] ERRO: install.ps1 nao encontrado!
     echo.
@@ -73,7 +66,7 @@ if not exist "%~dp0install.ps1" (
     exit /b 1
 )
 
-REM Verifica se o arquivo não está corrompido (tamanho mínimo)
+REM Verifica se o arquivo nï¿½o estï¿½ corrompido (tamanho mï¿½nimo)
 for %%A in ("%~dp0install.ps1") do set FILE_SIZE=%%~zA
 if %FILE_SIZE% LSS 1000 (
     echo [X] ERRO: install.ps1 parece estar corrompido!
@@ -84,10 +77,10 @@ if %FILE_SIZE% LSS 1000 (
 )
 
 REM =============================================================================
-REM VERIFICAÇÃO DO POWERSHELL
+REM VERIFICAï¿½ï¿½O DO POWERSHELL
 REM =============================================================================
 
-REM Verifica se PowerShell está disponível
+REM Verifica se PowerShell estï¿½ disponï¿½vel
 where powershell.exe >nul 2>&1
 if errorlevel 1 (
     echo [X] ERRO: PowerShell nao encontrado no sistema!
@@ -99,7 +92,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-REM Verifica versão do PowerShell (5.1 ou superior)
+REM Verifica versï¿½o do PowerShell (5.1 ou superior)
 for /f "tokens=*" %%i in ('powershell.exe -NoProfile -Command "$PSVersionTable.PSVersion.Major"') do set PS_VERSION=%%i
 if %PS_VERSION% LSS 5 (
     echo [X] ERRO: PowerShell 5.1 ou superior e necessario!
@@ -113,10 +106,10 @@ if %PS_VERSION% LSS 5 (
 )
 
 REM =============================================================================
-REM VERIFICAÇÃO DE PRIVILÉGIOS (AVISO)
+REM VERIFICAï¿½ï¿½O DE PRIVILï¿½GIOS (AVISO)
 REM =============================================================================
 
-REM Verifica se está executando como administrador (apenas aviso, não bloqueia)
+REM Verifica se estï¿½ executando como administrador (apenas aviso, nï¿½o bloqueia)
 net session >nul 2>&1
 if %errorlevel% EQU 0 (
     echo [!] AVISO: Executando como Administrador
@@ -127,10 +120,10 @@ if %errorlevel% EQU 0 (
 )
 
 REM =============================================================================
-REM VERIFICAÇÃO DE WORD EM EXECUÇÃO
+REM VERIFICAï¿½ï¿½O DE WORD EM EXECUï¿½ï¿½O
 REM =============================================================================
 
-REM Verifica se o Word está em execução (aviso prévio)
+REM Verifica se o Word estï¿½ em execuï¿½ï¿½o (aviso prï¿½vio)
 tasklist /FI "IMAGENAME eq WINWORD.EXE" 2>NUL | find /I /N "WINWORD.EXE" >NUL
 if not errorlevel 1 (
     echo [!] AVISO: Microsoft Word esta em execucao!
@@ -139,7 +132,7 @@ if not errorlevel 1 (
 )
 
 REM =============================================================================
-REM INFORMAÇÕES DE SEGURANÇA
+REM INFORMAï¿½ï¿½ES DE SEGURANï¿½A
 REM =============================================================================
 
 echo [*] Seguranca:
@@ -156,7 +149,7 @@ echo     - Diretorio:  %~dp0
 echo.
 
 REM =============================================================================
-REM PREPARAÇÃO PARA EXECUÇÃO
+REM PREPARAï¿½ï¿½O PARA EXECUï¿½ï¿½O
 REM =============================================================================
 
 REM Cria timestamp para log
@@ -173,13 +166,13 @@ echo ========================================================================
 echo.
 
 REM =============================================================================
-REM EXECUÇÃO DO POWERSHELL
+REM EXECUï¿½ï¿½O DO POWERSHELL
 REM =============================================================================
 
-REM Executa install.ps1 com bypass temporário e captura de erros
+REM Executa install.ps1 com bypass temporï¿½rio e captura de erros
 powershell.exe -ExecutionPolicy Bypass -NoProfile -NoLogo -File "%~dp0install.ps1" %* 2>%ERROR_LOG%
 
-REM Captura o código de saída
+REM Captura o cï¿½digo de saï¿½da
 set EXIT_CODE=%ERRORLEVEL%
 
 REM =============================================================================
@@ -194,13 +187,13 @@ if %EXIT_CODE% EQU 0 (
     echo [OK] Instalacao concluida com sucesso!
     echo.
     
-    REM Remove log de erro se não houve erro
+    REM Remove log de erro se nï¿½o houve erro
     if exist %ERROR_LOG% del /F /Q %ERROR_LOG% >nul 2>&1
 ) else (
     echo [X] Instalacao falhou com codigo de erro: %EXIT_CODE%
     echo.
     
-    REM Verifica se há log de erro
+    REM Verifica se hï¿½ log de erro
     if exist %ERROR_LOG% (
         for %%A in (%ERROR_LOG%) do set ERROR_SIZE=%%~zA
         if !ERROR_SIZE! GTR 0 (
@@ -224,17 +217,17 @@ if %EXIT_CODE% EQU 0 (
 )
 
 REM =============================================================================
-REM LIMPEZA E SAÍDA
+REM LIMPEZA E SAï¿½DA
 REM =============================================================================
 
-REM Pausa apenas se executado por duplo-clique (não em linha de comando)
+REM Pausa apenas se executado por duplo-clique (nï¿½o em linha de comando)
 echo %CMDCMDLINE% | find /i "%~0" >nul
 if not errorlevel 1 (
     echo.
     pause
 )
 
-REM Restaura codepage original (se necessário)
+REM Restaura codepage original (se necessï¿½rio)
 REM chcp 850 >nul 2>&1
 
 endlocal
