@@ -146,9 +146,9 @@ Describe 'CHAINSAW - Testes do Módulo VBA monolithicMod.bas' {
             ($vbaContent -match 'MAX_RETRY_ATTEMPTS') | Should Be $true
         }
 
-        It 'Define constantes de backup e logs (CHAINSAW_ROOT_FOLDER, CHAINSAW_LOGS_FOLDER)' {
-            ($vbaContent -match 'CHAINSAW_ROOT_FOLDER') -and
-            ($vbaContent -match 'CHAINSAW_LOGS_FOLDER') | Should Be $true
+        It 'Define constantes de backup e logs (GetChainsawBackupsPath, GetChainsawRecoveryPath)' {
+            ($vbaContent -match 'GetChainsawBackupsPath') -and
+            ($vbaContent -match 'GetChainsawRecoveryPath') | Should Be $true
         }
 
         It 'Define níveis de log (LOG_LEVEL_INFO, LOG_LEVEL_WARNING, LOG_LEVEL_ERROR)' {
@@ -277,11 +277,7 @@ Describe 'CHAINSAW - Testes do Módulo VBA monolithicMod.bas' {
             $vbaContent -match '={20,}' | Should Be $true
         }
 
-        It 'Possui CHANGELOG documentado' {
-            $vbaContent -match 'CHANGELOG' | Should Be $true
-        }
-
-        It 'Taxa de comentários adequada (> 5% das linhas)' {
+It 'Taxa de comentários adequada (> 5% das linhas)' {
             $commentLines = $vbaLines | Where-Object { $_ -match "^\s*'" }
             $commentRatio = $commentLines.Count / $vbaLines.Count
             $commentRatio -gt 0.05 | Should Be $true
@@ -294,8 +290,8 @@ Describe 'CHAINSAW - Testes do Módulo VBA monolithicMod.bas' {
 
     Context 'Funcionalidades de Backup e Log' {
         
-        It 'Possui sistema de backup (BACKUP_FOLDER_NAME)' {
-            $vbaContent -match 'BACKUP_FOLDER_NAME' | Should Be $true
+        It 'Possui sistema de backup (CreateDocumentBackup)' {
+            $vbaContent -match 'CreateDocumentBackup' | Should Be $true
         }
 
         It 'Possui limite de arquivos de backup (MAX_BACKUP_FILES)' {

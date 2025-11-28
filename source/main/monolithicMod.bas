@@ -1850,7 +1850,14 @@ End Function
 ' GetChainsawBackupsPath - Retorna caminho para backups
 '--------------------------------------------------------------------------------
 Private Function GetChainsawBackupsPath() As String
-    GetChainsawBackupsPath = GetProjectRootPath() & "\installation\inst_docs\vba_backups"
+    GetChainsawBackupsPath = GetProjectRootPath() & "\props\backups"
+End Function
+
+'--------------------------------------------------------------------------------
+' GetChainsawRecoveryPath - Retorna caminho para recovery temporario
+'--------------------------------------------------------------------------------
+Private Function GetChainsawRecoveryPath() As String
+    GetChainsawRecoveryPath = GetProjectRootPath() & "\props\recovery_tmp"
 End Function
 
 '--------------------------------------------------------------------------------
@@ -1868,10 +1875,23 @@ Private Sub EnsureChainsawFolders()
 
     Dim fso As Object
     Set fso = CreateObject("Scripting.FileSystemObject")
+    
+    Dim propsPath As String
+    propsPath = GetProjectRootPath() & "\props"
+    
+    ' Cria pasta props
+    If Not fso.FolderExists(propsPath) Then
+        fso.CreateFolder propsPath
+    End If
 
     ' Cria pasta backups
     If Not fso.FolderExists(GetChainsawBackupsPath()) Then
         fso.CreateFolder GetChainsawBackupsPath()
+    End If
+    
+    ' Cria pasta recovery_tmp
+    If Not fso.FolderExists(GetChainsawRecoveryPath()) Then
+        fso.CreateFolder GetChainsawRecoveryPath()
     End If
 
     ' Cria pasta logs
@@ -5866,40 +5886,7 @@ ErrorHandler:
     LogMessage "Erro ao formatar frases 'Por todas as razões': " & Err.Description, LOG_LEVEL_WARNING
 End Sub
 
-'================================================================================
-' SUBROTINA PÚBLICA: ABRIR PASTA DE LOGS E BACKUPS
-'================================================================================
-Public Sub AbrirPastaLogsEBackups()
-    On Error GoTo ErrorHandler
 
-    Dim chainsawFolder As String
-
-    ' Garante que a estrutura do projeto existe
-    EnsureChainsawFolders
-
-    ' Caminho da pasta inst_docs
-    chainsawFolder = GetProjectRootPath() & "\installation\inst_docs"
-
-    ' SEMPRE abre pasta inst_docs
-    Application.StatusBar = "Abrindo pasta de logs e backups"
-    Shell "explorer.exe """ & chainsawFolder & """", vbNormalFocus
-
-    ' Log da operação se sistema de log estiver ativo
-    If loggingEnabled Then
-        LogMessage "Pasta de logs e backups aberta pelo usuário: " & chainsawFolder, LOG_LEVEL_INFO
-    End If
-
-    Exit Sub
-
-ErrorHandler:
-    Application.StatusBar = "Erro ao abrir pasta"
-    LogMessage "Erro ao abrir pasta de logs e backups: " & Err.Description, LOG_LEVEL_ERROR
-
-    ' Fallback: tenta abrir novamente
-    On Error Resume Next
-    Shell "explorer.exe """ & GetProjectRootPath() & "\installation\inst_docs" & """", vbNormalFocus
-    Application.StatusBar = "Pasta de logs e backups aberta"
-End Sub
 
 '================================================================================
 ' SUBROTINA PÚBLICA: ABRIR REPOSITÓRIO DO GITHUB
@@ -6101,6 +6088,12 @@ Private Function CreateDocumentBackup(doc As Document) As Boolean
     ' Nome do arquivo de backup
     backupFileName = docName & "_backup_" & timeStamp & "." & docExtension
     backupFilePath = backupFolder & "\" & backupFileName
+    
+    ' Protege contra conflito: exclui arquivo pre-existente com mesmo nome
+    If fso.FileExists(backupFilePath) Then
+        fso.DeleteFile backupFilePath, True
+        LogMessage "Backup anterior com mesmo nome excluido: " & backupFileName, LOG_LEVEL_INFO
+    End If
 
     ' Salva uma cópia do documento como backup
     Application.StatusBar = "Criando backup..."
@@ -6124,6 +6117,106 @@ ErrorHandler:
     LogMessage "Erro ao criar backup: " & Err.Description, LOG_LEVEL_ERROR
     CreateDocumentBackup = False
 End Function
+
+'================================================================================
+' RESTAURAR BACKUP - Descarta documento atual e restaura backup
+'================================================================================
+Public Sub RestaurarBackup()
+    On Error GoTo ErrorHandler
+    
+    Dim doc As Document
+    Set doc = ActiveDocument
+    
+    If doc Is Nothing Then
+        MsgBox "Nenhum documento ativo para restaurar.", vbExclamation, "CHAINSAW - Restaurar Backup"
+        Exit Sub
+    End If
+    
+    ' Verifica se existe backup para este documento
+    If backupFilePath = "" Or Not CreateObject("Scripting.FileSystemObject").FileExists(backupFilePath) Then
+        MsgBox "Nenhum backup disponivel para este documento." & vbCrLf & vbCrLf & _
+               "[i] O backup e criado apenas apos a primeira execucao de PadronizarDocumentoMain.", _
+               vbExclamation, "CHAINSAW - Restaurar Backup"
+        Exit Sub
+    End If
+    
+    ' Confirma com usuario
+    Dim confirmMsg As String
+    confirmMsg = "[?] Deseja restaurar o backup do documento?" & vbCrLf & vbCrLf & _
+                 "[!] ATENCAO: O documento atual sera descartado!" & vbCrLf & vbCrLf & _
+                 "[DIR] Documento atual: " & doc.Name & vbCrLf & _
+                 "[DIR] Backup: " & CreateObject("Scripting.FileSystemObject").GetFileName(backupFilePath)
+    
+    If MsgBox(confirmMsg, vbYesNo + vbQuestion, "CHAINSAW - Confirmar Restauracao") <> vbYes Then
+        Exit Sub
+    End If
+    
+    Dim fso As Object
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    
+    Dim originalPath As String
+    Dim originalName As String
+    Dim discardedPath As String
+    Dim timeStamp As String
+    
+    originalPath = doc.FullName
+    originalName = doc.Name
+    
+    ' Cria timestamp para arquivo descartado
+    timeStamp = Format(Now, "yyyy-mm-dd_HHmmss")
+    
+    ' Nome do arquivo descartado: nome_discarded_timestamp.ext
+    Dim baseName As String
+    Dim extension As String
+    baseName = fso.GetBaseName(originalName)
+    extension = fso.GetExtensionName(originalName)
+    
+    discardedPath = fso.GetParentFolderName(originalPath) & "\" & _
+                    baseName & "_discarded_" & timeStamp & "." & extension
+    
+    ' Protege contra conflito: exclui arquivo pre-existente
+    If fso.FileExists(discardedPath) Then
+        fso.DeleteFile discardedPath, True
+    End If
+    
+    ' Salva documento atual como _discarded
+    Application.StatusBar = "Salvando documento descartado..."
+    doc.SaveAs2 discardedPath
+    
+    ' Fecha o documento descartado
+    doc.Close SaveChanges:=False
+    
+    ' Protege contra conflito no caminho original
+    If fso.FileExists(originalPath) Then
+        fso.DeleteFile originalPath, True
+    End If
+    
+    ' Copia backup para o local original
+    Application.StatusBar = "Restaurando backup..."
+    fso.CopyFile backupFilePath, originalPath, True
+    
+    ' Abre o backup restaurado
+    Application.Documents.Open originalPath
+    
+    Application.StatusBar = "Backup restaurado com sucesso"
+    
+    MsgBox "[OK] Backup restaurado com sucesso!" & vbCrLf & vbCrLf & _
+           "[DIR] Documento descartado salvo em:" & vbCrLf & _
+           "   " & discardedPath & vbCrLf & vbCrLf & _
+           "[DIR] Backup restaurado:" & vbCrLf & _
+           "   " & originalPath, _
+           vbInformation, "CHAINSAW - Backup Restaurado"
+    
+    Exit Sub
+    
+ErrorHandler:
+    Application.StatusBar = "Erro ao restaurar backup"
+    MsgBox "[ERRO] Falha ao restaurar backup:" & vbCrLf & vbCrLf & _
+           Err.Description & vbCrLf & vbCrLf & _
+           "[i] O documento pode estar em estado inconsistente." & vbCrLf & _
+           "   Verifique manualmente a pasta de backups.", _
+           vbCritical, "CHAINSAW - Erro na Restauracao"
+End Sub
 
 '================================================================================
 ' LIMPEZA DE BACKUPS ANTIGOS
