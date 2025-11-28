@@ -1,21 +1,10 @@
 ﻿' =============================================================================
 ' CHAINSAW - Sistema de Padronização de Proposituras Legislativas
 ' =============================================================================
-' Versão: 2.0.2
+' Versão: 2.0.3
 ' Licença: GNU GPLv3 (https://www.gnu.org/licenses/gpl-3.0.html)
 ' Compatibilidade: Microsoft Word 2010+
 ' Autor: Christian Martin dos Santos (chrmsantos@protonmail.com)
-' =============================================================================
-' CHANGELOG v1.1:
-' - Adicionado sistema de identificação de elementos estruturais da propositura
-' - Novos identificadores: Título, Ementa, Proposição, Justificativa, Data,
-'   Assinatura, Anexo e Propositura completa
-' - Funções públicas de acesso aos elementos: GetTituloRange, GetEmentaRange,
-'   GetProposicaoRange, GetJustificativaRange, GetDataRange, GetAssinaturaRange,
-'   GetTituloAnexoRange, GetAnexoRange, GetProposituraRange
-' - Integração com sistema de cache de parágrafos existente
-' - Identificação automática durante BuildParagraphCache
-' - Função GetElementInfo para relatório completo dos elementos
 ' =============================================================================
 
 Option Explicit
@@ -77,7 +66,7 @@ Private Const HEADER_IMAGE_HEIGHT_RATIO As Double = 0.19
 '================================================================================
 ' CONSTANTES DE SISTEMA
 '================================================================================
-Private Const CHAINSAW_VERSION As String = "2.0.2"
+Private Const CHAINSAW_VERSION As String = "2.0.3"
 Private Const MIN_SUPPORTED_VERSION As Long = 14
 Private Const REQUIRED_STRING As String = "$NUMERO$/$ANO$"
 Private Const MAX_BACKUP_FILES As Long = 10

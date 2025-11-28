@@ -249,3 +249,51 @@ function Remove-ChainsawBackups {
         Write-Host "[INFO] Backup mantido: chainsaw_backup" -ForegroundColor Cyan
     }
 }
+
+function Remove-OldLogs {
+    <#
+    .SYNOPSIS
+        Rotaciona logs mantendo apenas os 5 mais recentes.
+    
+    .DESCRIPTION
+        Aplica politica de retencao de logs: maximo 5 arquivos por diretorio.
+        Remove arquivos mais antigos baseado em LastWriteTime.
+        
+    .PARAMETER LogDirectory
+        Caminho absoluto do diretorio de logs.
+        
+    .PARAMETER MaxFiles
+        Numero maximo de arquivos a manter (padrao: 5).
+    #>
+    
+    param(
+        [Parameter(Mandatory)]
+        [string]$LogDirectory,
+        
+        [Parameter()]
+        [int]$MaxFiles = 5
+    )
+    
+    if (-not (Test-Path $LogDirectory)) {
+        return
+    }
+    
+    $logFiles = Get-ChildItem -Path $LogDirectory -File -Filter "*.log" | 
+        Sort-Object LastWriteTime -Descending
+    
+    if ($logFiles.Count -le $MaxFiles) {
+        return
+    }
+    
+    $toRemove = $logFiles | Select-Object -Skip $MaxFiles
+    
+    foreach ($file in $toRemove) {
+        try {
+            Remove-Item -Path $file.FullName -Force -ErrorAction Stop
+            Write-Host "[LOG-CLEANUP] Removido: $($file.Name)" -ForegroundColor DarkGray
+        }
+        catch {
+            Write-Host "[AVISO] Falha ao remover log: $($file.Name)" -ForegroundColor Yellow
+        }
+    }
+}

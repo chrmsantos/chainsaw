@@ -2026,6 +2026,13 @@ function Install-CHAINSAWConfig {
         Write-Host "   $script:LogFile" -ForegroundColor Gray
         Write-Host ""
         
+        # Log rotation: keep only 5 most recent logs
+        $vbaLogsDir = Join-Path $env:USERPROFILE "chainsaw\installation\inst_docs\vba_logs"
+        $instLogsDir = Join-Path $env:USERPROFILE "chainsaw\installation\inst_docs\inst_logs"
+        
+        Remove-OldLogs -LogDirectory $vbaLogsDir -MaxFiles 5
+        Remove-OldLogs -LogDirectory $instLogsDir -MaxFiles 5
+        
         Write-Log "=== INSTALAÇÃO CONCLUÍDA COM SUCESSO ===" -Level SUCCESS
         Write-Log "Duração: $($duration.ToString('mm\:ss'))" -Level INFO
     }
