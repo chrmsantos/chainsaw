@@ -1,0 +1,16 @@
+================================================================================
+CHAINSAW - Exportação de Personalizações do Word
+================================================================================
+Data/Hora: 28/11/2025 17:39:35
+Usuário: csantos
+Computador: NOTEPROCLEG01
+Sistema: Microsoft Windows NT 10.0.26100.0
+PowerShell: 5.1.26100.7019
+Caminho de Exportação: .\exported-config
+================================================================================
+
+[2025-11-28 17:39:35] [INFO] === INÍCIO DA EXPORTAÇÃO ===
+[2025-11-28 17:39:35] [INFO] Acesso ao VBA já está habilitado
+[2025-11-28 17:39:35] [WARNING] Word em execução - solicitando confirmação do usuário
+[2025-11-28 17:39:55] [WARNING] Exportação cancelada - usuário optou por não fechar o Word
+[2025-11-28 17:39:55] [WARNING] Exportação cancelada - Word não foi fechado
