@@ -12,47 +12,42 @@
     Script unificado para gerenciamento do CHAINSAW.
 
 .DESCRIPTION
-    Este script consolida todas as funcionalidades de gerenciamento:
-    - install: Instala as configurações do Word
-    - update-vba: Atualiza apenas o módulo VBA
-    - export: Exporta configurações atuais
-    - restore: Restaura backup anterior
-    - enable-vba: Habilita acesso programático ao VBA
+    Este script consolida as funcionalidades de gerenciamento:
+    - install: Instala/atualiza as configurações do Word (inclui VBA, templates, customizações)
+    - export: Exporta configurações atuais do Word
+    
+    O sistema de backup automático está integrado na instalação.
+    Para restaurar um backup, renomeie a pasta chainsaw_backup para chainsaw.
     
 .PARAMETER Action
-    Ação a ser executada: install, update-vba, export, restore, enable-vba
+    Ação a ser executada: install, export
 
 .PARAMETER Force
     Força a execução sem confirmação
 
 .PARAMETER NoBackup
-    Não cria backup (apenas para install)
+    Não cria backup antes da instalação (não recomendado)
+
+.PARAMETER SkipCustomizations
+    Não importa customizações do Word durante instalação
 
 .EXAMPLE
     .\chainsaw.ps1 install
-    Instala o CHAINSAW
+    Instala/atualiza o CHAINSAW (cria backup automático)
 
 .EXAMPLE
-    .\chainsaw.ps1 update-vba
-    Atualiza apenas o módulo VBA
+    .\chainsaw.ps1 install -Force
+    Instala sem confirmação
 
 .EXAMPLE
     .\chainsaw.ps1 export
-    Exporta configurações atuais
-
-.EXAMPLE
-    .\chainsaw.ps1 restore
-    Restaura backup anterior
-
-.EXAMPLE
-    .\chainsaw.ps1 enable-vba
-    Habilita acesso ao VBA
+    Exporta configurações atuais do Word
 #>
 
 [CmdletBinding()]
 param(
     [Parameter(Position=0, Mandatory=$true)]
-    [ValidateSet('install', 'update-vba', 'export', 'restore', 'enable-vba', 'disable-vba')]
+    [ValidateSet('install', 'export')]
     [string]$Action,
     
     [Parameter()]
@@ -60,6 +55,9 @@ param(
     
     [Parameter()]
     [switch]$NoBackup,
+    
+    [Parameter()]
+    [switch]$SkipCustomizations,
     
     [Parameter()]
     [string]$SourcePath = ""
@@ -73,38 +71,21 @@ if ([string]::IsNullOrWhiteSpace($SourcePath)) {
     }
 }
 
-# Redireciona para o script específico mantendo compatibilidade
+# Redireciona para o script específico
 switch ($Action) {
     'install' {
         $params = @{}
         if ($Force) { $params['Force'] = $true }
         if ($NoBackup) { $params['NoBackup'] = $true }
+        if ($SkipCustomizations) { $params['SkipCustomizations'] = $true }
         if ($SourcePath) { $params['SourcePath'] = $SourcePath }
         
         & "$PSScriptRoot\install.ps1" @params
-    }
-    'update-vba' {
-        $params = @{}
-        if ($Force) { $params['Force'] = $true }
-        
-        & "$PSScriptRoot\update-vba-module.ps1" @params
     }
     'export' {
         $params = @{}
         if ($Force) { $params['Force'] = $true }
         
         & "$PSScriptRoot\export-config.ps1" @params
-    }
-    'restore' {
-        $params = @{}
-        if ($Force) { $params['Force'] = $true }
-        
-        & "$PSScriptRoot\restore-backup.ps1" @params
-    }
-    'enable-vba' {
-        & "$PSScriptRoot\enable-vba-access.ps1"
-    }
-    'disable-vba' {
-        & "$PSScriptRoot\enable-vba-access.ps1" -Disable
     }
 }

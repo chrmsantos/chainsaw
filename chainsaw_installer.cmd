@@ -303,34 +303,74 @@ REM ============================================================================
 echo.
 call :Log "[INFO] Preparando instalacao em %INSTALL_DIR%..."
 
+REM =============================================================================
+REM BACKUP AUTOMATICO PRE-INSTALACAO
+REM =============================================================================
+
 if exist "%INSTALL_DIR%" (
-    REM PROTECAO CRITICA: Preservar pasta .git se existir
-    set "GIT_BACKUP_DIR=%TEMP%\chainsaw-git-backup-%RANDOM%"
-    if exist "%INSTALL_DIR%\.git" (
-        call :Log "[CRITICO] Detectada pasta .git - criando backup temporario..."
-        mkdir "%GIT_BACKUP_DIR%" >nul 2>&1
-        xcopy "%INSTALL_DIR%\.git" "%GIT_BACKUP_DIR%\.git\" /E /H /C /I /Y >nul 2>&1
-        if exist "%GIT_BACKUP_DIR%\.git" (
-            call :Log "[OK] Backup do .git criado em: %GIT_BACKUP_DIR%"
+    call :Log ""
+    call :Log "=============================================================="
+    call :Log "  ETAPA 1: Backup Automatico Pre-Instalacao"
+    call :Log "=============================================================="
+    call :Log ""
+    
+    REM 1. Gerenciar backup anterior (chainsaw_backup -> chainsaw_old_tmp_backup)
+    if exist "%USERPROFILE%\chainsaw_backup" (
+        call :Log "[INFO] Backup anterior detectado: chainsaw_backup"
+        
+        REM Remove chainsaw_old_tmp_backup se existir
+        if exist "%USERPROFILE%\chainsaw_old_tmp_backup" (
+            call :Log "[INFO] Removendo backup antigo: chainsaw_old_tmp_backup"
+            rd /s /q "%USERPROFILE%\chainsaw_old_tmp_backup" >nul 2>&1
+            if exist "%USERPROFILE%\chainsaw_old_tmp_backup" (
+                call :Log "[AVISO] Nao foi possivel remover backup antigo completamente"
+            ) else (
+                call :Log "[OK] Backup antigo removido"
+            )
+        )
+        
+        REM Renomeia chainsaw_backup para chainsaw_old_tmp_backup
+        call :Log "[INFO] Preservando backup anterior: chainsaw_backup -] chainsaw_old_tmp_backup"
+        ren "%USERPROFILE%\chainsaw_backup" "chainsaw_old_tmp_backup" >nul 2>&1
+        if exist "%USERPROFILE%\chainsaw_old_tmp_backup" (
+            call :Log "[OK] Backup anterior preservado"
         ) else (
-            call :Log "[ERRO] Falha ao criar backup do .git!"
+            call :Log "[ERRO] Falha ao preservar backup anterior"
         )
     )
     
-    REM Deletar conteúdo da pasta (EXCETO .git)
-    call :Log "[INFO] Removendo conteudo antigo (preservando .git)..."
-    
-    REM Remove apenas arquivos na raiz
-    del /f /q "%INSTALL_DIR%\*.*" >nul 2>&1
-    
-    REM Remove pastas EXCETO .git
-    for /d %%p in ("%INSTALL_DIR%\*") do (
-        if /I not "%%~nxp"==".git" (
-            rd /s /q "%%p" >nul 2>&1
+    REM 2. Criar backup da instalacao atual (chainsaw -> chainsaw_backup)
+    call :Log "[INFO] Criando backup da instalacao atual: chainsaw -] chainsaw_backup"
+    ren "%INSTALL_DIR%" "chainsaw_backup" >nul 2>&1
+    if exist "%USERPROFILE%\chainsaw_backup" (
+        if not exist "%INSTALL_DIR%" (
+            call :Log "[OK] Backup da instalacao atual criado"
+        ) else (
+            call :Log "[ERRO] Falha ao criar backup - pasta de destino ainda existe"
         )
+    ) else (
+        call :Log "[ERRO] Falha ao criar backup da instalacao atual"
     )
     
-    call :Log "[OK] Conteudo removido (exceto .git)"
+    call :Log ""
+    call :Log "[OK] Backup automatico concluido com sucesso"
+    call :Log ""
+)
+
+REM =============================================================================
+REM PROTECAO CRITICA: Preservar pasta .git se existir no backup
+REM =============================================================================
+
+set "GIT_BACKUP_DIR=%TEMP%\chainsaw-git-backup-%RANDOM%"
+if exist "%USERPROFILE%\chainsaw_backup\.git" (
+    call :Log "[CRITICO] Detectada pasta .git no backup - criando backup temporario..."
+    mkdir "%GIT_BACKUP_DIR%" >nul 2>&1
+    xcopy "%USERPROFILE%\chainsaw_backup\.git" "%GIT_BACKUP_DIR%\.git\" /E /H /C /I /Y >nul 2>&1
+    if exist "%GIT_BACKUP_DIR%\.git" (
+        call :Log "[OK] Backup do .git criado em: %GIT_BACKUP_DIR%"
+    ) else (
+        call :Log "[ERRO] Falha ao criar backup do .git!"
+    )
 )
 
 call :Log "[INFO] Instalando novos arquivos validados em %INSTALL_DIR%..."
@@ -396,7 +436,7 @@ call :Log "[INFO] Criando arquivo de versao local..."
 set "LOCAL_VERSION_FILE=%INSTALL_DIR%\installation\inst_configs\version.json"
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
     "$version = @{" ^
-    "  version = '2.0.2';" ^
+    "  version = '2.0.3';" ^
     "  installedDate = (Get-Date -Format 'yyyy-MM-dd');" ^
     "  installPath = '%INSTALL_DIR%';" ^
     "  lastUpdateCheck = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')" ^

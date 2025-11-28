@@ -16,8 +16,8 @@ Describe 'CHAINSAW - Testes de Scripts de Instalação' {
         $scriptsPath = Join-Path $repoRoot "installation\inst_scripts"
         $installScript = Join-Path $scriptsPath "install.ps1"
         $exportScript = Join-Path $scriptsPath "export-config.ps1"
-        $updateScript = Join-Path $scriptsPath "update-vba-module.ps1"
-        $restoreScript = Join-Path $scriptsPath "restore-backup.ps1"
+        $backupScript = Join-Path $scriptsPath "backup-functions.ps1"
+        $chainsawLauncher = Join-Path $scriptsPath "chainsaw.ps1"
         $installerCmd = Join-Path $repoRoot "chainsaw_installer.cmd"
     }
 
@@ -39,17 +39,12 @@ Describe 'CHAINSAW - Testes de Scripts de Instalação' {
             Test-Path $exportScript | Should Be $true
         }
 
-        It 'update-vba-module.ps1 existe' {
-            Test-Path $updateScript | Should Be $true
+        It 'backup-functions.ps1 existe' {
+            Test-Path $backupScript | Should Be $true
         }
 
-        It 'restore-backup.ps1 existe' {
-            Test-Path $restoreScript | Should Be $true
-        }
-
-        It 'restore-backup.cmd existe' {
-            $cmdPath = Join-Path $scriptsPath "restore-backup.cmd"
-            Test-Path $cmdPath | Should Be $true
+        It 'chainsaw.ps1 (launcher unificado) existe' {
+            Test-Path $chainsawLauncher | Should Be $true
         }
 
         It 'Pasta inst_configs existe' {
@@ -409,88 +404,6 @@ Describe 'CHAINSAW - Testes de Scripts de Instalação' {
         }
     }
 
-    Context 'update-vba-module.ps1 - Validação de Conteúdo' {
-        
-        BeforeAll {
-            $content = Get-Content $updateScript -Raw
-        }
-
-        It 'Contém cabeçalho CHAINSAW' {
-            $content -match 'CHAINSAW|chainsaw' | Should Be $true
-        }
-
-        It 'Define parâmetro Force' {
-            $content -match '\[switch\]\$Force' | Should Be $true
-        }
-
-        It 'Valida caminho do módulo VBA' {
-            $content -match 'monolithicMod\.bas' | Should Be $true
-        }
-
-        It 'Valida caminho do Normal.dotm' {
-            $content -match 'Normal\.dotm' | Should Be $true
-        }
-
-        It 'Implementa detecção de Word em execução' {
-            $content -match 'WINWORD|Get-Process.*Word' | Should Be $true
-        }
-
-        It 'Implementa fechamento de Word' {
-            $content -match 'CloseMainWindow|Stop-Process' | Should Be $true
-        }
-
-        It 'Referencia caminho do projeto' {
-            $content -match '\$ProjectRoot|\$ScriptPath' | Should Be $true
-        }
-    }
-
-    Context 'restore-backup.ps1 - Validação de Conteúdo' {
-        
-        BeforeAll {
-            $content = Get-Content $restoreScript -Raw
-        }
-
-        It 'Contém cabeçalho CHAINSAW' {
-            $content -match 'CHAINSAW|chainsaw' | Should Be $true
-        }
-
-        It 'Contém documentação de help' {
-            $content -match '\.SYNOPSIS' | Should Be $true
-        }
-
-        It 'Define parâmetro BackupPath' {
-            $content -match '\$BackupPath' | Should Be $true
-        }
-
-        It 'Define parâmetro List' {
-            $content -match '\[switch\]\$List' | Should Be $true
-        }
-
-        It 'Define parâmetro Force' {
-            $content -match '\[switch\]\$Force' | Should Be $true
-        }
-
-        It 'Implementa função Get-AvailableBackups' {
-            $content -match 'Get-AvailableBackups|function\s+Get-AvailableBackups' | Should Be $true
-        }
-
-        It 'Implementa função Restore-TemplatesFromBackup' {
-            $content -match 'Restore-TemplatesFromBackup|function\s+Restore-TemplatesFromBackup' | Should Be $true
-        }
-
-        It 'Implementa verificação de Word em execução' {
-            $content -match 'Test-WordRunning|WINWORD' | Should Be $true
-        }
-
-        It 'Referencia backups completos' {
-            $content -match 'full_backup|Templates_backup' | Should Be $true
-        }
-
-        It 'Implementa logging' {
-            $content -match 'Write-Log|log' | Should Be $true
-        }
-    }
-
     Context 'Validação de Caminhos Críticos' {
         
         It 'Módulo VBA monolítico existe' {
@@ -531,9 +444,9 @@ Describe 'CHAINSAW - Testes de Scripts de Instalação' {
             $exportContent -match '\[CmdletBinding\(\)\]' | Should Be $true
         }
 
-        It 'update-vba-module.ps1 usa [CmdletBinding()]' {
-            $updateContent = Get-Content $updateScript -Raw
-            $updateContent -match '\[CmdletBinding\(\)\]' | Should Be $true
+        It 'chainsaw.ps1 usa [CmdletBinding()]' {
+            $launcherContent = Get-Content $chainsawLauncher -Raw
+            $launcherContent -match '\[CmdletBinding\(\)\]' | Should Be $true
         }
     }
 
@@ -549,9 +462,9 @@ Describe 'CHAINSAW - Testes de Scripts de Instalação' {
             $content -match 'Test-Path' | Should Be $true
         }
 
-        It 'update-vba-module.ps1 valida arquivos críticos' {
-            $content = Get-Content $updateScript -Raw
-            ($content -match 'Test-Path.*VbaModulePath') -or ($content -match 'Test-Path.*NormalDotmPath') | Should Be $true
+        It 'backup-functions.ps1 valida caminhos críticos' {
+            $content = Get-Content $backupScript -Raw
+            $content -match 'Test-Path' | Should Be $true
         }
     }
 
@@ -567,8 +480,8 @@ Describe 'CHAINSAW - Testes de Scripts de Instalação' {
             ($content -match 'try\s*\{') -or ($content -match '-ErrorAction') | Should Be $true
         }
 
-        It 'update-vba-module.ps1 implementa try-catch ou ErrorAction' {
-            $content = Get-Content $updateScript -Raw
+        It 'backup-functions.ps1 implementa try-catch ou ErrorAction' {
+            $content = Get-Content $backupScript -Raw
             ($content -match 'try\s*\{') -or ($content -match '-ErrorAction') | Should Be $true
         }
     }
@@ -585,19 +498,19 @@ Describe 'CHAINSAW - Testes de Scripts de Instalação' {
             $content -match 'Write-Host|Write-Output|Write-Verbose' | Should Be $true
         }
 
-        It 'update-vba-module.ps1 fornece feedback visual' {
-            $content = Get-Content $updateScript -Raw
+        It 'backup-functions.ps1 fornece feedback visual' {
+            $content = Get-Content $backupScript -Raw
             $content -match 'Write-Host|Write-Output|Write-Verbose' | Should Be $true
         }
 
         It 'Scripts usam cores para feedback (ForegroundColor)' {
             $installContent = Get-Content $installScript -Raw
             $exportContent = Get-Content $exportScript -Raw
-            $updateContent = Get-Content $updateScript -Raw
+            $backupContent = Get-Content $backupScript -Raw
             
             $hasColors = ($installContent -match '-ForegroundColor') -or 
             ($exportContent -match '-ForegroundColor') -or 
-            ($updateContent -match '-ForegroundColor')
+            ($backupContent -match '-ForegroundColor')
             
             $hasColors | Should Be $true
         }
@@ -613,7 +526,7 @@ Describe 'CHAINSAW - Testes de Scripts de Instalação' {
 
         It 'Scripts estão codificados em UTF-8 ou ASCII válido' {
             # Verificação básica de encoding - arquivos devem ser legíveis
-            $scripts = @($installScript, $exportScript, $updateScript)
+            $scripts = @($installScript, $exportScript, $backupScript)
             foreach ($script in $scripts) {
                 { $null = Get-Content $script -Raw -Encoding UTF8 } | Should Not Throw
             }
@@ -624,16 +537,6 @@ Describe 'CHAINSAW - Testes de Scripts de Instalação' {
             $exportContent = Get-Content $exportScript -Raw
             
             ($installContent -match '\$env:APPDATA') -or ($exportContent -match '\$env:APPDATA') | Should Be $true
-        }
-    }
-
-    Context 'Integração COM com Microsoft Word' {
-        
-        It 'update-vba-module.ps1 usa COM para interagir com Word' {
-            $content = Get-Content $updateScript -Raw
-            ($content -match 'New-Object.*Word\.Application') -or 
-            ($content -match 'CreateObject.*Word') -or 
-            ($content -match 'Word\.Application') | Should Be $true
         }
     }
 
@@ -649,8 +552,8 @@ Describe 'CHAINSAW - Testes de Scripts de Instalação' {
             Test-Path $cmdPath | Should Be $true
         }
 
-        It 'update-vba-module.cmd existe' {
-            $cmdPath = Join-Path $scriptsPath "update-vba-module.cmd"
+        It 'chainsaw.cmd (launcher unificado) existe' {
+            $cmdPath = Join-Path $scriptsPath "chainsaw.cmd"
             Test-Path $cmdPath | Should Be $true
         }
 
@@ -659,6 +562,14 @@ Describe 'CHAINSAW - Testes de Scripts de Instalação' {
             if (Test-Path $cmdPath) {
                 $content = Get-Content $cmdPath -Raw
                 $content -match 'install\.ps1' | Should Be $true
+            }
+        }
+
+        It 'chainsaw.cmd chama chainsaw.ps1' {
+            $cmdPath = Join-Path $scriptsPath "chainsaw.cmd"
+            if (Test-Path $cmdPath) {
+                $content = Get-Content $cmdPath -Raw
+                $content -match 'chainsaw\.ps1' | Should Be $true
             }
         }
 
@@ -710,16 +621,10 @@ Describe 'CHAINSAW - Testes de Scripts de Instalação' {
             $conditionals -lt 80 | Should Be $true
         }
 
-        It 'update-vba-module.ps1 é relativamente simples (< 20 condicionais)' {
-            $content = Get-Content $updateScript -Raw
+        It 'backup-functions.ps1 tem complexidade baixa (< 30 condicionais)' {
+            $content = Get-Content $backupScript -Raw
             $conditionals = ([regex]::Matches($content, '\bif\b|\belse\b|\belseif\b|\bswitch\b')).Count
-            $conditionals -lt 20 | Should Be $true
-        }
-
-        It 'restore-backup.ps1 tem complexidade moderada (< 60 condicionais)' {
-            $content = Get-Content $restoreScript -Raw
-            $conditionals = ([regex]::Matches($content, '\bif\b|\belse\b|\belseif\b|\bswitch\b')).Count
-            $conditionals -lt 60 | Should Be $true
+            $conditionals -lt 30 | Should Be $true
         }
     }
 
@@ -736,8 +641,8 @@ Describe 'CHAINSAW - Testes de Scripts de Instalação' {
             $bytes.Count -gt 0 | Should Be $true
         }
 
-        It 'update-vba-module.ps1 está em encoding válido' {
-            $bytes = [System.IO.File]::ReadAllBytes($updateScript)
+        It 'backup-functions.ps1 está em encoding válido' {
+            $bytes = [System.IO.File]::ReadAllBytes($backupScript)
             $bytes.Count -gt 0 | Should Be $true
         }
 

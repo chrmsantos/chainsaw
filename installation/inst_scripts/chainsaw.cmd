@@ -18,24 +18,29 @@ if "%~1"=="" (
     echo [i] Uso: chainsaw.cmd ^<comando^> [opcoes]
     echo.
     echo Comandos disponiveis:
-    echo   install      - Instala as configuracoes do Word
-    echo   update-vba   - Atualiza apenas o modulo VBA
-    echo   export       - Exporta configuracoes atuais
-    echo   restore      - Restaura backup anterior
-    echo   enable-vba   - Habilita acesso programatico ao VBA
-    echo   disable-vba  - Desabilita acesso programatico ao VBA
+    echo   install      - Instala/atualiza configuracoes do Word (com backup automatico)
+    echo   export       - Exporta configuracoes atuais do Word
+    echo.
+    echo Opcoes (install):
+    echo   -Force               - Instala sem confirmacao
+    echo   -NoBackup            - Nao cria backup (nao recomendado)
+    echo   -SkipCustomizations  - Nao importa customizacoes do Word
     echo.
     echo Exemplos:
     echo   chainsaw.cmd install
-    echo   chainsaw.cmd update-vba
+    echo   chainsaw.cmd install -Force
     echo   chainsaw.cmd export
+    echo.
+    echo Notas:
+    echo   - Backup automatico: chainsaw -] chainsaw_backup (antes da instalacao)
+    echo   - Para restaurar backup: renomeie chainsaw_backup para chainsaw
     echo.
     pause
     exit /b 1
 )
 
 REM Valida comando
-set "VALID_COMMANDS=install update-vba export restore enable-vba disable-vba"
+set "VALID_COMMANDS=install export"
 set "COMMAND=%~1"
 set "COMMAND_VALID=0"
 

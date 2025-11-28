@@ -1,7 +1,7 @@
 ﻿# =============================================================================
 # CHAINSAW - Script de Instalação de Configurações do Word
 # =============================================================================
-# Versão: 2.0.0
+# Versão: 2.0.3
 # Licença: GNU GPLv3 (https://www.gnu.org/licenses/gpl-3.0.html)
 # Compatibilidade: Windows 10+, PowerShell 5.1+
 # Autor: Christian Martin dos Santos (chrmsantos@protonmail.com)
@@ -187,6 +187,21 @@ $ColorSuccess = "Green"
 $ColorWarning = "Yellow"
 $ColorError = "Red"
 $ColorInfo = "Cyan"
+
+# =============================================================================
+# IMPORTAÇÃO DE MÓDULOS E FUNÇÕES AUXILIARES
+# =============================================================================
+
+# Importa funções de backup automático
+$backupFunctionsPath = Join-Path $PSScriptRoot "backup-functions.ps1"
+if (Test-Path $backupFunctionsPath) {
+    . $backupFunctionsPath
+    Write-Host "[OK] Funções de backup carregadas" -ForegroundColor Green
+}
+else {
+    Write-Host "[AVISO] Arquivo de funções de backup não encontrado: $backupFunctionsPath" -ForegroundColor Yellow
+    Write-Host "[INFO] Backup automático não estará disponível" -ForegroundColor Cyan
+}
 
 # =============================================================================
 # FUNÇÕES DE LOG
@@ -1652,7 +1667,50 @@ function Install-CHAINSAWConfig {
     Write-Log "=== INÍCIO DA INSTALAÇÃO ===" -Level INFO
     
     try {
-        # 0. Verificar e fechar Word se necessário
+        # 0. BACKUP AUTOMÁTICO PRÉ-INSTALAÇÃO
+        # ====================================
+        # Garante segurança antes de qualquer modificação
+        if (Get-Command Backup-ChainsawFolder -ErrorAction SilentlyContinue) {
+            Write-Log "Executando backup automático pré-instalação..." -Level INFO
+            
+            $backupResult = Backup-ChainsawFolder
+            
+            if ($backupResult.Success) {
+                Write-Log "Backup automático concluído com sucesso" -Level SUCCESS
+                if ($backupResult.OldBackupRenamed) {
+                    Write-Log "Backup anterior preservado: chainsaw_old_tmp_backup" -Level INFO
+                }
+                if ($backupResult.ChainsawBackupCreated) {
+                    Write-Log "Instalação atual arquivada: chainsaw_backup" -Level INFO
+                }
+                $script:SuccessCount++
+            }
+            else {
+                Write-Log "Erro no backup automático: $($backupResult.ErrorMessage)" -Level ERROR
+                Write-Host ""
+                Write-Host "[ERRO] Falha no backup automático!" -ForegroundColor Red
+                Write-Host $backupResult.ErrorMessage -ForegroundColor Red
+                Write-Host ""
+                
+                if (-not $Force) {
+                    $continueInstall = Read-Host "Deseja continuar mesmo assim? (S/N)"
+                    if ($continueInstall -notmatch '^[Ss]$') {
+                        Write-Log "Instalação cancelada pelo usuário após erro no backup" -Level WARNING
+                        return
+                    }
+                    Write-Log "Usuário optou por continuar apesar do erro no backup" -Level WARNING
+                }
+                else {
+                    Write-Log "Continuando instalação em modo Force apesar do erro no backup" -Level WARNING
+                }
+            }
+        }
+        else {
+            Write-Log "Funções de backup não disponíveis (backup-functions.ps1 não carregado)" -Level WARNING
+            Write-Host "[AVISO] Backup automático não disponível - continuando sem backup" -ForegroundColor Yellow
+        }
+        
+        # 1. Verificar e fechar Word se necessário
         Write-Host ""
         Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
         Write-Host "  ETAPA 0: Verificação do Microsoft Word" -ForegroundColor White
