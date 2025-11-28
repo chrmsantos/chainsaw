@@ -2,7 +2,7 @@
 CHAINSAW - Personalizações Exportadas do Word
 ================================================================================
 
-Data de Exportação: 26/11/2025 17:50:00
+Data de Exportação: 28/11/2025 17:07:12
 Usuário: csantos
 Computador: NOTEPROCLEG01
 Versão do Word: 16.0.19328.20244

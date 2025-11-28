@@ -7,13 +7,13 @@
                       "Type":  "Normal Template",
                       "Source":  "C:\\Users\\csantos\\AppData\\Roaming\\Microsoft\\Templates\\Normal.dotm",
                       "Destination":  ".\\exported-config\\Templates\\Normal.dotm",
-                      "Size":  325372
+                      "Size":  330226
                   },
                   {
                       "Type":  "Ribbon Customization",
                       "Source":  "C:\\Users\\csantos\\AppData\\Local\\Microsoft\\Office\\Word.officeUI",
                       "Destination":  ".\\exported-config\\RibbonCustomization\\Word.officeUI",
-                      "Size":  1760
+                      "Size":  1816
                   },
                   {
                       "Type":  "Ribbon Customization",
@@ -31,9 +31,9 @@
                       "Type":  "Office Custom UI",
                       "Source":  "C:\\Users\\csantos\\AppData\\Local\\Microsoft\\Office\\Word.officeUI",
                       "Destination":  ".\\exported-config\\OfficeCustomUI\\Word.officeUI",
-                      "Size":  1760
+                      "Size":  1816
                   }
               ],
-    "ExportDate":  "2025-11-26 17:50:00",
+    "ExportDate":  "2025-11-28 17:07:12",
     "WordVersion":  "16.0.19328.20244"
 }
