@@ -418,8 +418,8 @@ Import-Module Pester -ErrorAction Stop
             $bytes.Count -gt 0 | Should Be $true
         }
 
-        It 'monolithicMod.bas está em encoding UTF-8' {
-            $vbaPath = Join-Path $repoRoot 'source\main\monolithicMod.bas'
+        It 'Módulo1.bas está em encoding UTF-8' {
+            $vbaPath = Join-Path $repoRoot 'source\main\Módulo1.bas'
             $bytes = [System.IO.File]::ReadAllBytes($vbaPath)
             
             # Verifica UTF-8 BOM (opcional mas recomendado)
@@ -433,8 +433,8 @@ Import-Module Pester -ErrorAction Stop
             $content.Length -gt 0 | Should Be $true
         }
 
-        It 'monolithicMod.bas não contém caracteres de controle inválidos' {
-            $vbaPath = Join-Path $repoRoot 'source\main\monolithicMod.bas'
+        It 'Módulo1.bas não contém caracteres de controle inválidos' {
+            $vbaPath = Join-Path $repoRoot 'source\main\Módulo1.bas'
             $content = Get-Content $vbaPath -Raw -Encoding UTF8
             
             # Não deve conter null bytes
@@ -448,8 +448,8 @@ Import-Module Pester -ErrorAction Stop
             $invalidControlChars.Count | Should Be 0
         }
 
-        It 'monolithicMod.bas usa quebras de linha consistentes (CRLF)' {
-            $vbaPath = Join-Path $repoRoot 'source\main\monolithicMod.bas'
+        It 'Módulo1.bas usa quebras de linha consistentes (CRLF)' {
+            $vbaPath = Join-Path $repoRoot 'source\main\Módulo1.bas'
             $content = [System.IO.File]::ReadAllText($vbaPath, [System.Text.Encoding]::UTF8)
             
             # VBA usa CRLF (Windows)
@@ -457,8 +457,8 @@ Import-Module Pester -ErrorAction Stop
             $lfOnly | Should Be $false
         }
 
-        It 'monolithicMod.bas pode ser lido com diferentes encodings sem erro' {
-            $vbaPath = Join-Path $repoRoot 'source\main\monolithicMod.bas'
+        It 'Módulo1.bas pode ser lido com diferentes encodings sem erro' {
+            $vbaPath = Join-Path $repoRoot 'source\main\Módulo1.bas'
             
             # UTF-8
             { Get-Content $vbaPath -Raw -Encoding UTF8 -ErrorAction Stop } | Should Not Throw
@@ -467,8 +467,8 @@ Import-Module Pester -ErrorAction Stop
             { Get-Content $vbaPath -Raw -ErrorAction Stop } | Should Not Throw
         }
 
-        It 'monolithicMod.bas: acentuação portuguesa está correta' {
-            $vbaPath = Join-Path $repoRoot 'source\main\monolithicMod.bas'
+        It 'Módulo1.bas: acentuação portuguesa está correta' {
+            $vbaPath = Join-Path $repoRoot 'source\main\Módulo1.bas'
             $content = Get-Content $vbaPath -Raw -Encoding UTF8
             
             # Verifica se acentos comuns em português são lidos corretamente

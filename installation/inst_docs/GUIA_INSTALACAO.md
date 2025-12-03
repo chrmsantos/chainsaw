@@ -163,7 +163,7 @@ Para verificar se a instalação foi bem-sucedida:
 
 1. Abra o Word
 2. Pressione `Alt + F11` para abrir o VBA
-3. Verifique se o módulo `monolithicMod` está presente
+3. Verifique se o módulo `Módulo1` está presente
 4. Verifique se a Faixa de Opções personalizada aparece
 
 ## Segurança
@@ -181,7 +181,7 @@ Para verificar se a instalação foi bem-sucedida:
 |------|-------------|
 | **Scripts de instalação** | `chainsaw\installation\inst_scripts\` |
 | **Templates** | `chainsaw\installation\inst_configs\Templates\` |
-| **Módulo VBA** | `chainsaw\source\main\monolithicMod.bas` |
+| **Módulo VBA** | `chainsaw\source\main\Módulo1.bas` |
 | **Logs** | `chainsaw\installation\inst_docs\inst_logs\` |
 | **Configurações exportadas** | `chainsaw\installation\exported-config\` |
 | **Normal.dotm instalado** | `%APPDATA%\Microsoft\Templates\Normal.dotm` |

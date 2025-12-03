@@ -180,9 +180,9 @@ Describe 'CHAINSAW - Testes de Exportação e Instalação' {
             }
         }
 
-        It 'Deve exportar módulo VBA para VBAModule/monolithicMod.bas' {
+        It 'Deve exportar módulo VBA para VBAModule/Módulo1.bas' {
             $exportContent = Get-Content $exportScript -Raw
-            $exportContent -match 'monolithicMod\.bas' | Should Be $true
+            $exportContent -match 'Módulo1\.bas' | Should Be $true
         }
 
         It 'Deve procurar arquivos .officeUI' {
@@ -428,9 +428,9 @@ Describe 'CHAINSAW - Testes de Exportação e Instalação' {
             ($installContent -match 'OfficeCustomUI') | Should Be $true
         }
 
-        It 'Arquivo monolithicMod.bas é exportado e importado' {
-            ($exportContent -match 'monolithicMod') | Should Be $true
-            ($installContent -match 'monolithicMod') | Should Be $true
+        It 'Arquivo Módulo1.bas é exportado e importado' {
+            ($exportContent -match 'Módulo1') | Should Be $true
+            ($installContent -match 'Módulo1') | Should Be $true
         }
     }
 
@@ -503,8 +503,8 @@ Describe 'CHAINSAW - Testes de Exportação e Instalação' {
             $exportContent = Get-Content $exportScript -Raw
         }
 
-        It 'Exporta especificamente o módulo monolithicMod' {
-            $exportContent -match 'monolithicMod' | Should Be $true
+        It 'Exporta especificamente o módulo Módulo1' {
+            $exportContent -match 'Módulo1' | Should Be $true
         }
 
         It 'Salva módulo como .bas' {

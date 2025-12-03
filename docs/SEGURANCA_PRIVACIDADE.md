@@ -219,7 +219,7 @@ if ($file.Extension -notin $allowedExtensions) {
 **VBA:**
 
 ```vb
-' monolithicMod.bas, linha 2500+
+' Módulo1.bas, linha 2500+
 Private Function IsPathSafe(ByVal filePath As String) As Boolean
     ' Valida caminho para evitar path traversal
     If InStr(filePath, "..") > 0 Then
@@ -255,7 +255,7 @@ ErrorHandler:
 #### 4.2.3 Timeout e Limites
 
 ```vb
-' Constantes de segurança (monolithicMod.bas, linhas 85-100)
+' Constantes de segurança (Módulo1.bas, linhas 85-100)
 Private Const MAX_RETRY_ATTEMPTS As Long = 3
 Private Const RETRY_DELAY_MS As Long = 1000
 Private Const MAX_LOOP_ITERATIONS As Long = 1000

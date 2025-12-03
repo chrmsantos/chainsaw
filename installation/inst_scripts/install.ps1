@@ -1029,7 +1029,7 @@ function Import-VbaModule {
     
     Write-Log "Importando módulo VBA..." -Level INFO
     
-    $sourcePath = Join-Path $ImportPath "VBAModule\monolithicMod.bas"
+    $sourcePath = Join-Path $ImportPath "VBAModule\Módulo1.bas"
     
     if (-not (Test-Path $sourcePath)) {
         Write-Log "Módulo VBA não encontrado no pacote de importação" -Level INFO
@@ -1059,7 +1059,7 @@ function Import-VbaModule {
         
         # Remove módulo existente se houver
         foreach ($component in $vbProject.VBComponents) {
-            if ($component.Name -eq "monolithicMod") {
+            if ($component.Name -eq "Módulo1") {
                 $vbProject.VBComponents.Remove($component)
                 Write-Log "Módulo VBA existente removido" -Level INFO
                 break
@@ -1070,7 +1070,7 @@ function Import-VbaModule {
         $vbProject.VBComponents.Import($sourcePath) | Out-Null
         $template.Save()
         
-        Write-Log "Módulo VBA importado: monolithicMod [OK]" -Level SUCCESS
+        Write-Log "Módulo VBA importado: Módulo1 [OK]" -Level SUCCESS
         
         $template.Close($false)
         $word.Quit()
@@ -1847,7 +1847,7 @@ function Install-CHAINSAWConfig {
         Write-Host ""
         
         # Usa a raiz do projeto detectada para encontrar o módulo VBA
-        $vbaModulePath = Join-Path $projectRoot "source\main\monolithicMod.bas"
+        $vbaModulePath = Join-Path $projectRoot "source\main\Módulo1.bas"
         if (Test-Path $vbaModulePath) {
             Write-Log "Módulo VBA encontrado: $vbaModulePath" -Level INFO
             Write-Host " Importando módulo VBA mais recente..." -ForegroundColor Cyan
@@ -1898,7 +1898,7 @@ function Install-CHAINSAWConfig {
                     
                     # Importa novo módulo
                     $vbProject.VBComponents.Import($vbaModulePath) | Out-Null
-                    Write-Log "Módulo 'monolithicMod' importado com sucesso" -Level SUCCESS
+                    Write-Log "Módulo 'Módulo1' importado com sucesso" -Level SUCCESS
                     
                     # Salva e fecha
                     $doc.Save()
@@ -1935,7 +1935,7 @@ function Install-CHAINSAWConfig {
         }
         else {
             Write-Log "Módulo VBA não encontrado em: $vbaModulePath" -Level WARNING
-            Write-Host "[AVISO] Módulo VBA (monolithicMod.bas) não encontrado." -ForegroundColor Yellow
+            Write-Host "[AVISO] Módulo VBA (Módulo1.bas) não encontrado." -ForegroundColor Yellow
             Write-Host "  Localização esperada: $vbaModulePath" -ForegroundColor Gray
         }
         
@@ -1958,7 +1958,7 @@ function Install-CHAINSAWConfig {
                 Write-Host "   $exportedConfigPath" -ForegroundColor Gray
                 Write-Host ""
                 Write-Host " Conteúdo que será importado:" -ForegroundColor White
-                Write-Host "   - Módulo VBA (monolithicMod)" -ForegroundColor Gray
+                Write-Host "   - Módulo VBA (Módulo1)" -ForegroundColor Gray
                 Write-Host "   - Faixa de Opções Personalizada (Ribbon)" -ForegroundColor Gray
                 Write-Host "   - Barra de Ferramentas de Acesso Rápido (QAT)" -ForegroundColor Gray
                 Write-Host "   - Outras personalizações da interface" -ForegroundColor Gray

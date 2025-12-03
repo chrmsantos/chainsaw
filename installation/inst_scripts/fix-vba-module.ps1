@@ -1,7 +1,7 @@
 # =============================================================================
 # Fix VBA Module in Normal.dotm
 # =============================================================================
-# This script replaces the old "Módulo1" with the updated "monolithicMod"
+# This script replaces the old "monolithicMod" with the updated "Módulo1"
 
 $ErrorActionPreference = "Stop"
 
@@ -10,7 +10,7 @@ Write-Host "  VBA Module Replacement Tool" -ForegroundColor White
 Write-Host "========================================`n" -ForegroundColor Cyan
 
 # Paths
-$vbaPath = Join-Path $PSScriptRoot "..\..\source\main\monolithicMod.bas"
+$vbaPath = Join-Path $PSScriptRoot "..\..\source\main\Módulo1.bas"
 $normalPath = Join-Path $env:APPDATA "Microsoft\Templates\Normal.dotm"
 
 # Validate source file
@@ -50,9 +50,9 @@ try {
         }
     }
     
-    Write-Host "[5/5] Importing monolithicMod..." -ForegroundColor Yellow
+    Write-Host "[5/5] Importing Módulo1..." -ForegroundColor Yellow
     $doc.VBProject.VBComponents.Import($vbaPath) | Out-Null
-    Write-Host "  ✓ Imported: monolithicMod" -ForegroundColor Green
+    Write-Host "  ✓ Imported: Módulo1" -ForegroundColor Green
     
     # Save changes
     $doc.Save()

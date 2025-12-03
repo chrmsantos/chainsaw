@@ -25,7 +25,7 @@ Import-Module Pester -MinimumVersion 3.0 -ErrorAction Stop
 Describe "VBA Identifier Functions - Validacao de Consistencia" {
     
     BeforeAll {
-        $vbaFile = Join-Path $PSScriptRoot "..\source\main\monolithicMod.bas"
+        $vbaFile = Join-Path $PSScriptRoot "..\source\main\Módulo1.bas"
         
         if (-not (Test-Path $vbaFile)) {
             throw "Arquivo VBA nao encontrado: $vbaFile"

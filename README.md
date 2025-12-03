@@ -36,7 +36,7 @@ chainsaw/
 │   ├── inst_scripts/     # Pipelines (chainsaw_installer/exportar_configs) e scripts PowerShell
 │   ├── inst_configs/     # Templates do Word
 │   └── inst_docs/        # Documentação e logs
-├── source/main/          # Módulo VBA (monolithicMod.bas)
+├── source/main/          # Módulo VBA (Módulo1.bas)
 ├── tests/                # Testes automatizados (Pester)
 └── assets/               # Recursos (stamp.png)
 ```

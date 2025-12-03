@@ -33,7 +33,7 @@ Describe 'CHAINSAW - Testes de Integridade' {
     Context 'VBA / BAS files' {
         $basFiles = Get-VbaFiles
         It 'Existe ao menos um módulo monolítico' {
-            $basFiles | Where-Object Name -Match 'monolithicMod\.bas' | Should Not BeNullOrEmpty
+            $basFiles | Where-Object Name -Match 'Módulo1\.bas' | Should Not BeNullOrEmpty
         }
 
         It 'Não existam backups duplicados com mesmo tamanho' {

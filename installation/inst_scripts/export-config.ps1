@@ -12,7 +12,7 @@
 
 .DESCRIPTION
     Este script exporta:
-    1. Módulo VBA monolithicMod do Normal.dotm
+    1. Módulo VBA Módulo1 do Normal.dotm
     2. Faixa de Opções Customizada (Ribbon UI)
     3. Barra de Ferramentas de Acesso Rápido (QAT)
     4. Outras personalizações da interface (.officeUI)
@@ -539,7 +539,7 @@ function Test-VbaModuleCompilation {
 function Export-VbaModule {
     <#
     .SYNOPSIS
-        Exporta o módulo VBA monolithicMod do Normal.dotm.
+        Exporta o módulo VBA Módulo1 do Normal.dotm.
     #>
     Write-Log "Exportando módulo VBA..." -Level INFO
     
@@ -569,30 +569,30 @@ function Export-VbaModule {
         $moduleFound = $false
         
         foreach ($component in $vbProject.VBComponents) {
-            if ($component.Name -eq "monolithicMod") {
+            if ($component.Name -eq "Módulo1") {
                 $destPath = Join-Path $ExportPath "VBAModule"
                 if (-not (Test-Path $destPath)) {
                     New-Item -Path $destPath -ItemType Directory -Force | Out-Null
                 }
                 
-                $exportFile = Join-Path $destPath "monolithicMod.bas"
+                $exportFile = Join-Path $destPath "Módulo1.bas"
                 $component.Export($exportFile)
                 
                 $script:ExportedItems += [PSCustomObject]@{
                     Type        = "VBA Module"
-                    Source      = "Normal.dotm::monolithicMod"
+                    Source      = "Normal.dotm::Módulo1"
                     Destination = $exportFile
                     Size        = (Get-Item $exportFile).Length
                 }
                 
-                Write-Log "Módulo VBA exportado: monolithicMod.bas [OK]" -Level SUCCESS
+                Write-Log "Módulo VBA exportado: Módulo1.bas [OK]" -Level SUCCESS
                 $moduleFound = $true
                 break
             }
         }
         
         if (-not $moduleFound) {
-            Write-Log "Módulo 'monolithicMod' não encontrado no Normal.dotm" -Level WARNING
+            Write-Log "Módulo 'Módulo1' não encontrado no Normal.dotm" -Level WARNING
         }
         
         $template.Close($false)

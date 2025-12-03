@@ -188,15 +188,15 @@ Para exercer qualquer direito:
 | Controle | Implementação | Arquivo de Referência |
 |----------|---------------|----------------------|
 | **Validação de Caminhos** | Test-Path, validação de extensões | install.ps1, linhas 250-280 |
-| **Tratamento de Erros** | Try-Catch em todas as operações | monolithicMod.bas, ErrorHandler |
-| **Limpeza de Recursos** | SafeCleanup, ReleaseObjects | monolithicMod.bas, linhas 1500+ |
-| **Timeout de Operações** | MAX_OPERATION_TIMEOUT_SECONDS | monolithicMod.bas, linha 100 |
-| **Limite de Iterações** | MAX_LOOP_ITERATIONS | monolithicMod.bas, linha 99 |
-| **Validação de Versão** | MIN_SUPPORTED_VERSION (Word 2010+) | monolithicMod.bas, linha 85 |
+| **Tratamento de Erros** | Try-Catch em todas as operações | Módulo1.bas, ErrorHandler |
+| **Limpeza de Recursos** | SafeCleanup, ReleaseObjects | Módulo1.bas, linhas 1500+ |
+| **Timeout de Operações** | MAX_OPERATION_TIMEOUT_SECONDS | Módulo1.bas, linha 100 |
+| **Limite de Iterações** | MAX_LOOP_ITERATIONS | Módulo1.bas, linha 99 |
+| **Validação de Versão** | MIN_SUPPORTED_VERSION (Word 2010+) | Módulo1.bas, linha 85 |
 
 ### 5.3 Análise de Vulnerabilidades
 
-#### Código VBA (monolithicMod.bas)
+#### Código VBA (Módulo1.bas)
 
 [OK] **Sem Hardcoded Credentials:** Nenhuma senha ou token no código  
 [OK] **Sem Absolute Paths:** Caminhos relativos ou baseados em variáveis de ambiente  

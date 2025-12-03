@@ -9,18 +9,18 @@ function Get-RepoRoot {
     return $repoRoot
 }
 
-Describe 'CHAINSAW - Testes do Módulo VBA monolithicMod.bas' {
+Describe 'CHAINSAW - Testes do Módulo VBA Módulo1.bas' {
 
     BeforeAll {
         $repoRoot = Get-RepoRoot
-        $vbaPath = Join-Path $repoRoot "source\main\monolithicMod.bas"
+        $vbaPath = Join-Path $repoRoot "source\main\Módulo1.bas"
         $vbaContent = Get-Content $vbaPath -Raw -Encoding UTF8
         $vbaLines = Get-Content $vbaPath -Encoding UTF8
     }
 
     Context 'Estrutura e Metadados do Arquivo' {
         
-        It 'Arquivo monolithicMod.bas existe' {
+        It 'Arquivo Módulo1.bas existe' {
             Test-Path $vbaPath | Should Be $true
         }
 
