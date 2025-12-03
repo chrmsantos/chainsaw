@@ -1,19 +1,19 @@
-# =============================================================================
-# CHAINSAW - Funções de Backup Automático
-# =============================================================================
-# Versão: 2.0.3
-# Licença: GNU GPLv3
-# =============================================================================
+# ============================================================================
+# CHAINSAW - Funcoes de Backup Automatico
+# ============================================================================
+# Versao: 2.0.3
+# Licenca: GNU GPLv3
+# ============================================================================
 
 function Backup-ChainsawFolder {
     <#
     .SYNOPSIS
-        Gerencia backup automático da pasta chainsaw antes da instalação.
+        Gerencia backup automatico da pasta chainsaw antes da instalacao.
     
     .DESCRIPTION
         1. Verifica se existe chainsaw_backup em $USERPROFILE
         1.1. Se existir, renomeia para chainsaw_old_tmp_backup
-        1.2. Se não existir, apenas prossegue
+        1.2. Se nao existir, apenas prossegue
         2. Renomeia a pasta chainsaw atual para chainsaw_backup
         
     .RETURNS
@@ -37,9 +37,9 @@ function Backup-ChainsawFolder {
     
     try {
         Write-Host ""
-        Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
-        Write-Host "  ETAPA 1: Backup Automático Pré-Instalação" -ForegroundColor White
-        Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+        Write-Host "--------------------------------------------------------------" -ForegroundColor DarkGray
+        Write-Host "  ETAPA 1: Backup Automatico Pre-Instalacao" -ForegroundColor White
+        Write-Host "--------------------------------------------------------------" -ForegroundColor DarkGray
         Write-Host ""
         
         # PASSO 1: Verificar e renomear chainsaw_backup existente
@@ -55,10 +55,10 @@ function Backup-ChainsawFolder {
                     Write-Host "[OK] Backup antigo removido" -ForegroundColor Green
                 }
                 catch {
-                    Write-Host "[AVISO] Não foi possível remover backup antigo: $_" -ForegroundColor Yellow
-                    Write-Host "[INFO] Tentando forçar remoção..." -ForegroundColor Cyan
+                    Write-Host "[AVISO] Nao foi possivel remover backup antigo: $_" -ForegroundColor Yellow
+                    Write-Host "[INFO] Tentando forcar remocao..." -ForegroundColor Cyan
                     
-                    # Tenta método mais agressivo
+                    # Tenta metodo mais agressivo
                     Get-ChildItem -Path $result.OldBackupPath -Recurse -Force -ErrorAction SilentlyContinue | 
                         ForEach-Object { $_.Attributes = 'Normal' }
                     Start-Sleep -Milliseconds 500
@@ -67,7 +67,7 @@ function Backup-ChainsawFolder {
             }
             
             # Renomeia chainsaw_backup para chainsaw_old_tmp_backup
-            Write-Host "[INFO] Preservando backup anterior: chainsaw_backup → chainsaw_old_tmp_backup" -ForegroundColor Cyan
+            Write-Host "[INFO] Preservando backup anterior: chainsaw_backup -> chainsaw_old_tmp_backup" -ForegroundColor Cyan
             
             try {
                 Rename-Item -Path $result.BackupPath -NewName "chainsaw_old_tmp_backup" -Force -ErrorAction Stop
@@ -86,15 +86,15 @@ function Backup-ChainsawFolder {
         
         # PASSO 2: Renomear chainsaw atual para chainsaw_backup
         if (Test-Path $result.ChainsawPath) {
-            Write-Host "[INFO] Criando backup da instalação atual: chainsaw → chainsaw_backup" -ForegroundColor Cyan
+            Write-Host "[INFO] Criando backup da instalacao atual: chainsaw -> chainsaw_backup" -ForegroundColor Cyan
             
             try {
                 Rename-Item -Path $result.ChainsawPath -NewName "chainsaw_backup" -Force -ErrorAction Stop
                 $result.ChainsawBackupCreated = $true
-                Write-Host "[OK] Backup da instalação atual criado" -ForegroundColor Green
+                Write-Host "[OK] Backup da instalacao atual criado" -ForegroundColor Green
             }
             catch {
-                $result.ErrorMessage = "Falha ao criar backup da instalação atual: $_"
+                $result.ErrorMessage = "Falha ao criar backup da instalacao atual: $_"
                 Write-Host "[ERRO] $($result.ErrorMessage)" -ForegroundColor Red
                 
                 # Se falhou, tenta restaurar o backup anterior
@@ -113,18 +113,18 @@ function Backup-ChainsawFolder {
             }
         }
         else {
-            Write-Host "[INFO] Nenhuma instalação anterior encontrada (primeira instalação)" -ForegroundColor Cyan
+            Write-Host "[INFO] Nenhuma instalacao anterior encontrada (primeira instalacao)" -ForegroundColor Cyan
         }
         
         Write-Host ""
-        Write-Host "[OK] Backup automático concluído com sucesso" -ForegroundColor Green
+        Write-Host "[OK] Backup automatico concluido com sucesso" -ForegroundColor Green
         Write-Host ""
         
         if ($result.OldBackupRenamed) {
-            Write-Host "  • Backup anterior preservado: chainsaw_old_tmp_backup" -ForegroundColor Gray
+            Write-Host "  - Backup anterior preservado: chainsaw_old_tmp_backup" -ForegroundColor Gray
         }
         if ($result.ChainsawBackupCreated) {
-            Write-Host "  • Instalação atual arquivada: chainsaw_backup" -ForegroundColor Gray
+            Write-Host "  - Instalacao atual arquivada: chainsaw_backup" -ForegroundColor Gray
         }
         Write-Host ""
         
@@ -132,7 +132,7 @@ function Backup-ChainsawFolder {
         return $result
     }
     catch {
-        $result.ErrorMessage = "Erro inesperado no backup automático: $_"
+        $result.ErrorMessage = "Erro inesperado no backup automatico: $_"
         Write-Host "[ERRO] $($result.ErrorMessage)" -ForegroundColor Red
         return $result
     }
@@ -159,20 +159,20 @@ function Restore-ChainsawFromBackup {
     $oldBackupPath = Join-Path $env:USERPROFILE "chainsaw_old_tmp_backup"
     
     Write-Host ""
-    Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
-    Write-Host "  Restauração de Backup" -ForegroundColor White
-    Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+    Write-Host "--------------------------------------------------------------" -ForegroundColor DarkGray
+    Write-Host "  Restauracao de Backup" -ForegroundColor White
+    Write-Host "--------------------------------------------------------------" -ForegroundColor DarkGray
     Write-Host ""
     
     # Remove chainsaw atual se existir
     if (Test-Path $chainsawPath) {
-        Write-Host "[INFO] Removendo instalação atual..." -ForegroundColor Cyan
+        Write-Host "[INFO] Removendo instalacao atual..." -ForegroundColor Cyan
         try {
             Remove-Item -Path $chainsawPath -Recurse -Force -ErrorAction Stop
-            Write-Host "[OK] Instalação atual removida" -ForegroundColor Green
+            Write-Host "[OK] Instalacao atual removida" -ForegroundColor Green
         }
         catch {
-            Write-Host "[ERRO] Falha ao remover instalação atual: $_" -ForegroundColor Red
+            Write-Host "[ERRO] Falha ao remover instalacao atual: $_" -ForegroundColor Red
             return $false
         }
     }
@@ -203,14 +203,14 @@ function Restore-ChainsawFromBackup {
         }
     }
     
-    Write-Host "[ERRO] Nenhum backup disponível para restaurar" -ForegroundColor Red
+    Write-Host "[ERRO] Nenhum backup disponivel para restaurar" -ForegroundColor Red
     return $false
 }
 
 function Remove-ChainsawBackups {
     <#
     .SYNOPSIS
-        Remove os backups temporários após instalação bem-sucedida.
+        Remove os backups temporarios apos instalacao bem-sucedida.
     #>
     
     param(
@@ -222,7 +222,7 @@ function Remove-ChainsawBackups {
     $oldBackupPath = Join-Path $env:USERPROFILE "chainsaw_old_tmp_backup"
     
     Write-Host ""
-    Write-Host "[INFO] Limpando backups temporários..." -ForegroundColor Cyan
+    Write-Host "[INFO] Limpando backups temporarios..." -ForegroundColor Cyan
     
     # Remove backup antigo
     if (Test-Path $oldBackupPath) {
@@ -231,7 +231,7 @@ function Remove-ChainsawBackups {
             Write-Host "[OK] Backup antigo removido: chainsaw_old_tmp_backup" -ForegroundColor Green
         }
         catch {
-            Write-Host "[AVISO] Não foi possível remover backup antigo: $_" -ForegroundColor Yellow
+            Write-Host "[AVISO] Nao foi possivel remover backup antigo: $_" -ForegroundColor Yellow
         }
     }
     
@@ -242,7 +242,7 @@ function Remove-ChainsawBackups {
             Write-Host "[OK] Backup removido: chainsaw_backup" -ForegroundColor Green
         }
         catch {
-            Write-Host "[AVISO] Não foi possível remover backup: $_" -ForegroundColor Yellow
+            Write-Host "[AVISO] Nao foi possivel remover backup: $_" -ForegroundColor Yellow
         }
     }
     elseif ($KeepLatest -and (Test-Path $backupPath)) {
