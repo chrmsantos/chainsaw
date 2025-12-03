@@ -89,9 +89,9 @@ Ou dê duplo-clique em: `update-vba-module.cmd`
 
 Para fazer backup de suas personalizações do Word:
 
-```powershell
-cd "$env:USERPROFILE\chainsaw\installation\inst_scripts"
-.\export-config.ps1
+```cmd
+cd %USERPROFILE%\chainsaw\installation\inst_scripts
+exportar_configs.cmd
 ```
 
 Isso criará uma pasta `exported-config` com:
@@ -105,7 +105,7 @@ Isso criará uma pasta `exported-config` com:
 Se você possui uma pasta `exported-config`:
 
 1. Copie-a para: `chainsaw\installation\`
-2. Execute `install.ps1` normalmente
+2. Execute `chainsaw_installer.cmd` normalmente
 3. O instalador detectará e oferecerá importar automaticamente
 
 ##  Opções Avançadas
@@ -145,7 +145,7 @@ chainsaw\installation\inst_docs\inst_logs\install_YYYYMMDD_HHMMSS.log
 ### Política de Execução do PowerShell
 
 **Problema:** Script não executa  
-**Solução:** Use `install.cmd` que possui bypass automático seguro
+**Solução:** Use `chainsaw_installer.cmd` que possui bypass automático seguro
 
 ### Erro de Permissões
 

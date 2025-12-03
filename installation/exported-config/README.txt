@@ -48,6 +48,6 @@ Para importar estas configurações em outra máquina:
    .\import-config.ps1
 
 Ou use o instalador principal:
-   .\install.cmd
+    installation\inst_scripts\chainsaw_installer.cmd
 
 ================================================================================

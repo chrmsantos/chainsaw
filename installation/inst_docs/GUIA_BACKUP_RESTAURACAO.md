@@ -39,7 +39,8 @@ Templates_backup_20251124_133000/
 
 ### Instalação (com backup automático)
 ```cmd
-.\install.cmd
+cd %USERPROFILE%\chainsaw\installation\inst_scripts
+chainsaw_installer.cmd
 ```
 - Cria backup completo ANTES de qualquer modificação
 - Cria backup da pasta Templates (renomeação)
@@ -234,13 +235,14 @@ Rename-Item "$env:APPDATA\Microsoft\Templates_backup_20251124_133000" "Templates
 ```
 
 ### Cenário 3: Múltiplos Computadores
-```powershell
+```cmd
 # Exporte configurações no computador 1:
-.\export-config.ps1
+cd %USERPROFILE%\chainsaw\installation\inst_scripts
+exportar_configs.cmd
 
 # Copie a pasta exportada para o computador 2
 # No computador 2, instale normalmente:
-.\install.ps1  # Detecta e importa automaticamente
+chainsaw_installer.cmd  REM Detecta e importa automaticamente
 ```
 
 ## Segurança e Privacidade

@@ -11,7 +11,8 @@ BeforeAll {
     # Caminho do projeto
     $script:ProjectRoot = Split-Path -Parent $PSScriptRoot
     $script:InstallScript = Join-Path $ProjectRoot "installation\inst_scripts\install.ps1"
-    $script:InstallerCmd = Join-Path $ProjectRoot "chainsaw_installer.cmd"
+    $script:InstallerCmd = Join-Path $ProjectRoot "installation\inst_scripts\chainsaw_installer.cmd"
+    $script:InstallerPipeline = Join-Path $ProjectRoot "installation\inst_scripts\chainsaw_installer.ps1"
     
     # Cria ambiente de teste isolado
     $script:TestRoot = Join-Path $env:TEMP "CHAINSAW_SecurityTests_$(Get-Date -Format 'yyyyMMddHHmmss')"
@@ -29,75 +30,62 @@ AfterAll {
 
 Describe "Proteções do chainsaw_installer.cmd" {
     
-    It "Deve conter validação de tamanho mínimo do ZIP" {
+    It "Verifica disponibilidade do PowerShell antes de executar" {
         $content = Get-Content $script:InstallerCmd -Raw
-        $content | Should -Match 'ZIP_SIZE.*LSS.*102400'
-        $content | Should -Match 'Arquivo ZIP muito pequeno'
+        $content | Should -Match 'where powershell'
+        $content | Should -Match 'if errorlevel 1'
     }
     
-    It "Deve conter teste de integridade do ZIP" {
+    It "Aborta rapidamente quando o PowerShell nao existe" {
         $content = Get-Content $script:InstallerCmd -Raw
-        $content | Should -Match 'chainsaw_test_zip.ps1'
-        $content | Should -Match 'System.IO.Compression.ZipFile'
-        $content | Should -Match 'entryCount'
+        $content | Should -Match '\[ERRO\] PowerShell nao encontrado'
+        $content | Should -Match 'goto :pause_fail'
     }
     
-    It "Deve criar backup OBRIGATÓRIO antes de modificar" {
+    It "Valida existencia do pipeline PowerShell" {
         $content = Get-Content $script:InstallerCmd -Raw
-        $content | Should -Match 'Backup OBRIGATORIO'
-        $content | Should -Match 'BACKUP_DIR='
+        $content | Should -Match 'chainsaw_installer\.ps1'
+        $content | Should -Match '\[ERRO\] Script PowerShell nao encontrado'
     }
     
-    It "Deve validar o backup após criação" {
+    It "Executa pipeline com ExecutionPolicy Bypass e captura exit code" {
         $content = Get-Content $script:InstallerCmd -Raw
-        $content | Should -Match 'VALIDAÇÃO DO BACKUP'
-        $content | Should -Match 'BACKUP_FILE_COUNT'
-        $content | Should -Match 'backup parece incompleto'
+        $content | Should -Match '-ExecutionPolicy Bypass'
+        $content | Should -Match 'set "EXIT_CODE=%ERRORLEVEL%"'
+        $content | Should -Match 'exit /b %EXIT_CODE%'
     }
     
-    It "Deve abortar instalação se backup falhar" {
+    It "Mantem pausa quando aberto por duplo clique" {
         $content = Get-Content $script:InstallerCmd -Raw
-        $content | Should -Match 'ERRO CRITICO.*Falha ao criar backup'
-        $content | Should -Match 'Instalacao ABORTADA.*proteger seus dados'
-        $content | Should -Match 'exit /b 1'
+        $content | Should -Match 'CMDCMDLINE'
+        $content | Should -Match 'pause'
     }
+}
+
+Describe "Proteções do chainsaw_installer.ps1" {
     
-    It "Deve validar conteúdo extraído ANTES de instalar" {
-        $content = Get-Content $script:InstallerCmd -Raw
-        $content | Should -Match 'VALIDAÇÃO CRÍTICA DO CONTEÚDO EXTRAÍDO'
-        $content | Should -Match 'installation\\inst_scripts'
-        $content | Should -Match 'install.cmd'
-        $content | Should -Match 'install.ps1'
+    It "Oferece apenas menus de sim/nao ou numericos" {
+        $content = Get-Content $script:InstallerPipeline -Raw
+        $content | Should -Match 'Read-MenuOption'
+        $content | Should -Match 'Ask-YesNo'
     }
-    
-    It "Deve contar arquivos extraídos e validar quantidade mínima" {
-        $content = Get-Content $script:InstallerCmd -Raw
-        $content | Should -Match 'EXTRACTED_FILE_COUNT'
-        $content | Should -Match 'LSS 20'
-        $content | Should -Match 'muito poucos arquivos'
+
+    It "Executa install.ps1 via Start-Process com bypass" {
+        $content = Get-Content $script:InstallerPipeline -Raw
+        $content | Should -Match 'Start-Process'
+        $content | Should -Match 'install\.ps1'
+        $content | Should -Match '-ExecutionPolicy.+Bypass'
     }
-    
-    It "Deve remover pasta existente SOMENTE APÓS validação completa" {
-        $content = Get-Content $script:InstallerCmd -Raw
-        
-        # Verifica que validação vem ANTES da remoção
-        $validationIndex = $content.IndexOf('VALIDAÇÃO CRÍTICA DO CONTEÚDO EXTRAÍDO')
-        $removalIndex = $content.IndexOf('Removendo pasta antiga (backup ja criado e validado)')
-        
-        $validationIndex | Should -BeLessThan $removalIndex
+
+    It "Informa local de logs ao usuario" {
+        $content = Get-Content $script:InstallerPipeline -Raw
+        $content | Should -Match 'inst_docs\\inst_logs'
     }
-    
-    It "Deve implementar rollback em caso de falha na cópia" {
-        $content = Get-Content $script:InstallerCmd -Raw
-        $content | Should -Match '\[ROLLBACK\]'
-        $content | Should -Match 'Tentando restaurar backup'
-        $content | Should -Match 'xcopy.*BACKUP_DIR'
-    }
-    
-    It "Deve validar instalação final" {
-        $content = Get-Content $script:InstallerCmd -Raw
-        $content | Should -Match 'VALIDAÇÃO FINAL DA INSTALAÇÃO'
-        $content | Should -Match 'FINAL_VALIDATION_FAILED'
+
+    It "Apresenta mensagens genericas de erro" {
+        $content = Get-Content $script:InstallerPipeline -Raw
+        $content | Should -Match 'Um erro foi identificado durante a instalacao'
+        $content | Should -Match 'Consulte o log'
     }
 }
 
@@ -328,14 +316,18 @@ Describe "Validação de Integridade de Dados" {
         $testRoot = Join-Path $script:TestRoot "chainsaw-extract"
         New-Item -Path "$testRoot\installation\inst_scripts" -ItemType Directory -Force | Out-Null
         New-Item -Path "$testRoot\installation\inst_configs" -ItemType Directory -Force | Out-Null
-        New-Item -Path "$testRoot\installation\inst_scripts\install.cmd" -ItemType File -Force | Out-Null
+        New-Item -Path "$testRoot\installation\inst_scripts\chainsaw_installer.cmd" -ItemType File -Force | Out-Null
+        New-Item -Path "$testRoot\installation\inst_scripts\exportar_configs.cmd" -ItemType File -Force | Out-Null
         New-Item -Path "$testRoot\installation\inst_scripts\install.ps1" -ItemType File -Force | Out-Null
+        New-Item -Path "$testRoot\installation\inst_scripts\export-config.ps1" -ItemType File -Force | Out-Null
         
         # Validação
         (Test-Path "$testRoot\installation") | Should -Be $true
         (Test-Path "$testRoot\installation\inst_scripts") | Should -Be $true
-        (Test-Path "$testRoot\installation\inst_scripts\install.cmd") | Should -Be $true
+        (Test-Path "$testRoot\installation\inst_scripts\chainsaw_installer.cmd") | Should -Be $true
+        (Test-Path "$testRoot\installation\inst_scripts\exportar_configs.cmd") | Should -Be $true
         (Test-Path "$testRoot\installation\inst_scripts\install.ps1") | Should -Be $true
+        (Test-Path "$testRoot\installation\inst_scripts\export-config.ps1") | Should -Be $true
         (Test-Path "$testRoot\installation\inst_configs") | Should -Be $true
     }
 }
@@ -352,10 +344,10 @@ Describe "Documentação de Segurança" {
     }
     
     It "Deve ter logging de todas as operações críticas" {
-        $content = Get-Content $script:InstallerCmd -Raw
-        $content | Should -Match ':Log'
-        $content | Should -Match 'ERRO CRITICO'
-        $content | Should -Match 'AVISO'
+        $content = Get-Content $script:InstallScript -Raw
+        $content | Should -Match 'function Write-Log'
+        $content | Should -Match '\[ERRO\]'
+        $content | Should -Match '\[AVISO\]'
     }
 }
 

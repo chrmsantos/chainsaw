@@ -5,11 +5,11 @@ Sistema de padronização automática de proposituras legislativas para Microsof
 ## Instalação
 
 ```cmd
-# Baixe e execute
+cd installation\inst_scripts
 chainsaw_installer.cmd
 ```
 
-Instalador automático: baixa, configura e instala sem interação.
+Instalação guiada em modo texto com confirmações simples (S/N ou menus numerados).
 
 ## Requisitos
 
@@ -20,12 +20,12 @@ Instalador automático: baixa, configura e instala sem interação.
 ## Uso
 
 ```cmd
-# Instalar/atualizar
+# Instalar ou atualizar Word Templates e VBA
 cd %USERPROFILE%\chainsaw\installation\inst_scripts
-chainsaw.cmd install
+chainsaw_installer.cmd
 
-# Exportar configurações
-chainsaw.cmd export
+# Exportar configurações atuais do Word
+exportar_configs.cmd
 ```
 
 ## Estrutura
@@ -33,7 +33,7 @@ chainsaw.cmd export
 ```text
 chainsaw/
 ├── installation/
-│   ├── inst_scripts/     # Scripts (install.ps1, export-config.ps1, backup-functions.ps1)
+│   ├── inst_scripts/     # Pipelines (chainsaw_installer/exportar_configs) e scripts PowerShell
 │   ├── inst_configs/     # Templates do Word
 │   └── inst_docs/        # Documentação e logs
 ├── source/main/          # Módulo VBA (monolithicMod.bas)

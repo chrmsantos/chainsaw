@@ -98,8 +98,13 @@ if not exist "%SOURCE_DIR%\installation" (
     set "VALIDATION_FAILED=1"
 )
 
-if not exist "%SOURCE_DIR%\installation\inst_scripts\install.cmd" (
-    call :Log "[ERRO] Script 'install.cmd' nao encontrado!"
+if not exist "%SOURCE_DIR%\installation\inst_scripts\chainsaw_installer.cmd" (
+    call :Log "[ERRO] Script 'chainsaw_installer.cmd' nao encontrado!"
+    set "VALIDATION_FAILED=1"
+)
+
+if not exist "%SOURCE_DIR%\installation\inst_scripts\exportar_configs.cmd" (
+    call :Log "[ERRO] Script 'exportar_configs.cmd' nao encontrado!"
     set "VALIDATION_FAILED=1"
 )
 ```
@@ -190,8 +195,8 @@ if exist "!BACKUP_DIR!" (
 REM =============================================================================
 REM VALIDAÇÃO FINAL DA INSTALAÇÃO
 REM =============================================================================
-if not exist "%INSTALL_DIR%\installation\inst_scripts\install.cmd" (
-    call :Log "[ERRO] install.cmd nao encontrado apos instalacao!"
+if not exist "%INSTALL_DIR%\installation\inst_scripts\chainsaw_installer.cmd" (
+    call :Log "[ERRO] chainsaw_installer.cmd nao encontrado apos instalacao!"
     set "FINAL_VALIDATION_FAILED=1"
 )
 

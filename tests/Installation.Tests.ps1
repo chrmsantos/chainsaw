@@ -2,311 +2,99 @@
 Import-Module Pester -ErrorAction Stop
 . $PSScriptRoot\Helpers.ps1
 
-# Override Get-RepoRoot for test context
-function Get-RepoRoot {
-    $testsDir = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
-    $repoRoot = Split-Path -Parent $testsDir
-    return $repoRoot
-}
-
-Describe 'CHAINSAW - Testes de Scripts de Instalação' {
-
-    BeforeAll {
-        $repoRoot = Get-RepoRoot
-        $scriptsPath = Join-Path $repoRoot "installation\inst_scripts"
-        $installScript = Join-Path $scriptsPath "install.ps1"
-        $exportScript = Join-Path $scriptsPath "export-config.ps1"
-        $backupScript = Join-Path $scriptsPath "backup-functions.ps1"
-        $chainsawLauncher = Join-Path $scriptsPath "chainsaw.ps1"
-        $installerCmd = Join-Path $repoRoot "chainsaw_installer.cmd"
-    }
-
-    Context 'Estrutura de Arquivos de Instalação' {
-        
-        It 'Pasta inst_scripts existe' {
-            Test-Path $scriptsPath | Should Be $true
-        }
-
-        It 'chainsaw_installer.cmd existe na raiz do projeto' {
-            Test-Path $installerCmd | Should Be $true
-        }
-
-        It 'install.ps1 existe' {
-            Test-Path $installScript | Should Be $true
-        }
-
-        It 'export-config.ps1 existe' {
-            Test-Path $exportScript | Should Be $true
-        }
-
-        It 'backup-functions.ps1 existe' {
-            Test-Path $backupScript | Should Be $true
-        }
-
-        It 'chainsaw.ps1 (launcher unificado) existe' {
-            Test-Path $chainsawLauncher | Should Be $true
-        }
-
-        It 'Pasta inst_configs existe' {
-            Test-Path (Join-Path $repoRoot "installation\inst_configs") | Should Be $true
-        }
-
-        It 'Pasta inst_docs existe' {
-            Test-Path (Join-Path $repoRoot "installation\inst_docs") | Should Be $true
-        }
-    }
-
-    Context 'chainsaw_installer.cmd - Validação de Conteúdo' {
-        
+    Context 'chainsaw_installer.cmd - Wrapper' {
         BeforeAll {
             $content = Get-Content $installerCmd -Raw
         }
 
-        It 'Contém cabeçalho CHAINSAW' {
-            $content -match 'CHAINSAW' | Should Be $true
-        }
-
-        It 'Define URL do repositório GitHub' {
-            $content -match 'REPO_URL.*github\.com/chrmsantos/chainsaw' | Should Be $true
-        }
-
-        It 'Define diretório de instalação no USERPROFILE' {
-            $content -match 'INSTALL_DIR.*%USERPROFILE%\\chainsaw' | Should Be $true
-        }
-
-        It 'Define variáveis de logging com timestamp' {
-            ($content -match 'DATESTAMP') -and ($content -match 'TIMESTAMP') | Should Be $true
-        }
-
-        It 'Define arquivo de log' {
-            $content -match 'LOG_FILE' | Should Be $true
-        }
-
-        It 'Verifica disponibilidade do PowerShell' {
+        It 'Verifica PowerShell antes de executar' {
             $content -match 'where powershell' | Should Be $true
         }
 
-        It 'Implementa download usando PowerShell Invoke-WebRequest' {
-            $content -match 'Invoke-WebRequest' | Should Be $true
+        It 'Aponta para chainsaw_installer.ps1' {
+            $content -match 'chainsaw_installer\.ps1' | Should Be $true
         }
 
-        It 'Verifica sucesso do download antes de prosseguir' {
-            ($content -match 'if not exist "%TEMP_ZIP%"') -and ($content -match 'if errorlevel 1') | Should Be $true
-        }
-
-        It 'Cria backup antes de modificar instalação existente' {
-            $content -match 'BACKUP_DIR|backup|xcopy.*backup' | Should Be $true
-        }
-
-        It 'Backup é criado APÓS verificação de download bem-sucedido' {
-            # Verifica que o backup vem depois da verificação do ZIP
-            $downloadCheck = $content.IndexOf('if not exist "%TEMP_ZIP%"')
-            $backupSection = $content.IndexOf('BACKUP_DIR')
-            ($backupSection -gt $downloadCheck) | Should Be $true
-        }
-
-        It 'Implementa extração de arquivos ZIP' {
-            $content -match 'Expand-Archive' | Should Be $true
-        }
-
-        It 'Copia arquivos extraídos com xcopy' {
-            $content -match 'xcopy' | Should Be $true
-        }
-
-        It 'Chama script install.cmd após extração' {
-            $content -match 'call install\.cmd' | Should Be $true
-        }
-
-        It 'Implementa limpeza de arquivos temporários' {
-            ($content -match 'del.*TEMP_ZIP') -and ($content -match 'rd.*TEMP_EXTRACT') | Should Be $true
-        }
-
-        It 'Copia log para pasta de instalação' {
-            $content -match 'copy.*LOG_FILE.*INSTALL_LOG_DIR' | Should Be $true
-        }
-
-        It 'Implementa função de log (:Log)' {
-            $content -match ':Log' | Should Be $true
-        }
-
-        It 'Implementa inicialização de log (:LogInit)' {
-            $content -match ':LogInit' | Should Be $true
-        }
-
-        It 'Log contém informações do sistema (OS, USERNAME)' {
-            ($content -match '%OS%') -and ($content -match '%USERNAME%') | Should Be $true
-        }
-
-        It 'Fornece feedback visual em todas as etapas' {
-            ($content -match 'ETAPA 1') -and ($content -match 'ETAPA 2') -and ($content -match 'ETAPA 3') | Should Be $true
-        }
-
-        It 'Captura código de saída do instalador' {
-            $content -match 'INSTALL_EXIT_CODE.*errorlevel' | Should Be $true
-        }
-
-        It 'Retorna código de saída apropriado' {
-            $content -match 'exit /b.*INSTALL_EXIT_CODE' | Should Be $true
-        }
-
-        It 'Usa ExecutionPolicy Bypass para PowerShell' {
+        It 'Utiliza ExecutionPolicy Bypass' {
             $content -match '-ExecutionPolicy Bypass' | Should Be $true
         }
 
-        It 'Suprime progresso do PowerShell para performance' {
-            $content -match 'ProgressPreference.*SilentlyContinue' | Should Be $true
-        }
-
-        It 'Implementa tratamento de erros no download' {
-            ($content -match '(?s)try.*catch') -and ($content -match 'ERRO.*download') | Should Be $true
-        }
-
-        It 'Implementa tratamento de erros na extração' {
-            $content -match 'ERRO.*extracao|ERRO.*extrair' | Should Be $true
-        }
-
-        It 'Valida existência do script install.cmd após extração' {
-            $content -match '(?s)if not exist.*install\.cmd' | Should Be $true
-        }
-
-        It 'Cria backup com timestamp único' {
-            $content -match 'chainsaw_backup_.*DATETIME' | Should Be $true
-        }
-
-        It 'Backup usa xcopy com flags apropriadas (/E /H /C /I /Y)' {
-            $content -match 'xcopy.*\/E.*\/H.*\/C.*\/I.*\/Y' | Should Be $true
-        }
-
-        It 'Implementa backup seletivo como fallback' {
-            $content -match 'backup seletivo|Tentando backup seletivo' | Should Be $true
-        }
-
-        It 'Valida estrutura extraída (chainsaw-main)' {
-            $content -match 'chainsaw-main' | Should Be $true
-        }
-
-        It 'Usa variáveis de ambiente do Windows corretamente' {
-            ($content -match '%USERPROFILE%') -and ($content -match '%TEMP%') | Should Be $true
-        }
-
-        It 'Desabilita eco de comandos (@echo off)' {
-            $content -match '@echo off' | Should Be $true
-        }
-
-        It 'Habilita delayed expansion para variáveis' {
-            $content -match 'enabledelayedexpansion' | Should Be $true
-        }
-
-        It 'Usa labels para controle de fluxo (:extract)' {
-            $content -match ':extract' | Should Be $true
-        }
-
-        It 'Implementa múltiplas tentativas de remoção de pasta' {
-            ($content -match 'Tentativa 1') -or ($content -match 'Tentativa 2') -or ($content -match 'rd /s /q') | Should Be $true
+        It 'Mantem pausa quando aberto por duplo clique' {
+            $content -match 'CMDCMDLINE' | Should Be $true
         }
     }
 
-    Context 'chainsaw_installer.cmd - Ordem de Execução Segura' {
-        
+    Context 'exportar_configs.cmd - Wrapper' {
         BeforeAll {
-            $content = Get-Content $installerCmd -Raw
+            $content = Get-Content $exportCmd -Raw
         }
 
-        It 'Download vem antes de qualquer modificação de arquivos' {
-            $downloadIdx = $content.IndexOf('Invoke-WebRequest')
-            $backupIdx = $content.IndexOf('BACKUP_DIR')
-            $removeIdx = $content.IndexOf('rd /s /q "%INSTALL_DIR%"')
-            
-            ($downloadIdx -lt $backupIdx) -and ($downloadIdx -lt $removeIdx) | Should Be $true
+        It 'Verifica PowerShell antes de executar' {
+            $content -match 'where powershell' | Should Be $true
         }
 
-        It 'Verificação de download bem-sucedido vem antes do backup' {
-            $verifyIdx = $content.IndexOf('if not exist "%TEMP_ZIP%"')
-            $backupIdx = $content.IndexOf('BACKUP_DIR')
-            
-            $verifyIdx -lt $backupIdx | Should Be $true
+        It 'Aponta para exportar_configs.ps1' {
+            $content -match 'exportar_configs\.ps1' | Should Be $true
         }
 
-        It 'Backup vem antes de remover instalação existente' {
-            $backupIdx = $content.IndexOf('xcopy "%INSTALL_DIR%\*" "!BACKUP_DIR!\"')
-            $removeIdx = $content.IndexOf('rd /s /q "%INSTALL_DIR%"')
-            
-            $backupIdx -lt $removeIdx | Should Be $true
+        It 'Utiliza ExecutionPolicy Bypass' {
+            $content -match '-ExecutionPolicy Bypass' | Should Be $true
         }
 
-        It 'Extração vem depois do backup' {
-            $backupIdx = $content.IndexOf('BACKUP_DIR')
-            $extractIdx = $content.IndexOf('Expand-Archive')
-            
-            $extractIdx -gt $backupIdx | Should Be $true
-        }
-
-        It 'Log é copiado antes de chamar install.cmd' {
-            $logCopyIdx = $content.IndexOf('copy "%LOG_FILE%"')
-            $installCallIdx = $content.IndexOf('call install.cmd')
-            
-            $logCopyIdx -lt $installCallIdx | Should Be $true
+        It 'Mantem pausa quando aberto por duplo clique' {
+            $content -match 'CMDCMDLINE' | Should Be $true
         }
     }
 
-    Context 'chainsaw_installer.cmd - Segurança e Validação' {
-        
+    Context 'chainsaw_installer.ps1 - Interface simplificada' {
         BeforeAll {
-            $content = Get-Content $installerCmd -Raw
+            $content = Get-Content $installerPipeline -Raw
         }
 
-        It 'Não executa comandos perigosos sem validação' {
-            # Verifica que rd e del sempre vêm após validações
-            $lines = $content -split "`r?`n"
-            $dangerousCommands = $lines | Where-Object { $_ -match '^\s*(rd|del)\s+' }
-            # Todos os comandos perigosos devem estar em blocos condicionais ou após validações
-            $dangerousCommands.Count -eq 0 -or ($content -match 'if exist.*rd|if exist.*del') | Should Be $true
+        It 'Define menus numerados para escolhas' {
+            $content -match 'Read-MenuOption' | Should Be $true
         }
 
-        It 'Valida PowerShell antes de usá-lo' {
-            ($content -match 'where powershell') -and ($content -match 'if errorlevel 1') | Should Be $true
+        It 'Utiliza perguntas de sim ou nao' {
+            ($content -match 'Ask-YesNo') | Should Be $true
         }
 
-        It 'Fornece mensagens de erro claras' {
-            ($content -match '\[ERRO\]') -and ($content -match 'PowerShell nao encontrado|Falha ao baixar|Falha ao extrair') | Should Be $true
+        It 'Executa install.ps1 via Start-Process' {
+            $content -match 'install\.ps1' | Should Be $true
+            $content -match 'Start-Process' | Should Be $true
         }
 
-        It 'Pausa antes de sair em caso de erro' {
-            $content -match 'pause' | Should Be $true
-        }
-
-        It 'Usa redirecionamento de erros apropriadamente (>nul 2>&1)' {
-            $content -match '>nul 2>&1' | Should Be $true
+        It 'Consulta logs em inst_docs\\inst_logs' {
+            $content -match 'inst_docs\\inst_logs' | Should Be $true
         }
     }
 
-    Context 'chainsaw_installer.cmd - Logging Completo' {
-        
+    Context 'exportar_configs.ps1 - Interface simplificada' {
         BeforeAll {
-            $content = Get-Content $installerCmd -Raw
+            $content = Get-Content $exportPipeline -Raw
         }
 
-        It 'Log salvo no mesmo diretório do script' {
-            $content -match 'SCRIPT_DIR.*~dp0' | Should Be $true
+        It 'Reutiliza perguntas de sim ou nao' {
+            $content -match 'Ask-YesNo' | Should Be $true
         }
 
-        It 'Log também copiado para pasta do projeto' {
-            $content -match 'INSTALL_LOG_DIR.*installation.*inst_docs.*inst_logs' | Should Be $true
+        It 'Chama export-config.ps1 via Start-Process' {
+            $content -match 'export-config\.ps1' | Should Be $true
+            $content -match 'Start-Process' | Should Be $true
         }
 
-        It 'Log inclui timestamp no nome do arquivo' {
-            $content -match 'installer_.*DATETIME.*\.log' | Should Be $true
+        It 'Propaga parametro ForceCloseWord' {
+            $content -match 'ForceCloseWord' | Should Be $true
         }
 
-        It 'Função de log escreve para console e arquivo' {
-            $logFunction = $content.Substring($content.IndexOf(':Log'))
-            ($logFunction -match 'echo %MSG%') -and ($logFunction -match 'echo %MSG% >> "%LOG_FILE%"') | Should Be $true
-        }
-
-        It 'Log inicializa com informações do sistema' {
-            $content -match 'Data/Hora de inicio|Sistema:|Usuario:|Diretorio de instalacao:' | Should Be $true
+        It 'Resolve destino padrao exported-config' {
+            $content -match 'exported-config' | Should Be $true
         }
     }
+
+    }
+
+    Context 'Compatibilidade e Requisitos' {
 
     Context 'install.ps1 - Validação de Conteúdo' {
         
@@ -542,35 +330,19 @@ Describe 'CHAINSAW - Testes de Scripts de Instalação' {
 
     Context 'Wrappers CMD' {
         
-        It 'install.cmd existe' {
-            $cmdPath = Join-Path $scriptsPath "install.cmd"
-            Test-Path $cmdPath | Should Be $true
+        It 'Somente dois wrappers permanecem' {
+            $cmdFiles = Get-ChildItem $scriptsPath -Filter "*.cmd"
+            ($cmdFiles.Count) | Should Be 2
         }
 
-        It 'export-config.cmd existe' {
-            $cmdPath = Join-Path $scriptsPath "export-config.cmd"
-            Test-Path $cmdPath | Should Be $true
+        It 'chainsaw_installer.cmd chama chainsaw_installer.ps1' {
+            $content = Get-Content $installerCmd -Raw
+            $content -match 'chainsaw_installer\.ps1' | Should Be $true
         }
 
-        It 'chainsaw.cmd (launcher unificado) existe' {
-            $cmdPath = Join-Path $scriptsPath "chainsaw.cmd"
-            Test-Path $cmdPath | Should Be $true
-        }
-
-        It 'install.cmd chama install.ps1' {
-            $cmdPath = Join-Path $scriptsPath "install.cmd"
-            if (Test-Path $cmdPath) {
-                $content = Get-Content $cmdPath -Raw
-                $content -match 'install\.ps1' | Should Be $true
-            }
-        }
-
-        It 'chainsaw.cmd chama chainsaw.ps1' {
-            $cmdPath = Join-Path $scriptsPath "chainsaw.cmd"
-            if (Test-Path $cmdPath) {
-                $content = Get-Content $cmdPath -Raw
-                $content -match 'chainsaw\.ps1' | Should Be $true
-            }
+        It 'exportar_configs.cmd chama exportar_configs.ps1' {
+            $content = Get-Content $exportCmd -Raw
+            $content -match 'exportar_configs\.ps1' | Should Be $true
         }
 
         It 'Wrappers CMD usam ExecutionPolicy Bypass' {

@@ -39,8 +39,13 @@ param(
     [string]$ExportPath = ".\exported-config",
     
     [Parameter()]
-    [switch]$IncludeRegistry
+    [switch]$IncludeRegistry,
+    
+    [Parameter()]
+    [switch]$ForceCloseWord
 )
+
+$script:ForceCloseWord = $ForceCloseWord
 
 # Remove argumento de maximização se presente
 if ($ExportPath -eq "__MAXIMIZED__") {
@@ -352,6 +357,18 @@ function Confirm-CloseWord {
     if (-not (Test-WordRunning)) {
         Write-Log "Word não está em execução - prosseguindo..." -Level SUCCESS
         return $true
+    }
+
+    if ($script:ForceCloseWord) {
+        Write-Log "Fechamento automático do Word solicitado." -Level INFO
+        if (Stop-WordProcesses -Force) {
+            Write-Log "Word fechado automaticamente" -Level SUCCESS
+            Start-Sleep -Seconds 2
+            return $true
+        }
+
+        Write-Log "Não foi possível fechar o Word automaticamente" -Level ERROR
+        return $false
     }
     
     Write-Host ""
@@ -1026,7 +1043,7 @@ Para importar estas configurações em outra máquina:
    .\import-config.ps1
 
 Ou use o instalador principal:
-   .\install.cmd
+    installation\inst_scripts\chainsaw_installer.cmd
 
 ================================================================================
 "@
