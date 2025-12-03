@@ -128,11 +128,11 @@ if (-not $BypassedExecution) {
         Write-Host "[AVISO]  Política de execução restritiva detectada." -ForegroundColor Yellow
         Write-Host " Relançando script com bypass temporário..." -ForegroundColor Cyan
         Write-Host ""
-        Write-Host "ℹ  SEGURANÇA:" -ForegroundColor Green
-        Write-Host "   • Apenas ESTE script será executado com bypass" -ForegroundColor Gray
-        Write-Host "   • A política do sistema NÃO será alterada" -ForegroundColor Gray
-        Write-Host "   • O bypass expira quando o script terminar" -ForegroundColor Gray
-        Write-Host "   • Nenhum privilégio de administrador é usado" -ForegroundColor Gray
+        Write-Host "[INFO]  SEGURANÇA:" -ForegroundColor Green
+        Write-Host "   - Apenas ESTE script será executado com bypass" -ForegroundColor Gray
+        Write-Host "   - A política do sistema NÃO será alterada" -ForegroundColor Gray
+        Write-Host "   - O bypass expira quando o script terminar" -ForegroundColor Gray
+        Write-Host "   - Nenhum privilégio de administrador é usado" -ForegroundColor Gray
         Write-Host ""
         
         # Constrói argumentos para o relançamento
@@ -237,11 +237,41 @@ Caminho de Origem: $SourcePath
 
 "@
         Add-Content -Path $script:LogFile -Value $header
+        Invoke-LogRetention -Directory $logDir -Pattern 'install_*.log' -KeepLatest 5
         return $true
     }
     catch {
         Write-Warning "Não foi possível criar arquivo de log: $_"
         return $false
+    }
+}
+
+function Invoke-LogRetention {
+    <#
+    .SYNOPSIS
+        Garante retencao maxima de registros no diretorio informado.
+    #>
+    param(
+        [Parameter(Mandatory)] [string]$Directory,
+        [Parameter(Mandatory)] [string]$Pattern,
+        [int]$KeepLatest = 5
+    )
+
+    try {
+        if ($KeepLatest -lt 1) { return }
+        if (-not (Test-Path $Directory)) { return }
+
+        $logFiles = Get-ChildItem -Path $Directory -Filter $Pattern -File -ErrorAction Stop |
+            Sort-Object LastWriteTime -Descending
+
+        if ($logFiles.Count -le $KeepLatest) { return }
+
+        $logFiles[$KeepLatest..($logFiles.Count - 1)] | ForEach-Object {
+            Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue
+        }
+    }
+    catch {
+        Write-Verbose "Falha ao aplicar retencao de logs em $Directory: $_"
     }
 }
 
@@ -291,7 +321,7 @@ function Write-Log {
                 $script:ErrorCount++
             }
             default {
-                Write-Host "ℹ $Message" -ForegroundColor $ColorInfo
+                Write-Host "[INFO] $Message" -ForegroundColor $ColorInfo
             }
         }
     }
@@ -514,9 +544,9 @@ function Backup-TemplatesFolder {
     # Verifica se o Word está aberto
     if (Test-WordRunning) {
         Write-Host ""
-        Write-Host "╔════════════════════════════════════════════════════════════════╗" -ForegroundColor Yellow
-        Write-Host "║                  [AVISO] MICROSOFT WORD ABERTO [AVISO]                    ║" -ForegroundColor Yellow
-        Write-Host "╚════════════════════════════════════════════════════════════════╝" -ForegroundColor Yellow
+        Write-Host "+================================================================+" -ForegroundColor Yellow
+        Write-Host "|                  [AVISO] MICROSOFT WORD ABERTO [AVISO]                    |" -ForegroundColor Yellow
+        Write-Host "+================================================================+" -ForegroundColor Yellow
         Write-Host ""
         Write-Host "O Microsoft Word está em execução e deve ser fechado antes de" -ForegroundColor Yellow
         Write-Host "continuar com a instalação." -ForegroundColor Yellow
@@ -1344,9 +1374,9 @@ function Import-WordCustomizations {
     # Verifica se o Word está em execução
     if (Test-WordRunning) {
         Write-Host ""
-        Write-Host "╔════════════════════════════════════════════════════════════════╗" -ForegroundColor Yellow
-        Write-Host "║                  [AVISO] MICROSOFT WORD ABERTO [AVISO]                    ║" -ForegroundColor Yellow
-        Write-Host "╚════════════════════════════════════════════════════════════════╝" -ForegroundColor Yellow
+        Write-Host "+================================================================+" -ForegroundColor Yellow
+        Write-Host "|                  [AVISO] MICROSOFT WORD ABERTO [AVISO]                    |" -ForegroundColor Yellow
+        Write-Host "+================================================================+" -ForegroundColor Yellow
         Write-Host ""
         Write-Host "O Microsoft Word está em execução e deve ser fechado antes de" -ForegroundColor Yellow
         Write-Host "importar as personalizações." -ForegroundColor Yellow
@@ -1581,16 +1611,16 @@ function Confirm-CloseWord {
     }
     
     Write-Host ""
-    Write-Host "╔════════════════════════════════════════════════════════════════╗" -ForegroundColor Yellow
-    Write-Host "║                          [AVISO] ATENÇÃO [AVISO]                          ║" -ForegroundColor Yellow
-    Write-Host "╚════════════════════════════════════════════════════════════════╝" -ForegroundColor Yellow
+    Write-Host "+================================================================+" -ForegroundColor Yellow
+    Write-Host "|                          [AVISO] ATENÇÃO [AVISO]                          |" -ForegroundColor Yellow
+    Write-Host "+================================================================+" -ForegroundColor Yellow
     Write-Host ""
     Write-Host "O Microsoft Word está atualmente em execução!" -ForegroundColor Yellow
     Write-Host ""
     Write-Host "IMPORTANTE:" -ForegroundColor Red
-    Write-Host "  • SALVE todos os seus documentos abertos no Word" -ForegroundColor White
-    Write-Host "  • FECHE o Word completamente" -ForegroundColor White
-    Write-Host "  • Outros aplicativos do Office (Excel, PowerPoint) NÃO serão afetados" -ForegroundColor Gray
+    Write-Host "  - SALVE todos os seus documentos abertos no Word" -ForegroundColor White
+    Write-Host "  - FECHE o Word completamente" -ForegroundColor White
+    Write-Host "  - Outros aplicativos do Office (Excel, PowerPoint) NÃO serão afetados" -ForegroundColor Gray
     Write-Host ""
     Write-Host "Se você continuar, o Word será FECHADO FORÇADAMENTE e" -ForegroundColor Red
     Write-Host "qualquer trabalho não salvo SERÁ PERDIDO!" -ForegroundColor Red
@@ -1646,9 +1676,9 @@ function Install-CHAINSAWConfig {
     #>
     
     Write-Host ""
-    Write-Host "╔════════════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
-    Write-Host "║          CHAINSAW - Instalação de Configurações do Word       ║" -ForegroundColor Cyan
-    Write-Host "╚════════════════════════════════════════════════════════════════╝" -ForegroundColor Cyan
+    Write-Host "+================================================================+" -ForegroundColor Cyan
+    Write-Host "|          CHAINSAW - Instalação de Configurações do Word       |" -ForegroundColor Cyan
+    Write-Host "+================================================================+" -ForegroundColor Cyan
     Write-Host ""
     
     # Inicializa log
@@ -1928,10 +1958,10 @@ function Install-CHAINSAWConfig {
                 Write-Host "   $exportedConfigPath" -ForegroundColor Gray
                 Write-Host ""
                 Write-Host " Conteúdo que será importado:" -ForegroundColor White
-                Write-Host "   • Módulo VBA (monolithicMod)" -ForegroundColor Gray
-                Write-Host "   • Faixa de Opções Personalizada (Ribbon)" -ForegroundColor Gray
-                Write-Host "   • Barra de Ferramentas de Acesso Rápido (QAT)" -ForegroundColor Gray
-                Write-Host "   • Outras personalizações da interface" -ForegroundColor Gray
+                Write-Host "   - Módulo VBA (monolithicMod)" -ForegroundColor Gray
+                Write-Host "   - Faixa de Opções Personalizada (Ribbon)" -ForegroundColor Gray
+                Write-Host "   - Barra de Ferramentas de Acesso Rápido (QAT)" -ForegroundColor Gray
+                Write-Host "   - Outras personalizações da interface" -ForegroundColor Gray
                 Write-Host ""
                 
                 $importCustomizations = $true
@@ -1948,7 +1978,7 @@ function Install-CHAINSAWConfig {
                         Write-Host ""
                         Write-Host "[OK] Personalizações importadas com sucesso!" -ForegroundColor Green
                         Write-Host ""
-                        Write-Host "ℹ IMPORTANTE:" -ForegroundColor Cyan
+                        Write-Host "[INFO] IMPORTANTE:" -ForegroundColor Cyan
                         Write-Host "   As personalizações serão visíveis na próxima vez" -ForegroundColor Yellow
                         Write-Host "   que você abrir o Microsoft Word." -ForegroundColor Yellow
                         Write-Host ""
@@ -1962,7 +1992,7 @@ function Install-CHAINSAWConfig {
                 }
                 else {
                     Write-Host ""
-                    Write-Host "ℹ Importação de personalizações ignorada." -ForegroundColor Cyan
+                    Write-Host "[INFO] Importação de personalizações ignorada." -ForegroundColor Cyan
                     Write-Host "  Para importar mais tarde, execute: .\install.ps1" -ForegroundColor Gray
                     Write-Host ""
                     Write-Log "Importação de personalizações ignorada pelo usuário" -Level INFO
@@ -2011,27 +2041,20 @@ function Install-CHAINSAWConfig {
         Write-Log "Validação final: instalação íntegra [OK]" -Level SUCCESS
         
         Write-Host ""
-        Write-Host "╔════════════════════════════════════════════════════════════════╗" -ForegroundColor Green
-        Write-Host "║              INSTALAÇÃO CONCLUÍDA COM SUCESSO!                 ║" -ForegroundColor Green
-        Write-Host "╚════════════════════════════════════════════════════════════════╝" -ForegroundColor Green
+        Write-Host "+================================================================+" -ForegroundColor Green
+        Write-Host "|              INSTALAÇÃO CONCLUÍDA COM SUCESSO!                 |" -ForegroundColor Green
+        Write-Host "+================================================================+" -ForegroundColor Green
         Write-Host ""
         Write-Host " Resumo da Instalação:" -ForegroundColor Cyan
-        Write-Host "   • Operações bem-sucedidas: $script:SuccessCount" -ForegroundColor Green
-        Write-Host "   • Avisos: $script:WarningCount" -ForegroundColor Yellow
-        Write-Host "   • Erros: $script:ErrorCount" -ForegroundColor Red
-        Write-Host "   • Tempo decorrido: $($duration.ToString('mm\:ss'))" -ForegroundColor Gray
+        Write-Host "   - Operações bem-sucedidas: $script:SuccessCount" -ForegroundColor Green
+        Write-Host "   - Avisos: $script:WarningCount" -ForegroundColor Yellow
+        Write-Host "   - Erros: $script:ErrorCount" -ForegroundColor Red
+        Write-Host "   - Tempo decorrido: $($duration.ToString('mm\:ss'))" -ForegroundColor Gray
         Write-Host ""
         
         Write-Host " Log completo salvo em:" -ForegroundColor Cyan
         Write-Host "   $script:LogFile" -ForegroundColor Gray
         Write-Host ""
-        
-        # Log rotation: keep only 5 most recent logs
-        $vbaLogsDir = Join-Path $env:USERPROFILE "chainsaw\installation\inst_docs\vba_logs"
-        $instLogsDir = Join-Path $env:USERPROFILE "chainsaw\installation\inst_docs\inst_logs"
-        
-        Remove-OldLogs -LogDirectory $vbaLogsDir -MaxFiles 5
-        Remove-OldLogs -LogDirectory $instLogsDir -MaxFiles 5
         
         Write-Log "=== INSTALAÇÃO CONCLUÍDA COM SUCESSO ===" -Level SUCCESS
         Write-Log "Duração: $($duration.ToString('mm\:ss'))" -Level INFO
@@ -2041,9 +2064,9 @@ function Install-CHAINSAWConfig {
         $duration = $endTime - $startTime
         
         Write-Host ""
-        Write-Host "╔════════════════════════════════════════════════════════════════╗" -ForegroundColor Red
-        Write-Host "║                  ERRO NA INSTALAÇÃO!                           ║" -ForegroundColor Red
-        Write-Host "╚════════════════════════════════════════════════════════════════╝" -ForegroundColor Red
+        Write-Host "+================================================================+" -ForegroundColor Red
+        Write-Host "|                  ERRO NA INSTALAÇÃO!                           |" -ForegroundColor Red
+        Write-Host "+================================================================+" -ForegroundColor Red
         Write-Host ""
         Write-Host "[ERRO] Erro: $($_.Exception.Message)" -ForegroundColor Red
         Write-Host ""
@@ -2133,9 +2156,9 @@ function Install-CHAINSAWConfig {
 $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if ($isAdmin) {
     Write-Host ""
-    Write-Host "╔════════════════════════════════════════════════════════════════╗" -ForegroundColor Red
-    Write-Host "║                      [AVISO] AVISO IMPORTANTE [AVISO]                      ║" -ForegroundColor Red
-    Write-Host "╚════════════════════════════════════════════════════════════════╝" -ForegroundColor Red
+    Write-Host "+================================================================+" -ForegroundColor Red
+    Write-Host "|                      [AVISO] AVISO IMPORTANTE [AVISO]                      |" -ForegroundColor Red
+    Write-Host "+================================================================+" -ForegroundColor Red
     Write-Host ""
     Write-Host "[ERRO] Este script está sendo executado com privilégios de Administrador." -ForegroundColor Red
     Write-Host ""
@@ -2151,7 +2174,7 @@ if ($isAdmin) {
     Write-Host "      - Selecione 'Windows PowerShell' (NÃO 'Windows PowerShell (Admin)')" -ForegroundColor Gray
     Write-Host "   3. Execute o script novamente" -ForegroundColor White
     Write-Host ""
-    Write-Host "ℹ  Este script NÃO REQUER privilégios de administrador." -ForegroundColor Cyan
+    Write-Host "[INFO]  Este script NÃO REQUER privilégios de administrador." -ForegroundColor Cyan
     Write-Host "   Todas as operações são realizadas apenas no seu perfil de usuário." -ForegroundColor Cyan
     Write-Host ""
     
@@ -2176,3 +2199,7 @@ try {
 catch {
     exit 1
 }
+
+
+
+

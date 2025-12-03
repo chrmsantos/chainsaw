@@ -115,11 +115,37 @@ Caminho de Exportação: $ExportPath
 
 "@
         Add-Content -Path $script:LogFile -Value $header
+        Invoke-LogRetention -Directory $logDir -Pattern 'export_*.log' -KeepLatest 5
         return $true
     }
     catch {
         Write-Warning "Não foi possível criar arquivo de log: $_"
         return $false
+    }
+}
+
+function Invoke-LogRetention {
+    param(
+        [Parameter(Mandatory)] [string]$Directory,
+        [Parameter(Mandatory)] [string]$Pattern,
+        [int]$KeepLatest = 5
+    )
+
+    try {
+        if ($KeepLatest -lt 1) { return }
+        if (-not (Test-Path $Directory)) { return }
+
+        $logFiles = Get-ChildItem -Path $Directory -Filter $Pattern -File -ErrorAction Stop |
+            Sort-Object LastWriteTime -Descending
+
+        if ($logFiles.Count -le $KeepLatest) { return }
+
+        $logFiles[$KeepLatest..($logFiles.Count - 1)] | ForEach-Object {
+            Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue
+        }
+    }
+    catch {
+        Write-Verbose "Falha ao aplicar retencao de logs em $Directory: $_"
     }
 }
 
@@ -147,7 +173,7 @@ function Write-Log {
         "SUCCESS" { Write-Host "[OK] $Message" -ForegroundColor $ColorSuccess }
         "WARNING" { Write-Host "[AVISO] $Message" -ForegroundColor $ColorWarning }
         "ERROR" { Write-Host "[ERRO] $Message" -ForegroundColor $ColorError }
-        default { Write-Host "ℹ $Message" -ForegroundColor $ColorInfo }
+        default { Write-Host "[INFO] $Message" -ForegroundColor $ColorInfo }
     }
 }
 
