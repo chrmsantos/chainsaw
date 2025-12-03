@@ -145,7 +145,7 @@ function Invoke-LogRetention {
         }
     }
     catch {
-        Write-Verbose "Falha ao aplicar retencao de logs em $Directory: $_"
+        Write-Verbose "Falha ao aplicar retencao de logs em ${Directory}: $_"
     }
 }
 
