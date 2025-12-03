@@ -1707,11 +1707,8 @@ function Install-CHAINSAWConfig {
             
             if ($backupResult.Success) {
                 Write-Log "Backup automático concluído com sucesso" -Level SUCCESS
-                if ($backupResult.OldBackupRenamed) {
-                    Write-Log "Backup anterior preservado: chainsaw_old_tmp_backup" -Level INFO
-                }
-                if ($backupResult.ChainsawBackupCreated) {
-                    Write-Log "Instalação atual arquivada: chainsaw_backup" -Level INFO
+                if ($backupResult.BackupCreated) {
+                    Write-Log "Backup criado: chainsaw_old" -Level INFO
                 }
                 $script:SuccessCount++
             }

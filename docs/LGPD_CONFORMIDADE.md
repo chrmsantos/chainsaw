@@ -7,7 +7,7 @@
 
 ---
 
-##  SUMÁRIO EXECUTIVO
+## SUMÁRIO EXECUTIVO
 
 Este documento atesta e descreve a **conformidade plena** do sistema CHAINSAW com a Lei Geral de Proteção de Dados Pessoais (LGPD - Lei nº 13.709/2018). O CHAINSAW foi desenvolvido seguindo os princípios de **Privacy by Design** e **Privacy by Default**, garantindo a proteção de dados pessoais desde a concepção do projeto.
 
@@ -80,7 +80,9 @@ O CHAINSAW processa documentos criados pelos usuários:
 
 O CHAINSAW **NÃO realiza tratamento de dados pessoais**, mas caso documentos processados contenham dados pessoais (decisão do usuário):
 
-**Base Legal Aplicável:** Art. 7º, V - **Execução de contrato ou procedimentos preliminares**
+### Base Legal Aplicável
+
+Art. 7º, V - **Execução de contrato ou procedimentos preliminares**
 
 - O processamento é necessário para executar a formatação de documentos (contrato implícito de uso do software)
 - O usuário consente implicitamente ao executar a operação de formatação
@@ -88,7 +90,7 @@ O CHAINSAW **NÃO realiza tratamento de dados pessoais**, mas caso documentos pr
 
 ### Dados Sensíveis (Art. 11º)
 
-[ERRO] **NÃO APLICÁVEL** - O sistema não identifica, extrai ou processa dados sensíveis.
+**NÃO APLICÁVEL** - O sistema não identifica, extrai ou processa dados sensíveis.
 
 ---
 
@@ -126,7 +128,7 @@ Para exercer qualquer direito:
 
 #### 5.1.1 Segurança de Acesso
 
-```
+```text
 [OK] Processamento Local
    - Todos os dados permanecem na máquina do usuário
    - Sem acesso à rede ou internet
@@ -145,10 +147,10 @@ Para exercer qualquer direito:
 
 #### 5.1.2 Segurança de Código
 
-```
+```text
 [OK] Código Aberto (Open Source)
    - Licença: GNU GPLv3
-   - Repositório: github.com/chrmsantos/chainsaw
+   - Repositório: <https://github.com/chrmsantos/chainsaw>
    - Auditoria pública disponível
 
 [OK] Testes Automatizados
@@ -164,7 +166,7 @@ Para exercer qualquer direito:
 
 #### 5.1.3 Segurança de Armazenamento
 
-```
+```text
 [OK] Backups Locais
    - Armazenados em: .chainsaw/backups/
    - Limite automático: 10 backups mais recentes
@@ -264,7 +266,7 @@ O desenvolvedor do CHAINSAW (Christian Martin dos Santos) garante:
 
 Embora o risco seja **mínimo** (processamento local), em caso de vulnerabilidade:
 
-**Processo:**
+#### Processo
 
 1. **Detecção:** Usuário ou pesquisador reporta vulnerabilidade
 2. **Análise:** Desenvolvedor analisa impacto em até 48h
@@ -273,16 +275,15 @@ Embora o risco seja **mínimo** (processamento local), em caso de vulnerabilidad
 5. **Distribuição:** Nova versão publicada com correção
 
 **Canal de Reporte:**
-- Email: chrmsantos@protonmail.com
-- GitHub Issues: github.com/chrmsantos/chainsaw/issues (tag: security)
+
+- Email: <chrmsantos@protonmail.com>
+- GitHub Issues: <https://github.com/chrmsantos/chainsaw/issues> (tag: security)
 
 ### 8.2 Histórico de Incidentes
 
- **Incidentes Registrados:** 0 (zero)  
- **Vulnerabilidades Conhecidas:** 0 (zero)  
- **Vazamentos de Dados:** 0 (zero) - Impossível pela arquitetura
-
----
+**Incidentes Registrados:** 0 (zero)\
+**Vulnerabilidades Conhecidas:** 0 (zero)\
+**Vazamentos de Dados:** 0 (zero) - Impossível pela arquitetura
 
 ## 9. AUDITORIA E CONFORMIDADE CONTÍNUA
 
@@ -292,15 +293,17 @@ O CHAINSAW mantém logs de operação para auditoria:
 
 **Localização:** `.chainsaw/logs/chainsaw_[data].log`
 
-**Conteúdo dos Logs:**
+#### Conteúdo dos Logs
+
 - [OK] Data/hora da operação
 - [OK] Tipo de operação (formatação, backup, etc)
 - [OK] Status (sucesso/erro)
 - [OK] Caminho do arquivo processado
-- [ERRO] **NÃO registra:** Conteúdo de documentos, dados pessoais, metadados de autoria
+- **NÃO registra:** Conteúdo de documentos, dados pessoais, metadados de autoria
 
-**Exemplo de Log:**
-```
+#### Exemplo de Log
+
+```text
 [2025-11-08 14:30:45] INFO: Iniciando padronização de documento
 [2025-11-08 14:30:46] INFO: Backup criado: .chainsaw/backups/backup_20251108_143046.docx
 [2025-11-08 14:30:48] INFO: Formatação aplicada com sucesso
@@ -308,7 +311,7 @@ O CHAINSAW mantém logs de operação para auditoria:
 
 ### 9.2 Testes de Conformidade
 
-**Sistema de Testes Automatizados:**
+#### Sistema de Testes Automatizados
 
 - **172 testes** cobrindo segurança, integridade e conformidade
 - **100% de aprovação** obrigatória para releases
@@ -320,7 +323,8 @@ O CHAINSAW mantém logs de operação para auditoria:
   - Encoding UTF-8 seguro
   - Ausência de conexões de rede
 
-**Executar Testes:**
+#### Executar Testes
+
 ```cmd
 cd chainsaw\tests
 run-tests.cmd
@@ -350,14 +354,14 @@ Eu, **Christian Martin dos Santos**, desenvolvedor do sistema CHAINSAW, declaro 
 
 ### 10.2 Termos de Uso e Limitação de Responsabilidade
 
-**Uso do CHAINSAW:**
+#### Uso do CHAINSAW
 
 - O sistema é fornecido "AS IS" sob licença GPLv3
 - Não há garantias explícitas ou implícitas
 - O usuário é responsável pela conformidade LGPD dos documentos que processar
 - O desenvolvedor não tem acesso aos documentos ou dados dos usuários
 
-**Organizações que Adotarem o CHAINSAW:**
+#### Organizações que Adotarem o CHAINSAW
 
 Se sua organização processar dados pessoais nos documentos:
 
@@ -397,10 +401,10 @@ Se sua organização processar dados pessoais nos documentos:
 
 **Desenvolvedor:**  
 Christian Martin dos Santos  
-chrmsantos@protonmail.com
+<chrmsantos@protonmail.com>
 
 **Repositório:**  
-https://github.com/chrmsantos/chainsaw
+<https://github.com/chrmsantos/chainsaw>
 
 **Reporte de Vulnerabilidades:**  
 GitHub Issues (tag: security) ou email direto

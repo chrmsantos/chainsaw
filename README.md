@@ -24,6 +24,10 @@ Instalação guiada em modo texto com confirmações simples (S/N ou menus numer
 cd %USERPROFILE%\chainsaw\installation\inst_scripts
 chainsaw_installer.cmd
 
+# Atualizar para versão mais recente do GitHub
+cd %USERPROFILE%\chainsaw\installation\inst_scripts
+update-from-github.cmd
+
 # Exportar configurações atuais do Word
 exportar_configs.cmd
 ```

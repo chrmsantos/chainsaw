@@ -7,7 +7,7 @@
 
 ---
 
-##  PREÂMBULO
+## PREÂMBULO
 
 Esta Política de Segurança e Privacidade estabelece as diretrizes, práticas e compromissos do projeto CHAINSAW no que se refere à proteção de dados, segurança da informação e privacidade dos usuários, em conformidade com:
 
@@ -125,10 +125,10 @@ C:\Users\[usuario]\
 
 **Segurança NTFS:**
 
--  **Permissões de Usuário:** Apenas o usuário logado tem acesso
--  **Isolamento de Sessão:** Dados não são compartilhados entre usuários
--  **Proteção do Sistema:** Windows protege pasta AppData
--  **Pasta Oculta:** `.chainsaw` é oculta por padrão
+- **Permissões de Usuário:** Apenas o usuário logado tem acesso
+- **Isolamento de Sessão:** Dados não são compartilhados entre usuários
+- **Proteção do Sistema:** Windows protege pasta AppData
+- **Pasta Oculta:** `.chainsaw` é oculta por padrão
 
 **Recomendações Adicionais:**
 
@@ -264,6 +264,7 @@ Private Const MAX_INITIAL_PARAGRAPHS_TO_SCAN As Long = 50
 ```
 
 **Proteção contra:**
+
 - [ERRO] Loops infinitos
 - [ERRO] Travamento do Word
 - [ERRO] Consumo excessivo de memória
@@ -370,10 +371,10 @@ Word → Arquivo → Informações → Inspecionar Documento → Remover Metadad
 
 **Segurança dos Backups:**
 
--  Armazenados localmente em `.chainsaw/backups/`
--  Protegidos pelas mesmas permissões do usuário
--  Não criptografados por padrão (usuário pode criptografar pasta)
--  Rotação automática (máximo 10 arquivos)
+- Armazenados localmente em `.chainsaw/backups/`
+- Protegidos pelas mesmas permissões do usuário
+- Não criptografados por padrão (usuário pode criptografar pasta)
+- Rotação automática (máximo 10 arquivos)
 
 **Recomendações:**
 
@@ -424,10 +425,10 @@ Word → Arquivo → Informações → Inspecionar Documento → Remover Metadad
 
 **Estatísticas (desde o lançamento):**
 
--  **Vazamentos de Dados:** 0 (zero)
--  **Incidentes de Segurança:** 0 (zero)
--  **Solicitações de Dados:** 0 (impossível - não coletamos)
--  **Reclamações de Privacidade:** 0 (zero)
+- **Vazamentos de Dados:** 0 (zero)
+- **Incidentes de Segurança:** 0 (zero)
+- **Solicitações de Dados:** 0 (impossível - não coletamos)
+- **Reclamações de Privacidade:** 0 (zero)
 
 **Atualizações:**
 Este relatório é atualizado anualmente ou quando houver eventos relevantes.
@@ -453,14 +454,14 @@ Mesmo sem coletar dados pessoais, garantimos:
 
 **Para questões de privacidade e segurança:**
 
-- **Email:** chrmsantos@protonmail.com
+- **Email:** <chrmsantos@protonmail.com>
 - **GitHub Issues:** <https://github.com/chrmsantos/chainsaw/issues>
 - **Documentação:** Pasta `docs/` no repositório
 
 **Tempo de Resposta:**
 
--  Questões gerais: até 5 dias úteis
--  Vulnerabilidades de segurança: até 48 horas
+- Questões gerais: até 5 dias úteis
+- Vulnerabilidades de segurança: até 48 horas
 
 ---
 
@@ -482,12 +483,12 @@ O desenvolvedor do CHAINSAW se compromete a:
 
 O usuário do CHAINSAW é responsável por:
 
-1.  Proteger sua máquina com senha e antivírus
-2.  Garantir conformidade LGPD nos documentos que processar
-3.  Gerenciar backups e logs sensíveis
-4.  Criptografar pasta `.chainsaw` se processar dados sensíveis
-5.  Manter o sistema operacional atualizado
-6.  Reportar vulnerabilidades de forma responsável
+1. Proteger sua máquina com senha e antivírus
+2. Garantir conformidade LGPD nos documentos que processar
+3. Gerenciar backups e logs sensíveis
+4. Criptografar pasta `.chainsaw` se processar dados sensíveis
+5. Manter o sistema operacional atualizado
+6. Reportar vulnerabilidades de forma responsável
 
 ### 8.3 Responsabilidades de Organizações
 
@@ -550,11 +551,11 @@ Organizações que adotarem o CHAINSAW devem:
 
 Todas as contribuições são revisadas quanto a:
 
-1.  Introdução de vulnerabilidades
-2.  Coleta de dados pessoais
-3.  Conexões de rede não autorizadas
-4.  Modificação de comportamento de privacidade
-5.  Adição de dependências inseguras
+1. Introdução de vulnerabilidades
+2. Coleta de dados pessoais
+3. Conexões de rede não autorizadas
+4. Modificação de comportamento de privacidade
+5. Adição de dependências inseguras
 
 ### 9.3 Dependências e Bibliotecas
 
@@ -629,7 +630,7 @@ Todas as contribuições são revisadas quanto a:
 
 Por favor, reporte vulnerabilidades de forma responsável:
 
-1. **Email:** chrmsantos@protonmail.com
+1. **Email:** <chrmsantos@protonmail.com>
    - Assunto: [SECURITY] Descrição breve
    - Incluir: Passos para reproduzir, impacto, evidências
 
@@ -639,9 +640,9 @@ Por favor, reporte vulnerabilidades de forma responsável:
 
 **Reconhecimento:**
 
--  Crédito público no CHANGELOG (se desejar)
--  Agradecimento especial na documentação
--  Contribuição para a segurança da comunidade
+- Crédito público no CHANGELOG (se desejar)
+- Agradecimento especial na documentação
+- Contribuição para a segurança da comunidade
 
 ---
 
@@ -664,19 +665,19 @@ Por favor, reporte vulnerabilidades de forma responsável:
 
 **ISO/IEC 27000 Series (Segurança da Informação):**
 
--  **ISO 27001:2022** - Sistema de Gestão de Segurança da Informação
--  **ISO 27002:2022** - Controles de Segurança
--  **ISO 27701:2019** - Privacy Information Management
+- **ISO 27001:2022** - Sistema de Gestão de Segurança da Informação
+- **ISO 27002:2022** - Controles de Segurança
+- **ISO 27701:2019** - Privacy Information Management
 
 **NIST (National Institute of Standards and Technology):**
 
--  **NIST Privacy Framework 1.0** - Framework de Privacidade
--  **NIST Cybersecurity Framework** - Segurança Cibernética
+- **NIST Privacy Framework 1.0** - Framework de Privacidade
+- **NIST Cybersecurity Framework** - Segurança Cibernética
 
 **OWASP (Open Web Application Security Project):**
 
--  **OWASP Top 10** - Vulnerabilidades mais críticas (referência)
--  **OWASP SAMM** - Software Assurance Maturity Model
+- **OWASP Top 10** - Vulnerabilidades mais críticas (referência)
+- **OWASP SAMM** - Software Assurance Maturity Model
 
 ### 11.3 Avaliação de Maturidade
 
@@ -699,25 +700,25 @@ Por favor, reporte vulnerabilidades de forma responsável:
 
 **Recomendações de Segurança:**
 
-1. ** Proteção da Máquina**
+1. **Proteção da Máquina**
    - Use senha forte na conta Windows
    - Ative BitLocker (criptografia de disco)
    - Mantenha antivírus atualizado
    - Instale atualizações do Windows
 
-2. ** Proteção de Documentos**
+2. **Proteção de Documentos**
    - Não salve senhas em documentos
    - Use proteção de documento do Word para dados sensíveis
    - Remova metadados antes de compartilhar documentos públicos
    - Faça backup regular dos documentos importantes
 
-3. ** Gestão de Backups**
+3. **Gestão de Backups**
    - Revise periodicamente `.chainsaw\backups\`
    - Delete backups de documentos obsoletos
    - Criptografe pasta de backups se necessário
    - Não compartilhe backups sem revisar conteúdo
 
-4. ** Logs e Auditoria**
+4. **Logs e Auditoria**
    - Verifique logs regularmente em `.chainsaw\logs\`
    - Reporte comportamentos anormais
    - Mantenha logs por tempo adequado para auditoria
@@ -726,22 +727,26 @@ Por favor, reporte vulnerabilidades de forma responsável:
 
 **Para organizações que adotarem o CHAINSAW:**
 
-**Módulo 1: Fundamentos de LGPD**
+### Módulo 1: Fundamentos de LGPD
+
 - Conceitos básicos da LGPD
 - Direitos dos titulares
 - Responsabilidades da organização
 
-**Módulo 2: Uso Seguro do CHAINSAW**
+### Módulo 2: Uso Seguro do CHAINSAW
+
 - Como funciona o sistema
 - O que é coletado e o que não é
 - Boas práticas de uso
 
-**Módulo 3: Segurança da Informação**
+### Módulo 3: Segurança da Informação
+
 - Proteção de máquinas
 - Gerenciamento de backups
 - Resposta a incidentes
 
-**Módulo 4: Tratamento de Dados em Documentos**
+### Módulo 4: Tratamento de Dados em Documentos
+
 - Minimização de dados pessoais
 - Anonimização quando possível
 - Controle de acesso a documentos
@@ -754,16 +759,16 @@ Por favor, reporte vulnerabilidades de forma responsável:
 
 **Frequência:**
 
--  **Patches de Segurança:** Imediato (conforme necessário)
--  **Atualizações de Funcionalidade:** Trimestral
--  **Revisão de Documentação:** Semestral
--  **Auditoria de Segurança:** Anual
+- **Patches de Segurança:** Imediato (conforme necessário)
+- **Atualizações de Funcionalidade:** Trimestral
+- **Revisão de Documentação:** Semestral
+- **Auditoria de Segurança:** Anual
 
 **Notificação:**
 
--  Changelog atualizado no GitHub
--  Release notes detalhadas
--  Comunicação por email (para reportes de vulnerabilidades)
+- Changelog atualizado no GitHub
+- Release notes detalhadas
+- Comunicação por email (para reportes de vulnerabilidades)
 
 ### 13.2 Ciclo de Vida de Versões
 
@@ -798,9 +803,9 @@ Por favor, reporte vulnerabilidades de forma responsável:
 
 Serão comunicadas com **30 dias de antecedência** via:
 
--  Atualização deste documento com histórico de revisões
--  Nota no CHANGELOG.md
--  Comunicado no README.md
+- Atualização deste documento com histórico de revisões
+- Nota no CHANGELOG.md
+- Comunicado no README.md
 
 **Mudanças Menores:**
 
@@ -858,17 +863,17 @@ Esta política é regida pelas leis da República Federativa do Brasil, especial
 
 **Desenvolvedor:**  
 Christian Martin dos Santos  
- Email: chrmsantos@protonmail.com  
- GitHub: <https://github.com/chrmsantos/chainsaw>
+Email: <chrmsantos@protonmail.com>  
+GitHub: <https://github.com/chrmsantos/chainsaw>
 
 **Reporte de Vulnerabilidades:**  
- chrmsantos@protonmail.com (assunto: [SECURITY])  
- Resposta em até 48 horas
+<chrmsantos@protonmail.com> (assunto: [SECURITY])  
+Resposta em até 48 horas
 
 **Documentação:**  
- Repositório: `/docs/` folder  
- LGPD: `docs/LGPD_CONFORMIDADE.md`  
- Segurança: `docs/SEGURANCA_PRIVACIDADE.md` (este documento)
+Repositório: `/docs/` folder  
+LGPD: `docs/LGPD_CONFORMIDADE.md`  
+Segurança: `docs/SEGURANCA_PRIVACIDADE.md` (este documento)
 
 ---
 
@@ -881,7 +886,7 @@ Christian Martin dos Santos
 
 O CHAINSAW foi projetado com **privacidade em primeiro lugar**. Nossa arquitetura garante que seus dados nunca saiam da sua máquina. Continuaremos mantendo este compromisso em todas as versões futuras.
 
-**"Privacy is not a feature, it's a fundamental right."**
+> "Privacy is not a feature, it's a fundamental right."
 
 ---
 

@@ -88,6 +88,54 @@ cd "$env:USERPROFILE\chainsaw\installation\inst_scripts"
 
 Ou dê duplo-clique em: `update-vba-module.cmd`
 
+---
+
+## Atualização Automática via GitHub
+
+Para atualizar o CHAINSAW completo para a versão mais recente do GitHub:
+
+### Método Automático (Recomendado)
+
+1. Navegue até: `chainsaw\installation\inst_scripts\`
+2. Dê duplo-clique em: `update-from-github.cmd`
+
+**OU** execute via PowerShell:
+
+```powershell
+cd "$env:USERPROFILE\chainsaw\installation\inst_scripts"
+.\update-from-github.ps1
+```
+
+### O que o atualizador faz
+
+```text
+✓ Cria backup automático da instalação atual (chainsaw_old)
+✓ Baixa a versão mais recente do GitHub (main.zip)
+✓ Descompacta o arquivo
+✓ Remove o arquivo ZIP
+✓ Instala a nova versão
+✓ Remove o backup se bem-sucedido (opcional)
+✓ Em caso de erro, restaura automaticamente o backup
+```
+
+### Manter o Backup
+
+Se preferir manter o backup após a atualização:
+
+```powershell
+.\update-from-github.ps1 -KeepBackup
+```
+
+### Segurança
+
+- ✅ Backup automático antes de qualquer modificação
+- ✅ Restauração automática em caso de falha
+- ✅ Verificação de integridade do download
+- ✅ Sem perda de dados em caso de erro
+- ✅ Backup mantido em: `%USERPROFILE%\chainsaw_old`
+
+---
+
 ## Exportar Personalizações
 
 Para fazer backup de suas personalizações do Word:
