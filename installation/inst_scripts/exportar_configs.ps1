@@ -25,7 +25,7 @@ function Show-Header {
     Write-Host ''
 }
 
-function Ask-YesNo {
+function Get-UserConfirmation {
     param(
         [Parameter(Mandatory)] [string]$Message,
         [Parameter()] [bool]$DefaultYes = $true
@@ -61,11 +61,15 @@ function Get-LatestLogPath {
         return $null
     }
 
-    $file = Get-ChildItem -Path $logDirectory -Filter 'export_*.log' -ErrorAction SilentlyContinue |
+    $latestLog = Get-ChildItem -Path $logDirectory -Filter 'export_*.log' -ErrorAction SilentlyContinue |
         Sort-Object LastWriteTime -Descending |
         Select-Object -First 1
 
-    return $file?.FullName
+    if (-not $latestLog) {
+        return $null
+    }
+
+    return $latestLog.FullName
 }
 
 function Start-Export {
@@ -97,9 +101,9 @@ try {
 
     Show-Header
 
-    $includeRegistry = Ask-YesNo 'Deseja incluir configuracoes do registro?' $false
-    $forceWordClose = Ask-YesNo 'Deseja que o Word seja fechado automaticamente?' $true
-    $confirm = Ask-YesNo "Confirmar exportacao para '$resolvedExportPath'?"
+    $includeRegistry = Get-UserConfirmation 'Deseja incluir configuracoes do registro?' $false
+    $forceWordClose = Get-UserConfirmation 'Deseja que o Word seja fechado automaticamente?' $true
+    $confirm = Get-UserConfirmation "Confirmar exportacao para '$resolvedExportPath'?"
     if (-not $confirm) {
         Write-Host ''
         Write-Host 'Exportacao cancelada.' -ForegroundColor Yellow

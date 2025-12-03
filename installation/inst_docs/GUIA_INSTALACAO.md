@@ -1,6 +1,6 @@
 ﻿# Guia de Instalação - CHAINSAW
 
-##  Visão Geral
+## Visão Geral
 
 Sistema automatizado para padronização de documentos legislativos no Microsoft Word.
 
@@ -13,7 +13,7 @@ Sistema automatizado para padronização de documentos legislativos no Microsoft
 
 ---
 
-##  Instalação Automática (Recomendado)
+## Instalação Automática (Recomendado)
 
 ### ✨ Método Mais Simples - Um Único Arquivo
 
@@ -23,9 +23,9 @@ Sistema automatizado para padronização de documentos legislativos no Microsoft
 2. **Execute**: Dê duplo-clique no arquivo
 3. **Pronto!** O instalador fará tudo sozinho
 
-#### O que o instalador automático faz:
+#### O que o instalador automático faz
 
-```
+```text
 ✓ Baixa o código-fonte completo do GitHub
 ✓ Valida a integridade dos arquivos baixados
 ✓ Cria backup da instalação existente (se houver)
@@ -36,15 +36,17 @@ Sistema automatizado para padronização de documentos legislativos no Microsoft
 ```
 
 **Vantagens**:
+
 - ✅ Sempre baixa a versão mais recente
 - ✅ Não precisa clonar repositório completo
 - ✅ Backup automático e validado
 - ✅ Rollback em caso de falha
 - ✅ Logs completos para diagnóstico
 
+
 ---
 
-##  Instalação Manual (Se já tem o repositório)
+## Instalação Manual (Se já tem o repositório)
 
 Se você já clonou/baixou o repositório completo:
 
@@ -57,6 +59,7 @@ Navegue até a pasta onde está o `chainsaw_installer.cmd`
 Dê duplo-clique em: `chainsaw_installer.cmd`
 
 **OU** execute via linha de comando:
+
 ```batch
 chainsaw_installer.cmd
 ```
@@ -65,7 +68,7 @@ chainsaw_installer.cmd
 
 O instalador executará automaticamente:
 
-```
+```text
 [OK] ETAPA 1: Verificação de Pré-requisitos
 [OK] ETAPA 2: Validação de Arquivos
 [OK] ETAPA 3: Backup Automático
@@ -74,7 +77,7 @@ O instalador executará automaticamente:
 [OK] ETAPA 6: Importação de Personalizações (se disponível)
 ```
 
-##  Atualização do Módulo VBA
+## Atualização do Módulo VBA
 
 Para atualizar apenas o módulo VBA (sem reinstalar tudo):
 
@@ -85,7 +88,7 @@ cd "$env:USERPROFILE\chainsaw\installation\inst_scripts"
 
 Ou dê duplo-clique em: `update-vba-module.cmd`
 
-##  Exportar Personalizações
+## Exportar Personalizações
 
 Para fazer backup de suas personalizações do Word:
 
@@ -95,12 +98,13 @@ exportar_configs.cmd
 ```
 
 Isso criará uma pasta `exported-config` com:
+
 - Faixa de Opções personalizada (Ribbon)
 - Partes Rápidas (Quick Parts)
 - Blocos de Construção (Building Blocks)
 - Template Normal.dotm
 
-##  Importar Personalizações
+## Importar Personalizações
 
 Se você possui uma pasta `exported-config`:
 
@@ -108,34 +112,35 @@ Se você possui uma pasta `exported-config`:
 2. Execute `chainsaw_installer.cmd` normalmente
 3. O instalador detectará e oferecerá importar automaticamente
 
-##  Opções Avançadas
+## Opções Avançadas
 
-### Instalação Silenciosa (sem confirmação):
+### Instalação Silenciosa (sem confirmação)
 
 ```powershell
 .\install.ps1 -Force
 ```
 
-### Sem Backup Automático:
+### Sem Backup Automático
 
 ```powershell
 .\install.ps1 -NoBackup
 ```
 
-### Sem Importar Personalizações:
+### Sem Importar Personalizações
 
 ```powershell
 .\install.ps1 -SkipCustomizations
 ```
 
-##  Logs
+## Logs
 
 Todos os logs ficam em:
-```
+
+```text
 chainsaw\installation\inst_docs\inst_logs\install_YYYYMMDD_HHMMSS.log
 ```
 
-## ? Resolução de Problemas
+## Resolução de Problemas
 
 ### Word está aberto
 
@@ -161,7 +166,7 @@ Para verificar se a instalação foi bem-sucedida:
 3. Verifique se o módulo `monolithicMod` está presente
 4. Verifique se a Faixa de Opções personalizada aparece
 
-##  Segurança
+## Segurança
 
 - [OK] Não requer privilégios de administrador
 - [OK] Não modifica arquivos do sistema
@@ -170,7 +175,7 @@ Para verificar se a instalação foi bem-sucedida:
 - [OK] Bypass temporário seguro (não altera configurações permanentes)
 - [OK] Logs completos de todas as operações
 
-##  Localização dos Arquivos
+## Localização dos Arquivos
 
 | Item | Localização |
 |------|-------------|
@@ -181,14 +186,14 @@ Para verificar se a instalação foi bem-sucedida:
 | **Configurações exportadas** | `chainsaw\installation\exported-config\` |
 | **Normal.dotm instalado** | `%APPDATA%\Microsoft\Templates\Normal.dotm` |
 
-##  Documentação Adicional
+## Documentação Adicional
 
 - [README.md](../README.md) - Visão geral do projeto
 - [CHANGELOG.md](../CHANGELOG.md) - Histórico de versões
 - [IDENTIFICACAO_ELEMENTOS.md](IDENTIFICACAO_ELEMENTOS.md) - Sistema de identificação de elementos
 - [NOVIDADES_v1.1.md](NOVIDADES_v1.1.md) - Novidades da versão 1.1
 
-##  Dicas
+## Dicas
 
 1. **Primeira instalação**: Execute sem opções adicionais
 2. **Reinstalação**: Use `-Force` para instalação rápida

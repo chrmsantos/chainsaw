@@ -7,16 +7,19 @@ O CHAINSAW implementa um sistema robusto de backup e restauração que protege a
 ## Tipos de Backup
 
 ### 1. Backup de Templates (Automático)
+
 **Criado automaticamente**: Durante cada instalação  
 **Localização**: `%APPDATA%\Microsoft\Templates_backup_<timestamp>\`
 
 **Conteúdo**:
+
 - ✅ Pasta Templates completa (incluindo Normal.dotm)
 - ✅ Building Blocks, temas, estilos
 - ✅ Método de renomeação rápida (backup instantâneo)
 
 **Estrutura do backup**:
-```
+
+```text
 Templates_backup_20251124_133000/
 ├── Normal.dotm
 ├── LiveContent/
@@ -27,10 +30,12 @@ Templates_backup_20251124_133000/
 ```
 
 ### 2. Backup Completo do Instalador
+
 **Criado automaticamente**: Pelo chainsaw_installer.cmd antes da instalação  
 **Localização**: `%USERPROFILE%\chainsaw_backup_<timestamp>\`
 
 **Conteúdo**:
+
 - ✅ Pasta Templates completa
 - ✅ Personalizações do Word
 - ✅ Configurações exportadas
@@ -38,40 +43,48 @@ Templates_backup_20251124_133000/
 ## Scripts de Backup e Restauração
 
 ### Instalação (com backup automático)
+
 ```cmd
 cd %USERPROFILE%\chainsaw\installation\inst_scripts
 chainsaw_installer.cmd
 ```
+
 - Cria backup completo ANTES de qualquer modificação
 - Cria backup da pasta Templates (renomeação)
 - Mantém os 5 backups mais recentes
 
-### Listar Backups Disponíveis
-```cmd
 ## Restauração de Backups
 
 ### Listar Backups Disponíveis
+
 Para restaurar backups dos Templates criados durante a instalação:
+
 ```powershell
 # Listar backups dos Templates
 Get-ChildItem "$env:APPDATA\Microsoft" -Directory -Filter "Templates_backup_*" | Sort-Object Name -Descending
 ```
 
 ### Restaurar Backup de Templates Manualmente
+
 Para restaurar um backup específico dos Templates:
 
 1. Feche o Microsoft Word completamente
+
 2. Renomeie a pasta atual:
+
    ```powershell
    Rename-Item "$env:APPDATA\Microsoft\Templates" "Templates_current"
    ```
+
 3. Restaure o backup desejado:
+
    ```powershell
    # Exemplo: restaurar backup de 24/11/2025 às 13:30
    Rename-Item "$env:APPDATA\Microsoft\Templates_backup_20251124_133000" "Templates"
    ```
 
 ### Restaurar Backup Completo do Instalador
+
 O backup criado pelo `chainsaw_installer.cmd` pode ser restaurado usando o script de restauração fornecido.
 
 ## Localização dos Backups
@@ -86,7 +99,7 @@ O backup criado pelo `chainsaw_installer.cmd` pode ser restaurado usando o scrip
 
 Cada backup de Templates é uma renomeação da pasta original:
 
-```
+```text
 Templates_backup_20251124_133000/
 ├── Normal.dotm
 ├── LiveContent/
@@ -102,7 +115,7 @@ Templates_backup_20251124_133000/
 
 ## Processo de Instalação com Backup
 
-```
+```text
 ┌─────────────────────────────────────┐
 │ 1. Verificação de Pré-requisitos   │
 ├─────────────────────────────────────┤
@@ -131,28 +144,34 @@ Templates_backup_20251124_133000/
 ## Recuperação em Caso de Falha
 
 ### Recuperação Automática
+
 Se a instalação falhar DURANTE o processo:
+
 - A pasta `CHAINSAW` no perfil do usuário é **AUTOMATICAMENTE REMOVIDA**
 - O backup da pasta Templates é restaurado automaticamente
 - Mensagem de erro detalhada é exibida
 - Log completo é salvo para diagnóstico
 
 **IMPORTANTE**: Em caso de erro, o sistema garante que:
+
 - ✅ Nenhum arquivo corrompido permanece na pasta CHAINSAW
 - ✅ Nenhuma instalação parcial é deixada
 - ✅ Templates são restaurados ao estado anterior
 
 ### Recuperação Manual dos Templates
+
 Se precisar restaurar os Templates manualmente:
 
 1. **Feche o Microsoft Word**
 
 2. **Liste os backups disponíveis**:
+
    ```powershell
    Get-ChildItem "$env:APPDATA\Microsoft" -Directory -Filter "Templates_backup_*" | Sort-Object Name -Descending
    ```
 
 3. **Restaure o backup desejado**:
+
    ```powershell
    # Renomeia pasta atual
    Rename-Item "$env:APPDATA\Microsoft\Templates" "Templates_old"
@@ -164,10 +183,12 @@ Se precisar restaurar os Templates manualmente:
 ## Manutenção de Backups
 
 ### Limpeza Automática
+
 - A instalação mantém automaticamente os **5 backups mais recentes** de Templates
 - Backups antigos são removidos automaticamente
 
 ### Limpeza Manual dos Templates
+
 Para liberar espaço em disco:
 
 ```powershell
@@ -192,6 +213,7 @@ Get-ChildItem "$env:APPDATA\Microsoft" -Directory -Filter "Templates_backup_*" |
 ## Proteções de Segurança
 
 ### Validações Implementadas
+
 O sistema implementa múltiplas validações para garantir segurança:
 
 1. **Validação do stamp.png**:
@@ -212,6 +234,7 @@ O sistema implementa múltiplas validações para garantir segurança:
 ## Exemplos Práticos
 
 ### Cenário 1: Instalação com Falha
+
 ```powershell
 # Se a instalação falhar, o sistema automaticamente:
 # 1. Remove a pasta CHAINSAW (limpeza de segurança)
@@ -220,6 +243,7 @@ O sistema implementa múltiplas validações para garantir segurança:
 ```
 
 ### Cenário 2: Restaurar Templates Manualmente
+
 ```powershell
 # Se precisar voltar aos Templates anteriores:
 
@@ -235,6 +259,7 @@ Rename-Item "$env:APPDATA\Microsoft\Templates_backup_20251124_133000" "Templates
 ```
 
 ### Cenário 3: Múltiplos Computadores
+
 ```cmd
 # Exporte configurações no computador 1:
 cd %USERPROFILE%\chainsaw\installation\inst_scripts
@@ -257,30 +282,40 @@ chainsaw_installer.cmd  REM Detecta e importa automaticamente
 ## Perguntas Frequentes
 
 ### P: Quanto espaço os backups ocupam?
+
 **R**: Depende do tamanho da sua pasta Templates. Normalmente entre 10-50 MB por backup.
 
 ### P: Posso mover os backups para outro local?
+
 **R**: Sim. Os backups de Templates podem ser movidos para qualquer local seguro.
 
 ### P: O backup inclui meus documentos?
+
 **R**: NÃO. Apenas configurações do Word são copiadas (Templates, Normal.dotm, personalizações). Seus documentos permanecem intocados.
 
 ### P: O que acontece se a instalação falhar?
+
 **R**: O sistema automaticamente:
+
 - Remove a pasta CHAINSAW do perfil do usuário
 - Restaura os Templates ao estado anterior
 - Garante que nenhum arquivo corrompido permaneça
 
 ### P: O que acontece se eu deletar os backups acidentalmente?
+
 **R**: Não será possível restaurar para estados anteriores. Por isso, recomenda-se:
+
 - Manter os backups em local seguro
 - Fazer cópia adicional em mídia externa antes de grandes mudanças
 
 ### P: O Word precisa estar fechado para restaurar?
+
 **R**: SIM. Sempre feche o Word antes de manipular a pasta Templates.
 
 ### P: Como sei se a instalação foi bem-sucedida?
+
 **R**: O instalador executa uma validação final automática:
+
 - Verifica se stamp.png foi instalado corretamente
 - Remove tudo se detectar qualquer problema
 - Exibe mensagem de sucesso apenas se tudo estiver correto
@@ -290,6 +325,7 @@ chainsaw_installer.cmd  REM Detecta e importa automaticamente
 Se encontrar problemas:
 
 1. **Verifique os logs**:
+
    ```powershell
    Get-Content "$env:USERPROFILE\CHAINSAW\logs\*.log" | Select-Object -Last 100
    ```

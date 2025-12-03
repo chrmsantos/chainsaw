@@ -67,7 +67,7 @@ Describe "Proteções do chainsaw_installer.ps1" {
     It "Oferece apenas menus de sim/nao ou numericos" {
         $content = Get-Content $script:InstallerPipeline -Raw
         $content | Should -Match 'Read-MenuOption'
-        $content | Should -Match 'Ask-YesNo'
+        $content | Should -Match 'Get-UserConfirmation'
     }
 
     It "Executa install.ps1 via Start-Process com bypass" {

@@ -19,7 +19,7 @@ function Show-Header {
     Write-Host ''
 }
 
-function Ask-YesNo {
+function Get-UserConfirmation {
     param(
         [Parameter(Mandatory)] [string]$Message,
         [Parameter()] [bool]$DefaultYes = $true
@@ -75,11 +75,15 @@ function Get-LatestLogPath {
         return $null
     }
 
-    $file = Get-ChildItem -Path $logDirectory -Filter 'install_*.log' -ErrorAction SilentlyContinue |
+    $latestLog = Get-ChildItem -Path $logDirectory -Filter 'install_*.log' -ErrorAction SilentlyContinue |
         Sort-Object LastWriteTime -Descending |
         Select-Object -First 1
 
-    return $file?.FullName
+    if (-not $latestLog) {
+        return $null
+    }
+
+    return $latestLog.FullName
 }
 
 function Start-Installer {
@@ -118,12 +122,12 @@ try {
     $skipCustom = $false
 
     if ($choice -eq 2) {
-        $forceInstall = Ask-YesNo 'Deseja executar sem prompts internos do instalador?' $false
-        $skipBackup = Ask-YesNo 'Deseja pular o backup automatico? (nao recomendado)' $false
-        $skipCustom = Ask-YesNo 'Deseja ignorar a importacao de customizacoes?' $false
+        $forceInstall = Get-UserConfirmation 'Deseja executar sem prompts internos do instalador?' $false
+        $skipBackup = Get-UserConfirmation 'Deseja pular o backup automatico? (nao recomendado)' $false
+        $skipCustom = Get-UserConfirmation 'Deseja ignorar a importacao de customizacoes?' $false
     }
 
-    $proceed = Ask-YesNo 'Deseja iniciar a instalacao agora?'
+    $proceed = Get-UserConfirmation 'Deseja iniciar a instalacao agora?'
     if (-not $proceed) {
         Write-Host ''
         Write-Host 'Instalacao cancelada antes da execucao.' -ForegroundColor Yellow

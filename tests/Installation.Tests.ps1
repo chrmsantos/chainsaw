@@ -56,7 +56,7 @@ Import-Module Pester -ErrorAction Stop
         }
 
         It 'Utiliza perguntas de sim ou nao' {
-            ($content -match 'Ask-YesNo') | Should Be $true
+            ($content -match 'Get-UserConfirmation') | Should Be $true
         }
 
         It 'Executa install.ps1 via Start-Process' {
@@ -75,7 +75,7 @@ Import-Module Pester -ErrorAction Stop
         }
 
         It 'Reutiliza perguntas de sim ou nao' {
-            $content -match 'Ask-YesNo' | Should Be $true
+            $content -match 'Get-UserConfirmation' | Should Be $true
         }
 
         It 'Chama export-config.ps1 via Start-Process' {
