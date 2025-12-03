@@ -1,0 +1,17 @@
+================================================================================
+CHAINSAW - Log de Instalação
+================================================================================
+Data/Hora Início: 03/12/2025 17:20:19
+Usuário: csantos
+Computador: NOTEPROCLEG01
+Sistema: Microsoft Windows NT 10.0.26100.0
+PowerShell: 5.1.26100.7019
+Caminho de Origem: C:\Users\csantos\chainsaw\installation\inst_scripts
+================================================================================
+
+[2025-12-03 17:20:19] [INFO] Caminho de Origem (resolvido): C:\Users\csantos\chainsaw\installation\inst_scripts
+[2025-12-03 17:20:19] [INFO] === INÍCIO DA INSTALAÇÃO ===
+[2025-12-03 17:20:19] [INFO] Executando backup automático pré-instalação...
+[2025-12-03 17:20:19] [ERROR] Erro no backup automático: Falha ao criar backup da instalacao atual: Não é possível renomear o item em 'C:\Users\csantos\chainsaw' porque ele está em uso.
+[2025-12-03 17:20:19] [WARNING] Continuando instalação em modo Force apesar do erro no backup
+[2025-12-03 17:20:19] [WARNING] Word em execução - solicitando confirmação do usuário
