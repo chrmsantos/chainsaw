@@ -1,0 +1,31 @@
+================================================================================
+CHAINSAW - Exportação de Personalizações do Word
+================================================================================
+Data/Hora: 03/12/2025 14:00:20
+Usuário: csantos
+Computador: NOTEPROCLEG01
+Sistema: Microsoft Windows NT 10.0.26100.0
+PowerShell: 5.1.26100.7019
+Caminho de Exportação: C:\Users\csantos\chainsaw\installation\.\exported-config\dry-run-test
+================================================================================
+
+[2025-12-03 14:00:20] [INFO] === INÍCIO DA EXPORTAÇÃO ===
+[2025-12-03 14:00:20] [INFO] Acesso ao VBA já está habilitado
+[2025-12-03 14:00:20] [INFO] Fechamento automático do Word solicitado.
+[2025-12-03 14:00:20] [INFO] Encontrados 1 processo(s) do Word em execução
+[2025-12-03 14:00:20] [INFO] Encerrando processo Word (PID: 7332)...
+[2025-12-03 14:00:20] [SUCCESS] Processo Word (PID: 7332) encerrado com sucesso
+[2025-12-03 14:00:21] [SUCCESS] Todos os processos do Word foram encerrados com sucesso
+[2025-12-03 14:00:21] [SUCCESS] Word fechado automaticamente
+[2025-12-03 14:00:23] [INFO] Exportando Normal.dotm...
+[2025-12-03 14:00:23] [SUCCESS] Normal.dotm exportado com sucesso [OK]
+[2025-12-03 14:00:23] [INFO] Exportando personalização da Faixa de Opções...
+[2025-12-03 14:00:23] [SUCCESS] Personalização do Ribbon exportada: Word.officeUI [OK]
+[2025-12-03 14:00:23] [SUCCESS] Personalização do Ribbon exportada: Word.officeUI [OK]
+[2025-12-03 14:00:23] [INFO] Exportando personalizações da interface...
+[2025-12-03 14:00:24] [SUCCESS] Personalizações UI exportadas: 2 arquivos [OK]
+[2025-12-03 14:00:24] [INFO] Criando manifesto de exportação...
+[2025-12-03 14:00:24] [SUCCESS] Manifesto criado: C:\Users\csantos\chainsaw\installation\.\exported-config\dry-run-test\MANIFEST.json [OK]
+[2025-12-03 14:00:24] [SUCCESS] README criado: C:\Users\csantos\chainsaw\installation\.\exported-config\dry-run-test\README.txt [OK]
+[2025-12-03 14:00:24] [SUCCESS] === EXPORTAÇÃO CONCLUÍDA COM SUCESSO ===
+[2025-12-03 14:00:24] [INFO] Total de itens: 5
