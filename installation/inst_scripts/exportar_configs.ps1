@@ -1,3 +1,10 @@
+# =============================================================================
+# CHAINSAW - Wrapper para export-config.ps1
+# =============================================================================
+# Este script exporta personalizações do Word para: installation/exported-config/
+# IMPORTANTE: A pasta de exportação é relativa a 'installation/', não à raiz do projeto.
+# =============================================================================
+
 [CmdletBinding()]
 param(
     [Parameter()] [string]$ExportPath = '.\exported-config'

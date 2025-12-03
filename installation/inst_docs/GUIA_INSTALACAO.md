@@ -97,7 +97,7 @@ cd %USERPROFILE%\chainsaw\installation\inst_scripts
 exportar_configs.cmd
 ```
 
-Isso criará uma pasta `exported-config` com:
+Isso criará uma pasta `installation\exported-config` com:
 
 - Faixa de Opções personalizada (Ribbon)
 - Partes Rápidas (Quick Parts)
@@ -106,11 +106,11 @@ Isso criará uma pasta `exported-config` com:
 
 ## Importar Personalizações
 
-Se você possui uma pasta `exported-config`:
+Se você possui uma pasta `exported-config` de uma exportação anterior:
 
-1. Copie-a para: `chainsaw\installation\`
+1. Certifique-se de que a pasta está localizada em: `chainsaw\installation\exported-config\`
 2. Execute `chainsaw_installer.cmd` normalmente
-3. O instalador detectará e oferecerá importar automaticamente
+3. O instalador detectará automaticamente e oferecerá importar as personalizações
 
 ## Opções Avançadas
 

@@ -1,21 +1,39 @@
 ﻿{
-    "TotalItems":  2,
+    "TotalItems":  5,
     "UserName":  "csantos",
-    "ComputerName":  "NOTEPROCLEG07",
+    "ComputerName":  "NOTEPROCLEG01",
     "Items":  [
                   {
                       "Type":  "Normal Template",
                       "Source":  "C:\\Users\\csantos\\AppData\\Roaming\\Microsoft\\Templates\\Normal.dotm",
-                      "Destination":  ".\\exported-config\\Templates\\Normal.dotm",
-                      "Size":  215279
+                      "Destination":  "C:\\Users\\csantos\\chainsaw\\installation\\.\\exported-config\\Templates\\Normal.dotm",
+                      "Size":  332696
+                  },
+                  {
+                      "Type":  "Ribbon Customization",
+                      "Source":  "C:\\Users\\csantos\\AppData\\Local\\Microsoft\\Office\\Word.officeUI",
+                      "Destination":  "C:\\Users\\csantos\\chainsaw\\installation\\.\\exported-config\\RibbonCustomization\\Word.officeUI",
+                      "Size":  1700
                   },
                   {
                       "Type":  "Ribbon Customization",
                       "Source":  "C:\\Users\\csantos\\AppData\\Roaming\\Microsoft\\Office\\Word.officeUI",
-                      "Destination":  ".\\exported-config\\RibbonCustomization\\Word.officeUI",
+                      "Destination":  "C:\\Users\\csantos\\chainsaw\\installation\\.\\exported-config\\RibbonCustomization\\Word.officeUI",
                       "Size":  1610
+                  },
+                  {
+                      "Type":  "Office Custom UI",
+                      "Source":  "C:\\Users\\csantos\\AppData\\Local\\Microsoft\\Office\\Excel.officeUI",
+                      "Destination":  "C:\\Users\\csantos\\chainsaw\\installation\\.\\exported-config\\OfficeCustomUI\\Excel.officeUI",
+                      "Size":  1114
+                  },
+                  {
+                      "Type":  "Office Custom UI",
+                      "Source":  "C:\\Users\\csantos\\AppData\\Local\\Microsoft\\Office\\Word.officeUI",
+                      "Destination":  "C:\\Users\\csantos\\chainsaw\\installation\\.\\exported-config\\OfficeCustomUI\\Word.officeUI",
+                      "Size":  1700
                   }
               ],
-    "ExportDate":  "2025-11-24 18:25:56",
+    "ExportDate":  "2025-12-03 17:43:35",
     "WordVersion":  "16.0.19328.20244"
 }

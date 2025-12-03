@@ -2,12 +2,15 @@
 CHAINSAW - Personalizações Exportadas do Word
 ================================================================================
 
-Data de Exportação: 24/11/2025 18:25:56
+LOCALIZAÇÃO: Esta pasta deve estar sempre em: chainsaw/installation/exported-config/
+NÃO mova ou duplique esta pasta para outras localizações no projeto.
+
+Data de Exportação: 03/12/2025 17:43:35
 Usuário: csantos
-Computador: NOTEPROCLEG07
+Computador: NOTEPROCLEG01
 Versão do Word: 16.0.19328.20244
 
-Total de itens exportados: 2
+Total de itens exportados: 5
 
 CONTEÚDO:
 ---------

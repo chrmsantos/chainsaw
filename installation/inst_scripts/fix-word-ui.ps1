@@ -10,7 +10,7 @@ Write-Host "  Word UI Customization Fix Tool" -ForegroundColor White
 Write-Host "========================================`n" -ForegroundColor Cyan
 
 # Paths
-$exportedConfigPath = Join-Path $PSScriptRoot "..\..\installation\exported-config"
+$exportedConfigPath = Join-Path $PSScriptRoot "..\exported-config"
 $localOfficePath = Join-Path $env:LOCALAPPDATA "Microsoft\Office"
 $roamingOfficePath = Join-Path $env:APPDATA "Microsoft\Office"
 
