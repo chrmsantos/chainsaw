@@ -1,7 +1,7 @@
 ﻿' =============================================================================
 ' CHAINSAW - Sistema de Padronização de Proposituras Legislativas
 ' =============================================================================
-' Versão: 2.7.3
+' Versão: 2.8.5
 ' Data: 2025-11-28
 ' Licença: GNU GPLv3 (https://www.gnu.org/licenses/gpl-3.0.html)
 ' Compatibilidade: Microsoft Word 2010+
@@ -67,7 +67,7 @@ Private Const HEADER_IMAGE_HEIGHT_RATIO As Double = 0.19
 '================================================================================
 ' CONSTANTES DE SISTEMA
 '================================================================================
-Private Const CHAINSAW_VERSION As String = "2.7.3"
+Private Const CHAINSAW_VERSION As String = "2.8.5"
 Private Const MIN_SUPPORTED_VERSION As Long = 14
 Private Const REQUIRED_STRING As String = "$NUMERO$/$ANO$"
 Private Const MAX_BACKUP_FILES As Long = 10
@@ -1944,6 +1944,53 @@ ErrorHandler:
     End If
 End Sub
 
+Private Sub EnforceLogRetention(logFolder As String, logPrefix As String, Optional maxFiles As Long = 5)
+    On Error GoTo CleanExit
+
+    If maxFiles < 1 Then Exit Sub
+
+    Dim fso As Object
+    Set fso = CreateObject("Scripting.FileSystemObject")
+
+    If Not fso.FolderExists(logFolder) Then GoTo CleanExit
+
+    Dim folder As Object
+    Set folder = fso.GetFolder(logFolder)
+
+    Dim sortedList As Object
+    Set sortedList = CreateObject("System.Collections.ArrayList")
+
+    Dim fileItem As Object
+    Dim prefixLower As String
+    prefixLower = LCase(logPrefix)
+
+    For Each fileItem In folder.Files
+        If LCase(fileItem.Name) Like prefixLower & "*.log" Then
+            sortedList.Add Format(fileItem.DateLastModified, "yyyymmddHHMMSS") & "|" & fileItem.Path
+        End If
+    Next fileItem
+
+    If sortedList.Count <= maxFiles Then GoTo CleanExit
+
+    sortedList.Sort
+    sortedList.Reverse
+
+    Dim idx As Long
+    For idx = maxFiles To sortedList.Count - 1
+        Dim parts() As String
+        parts = Split(sortedList(idx), "|")
+        On Error Resume Next
+        fso.DeleteFile parts(1), True
+        On Error GoTo CleanExit
+    Next idx
+
+CleanExit:
+    On Error Resume Next
+    Set sortedList = Nothing
+    Set folder = Nothing
+    Set fso = Nothing
+End Sub
+
 Private Function InitializeLogging(doc As Document) As Boolean
     On Error GoTo ErrorHandler
 
@@ -2009,6 +2056,9 @@ Private Function InitializeLogging(doc As Document) As Boolean
 
     ' Escreve cabeçalho em UTF-8
     WriteTextUTF8 logFilePath, headerText, False
+
+    ' Enforces log retention limit for this routine
+    EnforceLogRetention logFolder, "chainsaw_", 5
 
     loggingEnabled = True
     InitializeLogging = True
@@ -6223,22 +6273,60 @@ End Sub
 ' LIMPEZA DE BACKUPS ANTIGOS
 '================================================================================
 Private Sub CleanOldBackups(backupFolder As String, docBaseName As String)
-    On Error Resume Next
+    On Error GoTo CleanExit
 
-    ' Limpeza simplificada - só remove se houver muitos arquivos
+    If MAX_BACKUP_FILES < 1 Then Exit Sub
+
     Dim fso As Object
-    Dim folder As Object
-    Dim filesCount As Long
-
     Set fso = CreateObject("Scripting.FileSystemObject")
+
+    If Not fso.FolderExists(backupFolder) Then GoTo CleanExit
+
+    Dim folder As Object
     Set folder = fso.GetFolder(backupFolder)
 
-    filesCount = folder.Files.count
+    Dim items As Object
+    Set items = CreateObject("System.Collections.ArrayList")
 
-    ' Se há mais de 15 arquivos na pasta de backup, registra aviso
-    If filesCount > 15 Then
-        LogMessage "Muitos backups na pasta (" & filesCount & " arquivos) - considere limpeza manual", LOG_LEVEL_WARNING
-    End If
+    Dim fileItem As Object
+    Dim prefix As String
+    prefix = LCase(docBaseName & "_backup_")
+
+    For Each fileItem In folder.Files
+        If Left(LCase(fileItem.Name), Len(prefix)) = prefix Then
+            items.Add Format(fileItem.DateLastModified, "yyyymmddHHMMSS") & "|" & fileItem.Path
+        End If
+    Next fileItem
+
+    If items.Count <= MAX_BACKUP_FILES Then GoTo CleanExit
+
+    items.Sort
+    items.Reverse
+
+    Dim idx As Long
+    For idx = MAX_BACKUP_FILES To items.Count - 1
+        Dim parts() As String
+        parts = Split(items(idx), "|")
+        On Error Resume Next
+        fso.DeleteFile parts(1), True
+        If Err.Number <> 0 Then
+            If loggingEnabled Then
+                LogMessage "Failed to delete old backup: " & parts(1) & " - " & Err.Description, LOG_LEVEL_WARNING
+            End If
+            Err.Clear
+        Else
+            If loggingEnabled Then
+                LogMessage "Old backup removed: " & parts(1), LOG_LEVEL_INFO
+            End If
+        End If
+        On Error GoTo CleanExit
+    Next idx
+
+CleanExit:
+    On Error Resume Next
+    Set items = Nothing
+    Set folder = Nothing
+    Set fso = Nothing
 End Sub
 
 '================================================================================
