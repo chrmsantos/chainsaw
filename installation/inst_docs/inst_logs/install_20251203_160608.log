@@ -1,0 +1,73 @@
+================================================================================
+CHAINSAW - Log de Instalação
+================================================================================
+Data/Hora Início: 03/12/2025 16:06:08
+Usuário: csantos
+Computador: NOTEPROCLEG01
+Sistema: Microsoft Windows NT 10.0.26100.0
+PowerShell: 5.1.26100.7019
+Caminho de Origem: C:\Users\csantos\chainsaw\installation\inst_scripts
+================================================================================
+
+[2025-12-03 16:06:08] [INFO] Caminho de Origem (resolvido): C:\Users\csantos\chainsaw\installation\inst_scripts
+[2025-12-03 16:06:08] [INFO] === INÍCIO DA INSTALAÇÃO ===
+[2025-12-03 16:06:08] [INFO] Executando backup automático pré-instalação...
+[2025-12-03 16:06:08] [ERROR] Erro no backup automático: Falha ao criar backup da instalacao atual: Não é possível renomear o item em 'C:\Users\csantos\chainsaw' porque ele está em uso.
+[2025-12-03 16:06:08] [WARNING] Continuando instalação em modo Force apesar do erro no backup
+[2025-12-03 16:06:08] [WARNING] Word em execução - solicitando confirmação do usuário
+[2025-12-03 16:06:13] [INFO] Usuário autorizou o fechamento do Word
+[2025-12-03 16:06:13] [INFO] Encontrados 1 processo(s) do Word em execução
+[2025-12-03 16:06:13] [INFO] Encerrando processo Word (PID: 5184)...
+[2025-12-03 16:06:13] [SUCCESS] Processo Word (PID: 5184) encerrado com sucesso
+[2025-12-03 16:06:14] [SUCCESS] Todos os processos do Word foram encerrados com sucesso
+[2025-12-03 16:06:16] [INFO] Verificando pré-requisitos...
+[2025-12-03 16:06:16] [SUCCESS] Sistema operacional: Windows 10.0 [OK]
+[2025-12-03 16:06:16] [SUCCESS] PowerShell versão: 5.1.26100.7019 [OK]
+[2025-12-03 16:06:16] [INFO] Verificando acesso ao diretório de origem: C:\Users\csantos\chainsaw\installation\inst_scripts
+[2025-12-03 16:06:16] [SUCCESS] Acesso ao diretório de origem confirmado [OK]
+[2025-12-03 16:06:16] [SUCCESS] Permissões de escrita no perfil do usuário confirmadas [OK]
+[2025-12-03 16:06:16] [INFO] Verificando arquivos de origem...
+[2025-12-03 16:06:16] [INFO] Raiz do projeto detectada: C:\Users\csantos\chainsaw
+[2025-12-03 16:06:16] [INFO] Raiz do projeto armazenada: C:\Users\csantos\chainsaw
+[2025-12-03 16:06:16] [SUCCESS] Arquivo stamp.png encontrado [OK]
+[2025-12-03 16:06:16] [SUCCESS] Pasta Templates encontrada [OK]
+[2025-12-03 16:06:16] [INFO] Copiando arquivo stamp.png...
+[2025-12-03 16:06:16] [INFO] Origem: C:\Users\csantos\chainsaw\assets\stamp.png
+[2025-12-03 16:06:16] [INFO] Destino: C:\Users\csantos\CHAINSAW\assets\stamp.png
+[2025-12-03 16:06:16] [INFO] Tamanho do arquivo de origem: 55667 bytes [OK]
+[2025-12-03 16:06:16] [INFO] Arquivo já está no local correto (origem = destino), pulando cópia
+[2025-12-03 16:06:16] [SUCCESS] Arquivo stamp.png já está instalado [OK]
+[2025-12-03 16:06:16] [INFO] Criando backup da pasta Templates...
+[2025-12-03 16:06:16] [INFO] Origem: C:\Users\csantos\AppData\Roaming\Microsoft\Templates
+[2025-12-03 16:06:16] [INFO] Destino: C:\Users\csantos\AppData\Roaming\Microsoft\Templates_backup_20251203_160616
+[2025-12-03 16:06:16] [SUCCESS] Backup criado com sucesso: Templates_backup_20251203_160616 [OK]
+[2025-12-03 16:06:16] [INFO] Removendo backups antigos (mantendo os 5 mais recentes)...
+[2025-12-03 16:06:16] [INFO] Backup removido: Templates_backup_20251128_174441
+[2025-12-03 16:06:16] [INFO] Copiando pasta Templates...
+[2025-12-03 16:06:16] [INFO] Origem: C:\Users\csantos\chainsaw\installation\inst_configs\Templates
+[2025-12-03 16:06:16] [INFO] Destino: C:\Users\csantos\AppData\Roaming\Microsoft\Templates
+[2025-12-03 16:06:16] [INFO] Total de itens a copiar: 2
+[2025-12-03 16:06:16] [SUCCESS] Pasta Templates copiada com sucesso (2 arquivos) [OK]
+[2025-12-03 16:06:17] [INFO] Módulo VBA encontrado: C:\Users\csantos\chainsaw\source\main\monolithicMod.bas
+[2025-12-03 16:06:20] [INFO] Backup do módulo 'Módulo1' criado: C:\Users\csantos\chainsaw\source\backups\backup_Módulo1_20251203_160620.bas
+[2025-12-03 16:06:20] [INFO] Módulo 'Módulo1' removido
+[2025-12-03 16:06:20] [SUCCESS] Módulo 'monolithicMod' importado com sucesso
+[2025-12-03 16:06:29] [SUCCESS] Módulo VBA importado e Normal.dotm salvo
+[2025-12-03 16:06:30] [INFO] Manifesto encontrado: 2 itens
+[2025-12-03 16:06:30] [INFO] Exportado em: 2025-11-24 18:25:56 por csantos
+[2025-12-03 16:06:30] [INFO] Iniciando importação de personalizações...
+[2025-12-03 16:06:30] [INFO] === Iniciando importação de personalizações ===
+[2025-12-03 16:06:30] [INFO] Importando Normal.dotm...
+[2025-12-03 16:06:30] [SUCCESS] Normal.dotm importado com sucesso [OK]
+[2025-12-03 16:06:30] [INFO] Importando personalização da Faixa de Opções...
+[2025-12-03 16:06:30] [INFO] Ribbon importado para: C:\Users\csantos\AppData\Local\Microsoft\Office\Word.officeUI
+[2025-12-03 16:06:30] [INFO] Ribbon importado para: C:\Users\csantos\AppData\Roaming\Microsoft\Office\Word.officeUI
+[2025-12-03 16:06:30] [SUCCESS] Personalização do Ribbon importada: 1 arquivos [OK]
+[2025-12-03 16:06:30] [INFO] Importando personalizações da interface...
+[2025-12-03 16:06:30] [SUCCESS] Personalizações UI importadas: 2 arquivos [OK]
+[2025-12-03 16:06:30] [SUCCESS] Total de categorias de personalizações importadas: 3 [OK]
+[2025-12-03 16:06:30] [INFO] Validando instalação da pasta CHAINSAW...
+[2025-12-03 16:06:30] [SUCCESS] Validação da instalação: OK (55667 bytes)
+[2025-12-03 16:06:30] [SUCCESS] Validação final: instalação íntegra [OK]
+[2025-12-03 16:06:30] [SUCCESS] === INSTALAÇÃO CONCLUÍDA COM SUCESSO ===
+[2025-12-03 16:06:30] [INFO] Duração: 00:21
