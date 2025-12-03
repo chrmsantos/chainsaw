@@ -7,13 +7,13 @@
                       "Type":  "Normal Template",
                       "Source":  "C:\\Users\\csantos\\AppData\\Roaming\\Microsoft\\Templates\\Normal.dotm",
                       "Destination":  "C:\\Users\\csantos\\chainsaw\\installation\\.\\exported-config\\Templates\\Normal.dotm",
-                      "Size":  332696
+                      "Size":  333161
                   },
                   {
                       "Type":  "Ribbon Customization",
                       "Source":  "C:\\Users\\csantos\\AppData\\Local\\Microsoft\\Office\\Word.officeUI",
                       "Destination":  "C:\\Users\\csantos\\chainsaw\\installation\\.\\exported-config\\RibbonCustomization\\Word.officeUI",
-                      "Size":  1700
+                      "Size":  1753
                   },
                   {
                       "Type":  "Ribbon Customization",
@@ -31,9 +31,9 @@
                       "Type":  "Office Custom UI",
                       "Source":  "C:\\Users\\csantos\\AppData\\Local\\Microsoft\\Office\\Word.officeUI",
                       "Destination":  "C:\\Users\\csantos\\chainsaw\\installation\\.\\exported-config\\OfficeCustomUI\\Word.officeUI",
-                      "Size":  1700
+                      "Size":  1753
                   }
               ],
-    "ExportDate":  "2025-12-03 17:43:35",
+    "ExportDate":  "2025-12-03 18:18:20",
     "WordVersion":  "16.0.19328.20244"
 }
