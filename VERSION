@@ -1,0 +1,89 @@
+# CHAINSAW - Version Information
+
+## Current Version
+**2.0.3**
+
+## Release Information
+- **Status**: Beta
+- **Release Date**: 2025-11-28
+- **Codename**: Padronizador
+- **Release Type**: Feature Release
+
+## Version History
+
+### 2.0.3 (2025-11-28) - Beta
+- Current stable beta release
+- Sistema de padronização automática para proposituras legislativas
+- Suporte para Word 2010+
+- Instalação sem privilégios administrativos
+
+## Stability Classification
+
+- **Alpha**: Versões experimentais em desenvolvimento ativo (0.x.x)
+- **Beta**: Versões funcionais em teste com usuários (2.x.x - ATUAL)
+- **RC** (Release Candidate): Versões candidatas a produção
+- **Stable**: Versões aprovadas para produção geral (3.0.0+)
+
+## Compatibility Matrix
+
+| Component          | Minimum Version | Recommended    | Tested         |
+|-------------------|-----------------|----------------|----------------|
+| Windows           | 10              | 10/11          | 10, 11         |
+| PowerShell        | 5.1             | 5.1+           | 5.1, 7.x       |
+| Microsoft Word    | 2010            | 2016+          | 2016, 2019, 365|
+
+## Build Information
+
+- **Build System**: PowerShell Scripts
+- **VBA Version**: Microsoft Visual Basic for Applications 7.1
+- **Template Format**: .dotm (Word Macro-Enabled Template)
+- **Configuration Format**: JSON
+
+## Support & Maintenance
+
+- **Maintenance Status**: Active Development
+- **Security Updates**: Supported
+- **Bug Fixes**: Supported
+- **Feature Updates**: Planned
+- **End of Life**: N/A
+
+## Release Branches
+
+- **main**: Stable releases and release candidates
+- **develop**: Active development (if applicable)
+- **hotfix**: Critical bug fixes
+
+## Versioning Scheme
+
+This project follows **Semantic Versioning 2.0.0** (https://semver.org/)
+
+- **MAJOR.MINOR.PATCH** (e.g., 2.0.3)
+  - **MAJOR**: Incompatible API changes
+  - **MINOR**: Backward-compatible functionality additions
+  - **PATCH**: Backward-compatible bug fixes
+
+## Installation Paths
+
+- **Default Installation**: `%USERPROFILE%\chainsaw`
+- **Templates**: `%APPDATA%\Microsoft\Templates`
+- **Configuration**: `installation\inst_configs`
+
+## Changelog
+
+Detailed changes for each version can be found in the project's commit history and release notes.
+
+## License
+
+See LICENSE file for license information.
+
+## Security
+
+For security issues and vulnerability reporting, see SECURITY.md
+
+## Compliance
+
+For LGPD compliance information, see LGPD_ATESTADO.md
+
+---
+**Last Updated**: 2025-12-04
+**Maintained By**: chrmsantos/chainsaw
