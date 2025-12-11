@@ -4,7 +4,7 @@
 #>
 param(
     [switch]$InstallPester,
-    [string]$TestSuite = "All"  # All, Export, Install, VBA, Integration
+    [string]$TestSuite = "All"  # All, Export, VBA
 )
 
 if ($InstallPester) {
@@ -20,15 +20,14 @@ Import-Module Pester -ErrorAction Stop
 Push-Location $PSScriptRoot
 try {
     $testScript = switch ($TestSuite) {
-        "Export" { ".\Export-Install.Tests.ps1" }
-        "Install" { ".\Installation.Tests.ps1" }
-        "VBA" { ".\VBA.Tests.ps1" }
-        default { ".\All.Tests.ps1" }
+        "Export" { "./Export.Tests.ps1" }
+        "VBA" { "./VBA.Tests.ps1" }
+        default { "./All.Tests.ps1" }
     }
-    
+
     Write-Host "Executando: $testScript" -ForegroundColor Cyan
     $result = Invoke-Pester -Script $testScript -EnableExit -PassThru
-    
+
     if ($result.FailedCount -gt 0) {
         Write-Host "Alguns testes falharam: $($result.FailedCount)" -ForegroundColor Red
         exit 1

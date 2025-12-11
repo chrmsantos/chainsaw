@@ -1,83 +1,43 @@
 ﻿# CHAINSAW
 
-Sistema de padronização automática de proposituras legislativas para Microsoft Word.
+Ferramenta para padronizar proposituras legislativas no Microsoft Word.
 
-## Instalação
+## Exportar configuracoes do Word
 
-```cmd
-cd installation\inst_scripts
-chainsaw_installer.cmd
-```
-
-Instalação guiada em modo texto com confirmações simples (S/N ou menus numerados).
+- Abrir PowerShell na raiz do projeto
+- Executar:
+  - `cd tools\export`
+  - `exportar_configs.cmd`
+- Para caminho especifico:
+  - `powershell -ExecutionPolicy Bypass -NoProfile -File exportar_configs.ps1 -ExportPath "C:\\Backup\\WordConfig"`
 
 ## Requisitos
 
-- Windows 10+ | PowerShell 5.1+ | Word 2010+
-- Permissões de usuário (sem admin)
-- Internet (primeira instalação)
-
-## Uso
-
-```cmd
-# Instalar ou atualizar Word Templates e VBA
-cd %USERPROFILE%\chainsaw\installation\inst_scripts
-chainsaw_installer.cmd
-
-# Atualizar para versão mais recente do GitHub
-cd %USERPROFILE%\chainsaw\installation\inst_scripts
-update-from-github.cmd
-
-# Exportar configurações atuais do Word
-exportar_configs.cmd
-```
+- Windows 10+
+- PowerShell 5.1+
+- Microsoft Word 2010+
 
 ## Estrutura
 
 ```text
 chainsaw/
-├── installation/
-│   ├── inst_scripts/     # Pipelines (chainsaw_installer/exportar_configs) e scripts PowerShell
-│   ├── inst_configs/     # Templates do Word
-│   └── inst_docs/        # Documentação e logs
-├── source/main/          # Módulo VBA (Módulo1.bas)
-├── tests/                # Testes automatizados (Pester)
-└── assets/               # Recursos (stamp.png)
+├── assets/
+├── props/
+│   ├── backups/
+│   └── recovery_tmp/
+├── source/main/
+├── tools/export/
+└── tests/
 ```
-
-## Troubleshooting
-
-**Erro de execução:**
-
-```powershell
-Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
-```
-
-**Word não abre:**
-
-- Feche todas as instâncias
-- Execute novamente
-
-## Segurança
-
-- Backups automáticos antes de modificações
-- Código fonte aberto (VBA + PowerShell)
-- Instalação 100% local (sem envio de dados)
-- Sem privilégios de administrador
-- Validação automática de qualidade
 
 ## Testes
 
-```cmd
-cd chainsaw\tests
-run-tests.cmd
+```powershell
+cd tests
+.\Run-Tests.ps1 -TestSuite Export
 ```
 
-## Licença
+## Licenca
 
-GPLv3 - Ver [LICENSE](LICENSE)
-
----
-
-**Versão:** 2.0.4 | **Desenvolvido por:** chrmsantos | **Atualizado:** Nov 2025
+GPLv3 - ver LICENSE
 

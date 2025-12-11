@@ -1,9 +1,11 @@
 # CHAINSAW - Version Information
 
 ## Current Version
-**2.0.3**
+
+2.0.3
 
 ## Release Information
+
 - **Status**: Beta
 - **Release Date**: 2025-11-28
 - **Codename**: Padronizador
@@ -12,10 +14,10 @@
 ## Version History
 
 ### 2.0.3 (2025-11-28) - Beta
+
 - Current stable beta release
 - Sistema de padronização automática para proposituras legislativas
 - Suporte para Word 2010+
-- Instalação sem privilégios administrativos
 
 ## Stability Classification
 
@@ -55,18 +57,12 @@
 
 ## Versioning Scheme
 
-This project follows **Semantic Versioning 2.0.0** (https://semver.org/)
+This project follows **Semantic Versioning 2.0.0** (<https://semver.org/>)
 
 - **MAJOR.MINOR.PATCH** (e.g., 2.0.3)
   - **MAJOR**: Incompatible API changes
   - **MINOR**: Backward-compatible functionality additions
   - **PATCH**: Backward-compatible bug fixes
-
-## Installation Paths
-
-- **Default Installation**: `%USERPROFILE%\chainsaw`
-- **Templates**: `%APPDATA%\Microsoft\Templates`
-- **Configuration**: `installation\inst_configs`
 
 ## Changelog
 

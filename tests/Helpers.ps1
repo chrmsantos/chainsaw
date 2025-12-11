@@ -11,14 +11,14 @@
 }
 function Get-PowerShellScripts {
     $root = Get-RepoRoot
-    $p = Join-Path $root 'installation\inst_scripts'
+    $p = Join-Path $root 'tools\export'
     return Get-ChildItem -Path $p -Filter *.ps1 -File -ErrorAction SilentlyContinue
 }
 function Get-VbaFiles {
     $root = Get-RepoRoot
     $sourceMain = Join-Path $root 'source\main'
     $sourceBackups = Join-Path $root 'source\backups'
-    
+
     $files = @()
     if (Test-Path $sourceMain) {
         $files += Get-ChildItem -Path $sourceMain -Filter *.bas -Recurse -File -ErrorAction SilentlyContinue

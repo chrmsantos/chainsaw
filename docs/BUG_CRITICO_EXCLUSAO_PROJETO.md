@@ -121,8 +121,7 @@ if (-not (Test-Path "$ProjectRoot\.git")) {
 # Lista de diretórios que podem ser removidos se vazios
 $SafeToRemove = @(
     "source\backups",
-    "installation\inst_docs\inst_logs",
-    "installation\inst_docs\vba_logs",
+    "props\logs",
     "props\recovery_tmp"
 )
 

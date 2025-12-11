@@ -44,8 +44,8 @@ Describe 'CHAINSAW - Testes de Integridade' {
 
     Context 'Documentação' {
         It 'Existem docs essenciais mínimos' {
-            $expected = @('IDENTIFICACAO_ELEMENTOS.md','SEM_PRIVILEGIOS_ADMIN.md','SUBSTITUICOES_CONDICIONAIS.md','VALIDACAO_TIPO_DOCUMENTO.md')
-            foreach ($e in $expected) { 
+            $expected = @('IDENTIFICACAO_ELEMENTOS.md','SUBSTITUICOES_CONDICIONAIS.md','VALIDACAO_TIPO_DOCUMENTO.md')
+            foreach ($e in $expected) {
                 (Test-Path (Join-Path (Get-RepoRoot) "docs\$e")) | Should Be $true
             }
         }
@@ -56,33 +56,13 @@ Describe 'CHAINSAW - Testes de Integridade' {
         }
     }
 
-    Context 'Versão' {
-        $versionFile = Get-ProjectFile 'installation\inst_configs\version.json'
-        It 'Arquivo de versão existe' {
-            Test-Path $versionFile | Should Be $true
-        }
-        
-        It 'Arquivo de versão contém versão 2.0.3' {
-            $versionContent = Get-Content $versionFile -Raw | ConvertFrom-Json
-            $versionContent.version | Should Be '2.0.3'
-        }
-    }
-
     Context 'Test Suites' {
-        It 'Existe suite de testes de exportação/instalação' {
-            Test-Path (Join-Path (Get-RepoRoot) "tests\Export-Install.Tests.ps1") | Should Be $true
-        }
-
-        It 'Existe suite de testes de instalação' {
-            Test-Path (Join-Path (Get-RepoRoot) "tests\Installation.Tests.ps1") | Should Be $true
+        It 'Existe suite de testes de exportação' {
+            Test-Path (Join-Path (Get-RepoRoot) "tests\Export.Tests.ps1") | Should Be $true
         }
 
         It 'Existe suite de testes VBA' {
             Test-Path (Join-Path (Get-RepoRoot) "tests\VBA.Tests.ps1") | Should Be $true
-        }
-        
-        It 'Existe suite de testes de backup automático' {
-            Test-Path (Join-Path (Get-RepoRoot) "tests\Backup.Tests.ps1") | Should Be $true
         }
     }
 

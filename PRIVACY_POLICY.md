@@ -61,7 +61,7 @@ O CHAINSAW processa **exclusivamente em seu computador**:
 |--------------|-----------|-------------|-------------------|
 | Configurações do Word | Aplicar formatação padrão | Registro do Windows | Art. 7º, V (Execução de contrato) |
 | Backups de documentos | Recuperação em caso de erro | `%USERPROFILE%\chainsaw\props\backups` | Art. 7º, V (Execução de contrato) |
-| Logs de operação | Debugging e diagnóstico | `installation\inst_docs\inst_logs` | Art. 7º, V (Execução de contrato) |
+| Logs de operação | Debugging e diagnóstico | `%USERPROFILE%\chainsaw\props\logs` | Art. 7º, V (Execução de contrato) |
 | Templates | Padronização de documentos | `%APPDATA%\Microsoft\Templates` | Art. 7º, V (Execução de contrato) |
 
 **Importante:** Nenhum dos dados acima constitui "dado pessoal" conforme Art. 5º, I da LGPD.
@@ -108,7 +108,7 @@ Como o CHAINSAW **não coleta dados pessoais**, os seguintes direitos não são 
 
 O processamento técnico local é realizado com base em:
 
-- **Art. 7º, V da LGPD**: Execução de contrato (instalação e uso do software)
+- **Art. 7º, V da LGPD**: Execução de contrato (uso do software)
 - **Legítimo interesse**: Funcionalidades essenciais ao software (Art. 10)
 
 ---
@@ -177,7 +177,7 @@ Todos os dados são armazenados **localmente** em:
 
 ```
 %USERPROFILE%\chainsaw\
-├── installation\inst_docs\inst_logs\     # Logs de instalação
+├── props\logs\                           # Logs de operação
 ├── props\backups\                        # Backups de documentos
 └── props\recovery_tmp\                   # Arquivos temporários de recuperação
 
@@ -189,13 +189,13 @@ Todos os dados são armazenados **localmente** em:
 
 - **Logs**: Mantidos indefinidamente (podem ser excluídos manualmente)
 - **Backups**: Mantidos indefinidamente (podem ser excluídos manualmente)
-- **Configurações**: Mantidas enquanto o software estiver instalado
+- **Configurações**: Mantidas enquanto o software for utilizado
 
 ### 7.3 Exclusão de Dados
 
 Para remover todos os dados:
 
-1. Desinstale o CHAINSAW pelo painel de controle do Word
+1. Feche o Word
 2. Exclua manualmente a pasta `%USERPROFILE%\chainsaw`
 3. Remova o template `Normal.dotm` se desejar
 
@@ -292,7 +292,7 @@ O CHAINSAW utiliza apenas:
 
 Você possui **controle total** sobre:
 
-- Instalação e desinstalação do software
+- Uso e remoção do software
 - Documentos criados e editados
 - Backups e logs armazenados localmente
 - Configurações e preferências

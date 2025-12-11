@@ -22,40 +22,40 @@ function Test-FileEncoding {
     param(
         [Parameter(Mandatory = $true)]
         [string]$FilePath,
-        
+
         [Parameter(Mandatory = $false)]
         [ValidateSet('UTF8', 'UTF8-BOM', 'ASCII', 'UTF16-LE', 'UTF16-BE')]
         [string]$ExpectedEncoding = 'UTF8'
     )
-    
+
     if (-not (Test-Path $FilePath)) {
         throw "Arquivo não encontrado: $FilePath"
     }
-    
+
     $bytes = [System.IO.File]::ReadAllBytes($FilePath)
-    
+
     # Detecta BOM
     $detectedEncoding = 'Unknown'
-    
+
     if ($bytes.Length -ge 3) {
         # UTF-8 BOM (EF BB BF)
         if (($bytes[0] -eq 0xEF) -and ($bytes[1] -eq 0xBB) -and ($bytes[2] -eq 0xBF)) {
             $detectedEncoding = 'UTF8-BOM'
         }
     }
-    
+
     if ($bytes.Length -ge 2) {
         # UTF-16 LE BOM (FF FE)
         if (($bytes[0] -eq 0xFF) -and ($bytes[1] -eq 0xFE)) {
             $detectedEncoding = 'UTF16-LE'
         }
-        
+
         # UTF-16 BE BOM (FE FF)
         if (($bytes[0] -eq 0xFE) -and ($bytes[1] -eq 0xFF)) {
             $detectedEncoding = 'UTF16-BE'
         }
     }
-    
+
     # Se não tem BOM, verifica se é ASCII ou UTF-8
     if ($detectedEncoding -eq 'Unknown') {
         $isAscii = $true
@@ -65,7 +65,7 @@ function Test-FileEncoding {
                 break
             }
         }
-        
+
         if ($isAscii) {
             $detectedEncoding = 'ASCII'
         }
@@ -74,12 +74,12 @@ function Test-FileEncoding {
             $detectedEncoding = 'UTF8'
         }
     }
-    
+
     return [PSCustomObject]@{
         FilePath         = $FilePath
         DetectedEncoding = $detectedEncoding
         ExpectedEncoding = $ExpectedEncoding
-        IsValid          = ($detectedEncoding -eq $ExpectedEncoding) -or 
+        IsValid          = ($detectedEncoding -eq $ExpectedEncoding) -or
         (($ExpectedEncoding -eq 'UTF8') -and ($detectedEncoding -eq 'ASCII'))
     }
 }
@@ -100,31 +100,31 @@ function Test-CorruptedCharacters {
         [Parameter(Mandatory = $true)]
         [string]$FilePath
     )
-    
+
     if (-not (Test-Path $FilePath)) {
         throw "Arquivo não encontrado: $FilePath"
     }
-    
+
     $content = Get-Content $FilePath -Raw -Encoding UTF8
-    
+
     $issues = @()
-    
+
     # Verifica caracteres de substituição Unicode (U+FFFD)
     if ($content -match '�') {
         $issues += "Contém caracteres de substituição Unicode (�)"
     }
-    
+
     # Verifica null bytes
     if ($content -match '\x00') {
         $issues += "Contém null bytes"
     }
-    
+
     # Verifica caracteres de controle inválidos
     $controlCharsPattern = '[\x01-\x08\x0B\x0C\x0E-\x1F]'
     if ($content -match $controlCharsPattern) {
         $issues += "Contém caracteres de controle inválidos"
     }
-    
+
     return [PSCustomObject]@{
         FilePath  = $FilePath
         HasIssues = ($issues.Count -gt 0)
@@ -148,24 +148,24 @@ function Test-PortugueseAccents {
         [Parameter(Mandatory = $true)]
         [string]$FilePath
     )
-    
+
     if (-not (Test-Path $FilePath)) {
         throw "Arquivo não encontrado: $FilePath"
     }
-    
+
     $contentUtf8 = Get-Content $FilePath -Raw -Encoding UTF8
     $contentDefault = Get-Content $FilePath -Raw
-    
+
     $accentedChars = @('ã', 'á', 'à', 'â', 'é', 'ê', 'í', 'ó', 'ô', 'õ', 'ú', 'ç',
         'Ã', 'Á', 'À', 'Â', 'É', 'Ê', 'Í', 'Ó', 'Ô', 'Õ', 'Ú', 'Ç')
-    
+
     $foundAccents = @()
     foreach ($char in $accentedChars) {
         if ($contentUtf8 -match [regex]::Escape($char)) {
             $foundAccents += $char
         }
     }
-    
+
     return [PSCustomObject]@{
         FilePath        = $FilePath
         HasAccents      = ($foundAccents.Count -gt 0)
@@ -194,22 +194,22 @@ function Test-LineEndings {
     param(
         [Parameter(Mandatory = $true)]
         [string]$FilePath,
-        
+
         [Parameter(Mandatory = $false)]
         [ValidateSet('CRLF', 'LF', 'CR', 'Mixed')]
         [string]$ExpectedLineEnding = 'CRLF'
     )
-    
+
     if (-not (Test-Path $FilePath)) {
         throw "Arquivo não encontrado: $FilePath"
     }
-    
+
     $bytes = [System.IO.File]::ReadAllBytes($FilePath)
-    
+
     $hasCRLF = $false
     $hasLF = $false
     $hasCR = $false
-    
+
     for ($i = 0; $i -lt ($bytes.Length - 1); $i++) {
         if (($bytes[$i] -eq 0x0D) -and ($bytes[$i + 1] -eq 0x0A)) {
             $hasCRLF = $true
@@ -221,7 +221,7 @@ function Test-LineEndings {
             $hasCR = $true
         }
     }
-    
+
     $detectedLineEnding = 'None'
     if ($hasCRLF -and -not $hasLF -and -not $hasCR) {
         $detectedLineEnding = 'CRLF'
@@ -235,7 +235,7 @@ function Test-LineEndings {
     elseif ($hasCRLF -or $hasLF -or $hasCR) {
         $detectedLineEnding = 'Mixed'
     }
-    
+
     return [PSCustomObject]@{
         FilePath           = $FilePath
         DetectedLineEnding = $detectedLineEnding
@@ -258,32 +258,32 @@ function Test-LineEndings {
     Filtro de arquivos (*.ps1, *.md, etc)
 
 .EXAMPLE
-    Get-EncodingReport -Path ".\installation" -Filter "*.ps1"
+    Get-EncodingReport -Path ".\tools\export" -Filter "*.ps1"
 #>
 function Get-EncodingReport {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
         [string]$Path,
-        
+
         [Parameter(Mandatory = $false)]
         [string]$Filter = "*.*"
     )
-    
+
     if (-not (Test-Path $Path)) {
         throw "Diretório não encontrado: $Path"
     }
-    
+
     $files = Get-ChildItem -Path $Path -Filter $Filter -Recurse -File
-    
+
     $report = @()
-    
+
     foreach ($file in $files) {
         $encodingInfo = Test-FileEncoding -FilePath $file.FullName
         $corruptedInfo = Test-CorruptedCharacters -FilePath $file.FullName
         $lineEndingInfo = Test-LineEndings -FilePath $file.FullName
         $accentInfo = Test-PortugueseAccents -FilePath $file.FullName
-        
+
         $report += [PSCustomObject]@{
             FileName         = $file.Name
             FullPath         = $file.FullName
@@ -297,7 +297,7 @@ function Get-EncodingReport {
             AccentsFound     = $accentInfo.FoundAccents -join ', '
         }
     }
-    
+
     return $report
 }
 

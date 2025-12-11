@@ -16,7 +16,7 @@
     2. Faixa de Opções Customizada (Ribbon UI)
     3. Barra de Ferramentas de Acesso Rápido (QAT)
     4. Outras personalizações da interface (.officeUI)
-    
+
 .PARAMETER ExportPath
     Caminho onde as personalizações serão exportadas.
     Padrão: .\exported-config
@@ -37,10 +37,10 @@
 param(
     [Parameter()]
     [string]$ExportPath = ".\exported-config",
-    
+
     [Parameter()]
     [switch]$IncludeRegistry,
-    
+
     [Parameter()]
     [switch]$ForceCloseWord
 )
@@ -97,10 +97,10 @@ function Initialize-LogFile {
         if (-not (Test-Path $logDir)) {
             New-Item -Path $logDir -ItemType Directory -Force | Out-Null
         }
-        
+
         $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
         $script:LogFile = Join-Path $logDir "export_$timestamp.log"
-        
+
         $header = @"
 ================================================================================
 CHAINSAW - Exportação de Personalizações do Word
@@ -153,22 +153,22 @@ function Write-Log {
     param(
         [Parameter(Mandatory)]
         [string]$Message,
-        
+
         [Parameter()]
         [ValidateSet("INFO", "SUCCESS", "WARNING", "ERROR")]
         [string]$Level = "INFO"
     )
-    
+
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     $logEntry = "[$timestamp] [$Level] $Message"
-    
+
     if ($script:LogFile) {
         try {
             Add-Content -Path $script:LogFile -Value $logEntry -ErrorAction SilentlyContinue
         }
         catch { }
     }
-    
+
     switch ($Level) {
         "SUCCESS" { Write-Host "[OK] $Message" -ForegroundColor $ColorSuccess }
         "WARNING" { Write-Host "[AVISO] $Message" -ForegroundColor $ColorWarning }
@@ -203,7 +203,7 @@ function Get-WordVersion {
         }
     }
     catch { }
-    
+
     return $null
 }
 
@@ -231,7 +231,7 @@ function Test-VBAAccessEnabled {
     if ($null -eq $wordVersion) {
         return $false
     }
-    
+
     $regPath = "HKCU:\Software\Microsoft\Office\$wordVersion\Word\Security"
     if (Test-Path $regPath) {
         $accessVBOM = Get-ItemProperty -Path $regPath -Name "AccessVBOM" -ErrorAction SilentlyContinue
@@ -248,7 +248,7 @@ function Enable-VBAAccess {
     param(
         [switch]$Silent
     )
-    
+
     $wordVersion = Get-WordRegistryVersion
     if ($null -eq $wordVersion) {
         if (-not $Silent) {
@@ -256,18 +256,18 @@ function Enable-VBAAccess {
         }
         return $false
     }
-    
+
     $regPath = "HKCU:\Software\Microsoft\Office\$wordVersion\Word\Security"
-    
+
     try {
         if (-not (Test-Path $regPath)) {
             New-Item -Path $regPath -Force | Out-Null
         }
-        
+
         Set-ItemProperty -Path $regPath -Name "AccessVBOM" -Value 1 -Type DWord -Force
-        
+
         $currentValue = Get-ItemProperty -Path $regPath -Name "AccessVBOM" -ErrorAction SilentlyContinue
-        
+
         if ($currentValue.AccessVBOM -eq 1) {
             if (-not $Silent) {
                 Write-Log "Acesso ao VBA habilitado com sucesso" -Level SUCCESS
@@ -314,21 +314,21 @@ function Stop-WordProcesses {
         [Parameter()]
         [switch]$Force
     )
-    
+
     try {
         $wordProcesses = Get-Process -Name "WINWORD" -ErrorAction SilentlyContinue
-        
+
         if ($null -eq $wordProcesses -or $wordProcesses.Count -eq 0) {
             Write-Log "Nenhum processo do Word em execução" -Level INFO
             return $true
         }
-        
+
         Write-Log "Encontrados $($wordProcesses.Count) processo(s) do Word em execução" -Level INFO
-        
+
         foreach ($process in $wordProcesses) {
             try {
                 Write-Log "Encerrando processo Word (PID: $($process.Id))..." -Level INFO
-                
+
                 if ($Force) {
                     # Encerra forçadamente
                     $process.Kill()
@@ -338,29 +338,29 @@ function Stop-WordProcesses {
                     # Tenta encerrar graciosamente primeiro
                     $process.CloseMainWindow() | Out-Null
                     Start-Sleep -Milliseconds 500
-                    
+
                     if (-not $process.HasExited) {
                         $process.Kill()
                         $process.WaitForExit(5000)
                     }
                 }
-                
+
                 Write-Log "Processo Word (PID: $($process.Id)) encerrado com sucesso" -Level SUCCESS
             }
             catch {
                 Write-Log "Erro ao encerrar processo Word (PID: $($process.Id)): $_" -Level WARNING
             }
         }
-        
+
         # Aguarda um momento e verifica se todos foram fechados
         Start-Sleep -Milliseconds 1000
         $remainingProcesses = Get-Process -Name "WINWORD" -ErrorAction SilentlyContinue
-        
+
         if ($null -ne $remainingProcesses -and $remainingProcesses.Count -gt 0) {
             Write-Log "Ainda há $($remainingProcesses.Count) processo(s) do Word em execução" -Level WARNING
             return $false
         }
-        
+
         Write-Log "Todos os processos do Word foram encerrados com sucesso" -Level SUCCESS
         return $true
     }
@@ -378,7 +378,7 @@ function Confirm-CloseWord {
         Exibe aviso ao usuário e aguarda confirmação antes de fechar o Word forçadamente.
         Retorna $true se o usuário autorizar, $false se cancelar.
     #>
-    
+
     # Verifica se Word está em execução
     if (-not (Test-WordRunning)) {
         Write-Log "Word não está em execução - prosseguindo..." -Level SUCCESS
@@ -396,7 +396,7 @@ function Confirm-CloseWord {
         Write-Log "Não foi possível fechar o Word automaticamente" -Level ERROR
         return $false
     }
-    
+
     Write-Host ""
     Write-Host "╔════════════════════════════════════════════════════════════════╗" -ForegroundColor Yellow
     Write-Host "║                          [AVISO] ATENÇÃO [AVISO]                          ║" -ForegroundColor Yellow
@@ -412,12 +412,12 @@ function Confirm-CloseWord {
     Write-Host "Se você continuar, o Word será FECHADO FORÇADAMENTE e" -ForegroundColor Red
     Write-Host "qualquer trabalho não salvo SERÁ PERDIDO!" -ForegroundColor Red
     Write-Host ""
-    
+
     Write-Log "Word em execução - solicitando confirmação do usuário" -Level WARNING
-    
+
     # Aguarda confirmação
     $response = Read-Host "Deseja FECHAR o Word e continuar a exportação? (S/N)"
-    
+
     if ($response -notmatch '^[Ss]$') {
         Write-Host ""
         Write-Host "[OK] Exportação cancelada pelo usuário" -ForegroundColor Cyan
@@ -426,12 +426,12 @@ function Confirm-CloseWord {
         Write-Log "Exportação cancelada - usuário optou por não fechar o Word" -Level WARNING
         return $false
     }
-    
+
     # Usuário confirmou - fecha o Word
     Write-Host ""
     Write-Host "Fechando Microsoft Word..." -ForegroundColor Cyan
     Write-Log "Usuário autorizou o fechamento do Word" -Level INFO
-    
+
     if (Stop-WordProcesses -Force) {
         Write-Host "[OK] Word fechado com sucesso" -ForegroundColor Green
         Write-Host ""
@@ -443,7 +443,7 @@ function Confirm-CloseWord {
         Write-Host "[ERRO] Não foi possível fechar o Word completamente" -ForegroundColor Red
         Write-Host ""
         Write-Log "Falha ao fechar Word - cancelando exportação" -Level ERROR
-        
+
         $retry = Read-Host "Deseja tentar novamente? (S/N)"
         if ($retry -match '^[Ss]$') {
             return Confirm-CloseWord # Recursão para tentar novamente
@@ -462,26 +462,26 @@ function Test-VbaModuleCompilation {
         Compila o módulo VBA antes da exportação para verificar erros.
     #>
     Write-Log "Compilando módulo VBA..." -Level INFO
-    
+
     try {
         # Cria instância do Word
         $word = New-Object -ComObject Word.Application
         $word.Visible = $false
         $word.DisplayAlerts = 0  # wdAlertsNone
-        
+
         # Caminho do Normal.dotm
         $normalPath = Join-Path $TemplatesPath "Normal.dotm"
-        
+
         if (-not (Test-Path $normalPath)) {
             Write-Log "Normal.dotm não encontrado - compilação ignorada" -Level WARNING
             $word.Quit()
             [System.Runtime.Interopservices.Marshal]::ReleaseComObject($word) | Out-Null
             return $true
         }
-        
+
         # Abre o Normal.dotm
         $template = $word.Documents.Open($normalPath, $false, $false)
-        
+
         # Verifica se há projeto VBA
         if ($null -eq $template.VBProject) {
             Write-Log "Nenhum projeto VBA encontrado - compilação ignorada" -Level INFO
@@ -490,16 +490,16 @@ function Test-VbaModuleCompilation {
             [System.Runtime.Interopservices.Marshal]::ReleaseComObject($word) | Out-Null
             return $true
         }
-        
+
         # Compila o projeto VBA
         try {
             $vbProject = $template.VBProject
-            
+
             # Força compilação acessando os módulos
             foreach ($component in $vbProject.VBComponents) {
                 $null = $component.CodeModule.CountOfLines
             }
-            
+
             Write-Log "Módulo VBA compilado com sucesso [OK]" -Level SUCCESS
             $compilationSuccess = $true
         }
@@ -508,21 +508,21 @@ function Test-VbaModuleCompilation {
             Write-Log "ATENÇÃO: O módulo pode conter erros de compilação!" -Level WARNING
             $compilationSuccess = $false
         }
-        
+
         # Fecha sem salvar
         $template.Close($false)
         $word.Quit()
-        
+
         # Libera COM objects
         [System.Runtime.Interopservices.Marshal]::ReleaseComObject($word) | Out-Null
         [System.GC]::Collect()
         [System.GC]::WaitForPendingFinalizers()
-        
+
         return $compilationSuccess
     }
     catch {
         Write-Log "Erro ao verificar compilação: $_" -Level ERROR
-        
+
         # Tenta limpar recursos
         try {
             if ($word) {
@@ -531,7 +531,7 @@ function Test-VbaModuleCompilation {
             }
         }
         catch { }
-        
+
         return $false
     }
 }
@@ -542,21 +542,21 @@ function Export-VbaModule {
         Exporta o módulo VBA Módulo1 do Normal.dotm.
     #>
     Write-Log "Exportando módulo VBA..." -Level INFO
-    
+
     $normalPath = Join-Path $TemplatesPath "Normal.dotm"
-    
+
     if (-not (Test-Path $normalPath)) {
         Write-Log "Normal.dotm não encontrado em: $normalPath" -Level ERROR
         return $false
     }
-    
+
     try {
         $word = New-Object -ComObject Word.Application
         $word.Visible = $false
         $word.DisplayAlerts = 0 # wdAlertsNone
-        
+
         $template = $word.Documents.Open($normalPath, $false, $true) # ReadOnly
-        
+
         if ($null -eq $template.VBProject) {
             Write-Log "Nenhum projeto VBA encontrado" -Level WARNING
             $template.Close($false)
@@ -564,49 +564,49 @@ function Export-VbaModule {
             [System.Runtime.Interopservices.Marshal]::ReleaseComObject($word) | Out-Null
             return $false
         }
-        
+
         $vbProject = $template.VBProject
         $moduleFound = $false
-        
+
         foreach ($component in $vbProject.VBComponents) {
             if ($component.Name -eq "Módulo1") {
                 $destPath = Join-Path $ExportPath "VBAModule"
                 if (-not (Test-Path $destPath)) {
                     New-Item -Path $destPath -ItemType Directory -Force | Out-Null
                 }
-                
+
                 $exportFile = Join-Path $destPath "Módulo1.bas"
                 $component.Export($exportFile)
-                
+
                 $script:ExportedItems += [PSCustomObject]@{
                     Type        = "VBA Module"
                     Source      = "Normal.dotm::Módulo1"
                     Destination = $exportFile
                     Size        = (Get-Item $exportFile).Length
                 }
-                
+
                 Write-Log "Módulo VBA exportado: Módulo1.bas [OK]" -Level SUCCESS
                 $moduleFound = $true
                 break
             }
         }
-        
+
         if (-not $moduleFound) {
             Write-Log "Módulo 'Módulo1' não encontrado no Normal.dotm" -Level WARNING
         }
-        
+
         $template.Close($false)
         $word.Quit()
         [System.Runtime.Interopservices.Marshal]::ReleaseComObject($word) | Out-Null
         [System.GC]::Collect()
         [System.GC]::WaitForPendingFinalizers()
-        
+
         return $moduleFound
     }
     catch {
         $errorMsg = $_.Exception.Message
         Write-Log "Erro ao exportar módulo VBA: $errorMsg" -Level ERROR
-        
+
         # Verifica se é erro de acesso ao VBA
         if ($errorMsg -match "0x800AC35C" -or $errorMsg -match "programmatic access") {
             Write-Log "DIAGNÓSTICO: Erro 0x800AC35C - Acesso programático ao VBA bloqueado" -Level WARNING
@@ -616,7 +616,7 @@ function Export-VbaModule {
             Write-Log "  3. Política de grupo impedindo acesso" -Level INFO
             Write-Log "ALTERNATIVA: Copiar Normal.dotm diretamente (contém o módulo VBA)" -Level INFO
         }
-        
+
         try {
             if ($word) {
                 $word.Quit()
@@ -624,7 +624,7 @@ function Export-VbaModule {
             }
         }
         catch { }
-        
+
         return $false
     }
 }
@@ -635,29 +635,29 @@ function Export-NormalTemplate {
         Exporta o template Normal.dotm.
     #>
     Write-Log "Exportando Normal.dotm..." -Level INFO
-    
+
     $normalPath = Join-Path $TemplatesPath "Normal.dotm"
     $destPath = Join-Path $ExportPath "Templates"
-    
+
     if (-not (Test-Path $normalPath)) {
         Write-Log "Normal.dotm não encontrado em: $normalPath" -Level WARNING
         return $false
     }
-    
+
     try {
         if (-not (Test-Path $destPath)) {
             New-Item -Path $destPath -ItemType Directory -Force | Out-Null
         }
-        
+
         Copy-Item -Path $normalPath -Destination $destPath -Force
-        
+
         $script:ExportedItems += [PSCustomObject]@{
             Type        = "Normal Template"
             Source      = $normalPath
             Destination = Join-Path $destPath "Normal.dotm"
             Size        = (Get-Item $normalPath).Length
         }
-        
+
         Write-Log "Normal.dotm exportado com sucesso [OK]" -Level SUCCESS
         return $true
     }
@@ -673,13 +673,13 @@ function Export-BuildingBlocks {
         Exporta os blocos de construção (Building Blocks).
     #>
     Write-Log "Exportando Building Blocks..." -Level INFO
-    
+
     $buildingBlocksPath = Join-Path $TemplatesPath "LiveContent\16\Managed\Word Document Building Blocks"
     $userBuildingBlocksPath = Join-Path $TemplatesPath "LiveContent\16\User\Word Document Building Blocks"
     $destPath = Join-Path $ExportPath "Templates\LiveContent\16"
-    
+
     $exportedCount = 0
-    
+
     # Exporta Building Blocks gerenciados (sistema)
     if (Test-Path $buildingBlocksPath) {
         try {
@@ -687,28 +687,28 @@ function Export-BuildingBlocks {
             if (-not (Test-Path $destManaged)) {
                 New-Item -Path $destManaged -ItemType Directory -Force | Out-Null
             }
-            
+
             $files = Get-ChildItem -Path $buildingBlocksPath -Recurse -File
             foreach ($file in $files) {
                 $relativePath = $file.FullName.Substring($buildingBlocksPath.Length + 1)
                 $destFile = Join-Path $destManaged $relativePath
                 $destDir = Split-Path $destFile -Parent
-                
+
                 if (-not (Test-Path $destDir)) {
                     New-Item -Path $destDir -ItemType Directory -Force | Out-Null
                 }
-                
+
                 Copy-Item -Path $file.FullName -Destination $destFile -Force
                 $exportedCount++
             }
-            
+
             Write-Log "Building Blocks gerenciados: $($files.Count) arquivos" -Level INFO
         }
         catch {
             Write-Log "Erro ao exportar Building Blocks gerenciados: $_" -Level WARNING
         }
     }
-    
+
     # Exporta Building Blocks do usuário
     if (Test-Path $userBuildingBlocksPath) {
         try {
@@ -716,20 +716,20 @@ function Export-BuildingBlocks {
             if (-not (Test-Path $destUser)) {
                 New-Item -Path $destUser -ItemType Directory -Force | Out-Null
             }
-            
+
             $files = Get-ChildItem -Path $userBuildingBlocksPath -Recurse -File
             foreach ($file in $files) {
                 $relativePath = $file.FullName.Substring($userBuildingBlocksPath.Length + 1)
                 $destFile = Join-Path $destUser $relativePath
                 $destDir = Split-Path $destFile -Parent
-                
+
                 if (-not (Test-Path $destDir)) {
                     New-Item -Path $destDir -ItemType Directory -Force | Out-Null
                 }
-                
+
                 Copy-Item -Path $file.FullName -Destination $destFile -Force
                 $exportedCount++
-                
+
                 $script:ExportedItems += [PSCustomObject]@{
                     Type        = "Building Block (User)"
                     Source      = $file.FullName
@@ -737,14 +737,14 @@ function Export-BuildingBlocks {
                     Size        = $file.Length
                 }
             }
-            
+
             Write-Log "Building Blocks do usuário: $($files.Count) arquivos" -Level INFO
         }
         catch {
             Write-Log "Erro ao exportar Building Blocks do usuário: $_" -Level WARNING
         }
     }
-    
+
     if ($exportedCount -gt 0) {
         Write-Log "Building Blocks exportados: $exportedCount arquivos [OK]" -Level SUCCESS
         return $true
@@ -761,13 +761,13 @@ function Export-DocumentThemes {
         Exporta temas de documentos personalizados.
     #>
     Write-Log "Exportando temas de documentos..." -Level INFO
-    
+
     $themesPath = Join-Path $TemplatesPath "LiveContent\16\Managed\Document Themes"
     $userThemesPath = Join-Path $TemplatesPath "LiveContent\16\User\Document Themes"
     $destPath = Join-Path $ExportPath "Templates\LiveContent\16"
-    
+
     $exportedCount = 0
-    
+
     # Temas gerenciados
     if (Test-Path $themesPath) {
         try {
@@ -775,17 +775,17 @@ function Export-DocumentThemes {
             if (-not (Test-Path $destManaged)) {
                 New-Item -Path $destManaged -ItemType Directory -Force | Out-Null
             }
-            
+
             $files = Get-ChildItem -Path $themesPath -Recurse -File
             foreach ($file in $files) {
                 $relativePath = $file.FullName.Substring($themesPath.Length + 1)
                 $destFile = Join-Path $destManaged $relativePath
                 $destDir = Split-Path $destFile -Parent
-                
+
                 if (-not (Test-Path $destDir)) {
                     New-Item -Path $destDir -ItemType Directory -Force | Out-Null
                 }
-                
+
                 Copy-Item -Path $file.FullName -Destination $destFile -Force
                 $exportedCount++
             }
@@ -794,7 +794,7 @@ function Export-DocumentThemes {
             Write-Log "Erro ao exportar temas gerenciados: $_" -Level WARNING
         }
     }
-    
+
     # Temas do usuário
     if (Test-Path $userThemesPath) {
         try {
@@ -802,17 +802,17 @@ function Export-DocumentThemes {
             if (-not (Test-Path $destUser)) {
                 New-Item -Path $destUser -ItemType Directory -Force | Out-Null
             }
-            
+
             $files = Get-ChildItem -Path $userThemesPath -Recurse -File
             foreach ($file in $files) {
                 $relativePath = $file.FullName.Substring($userThemesPath.Length + 1)
                 $destFile = Join-Path $destUser $relativePath
                 $destDir = Split-Path $destFile -Parent
-                
+
                 if (-not (Test-Path $destDir)) {
                     New-Item -Path $destDir -ItemType Directory -Force | Out-Null
                 }
-                
+
                 Copy-Item -Path $file.FullName -Destination $destFile -Force
                 $exportedCount++
             }
@@ -821,7 +821,7 @@ function Export-DocumentThemes {
             Write-Log "Erro ao exportar temas do usuário: $_" -Level WARNING
         }
     }
-    
+
     if ($exportedCount -gt 0) {
         Write-Log "Temas exportados: $exportedCount arquivos [OK]" -Level SUCCESS
         return $true
@@ -838,35 +838,35 @@ function Export-RibbonCustomization {
         Exporta personalizações da Faixa de Opções (Ribbon).
     #>
     Write-Log "Exportando personalização da Faixa de Opções..." -Level INFO
-    
+
     # A personalização do Ribbon é armazenada em diferentes locais dependendo da versão
     $possiblePaths = @(
         (Join-Path $LocalAppDataPath "Microsoft\Office\Word.officeUI"),
         (Join-Path $AppDataPath "Microsoft\Office\Word.officeUI"),
         (Join-Path $LocalAppDataPath "Microsoft\Office\16.0\Word.officeUI")
     )
-    
+
     $destPath = Join-Path $ExportPath "RibbonCustomization"
     $exportedAny = $false
-    
+
     foreach ($uiPath in $possiblePaths) {
         if (Test-Path $uiPath) {
             try {
                 if (-not (Test-Path $destPath)) {
                     New-Item -Path $destPath -ItemType Directory -Force | Out-Null
                 }
-                
+
                 $fileName = Split-Path $uiPath -Leaf
                 $destFile = Join-Path $destPath $fileName
                 Copy-Item -Path $uiPath -Destination $destFile -Force
-                
+
                 $script:ExportedItems += [PSCustomObject]@{
                     Type        = "Ribbon Customization"
                     Source      = $uiPath
                     Destination = $destFile
                     Size        = (Get-Item $uiPath).Length
                 }
-                
+
                 Write-Log "Personalização do Ribbon exportada: $fileName [OK]" -Level SUCCESS
                 $exportedAny = $true
             }
@@ -875,11 +875,11 @@ function Export-RibbonCustomization {
             }
         }
     }
-    
+
     if (-not $exportedAny) {
         Write-Log "Nenhuma personalização do Ribbon encontrada" -Level INFO
     }
-    
+
     return $exportedAny
 }
 
@@ -889,23 +889,23 @@ function Export-OfficeCustomUI {
         Exporta arquivos de personalização da interface do Office.
     #>
     Write-Log "Exportando personalizações da interface..." -Level INFO
-    
+
     $customUIPath = Join-Path $LocalAppDataPath "Microsoft\Office"
     $destPath = Join-Path $ExportPath "OfficeCustomUI"
-    
+
     try {
         # Procura por arquivos .officeUI
         $customFiles = Get-ChildItem -Path $customUIPath -Filter "*.officeUI" -Recurse -ErrorAction SilentlyContinue
-        
+
         if ($customFiles.Count -gt 0) {
             if (-not (Test-Path $destPath)) {
                 New-Item -Path $destPath -ItemType Directory -Force | Out-Null
             }
-            
+
             foreach ($file in $customFiles) {
                 $destFile = Join-Path $destPath $file.Name
                 Copy-Item -Path $file.FullName -Destination $destFile -Force
-                
+
                 $script:ExportedItems += [PSCustomObject]@{
                     Type        = "Office Custom UI"
                     Source      = $file.FullName
@@ -913,7 +913,7 @@ function Export-OfficeCustomUI {
                     Size        = $file.Length
                 }
             }
-            
+
             Write-Log "Personalizações UI exportadas: $($customFiles.Count) arquivos [OK]" -Level SUCCESS
             return $true
         }
@@ -934,10 +934,10 @@ function Export-QuickAccessToolbar {
         Exporta configurações da Barra de Ferramentas de Acesso Rápido.
     #>
     Write-Log "Exportando Barra de Ferramentas de Acesso Rápido..." -Level INFO
-    
+
     # A QAT é armazenada no arquivo .officeUI ou no registro
     # Já será exportada pela função Export-OfficeCustomUI
-    
+
     Write-Log "QAT incluída nas personalizações UI" -Level INFO
     return $true
 }
@@ -951,32 +951,32 @@ function Export-RegistrySettings {
         Write-Log "Exportação do registro desabilitada (use -IncludeRegistry)" -Level INFO
         return $true
     }
-    
+
     Write-Log "Exportando configurações do registro..." -Level INFO
-    
+
     $regPaths = @(
         "HKCU:\Software\Microsoft\Office\16.0\Word",
         "HKCU:\Software\Microsoft\Office\Common\Toolbars",
         "HKCU:\Software\Microsoft\Office\16.0\Common\Toolbars"
     )
-    
+
     $destPath = Join-Path $ExportPath "Registry"
     $exportedAny = $false
-    
+
     foreach ($regPath in $regPaths) {
         if (Test-Path $regPath) {
             try {
                 if (-not (Test-Path $destPath)) {
                     New-Item -Path $destPath -ItemType Directory -Force | Out-Null
                 }
-                
+
                 $regFileName = $regPath -replace ':', '' -replace '\\', '_'
                 $destFile = Join-Path $destPath "$regFileName.reg"
-                
+
                 # Exporta a chave do registro
                 $regExport = "reg export `"$regPath`" `"$destFile`" /y"
                 Invoke-Expression $regExport | Out-Null
-                
+
                 if (Test-Path $destFile) {
                     Write-Log "Registro exportado: $regPath [OK]" -Level SUCCESS
                     $exportedAny = $true
@@ -987,11 +987,11 @@ function Export-RegistrySettings {
             }
         }
     }
-    
+
     if (-not $exportedAny) {
         Write-Log "Nenhuma configuração de registro exportada" -Level INFO
     }
-    
+
     return $exportedAny
 }
 
@@ -1001,7 +1001,7 @@ function New-ExportManifest {
         Cria um manifesto com informações sobre os itens exportados.
     #>
     Write-Log "Criando manifesto de exportação..." -Level INFO
-    
+
     $manifest = @{
         ExportDate   = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
         UserName     = $env:USERNAME
@@ -1010,12 +1010,12 @@ function New-ExportManifest {
         TotalItems   = $script:ExportedItems.Count
         Items        = $script:ExportedItems
     }
-    
+
     $manifestPath = Join-Path $ExportPath "MANIFEST.json"
     $manifest | ConvertTo-Json -Depth 10 | Out-File -FilePath $manifestPath -Encoding UTF8
-    
+
     Write-Log "Manifesto criado: $manifestPath [OK]" -Level SUCCESS
-    
+
     # Cria também um README
     $readmePath = Join-Path $ExportPath "README.txt"
     $readmeContent = @"
@@ -1045,13 +1045,13 @@ OfficeCustomUI/
 Templates/LiveContent/16/
     Managed/Document Themes/
         - Temas de documentos gerenciados pelo sistema
-    
+
     User/Document Themes/
         - Temas personalizados pelo usuário
-    
+
     Managed/Word Document Building Blocks/
         - Blocos de construção gerenciados
-    
+
     User/Word Document Building Blocks/
         - Blocos de construção e partes rápidas do usuário
 
@@ -1065,15 +1065,12 @@ Para importar estas configurações em outra máquina:
 
 1. Copie toda esta pasta para a máquina de destino
 
-2. Execute o script de importação:
-   .\import-config.ps1
-
-Ou use o instalador principal:
-    installation\inst_scripts\chainsaw_installer.cmd
+2. Execute o script de importacao:
+    .\import-config.ps1
 
 ================================================================================
 "@
-    
+
     $readmeContent | Out-File -FilePath $readmePath -Encoding UTF8
     Write-Log "README criado: $readmePath [OK]" -Level SUCCESS
 }
@@ -1088,11 +1085,11 @@ function Export-WordCustomizations {
     Write-Host "║        CHAINSAW - Exportação de Personalizações do Word       ║" -ForegroundColor Cyan
     Write-Host "╚════════════════════════════════════════════════════════════════╝" -ForegroundColor Cyan
     Write-Host ""
-    
+
     # Inicializa log
     Initialize-LogFile | Out-Null
     Write-Log "=== INÍCIO DA EXPORTAÇÃO ===" -Level INFO
-    
+
     # Verifica e habilita acesso ao VBA se necessário
     $vbaAccessWasEnabled = Test-VBAAccessEnabled
     if (-not $vbaAccessWasEnabled) {
@@ -1101,7 +1098,7 @@ function Export-WordCustomizations {
         Write-Host "  Esta configuração é necessária para exportar módulos VBA." -ForegroundColor Gray
         Write-Host ""
         Write-Log "Acesso ao VBA não habilitado - habilitando automaticamente" -Level WARNING
-        
+
         if (Enable-VBAAccess -Silent) {
             Write-Host "[OK] Acesso ao VBA habilitado automaticamente" -ForegroundColor Green
             Write-Log "Acesso ao VBA habilitado automaticamente" -Level SUCCESS
@@ -1120,28 +1117,28 @@ function Export-WordCustomizations {
     else {
         Write-Log "Acesso ao VBA já está habilitado" -Level INFO
     }
-    
+
     # Verifica e fecha Word se necessário
     if (-not (Confirm-CloseWord)) {
         Write-Log "Exportação cancelada - Word não foi fechado" -Level WARNING
         return
     }
-    
+
     # Cria pasta de exportação
     if (-not (Test-Path $ExportPath)) {
         New-Item -Path $ExportPath -ItemType Directory -Force | Out-Null
         Write-Log "Pasta de exportação criada: $ExportPath" -Level INFO
     }
-    
+
     $startTime = Get-Date
-    
+
     try {
         Write-Host ""
         Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
         Write-Host "  Exportando Personalizações" -ForegroundColor White
         Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
         Write-Host ""
-        
+
         # 1. Exportar Normal.dotm completo (contém todos os módulos VBA)
         Write-Host ""
         Write-Host "Exportando Normal.dotm..." -ForegroundColor Cyan
@@ -1152,17 +1149,17 @@ function Export-WordCustomizations {
             Write-Host "[AVISO] Falha ao exportar Normal.dotm" -ForegroundColor Yellow
         }
         Write-Host ""
-        
+
         # 2. Ribbon e UI customizations
         Export-RibbonCustomization | Out-Null
         Export-OfficeCustomUI | Out-Null
-        
+
         # 3. Manifesto
         New-ExportManifest
-        
+
         $endTime = Get-Date
         $duration = $endTime - $startTime
-        
+
         Write-Host ""
         Write-Host "╔════════════════════════════════════════════════════════════════╗" -ForegroundColor Green
         Write-Host "║              EXPORTAÇÃO CONCLUÍDA COM SUCESSO!                 ║" -ForegroundColor Green
@@ -1175,7 +1172,7 @@ function Export-WordCustomizations {
         Write-Host ""
         Write-Host " Log: $script:LogFile" -ForegroundColor Gray
         Write-Host ""
-        
+
         Write-Log "=== EXPORTAÇÃO CONCLUÍDA COM SUCESSO ===" -Level SUCCESS
         Write-Log "Total de itens: $($script:ExportedItems.Count)" -Level INFO
     }
@@ -1187,7 +1184,7 @@ function Export-WordCustomizations {
         Write-Host ""
         Write-Host "[ERRO] Erro: $($_.Exception.Message)" -ForegroundColor Red
         Write-Host ""
-        
+
         Write-Log "=== EXPORTAÇÃO FALHOU ===" -Level ERROR
         Write-Log "Erro: $($_.Exception.Message)" -Level ERROR
         throw

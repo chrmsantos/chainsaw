@@ -1,8 +1,7 @@
 # =============================================================================
 # CHAINSAW - Wrapper para export-config.ps1
 # =============================================================================
-# Este script exporta personalizações do Word para: installation/exported-config/
-# IMPORTANTE: A pasta de exportação é relativa a 'installation/', não à raiz do projeto.
+# Exporta personalizacoes do Word para uma pasta de destino (padrao: exported-config na raiz do repo).
 # =============================================================================
 
 [CmdletBinding()]
@@ -16,12 +15,13 @@ $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 if (-not $scriptRoot) {
     $scriptRoot = Split-Path -Parent (Get-Item -LiteralPath $MyInvocation.MyCommand.Path).FullName
 }
-$installationRoot = Split-Path -Parent $scriptRoot
+$toolsRoot = Split-Path -Parent $scriptRoot
+$repoRoot = if ($toolsRoot) { Split-Path -Parent $toolsRoot } else { $scriptRoot }
 $exportScript = Join-Path $scriptRoot 'export-config.ps1'
 $resolvedExportPath = if ([IO.Path]::IsPathRooted($ExportPath)) {
     $ExportPath
 } else {
-    Join-Path $installationRoot $ExportPath
+    Join-Path $repoRoot $ExportPath
 }
 
 function Show-Header {
