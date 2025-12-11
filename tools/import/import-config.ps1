@@ -351,16 +351,22 @@ function Import-RibbonCustomization {
     $officeDir = Join-Path $ImportPath 'OfficeCustomUI'
 
     $sourceRibbon = $null
-    if (Test-Path (Join-Path $ribbonDir 'Word.officeUI')) {
+    if (Test-Path (Join-Path $ribbonDir 'Word.exportedUI')) {
+        $sourceRibbon = Join-Path $ribbonDir 'Word.exportedUI'
+    }
+    elseif (Test-Path (Join-Path $ribbonDir 'Word.officeUI')) {
         $sourceRibbon = Join-Path $ribbonDir 'Word.officeUI'
     }
     elseif (Test-Path $officeDir) {
-        $candidate = Get-ChildItem -Path $officeDir -Filter 'Word*.officeUI' -File | Select-Object -First 1
+        $candidate = Get-ChildItem -Path $officeDir -Filter 'Word*.exportedUI' -File | Select-Object -First 1
+        if (-not $candidate) {
+            $candidate = Get-ChildItem -Path $officeDir -Filter 'Word*.officeUI' -File | Select-Object -First 1
+        }
         if ($candidate) { $sourceRibbon = $candidate.FullName }
     }
 
     if (-not $sourceRibbon) {
-        Write-Log 'Nenhum arquivo Word.officeUI encontrado para importar' -Level WARNING
+        Write-Log 'Nenhum arquivo Word.exportedUI ou Word.officeUI encontrado para importar' -Level WARNING
         return $false
     }
 
@@ -373,7 +379,7 @@ function Import-RibbonCustomization {
         $backupDir = Join-Path $ImportPath 'backups'
         if (-not (Test-Path $backupDir)) { New-Item -Path $backupDir -ItemType Directory -Force | Out-Null }
         $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
-        $backupFile = Join-Path $backupDir "Word.officeUI.bak_${timestamp}"
+            $backupFile = Join-Path $backupDir "Word.officeUI.bak_${timestamp}.bak"
         Copy-Item -Path $destFile -Destination $backupFile -Force
         Write-Log "Backup do Ribbon criado: $backupFile" -Level INFO
     }

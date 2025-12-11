@@ -568,6 +568,20 @@ function Export-VbaProject {
 
         foreach ($component in $vbProject.VBComponents) {
             $baseName = $component.Name
+
+            # Ignorar componentes vazios para evitar criar classes em branco na importação
+            try {
+                $lineCount = $component.CodeModule.CountOfLines
+                $content = if ($lineCount -gt 0) { $component.CodeModule.Lines(1, $lineCount) } else { '' }
+                if ([string]::IsNullOrWhiteSpace($content)) {
+                    Write-Log "Componente '${baseName}' ignorado (vazio)" -Level INFO
+                    continue
+                }
+            }
+            catch {
+                Write-Log "Falha ao inspecionar componente ${baseName}: $_" -Level WARNING
+            }
+
             $extension = switch ($component.Type) {
                 1 { '.bas' }   # vbext_ct_StdModule
                 2 { '.cls' }   # vbext_ct_ClassModule
@@ -861,17 +875,18 @@ function Export-RibbonCustomization {
                 }
 
                 $fileName = Split-Path $uiPath -Leaf
-                $destFile = Join-Path $destPath $fileName
+                $destFileName = [IO.Path]::ChangeExtension($fileName, 'exportedUI')
+                $destFile = Join-Path $destPath $destFileName
                 Copy-Item -Path $uiPath -Destination $destFile -Force
 
                 $script:ExportedItems += [PSCustomObject]@{
                     Type        = "Ribbon Customization"
                     Source      = $uiPath
                     Destination = $destFile
-                    Size        = (Get-Item $uiPath).Length
+                    Size        = (Get-Item $destFile).Length
                 }
 
-                Write-Log "Personalização do Ribbon exportada: $fileName [OK]" -Level SUCCESS
+                Write-Log "Personalização do Ribbon exportada: $destFileName [OK]" -Level SUCCESS
                 $exportedAny = $true
             }
             catch {
@@ -978,7 +993,7 @@ Templates/
     - Normal.dotm: cópia de referência contendo o projeto VBA compilado
 
 RibbonCustomization/
-    - Personalizações da Faixa de Opções do Word (Word.officeUI)
+    - Personalizações da Faixa de Opções do Word (Word.exportedUI)
 
 OfficeCustomUI/
     - Arquivos .officeUI do Word
