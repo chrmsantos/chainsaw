@@ -1,7 +1,7 @@
 ﻿# =============================================================================
 # CHAINSAW - Script de Exportação de Personalizações do Word
 # =============================================================================
-# Versão: 1.0.0
+# Versão: 1.1.1
 # Licença: GNU GPLv3
 # Autor: Christian Martin dos Santos
 # =============================================================================
@@ -11,18 +11,13 @@
     Exporta o módulo VBA e personalizações da interface do Word.
 
 .DESCRIPTION
-    Este script exporta:
-    1. Módulo VBA Módulo1 do Normal.dotm
-    2. Faixa de Opções Customizada (Ribbon UI)
-    3. Barra de Ferramentas de Acesso Rápido (QAT)
-    4. Outras personalizações da interface (.officeUI)
+    Exporta apenas o que importa:
+    1. Todo o projeto VBA (todos os módulos) a partir do Normal.dotm
+    2. Personalizações do Ribbon do Word (.officeUI)
 
 .PARAMETER ExportPath
     Caminho onde as personalizações serão exportadas.
     Padrão: .\exported-config
-
-.PARAMETER IncludeRegistry
-    Exporta também configurações do registro do Word.
 
 .EXAMPLE
     .\export-config.ps1
@@ -37,9 +32,6 @@
 param(
     [Parameter()]
     [string]$ExportPath = ".\exported-config",
-
-    [Parameter()]
-    [switch]$IncludeRegistry,
 
     [Parameter()]
     [switch]$ForceCloseWord
@@ -456,12 +448,12 @@ function Confirm-CloseWord {
 # FUNÇÕES DE EXPORTAÇÃO
 # =============================================================================
 
-function Test-VbaModuleCompilation {
+function Test-VbaProjectCompilation {
     <#
     .SYNOPSIS
         Compila o módulo VBA antes da exportação para verificar erros.
     #>
-    Write-Log "Compilando módulo VBA..." -Level INFO
+    Write-Log "Compilando projeto VBA..." -Level INFO
 
     try {
         # Cria instância do Word
@@ -500,12 +492,12 @@ function Test-VbaModuleCompilation {
                 $null = $component.CodeModule.CountOfLines
             }
 
-            Write-Log "Módulo VBA compilado com sucesso [OK]" -Level SUCCESS
+            Write-Log "Projeto VBA compilado com sucesso [OK]" -Level SUCCESS
             $compilationSuccess = $true
         }
         catch {
-            Write-Log "Erro ao compilar módulo VBA: $_" -Level ERROR
-            Write-Log "ATENÇÃO: O módulo pode conter erros de compilação!" -Level WARNING
+            Write-Log "Erro ao compilar projeto VBA: $_" -Level ERROR
+            Write-Log "ATENÇÃO: O projeto pode conter erros de compilação!" -Level WARNING
             $compilationSuccess = $false
         }
 
@@ -536,12 +528,12 @@ function Test-VbaModuleCompilation {
     }
 }
 
-function Export-VbaModule {
+function Export-VbaProject {
     <#
     .SYNOPSIS
-        Exporta o módulo VBA Módulo1 do Normal.dotm.
+        Exporta todo o projeto VBA (todos os componentes) do Normal.dotm.
     #>
-    Write-Log "Exportando módulo VBA..." -Level INFO
+    Write-Log "Exportando projeto VBA completo..." -Level INFO
 
     $normalPath = Join-Path $TemplatesPath "Normal.dotm"
 
@@ -550,7 +542,13 @@ function Export-VbaModule {
         return $false
     }
 
+    $destPath = Join-Path $ExportPath "VBAProject"
+
     try {
+        if (-not (Test-Path $destPath)) {
+            New-Item -Path $destPath -ItemType Directory -Force | Out-Null
+        }
+
         $word = New-Object -ComObject Word.Application
         $word.Visible = $false
         $word.DisplayAlerts = 0 # wdAlertsNone
@@ -566,33 +564,34 @@ function Export-VbaModule {
         }
 
         $vbProject = $template.VBProject
-        $moduleFound = $false
+        $exportedCount = 0
 
         foreach ($component in $vbProject.VBComponents) {
-            if ($component.Name -eq "Módulo1") {
-                $destPath = Join-Path $ExportPath "VBAModule"
-                if (-not (Test-Path $destPath)) {
-                    New-Item -Path $destPath -ItemType Directory -Force | Out-Null
-                }
+            $baseName = $component.Name
+            $extension = switch ($component.Type) {
+                1 { '.bas' }   # vbext_ct_StdModule
+                2 { '.cls' }   # vbext_ct_ClassModule
+                3 { '.frm' }   # vbext_ct_MSForm
+                100 { '.cls' } # Document modules
+                default { '.txt' }
+            }
 
-                $exportFile = Join-Path $destPath "Módulo1.bas"
+            $safeName = "{0:D2}_{1}{2}" -f $exportedCount, $baseName, $extension
+            $exportFile = Join-Path $destPath $safeName
+
+            try {
                 $component.Export($exportFile)
-
                 $script:ExportedItems += [PSCustomObject]@{
-                    Type        = "VBA Module"
-                    Source      = "Normal.dotm::Módulo1"
+                    Type        = "VBA Component"
+                    Source      = "Normal.dotm::${baseName}"
                     Destination = $exportFile
                     Size        = (Get-Item $exportFile).Length
                 }
-
-                Write-Log "Módulo VBA exportado: Módulo1.bas [OK]" -Level SUCCESS
-                $moduleFound = $true
-                break
+                $exportedCount++
             }
-        }
-
-        if (-not $moduleFound) {
-            Write-Log "Módulo 'Módulo1' não encontrado no Normal.dotm" -Level WARNING
+            catch {
+                Write-Log "Falha ao exportar componente ${baseName}: $_" -Level WARNING
+            }
         }
 
         $template.Close($false)
@@ -601,20 +600,25 @@ function Export-VbaModule {
         [System.GC]::Collect()
         [System.GC]::WaitForPendingFinalizers()
 
-        return $moduleFound
+        if ($exportedCount -gt 0) {
+            Write-Log "Componentes VBA exportados: $exportedCount [OK]" -Level SUCCESS
+            return $true
+        }
+
+        Write-Log "Nenhum componente VBA exportado" -Level WARNING
+        return $false
     }
     catch {
         $errorMsg = $_.Exception.Message
-        Write-Log "Erro ao exportar módulo VBA: $errorMsg" -Level ERROR
+        Write-Log "Erro ao exportar projeto VBA: $errorMsg" -Level ERROR
 
-        # Verifica se é erro de acesso ao VBA
         if ($errorMsg -match "0x800AC35C" -or $errorMsg -match "programmatic access") {
             Write-Log "DIAGNÓSTICO: Erro 0x800AC35C - Acesso programático ao VBA bloqueado" -Level WARNING
             Write-Log "Possíveis causas:" -Level INFO
             Write-Log "  1. Word precisa ser reiniciado após habilitar AccessVBOM" -Level INFO
             Write-Log "  2. Configuração de segurança de macros muito restritiva" -Level INFO
             Write-Log "  3. Política de grupo impedindo acesso" -Level INFO
-            Write-Log "ALTERNATIVA: Copiar Normal.dotm diretamente (contém o módulo VBA)" -Level INFO
+            Write-Log "ALTERNATIVA: Copiar Normal.dotm diretamente (contém o projeto VBA)" -Level INFO
         }
 
         try {
@@ -894,8 +898,9 @@ function Export-OfficeCustomUI {
     $destPath = Join-Path $ExportPath "OfficeCustomUI"
 
     try {
-        # Procura por arquivos .officeUI
-        $customFiles = Get-ChildItem -Path $customUIPath -Filter "*.officeUI" -Recurse -ErrorAction SilentlyContinue
+        # Procura apenas personalizações do Word (.officeUI)
+        $customFiles = Get-ChildItem -Path $customUIPath -Filter "*.officeUI" -Recurse -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -match '^Word.*\.officeUI$' }
 
         if ($customFiles.Count -gt 0) {
             if (-not (Test-Path $destPath)) {
@@ -914,11 +919,11 @@ function Export-OfficeCustomUI {
                 }
             }
 
-            Write-Log "Personalizações UI exportadas: $($customFiles.Count) arquivos [OK]" -Level SUCCESS
+            Write-Log "Personalizações UI do Word exportadas: $($customFiles.Count) arquivos [OK]" -Level SUCCESS
             return $true
         }
         else {
-            Write-Log "Nenhum arquivo de personalização UI encontrado" -Level INFO
+            Write-Log "Nenhum arquivo de personalização UI do Word encontrado" -Level INFO
             return $false
         }
     }
@@ -926,73 +931,6 @@ function Export-OfficeCustomUI {
         Write-Log "Erro ao exportar personalizações UI: $_" -Level WARNING
         return $false
     }
-}
-
-function Export-QuickAccessToolbar {
-    <#
-    .SYNOPSIS
-        Exporta configurações da Barra de Ferramentas de Acesso Rápido.
-    #>
-    Write-Log "Exportando Barra de Ferramentas de Acesso Rápido..." -Level INFO
-
-    # A QAT é armazenada no arquivo .officeUI ou no registro
-    # Já será exportada pela função Export-OfficeCustomUI
-
-    Write-Log "QAT incluída nas personalizações UI" -Level INFO
-    return $true
-}
-
-function Export-RegistrySettings {
-    <#
-    .SYNOPSIS
-        Exporta configurações do Word do registro.
-    #>
-    if (-not $IncludeRegistry) {
-        Write-Log "Exportação do registro desabilitada (use -IncludeRegistry)" -Level INFO
-        return $true
-    }
-
-    Write-Log "Exportando configurações do registro..." -Level INFO
-
-    $regPaths = @(
-        "HKCU:\Software\Microsoft\Office\16.0\Word",
-        "HKCU:\Software\Microsoft\Office\Common\Toolbars",
-        "HKCU:\Software\Microsoft\Office\16.0\Common\Toolbars"
-    )
-
-    $destPath = Join-Path $ExportPath "Registry"
-    $exportedAny = $false
-
-    foreach ($regPath in $regPaths) {
-        if (Test-Path $regPath) {
-            try {
-                if (-not (Test-Path $destPath)) {
-                    New-Item -Path $destPath -ItemType Directory -Force | Out-Null
-                }
-
-                $regFileName = $regPath -replace ':', '' -replace '\\', '_'
-                $destFile = Join-Path $destPath "$regFileName.reg"
-
-                # Exporta a chave do registro
-                $regExport = "reg export `"$regPath`" `"$destFile`" /y"
-                Invoke-Expression $regExport | Out-Null
-
-                if (Test-Path $destFile) {
-                    Write-Log "Registro exportado: $regPath [OK]" -Level SUCCESS
-                    $exportedAny = $true
-                }
-            }
-            catch {
-                Write-Log "Erro ao exportar $regPath : $_" -Level WARNING
-            }
-        }
-    }
-
-    if (-not $exportedAny) {
-        Write-Log "Nenhuma configuração de registro exportada" -Level INFO
-    }
-
-    return $exportedAny
 }
 
 function New-ExportManifest {
@@ -1033,40 +971,23 @@ Total de itens exportados: $($script:ExportedItems.Count)
 CONTEÚDO:
 ---------
 
+VBAProject/
+    - Componentes exportados do projeto VBA (módulos, classes, forms)
+
 Templates/
-    - Normal.dotm: Template global do Word com macros e personalizações
+    - Normal.dotm: cópia de referência contendo o projeto VBA compilado
 
 RibbonCustomization/
-    - Personalizações da Faixa de Opções (abas customizadas)
+    - Personalizações da Faixa de Opções do Word (Word.officeUI)
 
 OfficeCustomUI/
-    - Arquivos de configuração da interface do Office
+    - Arquivos .officeUI do Word
 
-Templates/LiveContent/16/
-    Managed/Document Themes/
-        - Temas de documentos gerenciados pelo sistema
-
-    User/Document Themes/
-        - Temas personalizados pelo usuário
-
-    Managed/Word Document Building Blocks/
-        - Blocos de construção gerenciados
-
-    User/Word Document Building Blocks/
-        - Blocos de construção e partes rápidas do usuário
-
-Registry/ (se incluído)
-    - Configurações do registro do Word
-
-COMO IMPORTAR:
+COMO UTILIZAR:
 --------------
 
-Para importar estas configurações em outra máquina:
-
-1. Copie toda esta pasta para a máquina de destino
-
-2. Execute o script de importacao:
-    .\import-config.ps1
+- VBA: importe os arquivos da pasta VBAProject pelo editor do VBA ou substitua o Normal.dotm pela cópia exportada.
+- Ribbon: copie Word.officeUI para %LOCALAPPDATA%\Microsoft\Office\.
 
 ================================================================================
 "@
@@ -1139,22 +1060,31 @@ function Export-WordCustomizations {
         Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
         Write-Host ""
 
-        # 1. Exportar Normal.dotm completo (contém todos os módulos VBA)
+        Write-Host "Compilando projeto VBA..." -ForegroundColor Cyan
+        $compiled = Test-VbaProjectCompilation
+        if (-not $compiled) {
+            Write-Host "[AVISO] Projeto VBA não pôde ser compilado. Verifique o log." -ForegroundColor Yellow
+        }
         Write-Host ""
-        Write-Host "Exportando Normal.dotm..." -ForegroundColor Cyan
+
+        Write-Host "Exportando projeto VBA..." -ForegroundColor Cyan
+        if (-not (Export-VbaProject)) {
+            Write-Host "[AVISO] Nenhum componente VBA exportado" -ForegroundColor Yellow
+        }
+        Write-Host ""
+
+        Write-Host "Exportando Normal.dotm (cópia de referência)..." -ForegroundColor Cyan
         if (Export-NormalTemplate) {
-            Write-Host "[OK] Normal.dotm exportado com sucesso (contém todos os módulos VBA)" -ForegroundColor Green
+            Write-Host "[OK] Normal.dotm exportado com sucesso" -ForegroundColor Green
         }
         else {
             Write-Host "[AVISO] Falha ao exportar Normal.dotm" -ForegroundColor Yellow
         }
         Write-Host ""
 
-        # 2. Ribbon e UI customizations
         Export-RibbonCustomization | Out-Null
         Export-OfficeCustomUI | Out-Null
 
-        # 3. Manifesto
         New-ExportManifest
 
         $endTime = Get-Date
@@ -1201,6 +1131,5 @@ try {
 finally {
     # Pausa ao final da execução
     Write-Host ""
-    Write-Host "Pressione qualquer tecla para sair..." -ForegroundColor Gray
-    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    # Execucao finalizada sem pausa interativa
 }

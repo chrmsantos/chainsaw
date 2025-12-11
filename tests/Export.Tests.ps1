@@ -23,10 +23,11 @@ Describe 'CHAINSAW - Testes de Exportacao' {
         }
 
         It 'Contem funcoes principais de exportacao' {
-            $exportContent -match 'function Test-VbaModuleCompilation' | Should Be $true
-            $exportContent -match 'function Export-VbaModule' | Should Be $true
+            $exportContent -match 'function Test-VbaProjectCompilation' | Should Be $true
+            $exportContent -match 'function Export-VbaProject' | Should Be $true
             $exportContent -match 'function Export-RibbonCustomization' | Should Be $true
             $exportContent -match 'function Export-OfficeCustomUI' | Should Be $true
+            $exportContent -match 'function Export-NormalTemplate' | Should Be $true
             $exportContent -match 'function New-ExportManifest' | Should Be $true
         }
 
@@ -47,8 +48,7 @@ Describe 'CHAINSAW - Testes de Exportacao' {
             $exportContent -match 'ExportPath\s*=\s*"\.\\exported-config"' | Should Be $true
         }
 
-        It 'Aceita IncludeRegistry e ForceCloseWord' {
-            $exportContent -match '\\[switch\\]\$IncludeRegistry' | Should Be $true
+        It 'Aceita parametro ForceCloseWord' {
             $exportContent -match '\\[switch\\]\$ForceCloseWord' | Should Be $true
         }
     }
@@ -56,7 +56,7 @@ Describe 'CHAINSAW - Testes de Exportacao' {
     Context 'Exportacao - Estrutura de diretorios' {
 
         It 'Prevê pastas de saida esperadas' {
-            $exportContent -match 'VBAModule' | Should Be $true
+            $exportContent -match 'VBAProject' | Should Be $true
             $exportContent -match 'RibbonCustomization' | Should Be $true
             $exportContent -match 'OfficeCustomUI' | Should Be $true
         }

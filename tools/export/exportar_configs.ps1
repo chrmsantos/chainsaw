@@ -6,7 +6,8 @@
 
 [CmdletBinding()]
 param(
-    [Parameter()] [string]$ExportPath = '.\exported-config'
+    [Parameter()] [string]$ExportPath = '.\exported-config',
+    [Parameter()] [switch]$ForceCloseWord
 )
 
 $ErrorActionPreference = 'Stop'
@@ -30,32 +31,6 @@ function Show-Header {
     Write-Host '  CHAINSAW - Exportador de Configuracoes' -ForegroundColor Cyan
     Write-Host '============================================================' -ForegroundColor DarkGray
     Write-Host ''
-}
-
-function Get-UserConfirmation {
-    param(
-        [Parameter(Mandatory)] [string]$Message,
-        [Parameter()] [bool]$DefaultYes = $true
-    )
-
-    $suffix = if ($DefaultYes) { '[S/n]' } else { '[s/N]' }
-    while ($true) {
-        $answer = Read-Host "$Message $suffix"
-        if ([string]::IsNullOrWhiteSpace($answer)) {
-            return $DefaultYes
-        }
-
-        switch ($answer.Trim().ToLowerInvariant()) {
-            's' { return $true }
-            'sim' { return $true }
-            'y' { return $true }
-            'yes' { return $true }
-            'n' { return $false }
-            'nao' { return $false }
-            'no' { return $false }
-            default { Write-Host 'Digite apenas S ou N.' -ForegroundColor Yellow }
-        }
-    }
 }
 
 function Get-LatestLogPath {
@@ -82,7 +57,6 @@ function Get-LatestLogPath {
 function Start-Export {
     param(
         [Parameter(Mandatory)] [string]$Destination,
-        [Parameter()] [bool]$IncludeRegistry,
         [Parameter()] [bool]$ForceCloseWord
     )
 
@@ -92,8 +66,6 @@ function Start-Export {
         '-File',"`"$exportScript`"",
         '-ExportPath',"`"$Destination`""
     )
-
-    if ($IncludeRegistry) { $arguments += '-IncludeRegistry' }
     if ($ForceCloseWord) { $arguments += '-ForceCloseWord' }
 
     $process = Start-Process -FilePath 'powershell.exe' -ArgumentList $arguments -Wait -PassThru
@@ -108,18 +80,9 @@ try {
 
     Show-Header
 
-    $includeRegistry = Get-UserConfirmation 'Deseja incluir configuracoes do registro?' $false
-    $forceWordClose = Get-UserConfirmation 'Deseja que o Word seja fechado automaticamente?' $true
-    $confirm = Get-UserConfirmation "Confirmar exportacao para '$resolvedExportPath'?"
-    if (-not $confirm) {
-        Write-Host ''
-        Write-Host 'Exportacao cancelada.' -ForegroundColor Yellow
-        exit 0
-    }
-
     Write-Host ''
     Write-Host 'Executando exportador...' -ForegroundColor Cyan
-    $exitCode = Start-Export -Destination $resolvedExportPath -IncludeRegistry:$includeRegistry -ForceCloseWord:$forceWordClose
+    $exitCode = Start-Export -Destination $resolvedExportPath -ForceCloseWord:$ForceCloseWord.IsPresent
     $logPath = Get-LatestLogPath -DestinationPath $resolvedExportPath
 
     if ($exitCode -eq 0) {
