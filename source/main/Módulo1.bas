@@ -188,7 +188,392 @@ End Type
 Private originalViewSettings As ViewSettings
 
 '================================================================================
+' VARIÁVEIS DE IDENTIFICAÇÃO DE ELEMENTOS ESTRUTURAIS
+'================================================================================
+' Índices dos elementos identificados no documento (0 = não encontrado)
+Private tituloParaIndex As Long
+Private ementaParaIndex As Long
+Private proposicaoStartIndex As Long
+Private proposicaoEndIndex As Long
+Private tituloJustificativaIndex As Long
+Private justificativaStartIndex As Long
+Private justificativaEndIndex As Long
+Private dataParaIndex As Long
+Private assinaturaStartIndex As Long
+Private assinaturaEndIndex As Long
+Private tituloAnexoIndex As Long
+Private anexoStartIndex As Long
+Private anexoEndIndex As Long
 
+'================================================================================
+' PONTO DE ENTRADA PRINCIPAL
+'================================================================================
+Public Sub PadronizarDocumentoMain()
+    On Error GoTo CriticalErrorHandler
+
+    executionStartTime = Now
+    formattingCancelled = False
+    undoGroupEnabled = False ' Reset inicial
+
+    ' Verificações iniciais ANTES de iniciar UndoRecord
+    If Not CheckWordVersion() Then
+        Application.StatusBar = "Erro: Word 2010 ou superior necessário"
+        LogMessage "Versão do Word " & Application.version & " não suportada. Mínimo: " & CStr(MIN_SUPPORTED_VERSION), LOG_LEVEL_ERROR
+        MsgBox "Requer Word 2010 ou superior." & vbCrLf & _
+               "Versão atual: " & Application.version, vbCritical, "Versão Incompatível"
+        Exit Sub
+    End If
+
+    Dim doc As Document
+    Set doc = Nothing
+
+    On Error Resume Next
+    Set doc = ActiveDocument
+    If doc Is Nothing Then
+        Application.StatusBar = "Erro: Nenhum documento aberto"
+        LogMessage "Nenhum documento acessível para processamento", LOG_LEVEL_ERROR
+        Exit Sub
+    End If
+    On Error GoTo CriticalErrorHandler
+
+    ' Valida integridade do documento
+    If Not IsDocumentHealthy(doc) Then
+        Application.StatusBar = "Erro: Documento inacessível"
+        MsgBox "Documento corrompido ou inacessível." & vbCrLf & _
+               "Salve uma cópia e reabra.", vbCritical, "Erro de Documento"
+        Exit Sub
+    End If
+
+    If Not InitializeLogging(doc) Then
+        LogMessage "Falha ao inicializar sistema de logs", LOG_LEVEL_WARNING
+    End If
+
+    LogMessage "Iniciando padronização do documento: " & doc.Name, LOG_LEVEL_INFO
+
+    ' Inicializa barra de progresso
+    ' Etapas: Verificação(1) + Backup(1) + Config(1) + Imagens(1) +
+    '         [Pipeline x2: Index(1) + Format(1) + RestoreImg(1) +
+    '          ImgLayout(1) + Center(1) = 5 etapas] x 2 = 10 +
+    '         Restaurar View(1) + Finalizar(1) = 14 etapas totais
+    InitializeProgress 14
+
+    ' ---------------------------------------------------------------------------
+    ' INÍCIO DO GRUPO DE DESFAZER - TODAS as operações são agrupadas aqui
+    ' ---------------------------------------------------------------------------
+    On Error Resume Next
+    Application.UndoRecord.StartCustomRecord "Padronização de Documento"
+    If Err.Number = 0 Then
+        undoGroupEnabled = True
+        LogMessage "UndoRecord iniciado com sucesso", LOG_LEVEL_INFO
+    Else
+        LogMessage "Aviso: Não foi possível iniciar UndoRecord: " & Err.Description, LOG_LEVEL_WARNING
+        undoGroupEnabled = False
+    End If
+    Err.Clear
+    On Error GoTo CriticalErrorHandler
+    ' ---------------------------------------------------------------------------
+
+    If Not SetAppState(False, "Iniciando...") Then
+        LogMessage "Falha ao configurar estado da aplicação", LOG_LEVEL_WARNING
+    End If
+
+    IncrementProgress "Verificando documento"
+    If Not PreviousChecking(doc) Then
+        GoTo CleanUp
+    End If
+
+    If doc.Path = "" Then
+        If Not SaveDocumentFirst(doc) Then
+            Application.StatusBar = "Cancelado: documento não salvo"
+            LogMessage "Operação cancelada - documento não foi salvo", LOG_LEVEL_INFO
+            GoTo CleanUp ' Garante fechamento do UndoRecord
+        End If
+    End If
+
+    ' Cria backup do documento antes de qualquer modificação
+    IncrementProgress "Criando backup"
+    If Not CreateDocumentBackup(doc) Then
+        LogMessage "Falha ao criar backup - continuando sem backup", LOG_LEVEL_WARNING
+    End If
+
+    ' Backup das configurações de visualização originais
+    IncrementProgress "Salvando configurações"
+    If Not BackupViewSettings(doc) Then
+        LogMessage "Aviso: Falha no backup das configurações de visualização", LOG_LEVEL_WARNING
+    End If
+
+    ' Backup de imagens antes das formatações
+    IncrementProgress "Protegendo imagens"
+    If Not BackupAllImages(doc) Then
+        LogMessage "Aviso: Falha no backup de imagens - continuando com proteção básica", LOG_LEVEL_WARNING
+    End If
+
+
+
+    ' ==========================================================================
+    ' EXECUÇÃO DUPLA DO PIPELINE DE FORMATAÇÃO
+    ' Executar duas vezes garante que formatações dependentes sejam aplicadas
+    ' corretamente (ex: formatações que dependem de outras já aplicadas)
+    ' ==========================================================================
+
+    Dim pipelinePass As Long
+    For pipelinePass = 1 To 2
+        LogMessage "=== PIPELINE DE FORMATAÇÃO - PASSAGEM " & pipelinePass & " DE 2 ===", LOG_LEVEL_INFO
+
+        ' Constrói/reconstrói cache de parágrafos
+        If pipelinePass = 1 Then
+            IncrementProgress "Indexando parágrafos (1ª passagem)"
+        Else
+            IncrementProgress "Reindexando parágrafos (2ª passagem)"
+        End If
+        BuildParagraphCache doc
+
+        ' Formata documento
+        If pipelinePass = 1 Then
+            IncrementProgress "Formatando documento (1ª passagem)"
+        Else
+            IncrementProgress "Refinando formatação (2ª passagem)"
+        End If
+        If Not PreviousFormatting(doc) Then
+            GoTo CleanUp
+        End If
+
+        ' Restaura imagens após formatações
+        If pipelinePass = 1 Then
+            IncrementProgress "Restaurando imagens (1ª passagem)"
+        Else
+            IncrementProgress "Verificando imagens (2ª passagem)"
+        End If
+        If Not RestoreAllImages(doc) Then
+            LogMessage "Aviso: Algumas imagens podem ter sido afetadas durante o processamento", LOG_LEVEL_WARNING
+        End If
+
+
+
+
+
+
+
+        ' Formata recuos de parágrafos com imagens (zera recuo à esquerda)
+        If pipelinePass = 1 Then
+            IncrementProgress "Ajustando layout (1ª passagem)"
+        Else
+            IncrementProgress "Refinando layout (2ª passagem)"
+        End If
+        If Not FormatImageParagraphsIndents(doc) Then
+            LogMessage "Aviso: Falha ao formatar recuos de imagens", LOG_LEVEL_WARNING
+        End If
+
+        ' Centraliza imagem entre 5ª e 7ª linha após Plenário
+        If pipelinePass = 1 Then
+            IncrementProgress "Centralizando elementos (1ª passagem)"
+        Else
+            IncrementProgress "Verificando centralização (2ª passagem)"
+        End If
+        If Not CenterImageAfterPlenario(doc) Then
+            LogMessage "Aviso: Falha ao centralizar imagem após Plenário", LOG_LEVEL_WARNING
+        End If
+
+        LogMessage "=== FIM DA PASSAGEM " & pipelinePass & " ===", LOG_LEVEL_INFO
+    Next pipelinePass
+
+    ' Restaura configurações de visualização originais (exceto zoom)
+    IncrementProgress "Restaurando visualização"
+    If Not RestoreViewSettings(doc) Then
+        LogMessage "Aviso: Algumas configurações de visualização podem não ter sido restauradas", LOG_LEVEL_WARNING
+    End If
+
+    If formattingCancelled Then
+        GoTo CleanUp
+    End If
+
+    IncrementProgress "Finalizando"
+    LogMessage "Documento padronizado com sucesso", LOG_LEVEL_INFO
+
+    ' Mostra 100% por 1 segundo antes de limpar
+    UpdateProgress "Concluído!", 100
+
+    ' Pausa de 1 segundo (Word VBA não tem Application.Wait)
+    Dim pauseTime As Double
+    pauseTime = Timer
+    Do While Timer < pauseTime + 1
+        DoEvents
+    Loop
+
+CleanUp:
+    ' ---------------------------------------------------------------------------
+    ' FIM DO GRUPO DE DESFAZER - SEMPRE fecha o UndoRecord
+    ' ---------------------------------------------------------------------------
+    On Error Resume Next
+    If undoGroupEnabled Then
+        Application.UndoRecord.EndCustomRecord
+        undoGroupEnabled = False
+        LogMessage "UndoRecord finalizado com sucesso", LOG_LEVEL_INFO
+    End If
+    Err.Clear
+    On Error GoTo 0
+    ' ---------------------------------------------------------------------------
+
+    ClearParagraphCache ' Limpa cache de parágrafos
+    SafeCleanup
+    CleanupImageProtection ' Nova função para limpar variáveis de proteção de imagens
+    CleanupViewSettings    ' Nova função para limpar variáveis de configurações de visualização
+
+    If Not SetAppState(True, "Concluído!") Then
+        LogMessage "Falha ao restaurar estado da aplicação", LOG_LEVEL_WARNING
+    End If
+
+    SafeFinalizeLogging
+
+    ' Exibe mensagem de conclusão com informações completas
+    If Not formattingCancelled Then
+        Dim executionTimeText As String
+        Dim duration As Double
+
+        ' Calcula duração total
+        duration = (Now - executionStartTime) * 86400
+        If duration < 60 Then
+            executionTimeText = Format(duration, "0.0") & " segundos"
+        ElseIf duration < 3600 Then
+            executionTimeText = Format(Int(duration / 60), "0") & " minuto(s) e " & Format(duration Mod 60, "00") & " segundo(s)"
+        Else
+            executionTimeText = Format(Int(duration / 3600), "0") & " hora(s) e " & Format(Int((duration Mod 3600) / 60), "00") & " minuto(s)"
+        End If
+
+        ' Monta mensagem com informações de erros/avisos
+        Dim statusMsg As String
+        If errorCount > 0 Then
+            statusMsg = vbCrLf & vbCrLf & "[!] ATENÇÃO: " & errorCount & " erro(s) detectado(s) durante a execução." & vbCrLf & _
+                       "   Verifique o log para mais detalhes."
+        ElseIf warningCount > 0 Then
+            statusMsg = vbCrLf & vbCrLf & "[i] INFORMAÇÃO: " & warningCount & " aviso(s) registrado(s) durante a execução." & vbCrLf & _
+                       "   Verifique o log para mais detalhes."
+        Else
+            statusMsg = vbCrLf & vbCrLf & "[OK] Nenhum erro ou aviso detectado durante a execução."
+        End If
+
+        ' Mensagem de sucesso com informações completas
+        MsgBox "[OK] Processamento concluído com sucesso em " & executionTimeText & "!" & vbCrLf & vbCrLf & _
+               "[DIR] Backup criado em:" & vbCrLf & _
+               "   " & IIf(backupFilePath <> "", backupFilePath, GetChainsawBackupsPath()) & vbCrLf & vbCrLf & _
+               "[LOG] Log salvo em:" & vbCrLf & _
+               "   " & logFilePath & statusMsg, _
+               vbInformation, "CHAINSAW - Padronização Concluída"
+    End If
+
+    Exit Sub
+
+CriticalErrorHandler:
+    Dim errDesc As String
+    errDesc = "ERRO CRÍTICO #" & Err.Number & ": " & Err.Description & _
+              " em " & Err.Source & " (Linha: " & Erl & ")"
+
+    LogMessage errDesc, LOG_LEVEL_ERROR
+    Application.StatusBar = "Erro - verificar logs"
+
+    ShowUserFriendlyError Err.Number, Err.Description
+    EmergencyRecovery
+
+    ' CRÍTICO: Garante fechamento do UndoRecord mesmo em erro
+    GoTo CleanUp
+End Sub
+
+'================================================================================
+' TRATAMENTO AMIGÁVEL DE ERROS
+'================================================================================
+Private Sub ShowUserFriendlyError(errNum As Long, errDesc As String)
+    Dim msg As String
+
+    Select Case errNum
+        Case 91 ' Object variable not set
+            msg = "Erro: Objeto não inicializado." & vbCrLf & vbCrLf & _
+                  "Reinicie o Word."
+
+        Case 5 ' Invalid procedure call
+            msg = "Erro de configuração." & vbCrLf & vbCrLf & _
+                  "Formato válido: .docx"
+
+        Case 70 ' Permission denied
+            msg = "Permissão negada." & vbCrLf & vbCrLf & _
+                  "Documento protegido ou somente leitura." & vbCrLf & _
+                  "Salve uma cópia."
+
+        Case 53 ' File not found
+            msg = "Arquivo não encontrado." & vbCrLf & vbCrLf & _
+                  "Verifique se foi salvo."
+
+        Case Else
+            msg = "Erro #" & errNum & ":" & vbCrLf & vbCrLf & _
+                  errDesc & vbCrLf & vbCrLf & _
+                  "Verifique o log."
+    End Select
+
+    MsgBox msg, vbCritical, "Chainsaw Proposituras v1.0-beta1"
+End Sub
+
+'================================================================================
+' RECUPERAÇÃO DE EMERGÊNCIA
+'================================================================================
+Private Sub EmergencyRecovery()
+    On Error Resume Next
+
+    Application.ScreenUpdating = True
+    Application.DisplayAlerts = wdAlertsAll
+    Application.StatusBar = False
+    Application.EnableCancelKey = 0
+
+    ' Fecha UndoRecord se ainda estiver aberto
+    If undoGroupEnabled Then
+        Application.UndoRecord.EndCustomRecord
+        undoGroupEnabled = False
+        LogMessage "UndoRecord fechado durante recuperação de emergência", LOG_LEVEL_WARNING
+    End If
+
+    ' Limpa variáveis de proteção de imagens em caso de erro
+    CleanupImageProtection
+
+    ' Limpa variáveis de configurações de visualização em caso de erro
+    CleanupViewSettings
+
+    ' Limpa cache de parágrafos
+    ClearParagraphCache
+
+    LogMessage "Recuperação de emergência executada", LOG_LEVEL_ERROR
+
+    CloseAllOpenFiles
+End Sub
+
+'================================================================================
+' LIMPEZA SEGURA DE RECURSOS
+'================================================================================
+Private Sub SafeCleanup()
+    On Error Resume Next
+
+    ' Não tenta fechar UndoRecord aqui - já foi fechado em CleanUp
+
+    ReleaseObjects
+End Sub
+
+'================================================================================
+' LIBERAÇÃO DE OBJETOS
+'================================================================================
+Private Sub ReleaseObjects()
+    On Error Resume Next
+
+    Dim nullObj As Object
+    Set nullObj = Nothing
+
+    Dim memoryCounter As Long
+    For memoryCounter = 1 To 3
+        DoEvents
+    Next memoryCounter
+End Sub
+
+'================================================================================
+' FECHAMENTO DE ARQUIVOS ABERTOS
+'================================================================================
+Private Sub CloseAllOpenFiles()
+    On Error Resume Next
 
     Dim fileNumber As Integer
     For fileNumber = 1 To 511
@@ -1480,7 +1865,7 @@ End Function
 ' GetChainsawLogsPath - Retorna caminho para logs
 '--------------------------------------------------------------------------------
 Private Function GetChainsawLogsPath() As String
-    GetChainsawLogsPath = GetProjectRootPath() & "\props\logs"
+    GetChainsawLogsPath = GetProjectRootPath() & "\installation\inst_docs\vba_logs"
 End Function
 
 '--------------------------------------------------------------------------------
@@ -1538,7 +1923,7 @@ Private Sub WriteTextUTF8(filePath As String, textContent As String, Optional ap
     ' Se modo append, lê conteúdo existente primeiro
     If appendMode And Dir(filePath) <> "" Then
         stream.LoadFromFile filePath
-        stream.Position = stream.Size
+        stream.Position = stream.size
     End If
 
     ' Escreve o novo conteúdo
@@ -1585,13 +1970,13 @@ Private Sub EnforceLogRetention(logFolder As String, logPrefix As String, Option
         End If
     Next fileItem
 
-    If sortedList.Count <= maxFiles Then GoTo CleanExit
+    If sortedList.count <= maxFiles Then GoTo CleanExit
 
     sortedList.Sort
     sortedList.Reverse
 
     Dim idx As Long
-    For idx = maxFiles To sortedList.Count - 1
+    For idx = maxFiles To sortedList.count - 1
         Dim parts() As String
         parts = Split(sortedList(idx), "|")
         On Error Resume Next
@@ -1654,12 +2039,12 @@ Private Function InitializeLogging(doc As Document) As Boolean
     headerText = headerText & "  Computador: " & Environ("COMPUTERNAME") & vbCrLf
     headerText = headerText & "  Domínio: " & Environ("USERDOMAIN") & vbCrLf
     headerText = headerText & "  SO: Windows " & GetWindowsVersion() & vbCrLf
-    headerText = headerText & "  Word: " & Application.Version & " (" & GetWordVersionName() & ")" & vbCrLf & vbCrLf
+    headerText = headerText & "  Word: " & Application.version & " (" & GetWordVersionName() & ")" & vbCrLf & vbCrLf
     headerText = headerText & "[DOCUMENTO]" & vbCrLf
     headerText = headerText & "  Nome: " & doc.Name & vbCrLf
     headerText = headerText & "  Caminho: " & IIf(doc.Path = "", "(Não salvo)", doc.Path) & vbCrLf
     headerText = headerText & "  Tamanho: " & GetDocumentSize(doc) & vbCrLf
-    headerText = headerText & "  Parágrafos: " & doc.Paragraphs.Count & vbCrLf
+    headerText = headerText & "  Parágrafos: " & doc.Paragraphs.count & vbCrLf
     headerText = headerText & "  Páginas: " & doc.ComputeStatistics(wdStatisticPages) & vbCrLf
     headerText = headerText & "  Proteção: " & GetProtectionType(doc) & vbCrLf
     headerText = headerText & "  Idioma: " & doc.Range.LanguageID & vbCrLf & vbCrLf
@@ -3192,7 +3577,7 @@ Private Function EnsureSingleBlankLineBetweenParagraphs(doc As Document) As Bool
 
     Dim i As Long
     Dim para As Paragraph
-    Dim nextPara As Paragraph
+    Dim NextPara As Paragraph
     Dim paraText As String
     Dim nextParaText As String
     Dim insertionPoint As Range
@@ -3203,15 +3588,15 @@ Private Function EnsureSingleBlankLineBetweenParagraphs(doc As Document) As Bool
     ' Percorre todos os parágrafos de trás para frente para não afetar os índices
     For i = doc.Paragraphs.count - 1 To 1 Step -1
         Set para = doc.Paragraphs(i)
-        Set nextPara = doc.Paragraphs(i + 1)
+        Set NextPara = doc.Paragraphs(i + 1)
 
         ' Obtém texto limpo dos parágrafos
         paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
-        nextParaText = Trim(Replace(Replace(nextPara.Range.text, vbCr, ""), vbLf, ""))
+        nextParaText = Trim(Replace(Replace(NextPara.Range.text, vbCr, ""), vbLf, ""))
 
         ' Se ambos os parágrafos têm conteúdo (texto ou imagem)
         If (paraText <> "" Or HasVisualContent(para)) And _
-           (nextParaText <> "" Or HasVisualContent(nextPara)) Then
+           (nextParaText <> "" Or HasVisualContent(NextPara)) Then
 
             ' Verifica se há pelo menos uma linha em branco entre eles
             Dim hasBlankBetween As Boolean
@@ -3240,7 +3625,7 @@ Private Function EnsureSingleBlankLineBetweenParagraphs(doc As Document) As Bool
 
             ' Se não há linha em branco, adiciona uma
             If Not hasBlankBetween Then
-                Set insertionPoint = nextPara.Range
+                Set insertionPoint = NextPara.Range
                 insertionPoint.Collapse wdCollapseStart
                 insertionPoint.InsertBefore vbCrLf
                 addedCount = addedCount + 1
@@ -3268,7 +3653,7 @@ Private Function EnsureBlankLinesBetweenLongParagraphs(doc As Document) As Boole
 
     Dim i As Long
     Dim para As Paragraph
-    Dim nextPara As Paragraph
+    Dim NextPara As Paragraph
     Dim paraText As String
     Dim nextParaText As String
     Dim paraWordCount As Long
@@ -3286,14 +3671,14 @@ Private Function EnsureBlankLinesBetweenLongParagraphs(doc As Document) As Boole
 
         ' Verifica se há próximo parágrafo
         If i + 1 <= doc.Paragraphs.count Then
-            Set nextPara = doc.Paragraphs(i + 1)
+            Set NextPara = doc.Paragraphs(i + 1)
         Else
             Exit For
         End If
 
         ' Obtém texto limpo dos parágrafos
         paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
-        nextParaText = Trim(Replace(Replace(nextPara.Range.text, vbCr, ""), vbLf, ""))
+        nextParaText = Trim(Replace(Replace(NextPara.Range.text, vbCr, ""), vbLf, ""))
 
         ' Conta palavras (divide por espaços)
         paraWordCount = 0
@@ -3323,7 +3708,7 @@ Private Function EnsureBlankLinesBetweenLongParagraphs(doc As Document) As Boole
 
             ' Se não há linha em branco, adiciona uma
             If Not hasBlankBetween Then
-                Set insertionPoint = nextPara.Range
+                Set insertionPoint = NextPara.Range
                 insertionPoint.Collapse wdCollapseStart
                 insertionPoint.InsertBefore vbCrLf
                 addedCount = addedCount + 1
@@ -3439,7 +3824,7 @@ End Function
 Private Function RemoveWatermark(doc As Document) As Boolean
     On Error GoTo ErrorHandler
 
-    Dim sec As section
+    Dim sec As Section
     Dim header As HeaderFooter
     Dim shp As shape
     Dim i As Long
@@ -3534,7 +3919,7 @@ End Function
 Private Function InsertHeaderstamp(doc As Document) As Boolean
     On Error GoTo ErrorHandler
 
-    Dim sec As section
+    Dim sec As Section
     Dim header As HeaderFooter
     Dim imgFile As String
     Dim username As String
@@ -3617,7 +4002,7 @@ End Function
 Private Function InsertFooterStamp(doc As Document) As Boolean
     On Error GoTo ErrorHandler
 
-    Dim sec As section
+    Dim sec As Section
     Dim footer As HeaderFooter
     Dim rng As Range
     Dim sectionsProcessed As Long
@@ -4210,7 +4595,7 @@ Private Function RemovePageNumberLines(doc As Document) As Boolean
     On Error GoTo ErrorHandler
 
     Dim para As Paragraph
-    Dim nextPara As Paragraph
+    Dim NextPara As Paragraph
     Dim paraText As String
     Dim cleanText As String
     Dim removedCount As Long
@@ -4236,12 +4621,12 @@ Private Function RemovePageNumberLines(doc As Document) As Boolean
 
             If i < doc.Paragraphs.count Then
                 hasNextLine = True
-                Set nextPara = doc.Paragraphs(i + 1)
+                Set NextPara = doc.Paragraphs(i + 1)
                 Dim nextText As String
-                nextText = Trim(Replace(Replace(nextPara.Range.text, vbCr, ""), vbLf, ""))
+                nextText = Trim(Replace(Replace(NextPara.Range.text, vbCr, ""), vbLf, ""))
 
                 ' Verifica se a próxima linha está em branco
-                If nextText = "" And Not HasVisualContent(nextPara) Then
+                If nextText = "" And Not HasVisualContent(NextPara) Then
                     nextLineIsEmpty = True
                 End If
             End If
@@ -4254,12 +4639,12 @@ Private Function RemovePageNumberLines(doc As Document) As Boolean
             If hasNextLine And nextLineIsEmpty Then
                 ' Atualiza a referência pois os índices mudaram
                 If i <= doc.Paragraphs.count Then
-                    Set nextPara = doc.Paragraphs(i)
-                    nextText = Trim(Replace(Replace(nextPara.Range.text, vbCr, ""), vbLf, ""))
+                    Set NextPara = doc.Paragraphs(i)
+                    nextText = Trim(Replace(Replace(NextPara.Range.text, vbCr, ""), vbLf, ""))
 
                     ' Confirma que ainda está vazia antes de deletar
-                    If nextText = "" And Not HasVisualContent(nextPara) Then
-                        nextPara.Range.Delete
+                    If nextText = "" And Not HasVisualContent(NextPara) Then
+                        NextPara.Range.Delete
                         removedCount = removedCount + 1
                     End If
                 End If
@@ -4807,7 +5192,7 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
     End If
 
     ' Verifica se há conteúdo suficiente
-    If doc.Range.Text = "" Or Len(Trim(doc.Range.Text)) <= 1 Then
+    If doc.Range.text = "" Or Len(Trim(doc.Range.text)) <= 1 Then
         LogMessage "Documento vazio - substituições de texto ignoradas", LOG_LEVEL_INFO
         ApplyTextReplacements = True
         Exit Function
@@ -4859,8 +5244,8 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
         With rng.Find
             .ClearFormatting
             .Replacement.ClearFormatting
-            .Text = dOesteVariants(i) & "este"
-            .Replacement.Text = "d'Oeste"
+            .text = dOesteVariants(i) & "este"
+            .Replacement.text = "d'Oeste"
             .Forward = True
             .Wrap = wdFindContinue
             .Format = False
@@ -4903,8 +5288,8 @@ NextVariant:
         With rng.Find
             .ClearFormatting
             .Replacement.ClearFormatting
-            .Text = " ao Setor, "
-            .Replacement.Text = " ao setor competente"
+            .text = " ao Setor, "
+            .Replacement.text = " ao setor competente"
             .Forward = True
             .Wrap = wdFindContinue
             .Format = False
@@ -4913,7 +5298,7 @@ NextVariant:
             .MatchWildcards = False
             wasReplaced = .Execute(Replace:=wdReplaceAll)
             If Err.Number = 0 And wasReplaced Then
-                LogMessage "Substituição aplicada: ' ao Setor, ' → ' ao setor competente'", LOG_LEVEL_INFO
+                LogMessage "Substituição aplicada: ' ao Setor, ' ? ' ao setor competente'", LOG_LEVEL_INFO
             ElseIf Err.Number <> 0 Then
                 LogMessage "Erro ao substituir 'ao Setor,': " & Err.Description, LOG_LEVEL_WARNING
             End If
@@ -4931,8 +5316,8 @@ NextVariant:
         With rng.Find
             .ClearFormatting
             .Replacement.ClearFormatting
-            .Text = " Setor Competente "
-            .Replacement.Text = " setor competente "
+            .text = " Setor Competente "
+            .Replacement.text = " setor competente "
             .Forward = True
             .Wrap = wdFindContinue
             .Format = False
@@ -4941,7 +5326,7 @@ NextVariant:
             .MatchWildcards = False
             wasReplaced = .Execute(Replace:=wdReplaceAll)
             If Err.Number = 0 And wasReplaced Then
-                LogMessage "Substituição aplicada: ' Setor Competente ' → ' setor competente '", LOG_LEVEL_INFO
+                LogMessage "Substituição aplicada: ' Setor Competente ' ? ' setor competente '", LOG_LEVEL_INFO
             ElseIf Err.Number <> 0 Then
                 LogMessage "Erro ao substituir 'Setor Competente': " & Err.Description, LOG_LEVEL_WARNING
             End If
@@ -5042,7 +5427,7 @@ Private Sub FormatVereadorParagraphs(doc As Document)
 
     Dim para As Paragraph
     Dim prevPara As Paragraph
-    Dim nextPara As Paragraph
+    Dim NextPara As Paragraph
     Dim cleanText As String
     Dim i As Long
     Dim formattedCount As Long
@@ -5096,9 +5481,9 @@ Private Sub FormatVereadorParagraphs(doc As Document)
 
                 ' Formata linha ABAIXO (se existir)
                 If i < doc.Paragraphs.count Then
-                    Set nextPara = doc.Paragraphs(i + 1)
-                    If Not HasVisualContent(nextPara) Then
-                        With nextPara.Format
+                    Set NextPara = doc.Paragraphs(i + 1)
+                    If Not HasVisualContent(NextPara) Then
+                        With NextPara.Format
                             .alignment = wdAlignParagraphCenter
                             .leftIndent = 0
                             .firstLineIndent = 0
@@ -5583,7 +5968,7 @@ ErrorHandler:
 
     ' Tenta método alternativo
     On Error Resume Next
-    Shell "explorer.exe """ & GITHUB_REPO_URL & """", vbNormalFocus
+    shell "explorer.exe """ & GITHUB_REPO_URL & """", vbNormalFocus
 End Sub
 
 '================================================================================
@@ -5609,7 +5994,7 @@ Public Sub ConfirmarDesfazerPadronizacao()
     canUndo = False
 
     On Error Resume Next
-    canUndo = Application.CommandBars.ActionControl.Enabled
+    canUndo = Application.CommandBars.ActionControl.enabled
     If Err.Number <> 0 Then canUndo = False
     On Error GoTo ErrorHandler
 
@@ -5913,13 +6298,13 @@ Private Sub CleanOldBackups(backupFolder As String, docBaseName As String)
         End If
     Next fileItem
 
-    If items.Count <= MAX_BACKUP_FILES Then GoTo CleanExit
+    If items.count <= MAX_BACKUP_FILES Then GoTo CleanExit
 
     items.Sort
     items.Reverse
 
     Dim idx As Long
-    For idx = MAX_BACKUP_FILES To items.Count - 1
+    For idx = MAX_BACKUP_FILES To items.count - 1
         Dim parts() As String
         parts = Split(items(idx), "|")
         On Error Resume Next
@@ -7114,14 +7499,126 @@ End Function
 ' Descrição: Verifica se há uma nova versão disponível no GitHub
 ' Retorna: True se houver atualização disponível, False caso contrário
 '================================================================================
+Public Function CheckForUpdates() As Boolean
+    On Error GoTo ErrorHandler
+
+    Dim localVersion As String
+    Dim remoteVersion As String
+    Dim updateAvailable As Boolean
+
+    CheckForUpdates = False
+
+    ' Obtém versão local
+    localVersion = GetLocalVersion()
+    If localVersion = "" Then
+        LogMessage "Não foi possível obter versão local", LOG_LEVEL_WARNING
+        Exit Function
+    End If
+
+    ' Obtém versão remota do GitHub
+    remoteVersion = GetRemoteVersion()
+    If remoteVersion = "" Then
+        LogMessage "Não foi possível obter versão remota", LOG_LEVEL_WARNING
+        Exit Function
+    End If
+
+    ' Compara versões
+    updateAvailable = CompareVersions(remoteVersion, localVersion) > 0
+
+    If updateAvailable Then
+        LogMessage "Atualização disponível: " & localVersion & " -> " & remoteVersion, LOG_LEVEL_INFO
+        CheckForUpdates = True
+    Else
+        LogMessage "Sistema está atualizado (v" & localVersion & ")", LOG_LEVEL_INFO
+    End If
+
+    Exit Function
+
+ErrorHandler:
+    LogMessage "Erro ao verificar atualizações: " & Err.Description, LOG_LEVEL_ERROR
+    CheckForUpdates = False
+End Function
+
 ' Função: GetLocalVersion
 ' Descrição: Lê a versão instalada do arquivo version.json local
 ' Retorna: String com a versão local ou "" em caso de erro
 '================================================================================
+Private Function GetLocalVersion() As String
+    On Error GoTo ErrorHandler
+
+    Dim fso As Object
+    Dim versionFile As String
+    Dim fileContent As String
+    Dim version As String
+
+    GetLocalVersion = ""
+
+    Set fso = CreateObject("Scripting.FileSystemObject")
+
+    ' Caminho do arquivo de versão local
+    versionFile = Environ("USERPROFILE") & "\chainsaw\installation\inst_configs\version.json"
+
+    If Not fso.FileExists(versionFile) Then
+        LogMessage "Arquivo de versão local não encontrado: " & versionFile, LOG_LEVEL_WARNING
+        Exit Function
+    End If
+
+    ' Lê o arquivo
+    fileContent = ReadTextFile(versionFile)
+
+    ' Extrai versão usando regex simples
+    version = ExtractJsonValue(fileContent, "version")
+
+    GetLocalVersion = version
+
+    Exit Function
+
+ErrorHandler:
+    LogMessage "Erro ao obter versão local: " & Err.Description, LOG_LEVEL_ERROR
+    GetLocalVersion = ""
+End Function
+
 ' Função: GetRemoteVersion
 ' Descrição: Baixa e lê a versão disponível no GitHub
 ' Retorna: String com a versão remota ou "" em caso de erro
 '================================================================================
+Private Function GetRemoteVersion() As String
+    On Error GoTo ErrorHandler
+
+    Dim http As Object
+    Dim url As String
+    Dim response As String
+    Dim version As String
+
+    GetRemoteVersion = ""
+
+    ' URL do arquivo version.json no GitHub
+    url = "https://raw.githubusercontent.com/chrmsantos/chainsaw/main/version.json"
+
+    ' Cria objeto HTTP
+    Set http = CreateObject("MSXML2.XMLHTTP")
+
+    ' Faz requisição GET
+    http.Open "GET", url, False
+    http.setRequestHeader "Cache-Control", "no-cache"
+    http.send
+
+    ' Verifica resposta
+    If http.Status = 200 Then
+        response = http.responseText
+        version = ExtractJsonValue(response, "version")
+        GetRemoteVersion = version
+    Else
+        LogMessage "Erro HTTP ao buscar versão remota: " & http.Status, LOG_LEVEL_WARNING
+    End If
+
+    Exit Function
+
+ErrorHandler:
+    LogMessage "Erro ao obter versão remota: " & Err.Description, LOG_LEVEL_ERROR
+    GetRemoteVersion = ""
+End Function
+
 ' Função: ExtractJsonValue
 ' Descrição: Extrai um valor de um JSON simples usando regex
 ' Parâmetros:
@@ -7129,6 +7626,37 @@ End Function
 '   - key: Chave a ser extraída
 ' Retorna: Valor da chave ou "" se não encontrado
 '================================================================================
+Private Function ExtractJsonValue(ByVal jsonText As String, ByVal key As String) As String
+    On Error GoTo ErrorHandler
+
+    Dim regex As Object
+    Dim matches As Object
+    Dim pattern As String
+
+    ExtractJsonValue = ""
+
+    Set regex = CreateObject("VBScript.RegExp")
+
+    ' Pattern para extrair valor de string JSON: "key": "value"
+    pattern = """" & key & """\s*:\s*""([^""]+)"""
+
+    regex.pattern = pattern
+    regex.IgnoreCase = True
+    regex.Global = False
+
+    Set matches = regex.Execute(jsonText)
+
+    If matches.count > 0 Then
+        ExtractJsonValue = matches(0).SubMatches(0)
+    End If
+
+    Exit Function
+
+ErrorHandler:
+    LogMessage "Erro ao extrair valor JSON: " & Err.Description, LOG_LEVEL_ERROR
+    ExtractJsonValue = ""
+End Function
+
 ' Função: CompareVersions
 ' Descrição: Compara duas versões no formato X.Y.Z
 ' Parâmetros:
@@ -7136,20 +7664,210 @@ End Function
 '   - version2: Segunda versão
 ' Retorna: 1 se version1 > version2, -1 se version1 < version2, 0 se iguais
 '================================================================================
+Private Function CompareVersions(ByVal version1 As String, ByVal version2 As String) As Integer
+    On Error GoTo ErrorHandler
+
+    Dim v1Parts() As String
+    Dim v2Parts() As String
+    Dim i As Integer
+    Dim v1Num As Long, v2Num As Long
+
+    CompareVersions = 0
+
+    ' Remove espaços
+    version1 = Trim(version1)
+    version2 = Trim(version2)
+
+    ' Divide versões em partes
+    v1Parts = Split(version1, ".")
+    v2Parts = Split(version2, ".")
+
+    ' Compara cada parte
+    For i = 0 To 2
+        v1Num = 0
+        v2Num = 0
+
+        If i <= UBound(v1Parts) Then v1Num = CLng(v1Parts(i))
+        If i <= UBound(v2Parts) Then v2Num = CLng(v2Parts(i))
+
+        If v1Num > v2Num Then
+            CompareVersions = 1
+            Exit Function
+        ElseIf v1Num < v2Num Then
+            CompareVersions = -1
+            Exit Function
+        End If
+    Next i
+
+    Exit Function
+
+ErrorHandler:
+    LogMessage "Erro ao comparar versões: " & Err.Description, LOG_LEVEL_ERROR
+    CompareVersions = 0
+End Function
+
 ' Função: ReadTextFile
 ' Descrição: Lê o conteúdo completo de um arquivo de texto
 ' Parâmetros:
 '   - filePath: Caminho completo do arquivo
 ' Retorna: Conteúdo do arquivo como String
 '================================================================================
+Private Function ReadTextFile(ByVal filePath As String) As String
+    On Error GoTo ErrorHandler
+
+    Dim fso As Object
+    Dim file As Object
+    Dim content As String
+
+    ReadTextFile = ""
+
+    Set fso = CreateObject("Scripting.FileSystemObject")
+
+    If fso.FileExists(filePath) Then
+        Set file = fso.OpenTextFile(filePath, 1, False, -1) ' -1 = Unicode
+        content = file.ReadAll
+        file.Close
+        ReadTextFile = content
+    End If
+
+    Exit Function
+
+ErrorHandler:
+    LogMessage "Erro ao ler arquivo: " & Err.Description, LOG_LEVEL_ERROR
+    ReadTextFile = ""
+End Function
+
 ' Sub: PromptForUpdate
 ' Descrição: Verifica se há atualização e pergunta ao usuário se deseja atualizar
 '================================================================================
+Public Sub PromptForUpdate()
+    On Error GoTo ErrorHandler
+
+    Dim updateAvailable As Boolean
+    Dim response As VbMsgBoxResult
+    Dim installerPath As String
+    Dim shellCmd As String
+
+    ' Verifica se há atualizações
+    updateAvailable = CheckForUpdates()
+
+    If Not updateAvailable Then
+        MsgBox "Seu sistema CHAINSAW está atualizado!", vbInformation, "CHAINSAW - Verificação de Versão"
+        Exit Sub
+    End If
+
+    ' Pergunta ao usuário se deseja atualizar
+    response = MsgBox("Uma nova versão do CHAINSAW está disponível!" & vbCrLf & vbCrLf & _
+                      "Deseja atualizar agora?" & vbCrLf & vbCrLf & _
+                      "O instalador será executado e o Word será fechado.", _
+                      vbYesNo + vbQuestion, "CHAINSAW - Atualização Disponível")
+
+    If response = vbYes Then
+        ' Caminho do instalador
+        installerPath = Environ("USERPROFILE") & "\chainsaw\chainsaw_installer.cmd"
+
+        ' Verifica se o instalador existe
+        Dim fso As Object
+        Set fso = CreateObject("Scripting.FileSystemObject")
+
+        If fso.FileExists(installerPath) Then
+            ' Executa o instalador
+            shellCmd = "cmd.exe /c """ & installerPath & """"
+
+            ' Salva todos os documentos abertos
+            Dim doc As Object
+            For Each doc In Application.Documents
+                If doc.Saved = False Then
+                    doc.Save
+                End If
+            Next doc
+
+            ' Executa instalador e fecha o Word
+            CreateObject("WScript.Shell").Run shellCmd, 1, False
+
+            MsgBox "O instalador será executado. O Word será fechado agora.", vbInformation, "CHAINSAW - Atualização"
+            Application.Quit SaveChanges:=wdSaveChanges
+        Else
+            MsgBox "Instalador não encontrado em:" & vbCrLf & installerPath & vbCrLf & vbCrLf & _
+                   "Baixe manualmente de: https://github.com/chrmsantos/chainsaw", _
+                   vbExclamation, "CHAINSAW - Erro"
+        End If
+    End If
+
+    Exit Sub
+
+ErrorHandler:
+    MsgBox "Erro ao processar atualização: " & Err.Description, vbCritical, "CHAINSAW - Erro"
+End Sub
+
 '================================================================================
 ' Sub: ExecutarInstalador
 ' Descrição: Executa o chainsaw_installer.cmd a partir da interface do Word
 ' Uso: Pode ser chamado de um botão na ribbon ou atalho de teclado
 '================================================================================
+Public Sub ExecutarInstalador()
+    On Error GoTo ErrorHandler
+
+    Dim installerPath As String
+    Dim shellCmd As String
+    Dim fso As Object
+    Dim response As VbMsgBoxResult
+
+    ' Pergunta confirmação ao usuário
+    response = MsgBox("Deseja executar o instalador do CHAINSAW?" & vbCrLf & vbCrLf & _
+                      "Isso irá:" & vbCrLf & _
+                      "• Baixar a versão mais recente do GitHub" & vbCrLf & _
+                      "• Instalar/atualizar o sistema" & vbCrLf & _
+                      "• Fechar o Word ao final da instalação" & vbCrLf & vbCrLf & _
+                      "Continuar?", _
+                      vbYesNo + vbQuestion, "CHAINSAW - Executar Instalador")
+
+    If response <> vbYes Then
+        Exit Sub
+    End If
+
+    ' Caminho do instalador
+    installerPath = Environ("USERPROFILE") & "\chainsaw\chainsaw_installer.cmd"
+
+    ' Verifica se o instalador existe
+    Set fso = CreateObject("Scripting.FileSystemObject")
+
+    If Not fso.FileExists(installerPath) Then
+        MsgBox "Instalador não encontrado em:" & vbCrLf & installerPath & vbCrLf & vbCrLf & _
+               "Baixe manualmente de: https://github.com/chrmsantos/chainsaw/raw/main/chainsaw_installer.cmd", _
+               vbExclamation, "CHAINSAW - Instalador Não Encontrado"
+        Exit Sub
+    End If
+
+    ' Salva todos os documentos abertos antes de executar o instalador
+    Dim doc As Object
+    For Each doc In Application.Documents
+        If doc.Saved = False Then
+            On Error Resume Next
+            doc.Save
+            On Error GoTo ErrorHandler
+        End If
+    Next doc
+
+    ' Executa o instalador em uma nova janela de comando
+    shellCmd = "cmd.exe /c """ & installerPath & """"
+    CreateObject("WScript.Shell").Run shellCmd, 1, False
+
+    ' Mensagem informativa
+    MsgBox "O instalador foi iniciado em uma nova janela." & vbCrLf & vbCrLf & _
+           "O Word será fechado ao final da instalação.", _
+           vbInformation, "CHAINSAW - Instalador Iniciado"
+
+    ' Fecha o Word após 2 segundos (tempo para o instalador iniciar)
+    Application.OnTime Now + TimeValue("00:00:02"), "FecharWord"
+
+    Exit Sub
+
+ErrorHandler:
+    MsgBox "Erro ao executar instalador: " & Err.Description, vbCritical, "CHAINSAW - Erro"
+    LogMessage "Erro ao executar instalador: " & Err.Description, LOG_LEVEL_ERROR
+End Sub
+
 '================================================================================
 ' Sub: FecharWord
 ' Descrição: Fecha o Word (usado após executar o instalador)
@@ -7158,9 +7876,6 @@ Private Sub FecharWord()
     On Error Resume Next
     Application.Quit SaveChanges:=wdSaveChanges
 End Sub
-
-
-
 
 
 

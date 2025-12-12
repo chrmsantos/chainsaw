@@ -430,7 +430,11 @@ try {
     Write-Host '╚════════════════════════════════════════════════════════════════╝' -ForegroundColor Cyan
     Write-Host ''
 
-    $ImportPath = Resolve-Path -Path $ImportPath -ErrorAction Stop
+    if (-not (Test-Path $ImportPath)) {
+        throw "Caminho de importacao nao encontrado: $ImportPath. Gere um pacote com tools/export/exportar_configs.cmd ou informe -ImportPath com o caminho correto."
+    }
+
+    $ImportPath = (Resolve-Path -Path $ImportPath -ErrorAction Stop).ProviderPath
     Initialize-LogFile | Out-Null
     Write-Log '=== INICIO DA IMPORTACAO ===' -Level INFO
 
