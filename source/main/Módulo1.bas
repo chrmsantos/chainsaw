@@ -243,6 +243,9 @@ Public Sub PadronizarDocumentoMain()
         Application.StatusBar = "Aviso: Log desabilitado"
     End If
 
+    ' Inicializa sistema de progresso (11 etapas do pipeline)
+    InitializeProgress 11
+
     If Not SetAppState(False, "Iniciando...") Then
         LogMessage "Falha ao configurar estado da aplicação", LOG_LEVEL_WARNING
     End If
@@ -1581,7 +1584,11 @@ End Sub
 Private Sub IncrementProgress(message As String)
     currentStep = currentStep + 1
     Dim percent As Long
-    percent = CLng((currentStep * 100) / totalSteps)
+    If totalSteps > 0 Then
+        percent = CLng((currentStep * 100) / totalSteps)
+    Else
+        percent = 0
+    End If
     UpdateProgress message, percent
 End Sub
 
