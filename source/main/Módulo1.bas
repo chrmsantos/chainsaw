@@ -399,6 +399,13 @@ CleanUp:
                vbInformation, "CHAINSAW - Padronização Concluída"
     End If
 
+    ' Posiciona cursor no início do documento
+    On Error Resume Next
+    If Not doc Is Nothing Then
+        doc.Range(0, 0).Select
+    End If
+    On Error GoTo 0
+
     Exit Sub
 
 CriticalErrorHandler:
