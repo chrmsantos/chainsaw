@@ -287,9 +287,10 @@ Public Sub PadronizarDocumentoMain()
 
     LogMessage "=== PIPELINE DE FORMATAÇÃO (2 PASSAGENS) ===", LOG_LEVEL_INFO
 
-    ' Constrói cache de parágrafos
+    ' Constrói cache de parágrafos e identifica estrutura do documento
     IncrementProgress "Indexando parágrafos"
     BuildParagraphCache doc
+    IdentifyDocumentStructure doc
 
     ' Executa formatacao em 2 passagens para garantir estabilidade
     Dim pipelinePass As Integer
@@ -2631,8 +2632,6 @@ Private Function PreviousFormatting(doc As Document) As Boolean
 
     LogStepStart "Controle de linhas em branco"
     LimitSequentialEmptyLines doc
-    EnsureSecondParagraphBlankLines doc
-    EnsurePlenarioBlankLines doc
     LogStepComplete "Controle de linhas em branco"
 
     LogStepStart "Substituição de datas do plenário"
@@ -2656,7 +2655,6 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     LogStepStart "Ajustes finais de negrito e formatação"
     ApplyBoldToSpecialParagraphs doc
     FormatVereadorParagraphs doc
-    InsertJustificativaBlankLines doc
     LogStepComplete "Ajustes finais de negrito e formatação"
 
     LogStepStart "Formatações especiais (diante do exposto, requeiro)"
@@ -2665,10 +2663,6 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     FormatPorTodasRazoesParagraphs doc
     LogStepComplete "Formatações especiais (diante do exposto, requeiro)"
 
-    LogStepStart "Garantia de espaçamento entre parágrafos longos"
-    EnsureBlankLinesBetweenLongParagraphs doc
-    LogStepComplete "Garantia de espaçamento entre parágrafos longos"
-
     LogStepStart "Remoção de realces e bordas"
     RemoveAllHighlightsAndBorders doc
     LogStepComplete "Remoção de realces e bordas"
@@ -2676,6 +2670,14 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     LogStepStart "Remoção de páginas vazias no final"
     RemoveEmptyPagesAtEnd doc
     LogStepComplete "Remoção de páginas vazias no final"
+
+    LogStepStart "Aplicação de formatação final universal"
+    ApplyUniversalFinalFormatting doc
+    LogStepComplete "Aplicação de formatação final universal"
+
+    LogStepStart "Adicão de espaçamento especial (ementa, justificativa, data)"
+    AddSpecialElementsSpacing doc
+    LogStepComplete "Adicão de espaçamento especial (ementa, justificativa, data)"
 
     LogMessage "Formatação completa aplicada com sucesso", LOG_LEVEL_INFO
     LogMetric "Total de parágrafos", doc.Paragraphs.count
@@ -7072,10 +7074,11 @@ Private Function FormatImageParagraphsIndents(doc As Document) As Boolean
     For Each para In doc.Paragraphs
         ' Verifica se o parágrafo contém imagens inline
         If para.Range.InlineShapes.count > 0 Then
-            ' Zera o recuo à esquerda
+            ' Zera o recuo à esquerda e centraliza
             With para.Format
                 .leftIndent = 0
                 .firstLineIndent = 0
+                .alignment = wdAlignParagraphCenter
             End With
             formattedCount = formattedCount + 1
         End If
@@ -7873,5 +7876,104 @@ Private Sub FecharWord()
     Application.Quit SaveChanges:=wdSaveChanges
 End Sub
 
+'================================================================================
+' APLICAÇÃO DE FORMATAÇÃO FINAL UNIVERSAL
+'================================================================================
+Private Sub ApplyUniversalFinalFormatting(doc As Document)
+    On Error GoTo ErrorHandler
 
+    Dim para As Paragraph
+    Dim paraCount As Long
+    Dim formattedCount As Long
 
+    paraCount = doc.Paragraphs.count
+    formattedCount = 0
+
+    LogMessage "Aplicando formatacao final universal: Arial 12, espacamento 1.0, 1 linha entre paragrafos...", LOG_LEVEL_INFO
+
+    ' Processa todos os paragrafos
+    For Each para In doc.Paragraphs
+        On Error Resume Next
+
+        ' Aplica fonte Arial 12
+        With para.Range.Font
+            .Name = "Arial"
+            .size = 12
+        End With
+
+        ' Aplica espacamento de linha 1.0 (simples)
+        With para.Format
+            .LineSpacingRule = wdLineSpaceSingle
+            .SpaceBefore = 0   ' Sem espaco antes do paragrafo
+            .SpaceAfter = 0    ' Sem espaco depois do paragrafo
+        End With
+
+        If Err.Number = 0 Then
+            formattedCount = formattedCount + 1
+        Else
+            Err.Clear
+        End If
+
+        On Error GoTo ErrorHandler
+    Next para
+
+    LogMessage "Formatacao final aplicada: " & formattedCount & " de " & paraCount & " paragrafos", LOG_LEVEL_INFO
+    Exit Sub
+
+ErrorHandler:
+    LogMessage "Erro ao aplicar formatacao final universal: " & Err.Description, LOG_LEVEL_WARNING
+End Sub
+
+'================================================================================
+' ADIÇÃO DE ESPAÇAMENTO ESPECIAL (EMENTA, JUSTIFICATIVA, DATA)
+'================================================================================
+Private Sub AddSpecialElementsSpacing(doc As Document)
+    On Error GoTo ErrorHandler
+
+    Dim elementsProcessed As Long
+    elementsProcessed = 0
+
+    LogMessage "Adicionando espacamento especial para ementa, justificativa e data...", LOG_LEVEL_INFO
+
+    ' Garante sem espaco antes e depois da Ementa
+    If ementaParaIndex > 0 And ementaParaIndex <= doc.Paragraphs.count Then
+        On Error Resume Next
+        With doc.Paragraphs(ementaParaIndex).Format
+            .SpaceBefore = 0   ' Sem espaco antes
+            .SpaceAfter = 0    ' Sem espaco depois
+        End With
+        If Err.Number = 0 Then elementsProcessed = elementsProcessed + 1
+        Err.Clear
+        On Error GoTo ErrorHandler
+    End If
+
+    ' Garante sem espaco antes e depois do Título Justificativa
+    If tituloJustificativaIndex > 0 And tituloJustificativaIndex <= doc.Paragraphs.count Then
+        On Error Resume Next
+        With doc.Paragraphs(tituloJustificativaIndex).Format
+            .SpaceBefore = 0   ' Sem espaco antes
+            .SpaceAfter = 0    ' Sem espaco depois
+        End With
+        If Err.Number = 0 Then elementsProcessed = elementsProcessed + 1
+        Err.Clear
+        On Error GoTo ErrorHandler
+    End If
+
+    ' Garante sem espaco antes e depois da Data
+    If dataParaIndex > 0 And dataParaIndex <= doc.Paragraphs.count Then
+        On Error Resume Next
+        With doc.Paragraphs(dataParaIndex).Format
+            .SpaceBefore = 0   ' Sem espaco antes
+            .SpaceAfter = 0    ' Sem espaco depois
+        End With
+        If Err.Number = 0 Then elementsProcessed = elementsProcessed + 1
+        Err.Clear
+        On Error GoTo ErrorHandler
+    End If
+
+    LogMessage "Espacamento especial aplicado a " & elementsProcessed & " elementos", LOG_LEVEL_INFO
+    Exit Sub
+
+ErrorHandler:
+    LogMessage "Erro ao adicionar espacamento especial: " & Err.Description, LOG_LEVEL_WARNING
+End Sub
