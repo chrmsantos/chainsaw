@@ -231,12 +231,17 @@ Public Sub PadronizarDocumentoMain()
     Set doc = ActiveDocument
     If doc Is Nothing Then
         Application.StatusBar = "Erro: Nenhum documento aberto"
-        LogMessage "Nenhum documento acessível para processamento", LOG_LEVEL_ERROR
+        MsgBox "Nenhum documento está aberto para processamento.", vbCritical, "Erro"
         Exit Sub
     End If
     Err.Clear
     On Error GoTo CriticalErrorHandler
     ' ---------------------------------------------------------------------------
+
+    ' Inicializa sistema de logging ANTES de qualquer LogMessage
+    If Not InitializeLogging(doc) Then
+        Application.StatusBar = "Aviso: Log desabilitado"
+    End If
 
     If Not SetAppState(False, "Iniciando...") Then
         LogMessage "Falha ao configurar estado da aplicação", LOG_LEVEL_WARNING
