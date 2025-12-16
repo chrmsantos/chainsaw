@@ -1921,7 +1921,7 @@ ErrorHandler:
     End If
 End Sub
 
-Private Sub EnforceLogRetention(logFolder As String, logPrefix As String, Optional maxFiles As Long = 5)
+Private Sub EnforceLogRetention(logFolder As String, logPrefix As String, Optional maxFiles As Long = 3)
     On Error GoTo CleanExit
 
     If maxFiles < 1 Then Exit Sub
@@ -2048,7 +2048,7 @@ Private Function InitializeLogging(doc As Document) As Boolean
     WriteTextUTF8 logFilePath, headerText, False
 
     ' Enforces log retention limit for this routine
-    EnforceLogRetention logFolder, "chainsaw_", 5
+    EnforceLogRetention logFolder, "chainsaw_", 3
 
     loggingEnabled = True
     InitializeLogging = True
