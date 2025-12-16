@@ -1,19 +1,8 @@
 # CHAINSAW - Arquivo de Exclusões do Git
 # ========================================
 
-# Pasta exported-config duplicada na raiz (INCORRETO - não versionar)
-# A pasta correta é: installation/exported-config/
-/exported-config/
-
-# Logs de exportação (gerados dinamicamente)
-installation/exported-config/logs/*.log
-
-# Logs de instalação
-installation/inst_docs/inst_logs/*.log
-
-# Backups de VBA
-source/backups/*.bas
-installation/inst_docs/vba_backups/*.bas
+# Logs gerados pelo CHAINSAW
+source/logs/*.log
 
 # Arquivos temporários do Word
 ~$*.doc*
@@ -24,8 +13,7 @@ installation/inst_docs/vba_backups/*.bas
 *.suo
 .vs/
 
-# Backups do sistema
-props/backups/*
+# Backups e temporarios do sistema
 props/recovery_tmp/*
 
 # Node modules (se houver)

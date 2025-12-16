@@ -11,27 +11,33 @@
 }
 function Get-PowerShellScripts {
     $root = Get-RepoRoot
-    $p = Join-Path $root 'tools\export'
-    return Get-ChildItem -Path $p -Filter *.ps1 -File -ErrorAction SilentlyContinue
+    $candidates = @(
+        (Join-Path $root 'tests'),
+        $root
+    )
+
+    $files = @()
+    foreach ($p in $candidates) {
+        if (Test-Path $p) {
+            $files += Get-ChildItem -Path $p -Filter *.ps1 -File -Recurse -ErrorAction SilentlyContinue
+        }
+    }
+
+    return $files | Sort-Object FullName -Unique
 }
 function Get-VbaFiles {
     $root = Get-RepoRoot
     $sourceMain = Join-Path $root 'source\main'
-    $sourceBackups = Join-Path $root 'source\backups'
 
     $files = @()
     if (Test-Path $sourceMain) {
         $files += Get-ChildItem -Path $sourceMain -Filter *.bas -Recurse -File -ErrorAction SilentlyContinue
     }
-    if (Test-Path $sourceBackups) {
-        $files += Get-ChildItem -Path $sourceBackups -Filter *.bas -Recurse -File -ErrorAction SilentlyContinue
-    }
     return $files
 }
 function Get-Docs {
     $root = Get-RepoRoot
-    $p = Join-Path $root 'docs'
-    return Get-ChildItem -Path $p -Filter *.md -File -ErrorAction SilentlyContinue
+    return Get-ChildItem -Path $root -Filter *.md -File -ErrorAction SilentlyContinue
 }
 function Get-ProjectFile {
     param([string]$RelativePath)

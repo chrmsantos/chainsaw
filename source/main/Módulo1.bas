@@ -234,41 +234,6 @@ Public Sub PadronizarDocumentoMain()
         LogMessage "Nenhum documento acessível para processamento", LOG_LEVEL_ERROR
         Exit Sub
     End If
-    On Error GoTo CriticalErrorHandler
-
-    ' Valida integridade do documento
-    If Not IsDocumentHealthy(doc) Then
-        Application.StatusBar = "Erro: Documento inacessível"
-        MsgBox "Documento corrompido ou inacessível." & vbCrLf & _
-               "Salve uma cópia e reabra.", vbCritical, "Erro de Documento"
-        Exit Sub
-    End If
-
-    If Not InitializeLogging(doc) Then
-        LogMessage "Falha ao inicializar sistema de logs", LOG_LEVEL_WARNING
-    End If
-
-    LogMessage "Iniciando padronização do documento: " & doc.Name, LOG_LEVEL_INFO
-
-    ' Inicializa barra de progresso
-    ' Etapas: Verificação(1) + Backup(1) + Config(1) + Imagens(1) +
-    '         [Pipeline x2: Index(1) + Format(1) + RestoreImg(1) +
-    '          ImgLayout(1) + Center(1) = 5 etapas] x 2 = 10 +
-    '         Restaurar View(1) + Finalizar(1) = 14 etapas totais
-    InitializeProgress 14
-
-    ' ---------------------------------------------------------------------------
-    ' INÍCIO DO GRUPO DE DESFAZER - TODAS as operações são agrupadas aqui
-    ' ---------------------------------------------------------------------------
-    On Error Resume Next
-    Application.UndoRecord.StartCustomRecord "Padronização de Documento"
-    If Err.Number = 0 Then
-        undoGroupEnabled = True
-        LogMessage "UndoRecord iniciado com sucesso", LOG_LEVEL_INFO
-    Else
-        LogMessage "Aviso: Não foi possível iniciar UndoRecord: " & Err.Description, LOG_LEVEL_WARNING
-        undoGroupEnabled = False
-    End If
     Err.Clear
     On Error GoTo CriticalErrorHandler
     ' ---------------------------------------------------------------------------
@@ -286,7 +251,7 @@ Public Sub PadronizarDocumentoMain()
         If Not SaveDocumentFirst(doc) Then
             Application.StatusBar = "Cancelado: documento não salvo"
             LogMessage "Operação cancelada - documento não foi salvo", LOG_LEVEL_INFO
-            GoTo CleanUp ' Garante fechamento do UndoRecord
+            GoTo CleanUp
         End If
     End If
 
@@ -308,74 +273,39 @@ Public Sub PadronizarDocumentoMain()
         LogMessage "Aviso: Falha no backup de imagens - continuando com proteção básica", LOG_LEVEL_WARNING
     End If
 
-
-
     ' ==========================================================================
-    ' EXECUÇÃO DUPLA DO PIPELINE DE FORMATAÇÃO
-    ' Executar duas vezes garante que formatações dependentes sejam aplicadas
-    ' corretamente (ex: formatações que dependem de outras já aplicadas)
+    ' PIPELINE DE FORMATAÇÃO (PASSO ÚNICO)
     ' ==========================================================================
 
-    Dim pipelinePass As Long
-    For pipelinePass = 1 To 2
-        LogMessage "=== PIPELINE DE FORMATAÇÃO - PASSAGEM " & pipelinePass & " DE 2 ===", LOG_LEVEL_INFO
+    LogMessage "=== PIPELINE DE FORMATAÇÃO ===", LOG_LEVEL_INFO
 
-        ' Constrói/reconstrói cache de parágrafos
-        If pipelinePass = 1 Then
-            IncrementProgress "Indexando parágrafos (1ª passagem)"
-        Else
-            IncrementProgress "Reindexando parágrafos (2ª passagem)"
-        End If
-        BuildParagraphCache doc
+    ' Constrói cache de parágrafos
+    IncrementProgress "Indexando parágrafos"
+    BuildParagraphCache doc
 
-        ' Formata documento
-        If pipelinePass = 1 Then
-            IncrementProgress "Formatando documento (1ª passagem)"
-        Else
-            IncrementProgress "Refinando formatação (2ª passagem)"
-        End If
-        If Not PreviousFormatting(doc) Then
-            GoTo CleanUp
-        End If
+    ' Formata documento
+    IncrementProgress "Formatando documento"
+    If Not PreviousFormatting(doc) Then
+        GoTo CleanUp
+    End If
 
-        ' Restaura imagens após formatações
-        If pipelinePass = 1 Then
-            IncrementProgress "Restaurando imagens (1ª passagem)"
-        Else
-            IncrementProgress "Verificando imagens (2ª passagem)"
-        End If
-        If Not RestoreAllImages(doc) Then
-            LogMessage "Aviso: Algumas imagens podem ter sido afetadas durante o processamento", LOG_LEVEL_WARNING
-        End If
+    ' Restaura imagens após formatações
+    IncrementProgress "Restaurando imagens"
+    If Not RestoreAllImages(doc) Then
+        LogMessage "Aviso: Algumas imagens podem ter sido afetadas durante o processamento", LOG_LEVEL_WARNING
+    End If
 
+    ' Formata recuos de parágrafos com imagens (zera recuo à esquerda)
+    IncrementProgress "Ajustando layout"
+    If Not FormatImageParagraphsIndents(doc) Then
+        LogMessage "Aviso: Falha ao formatar recuos de imagens", LOG_LEVEL_WARNING
+    End If
 
-
-
-
-
-
-        ' Formata recuos de parágrafos com imagens (zera recuo à esquerda)
-        If pipelinePass = 1 Then
-            IncrementProgress "Ajustando layout (1ª passagem)"
-        Else
-            IncrementProgress "Refinando layout (2ª passagem)"
-        End If
-        If Not FormatImageParagraphsIndents(doc) Then
-            LogMessage "Aviso: Falha ao formatar recuos de imagens", LOG_LEVEL_WARNING
-        End If
-
-        ' Centraliza imagem entre 5ª e 7ª linha após Plenário
-        If pipelinePass = 1 Then
-            IncrementProgress "Centralizando elementos (1ª passagem)"
-        Else
-            IncrementProgress "Verificando centralização (2ª passagem)"
-        End If
-        If Not CenterImageAfterPlenario(doc) Then
-            LogMessage "Aviso: Falha ao centralizar imagem após Plenário", LOG_LEVEL_WARNING
-        End If
-
-        LogMessage "=== FIM DA PASSAGEM " & pipelinePass & " ===", LOG_LEVEL_INFO
-    Next pipelinePass
+    ' Centraliza imagem entre 5ª e 7ª linha após Plenário
+    IncrementProgress "Centralizando elementos"
+    If Not CenterImageAfterPlenario(doc) Then
+        LogMessage "Aviso: Falha ao centralizar imagem após Plenário", LOG_LEVEL_WARNING
+    End If
 
     ' Restaura configurações de visualização originais (exceto zoom)
     IncrementProgress "Restaurando visualização"
@@ -1851,7 +1781,7 @@ End Function
 ' GetChainsawBackupsPath - Retorna caminho para backups
 '--------------------------------------------------------------------------------
 Private Function GetChainsawBackupsPath() As String
-    GetChainsawBackupsPath = GetProjectRootPath() & "\props\backups"
+    GetChainsawBackupsPath = Environ("TEMP") & "\.chainsaw\props\backups"
 End Function
 
 '--------------------------------------------------------------------------------
@@ -1865,7 +1795,7 @@ End Function
 ' GetChainsawLogsPath - Retorna caminho para logs
 '--------------------------------------------------------------------------------
 Private Function GetChainsawLogsPath() As String
-    GetChainsawLogsPath = GetProjectRootPath() & "\installation\inst_docs\vba_logs"
+    GetChainsawLogsPath = GetProjectRootPath() & "\source\logs"
 End Function
 
 '--------------------------------------------------------------------------------
@@ -1880,12 +1810,34 @@ Private Sub EnsureChainsawFolders()
     Dim propsPath As String
     propsPath = GetProjectRootPath() & "\props"
 
+    Dim sourcePath As String
+    sourcePath = GetProjectRootPath() & "\source"
+
     ' Cria pasta props
     If Not fso.FolderExists(propsPath) Then
         fso.CreateFolder propsPath
     End If
 
-    ' Cria pasta backups
+    ' Cria pasta source
+    If Not fso.FolderExists(sourcePath) Then
+        fso.CreateFolder sourcePath
+    End If
+
+    ' Cria pasta backups (sempre em %TEMP%\.chainsaw\props\backups)
+    Dim chainsawTempRoot As String
+    chainsawTempRoot = Environ("TEMP") & "\.chainsaw"
+
+    Dim chainsawTempProps As String
+    chainsawTempProps = chainsawTempRoot & "\props"
+
+    If Not fso.FolderExists(chainsawTempRoot) Then
+        fso.CreateFolder chainsawTempRoot
+    End If
+
+    If Not fso.FolderExists(chainsawTempProps) Then
+        fso.CreateFolder chainsawTempProps
+    End If
+
     If Not fso.FolderExists(GetChainsawBackupsPath()) Then
         fso.CreateFolder GetChainsawBackupsPath()
     End If
@@ -2001,11 +1953,24 @@ Private Function InitializeLogging(doc As Document) As Boolean
 
     Set fso = CreateObject("Scripting.FileSystemObject")
 
-    ' Garante que a estrutura .chainsaw existe
+    ' Garante que a estrutura de pastas do projeto existe
     EnsureChainsawFolders
 
-    ' SEMPRE USA .chainsaw\logs para todos os documentos
+    ' SEMPRE USA source\logs para todos os documentos
     logFolder = GetChainsawLogsPath() & "\"
+
+    ' Garante que a pasta de logs existe antes de criar o arquivo
+    If Not fso.FolderExists(logFolder) Then
+        On Error Resume Next
+        fso.CreateFolder logFolder
+        On Error GoTo ErrorHandler
+    End If
+
+    If Not fso.FolderExists(logFolder) Then
+        InitializeLogging = False
+        loggingEnabled = False
+        Exit Function
+    End If
 
     ' Sanitiza nome do documento para uso em arquivo
     docNameClean = doc.Name
@@ -2051,7 +2016,7 @@ Private Function InitializeLogging(doc As Document) As Boolean
     headerText = headerText & "[CONFIGURAÇÃO]" & vbCrLf
     headerText = headerText & "  Debug: " & IIf(DEBUG_MODE, "Ativado", "Desativado") & vbCrLf
     headerText = headerText & "  Log: " & logFilePath & vbCrLf
-    headerText = headerText & "  Backup: " & IIf(doc.Path = "", "(Desabilitado)", doc.Path & "\backups\") & vbCrLf & vbCrLf
+    headerText = headerText & "  Backup: " & GetChainsawBackupsPath() & "\" & vbCrLf & vbCrLf
     headerText = headerText & String(80, "=") & vbCrLf & vbCrLf
 
     ' Escreve cabeçalho em UTF-8
@@ -6126,7 +6091,7 @@ Private Function CreateDocumentBackup(doc As Document) As Boolean
     Dim timeStamp As String
     Dim backupFileName As String
 
-    ' USA A FUNÇÃO QUE JÁ TEM A LÓGICA CORRETA (.chainsaw para não salvos)
+    ' Usa a funcao que garante o diretorio de backup
     backupFolder = EnsureBackupDirectory(doc)
 
     ' Extrai nome e extensão do documento
@@ -7466,10 +7431,10 @@ Private Function EnsureBackupDirectory(doc As Document) As String
 
     Set fso = CreateObject("Scripting.FileSystemObject")
 
-    ' Garante que a estrutura .chainsaw existe
+    ' Garante que a estrutura de pastas do projeto existe
     EnsureChainsawFolders
 
-    ' SEMPRE USA .chainsaw\backups para todos os documentos
+    ' SEMPRE USA %TEMP%\.chainsaw\props\backups para todos os documentos
     backupPath = GetChainsawBackupsPath()
 
     ' Cria o diretório se não existir
@@ -7540,7 +7505,7 @@ ErrorHandler:
 End Function
 
 ' Função: GetLocalVersion
-' Descrição: Lê a versão instalada do arquivo version.json local
+' Descricao: Le a versao instalada do arquivo VERSION local
 ' Retorna: String com a versão local ou "" em caso de erro
 '================================================================================
 Private Function GetLocalVersion() As String
@@ -7555,8 +7520,8 @@ Private Function GetLocalVersion() As String
 
     Set fso = CreateObject("Scripting.FileSystemObject")
 
-    ' Caminho do arquivo de versão local
-    versionFile = Environ("USERPROFILE") & "\chainsaw\installation\inst_configs\version.json"
+    ' Caminho do arquivo de versao local
+    versionFile = GetProjectRootPath() & "\VERSION"
 
     If Not fso.FileExists(versionFile) Then
         LogMessage "Arquivo de versão local não encontrado: " & versionFile, LOG_LEVEL_WARNING
@@ -7566,8 +7531,8 @@ Private Function GetLocalVersion() As String
     ' Lê o arquivo
     fileContent = ReadTextFile(versionFile)
 
-    ' Extrai versão usando regex simples
-    version = ExtractJsonValue(fileContent, "version")
+    ' Extrai versao (X.Y.Z)
+    version = ExtractVersionFromText(fileContent)
 
     GetLocalVersion = version
 
@@ -7592,8 +7557,8 @@ Private Function GetRemoteVersion() As String
 
     GetRemoteVersion = ""
 
-    ' URL do arquivo version.json no GitHub
-    url = "https://raw.githubusercontent.com/chrmsantos/chainsaw/main/version.json"
+    ' URL do arquivo VERSION no GitHub
+    url = "https://raw.githubusercontent.com/chrmsantos/chainsaw/main/VERSION"
 
     ' Cria objeto HTTP
     Set http = CreateObject("MSXML2.XMLHTTP")
@@ -7606,7 +7571,7 @@ Private Function GetRemoteVersion() As String
     ' Verifica resposta
     If http.Status = 200 Then
         response = http.responseText
-        version = ExtractJsonValue(response, "version")
+        version = ExtractVersionFromText(response)
         GetRemoteVersion = version
     Else
         LogMessage "Erro HTTP ao buscar versão remota: " & http.Status, LOG_LEVEL_WARNING
@@ -7626,35 +7591,35 @@ End Function
 '   - key: Chave a ser extraída
 ' Retorna: Valor da chave ou "" se não encontrado
 '================================================================================
-Private Function ExtractJsonValue(ByVal jsonText As String, ByVal key As String) As String
+Private Function ExtractVersionFromText(ByVal textValue As String) As String
     On Error GoTo ErrorHandler
 
     Dim regex As Object
     Dim matches As Object
     Dim pattern As String
 
-    ExtractJsonValue = ""
+    ExtractVersionFromText = ""
 
     Set regex = CreateObject("VBScript.RegExp")
 
-    ' Pattern para extrair valor de string JSON: "key": "value"
-    pattern = """" & key & """\s*:\s*""([^""]+)"""
+    ' Pattern para extrair versao no formato X.Y.Z
+    pattern = "([0-9]+)\.([0-9]+)\.([0-9]+)"
 
     regex.pattern = pattern
     regex.IgnoreCase = True
     regex.Global = False
 
-    Set matches = regex.Execute(jsonText)
+    Set matches = regex.Execute(textValue)
 
     If matches.count > 0 Then
-        ExtractJsonValue = matches(0).SubMatches(0)
+        ExtractVersionFromText = matches(0).Value
     End If
 
     Exit Function
 
 ErrorHandler:
-    LogMessage "Erro ao extrair valor JSON: " & Err.Description, LOG_LEVEL_ERROR
-    ExtractJsonValue = ""
+    LogMessage "Erro ao extrair versao: " & Err.Description, LOG_LEVEL_ERROR
+    ExtractVersionFromText = ""
 End Function
 
 ' Função: CompareVersions

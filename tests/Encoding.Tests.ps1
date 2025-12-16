@@ -9,11 +9,24 @@ $ErrorActionPreference = "Stop"
 Describe 'CHAINSAW - Testes de Encoding e Emojis' {
 
     $projectRoot = Split-Path -Parent $PSScriptRoot
+    $testsPath = Join-Path $projectRoot 'tests'
+
+    $psSearchRoots = @()
+    if (Test-Path $testsPath) { $psSearchRoots += $testsPath }
+    $psSearchRoots += $projectRoot
+
+    $script:ProjectPsFiles = @()
+    foreach ($root in $psSearchRoots) {
+        if (Test-Path $root) {
+            $script:ProjectPsFiles += Get-ChildItem -Path $root -Filter "*.ps1" -Recurse -File -ErrorAction SilentlyContinue
+        }
+    }
+    $script:ProjectPsFiles = $script:ProjectPsFiles | Sort-Object FullName -Unique
 
     Context 'Validacao de Encoding de Arquivos' {
 
         It 'Scripts PowerShell estao em UTF-8 com BOM ou ASCII' {
-            $psFiles = Get-ChildItem -Path "$projectRoot\tools\export" -Filter "*.ps1" -Recurse
+            $psFiles = $script:ProjectPsFiles
 
             foreach ($file in $psFiles) {
                 $bytes = [System.IO.File]::ReadAllBytes($file.FullName)
@@ -122,7 +135,7 @@ Describe 'CHAINSAW - Testes de Encoding e Emojis' {
         '[\uD83E][\uDE70-\uDEFF]'     # High surrogate for U+1FA70-1FAFF
 
         It 'Scripts PowerShell nao contem emojis' {
-            $psFiles = Get-ChildItem -Path "$projectRoot\tools\\export" -Filter "*.ps1" -Recurse
+            $psFiles = $script:ProjectPsFiles
 
             foreach ($file in $psFiles) {
                 $content = Get-Content $file.FullName -Raw -Encoding UTF8
@@ -197,7 +210,7 @@ Describe 'CHAINSAW - Testes de Encoding e Emojis' {
     Context 'Validacao de Caracteres Problematicos' {
 
         It 'Scripts PowerShell nao contem caracteres de controle invalidos' {
-            $psFiles = Get-ChildItem -Path "$projectRoot\tools\\export" -Filter "*.ps1" -Recurse
+            $psFiles = $script:ProjectPsFiles
 
             # Caracteres de controle permitidos: Tab (0x09), LF (0x0A), CR (0x0D)
             $allowedControlChars = @(0x09, 0x0A, 0x0D)
@@ -255,7 +268,7 @@ Describe 'CHAINSAW - Testes de Encoding e Emojis' {
     Context 'Consistencia de Line Endings' {
 
         It 'Scripts PowerShell usam CRLF (Windows)' {
-            $psFiles = Get-ChildItem -Path "$projectRoot\tools\\export" -Filter "*.ps1" -Recurse
+            $psFiles = $script:ProjectPsFiles
 
             foreach ($file in $psFiles) {
                 $bytes = [System.IO.File]::ReadAllBytes($file.FullName)
@@ -292,7 +305,7 @@ Describe 'CHAINSAW - Testes de Encoding e Emojis' {
     Context 'Validacao de BOM (Byte Order Mark)' {
 
         It 'Scripts PowerShell tem UTF-8 BOM ou sao ASCII puro' {
-            $psFiles = Get-ChildItem -Path "$projectRoot\tools\\export" -Filter "*.ps1" -Recurse
+            $psFiles = $script:ProjectPsFiles
 
             foreach ($file in $psFiles) {
                 $bytes = [System.IO.File]::ReadAllBytes($file.FullName)
@@ -483,9 +496,9 @@ Configuração do sistema
 
         It 'Nenhum arquivo usa UTF-16 (wide chars)' {
             $allTextFiles = @(
-                Get-ChildItem -Path "$projectRoot\tools\export" -Filter "*.ps1" -Recurse
-                Get-ChildItem -Path "$projectRoot\docs" -Filter "*.md" -Recurse
-                Get-ChildItem -Path "$projectRoot\tests" -Filter "*.ps1"
+                $script:ProjectPsFiles
+                if (Test-Path (Join-Path $projectRoot 'docs')) { Get-ChildItem -Path (Join-Path $projectRoot 'docs') -Filter "*.md" -Recurse -File -ErrorAction SilentlyContinue }
+                if (Test-Path (Join-Path $projectRoot 'tests')) { Get-ChildItem -Path (Join-Path $projectRoot 'tests') -Filter "*.ps1" -Recurse -File -ErrorAction SilentlyContinue }
             )
 
             foreach ($file in $allTextFiles) {
@@ -510,7 +523,7 @@ Configuração do sistema
         }
 
         It 'Nenhum arquivo tem encoding misto' {
-            $psFiles = Get-ChildItem -Path "$projectRoot\tools\\export" -Filter "*.ps1" -Recurse
+            $psFiles = $script:ProjectPsFiles
 
             foreach ($file in $psFiles) {
                 $bytes = [System.IO.File]::ReadAllBytes($file.FullName)

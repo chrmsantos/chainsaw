@@ -1,7 +1,7 @@
 # =============================================================================
 # CHAINSAW - Encoding Validator Helper
 # =============================================================================
-# Funções auxiliares para validação de encoding em arquivos
+# Funcoes auxiliares para validacao de encoding em arquivos
 # =============================================================================
 
 <#
@@ -29,7 +29,7 @@ function Test-FileEncoding {
     )
 
     if (-not (Test-Path $FilePath)) {
-        throw "Arquivo não encontrado: $FilePath"
+        throw "Arquivo nao encontrado: $FilePath"
     }
 
     $bytes = [System.IO.File]::ReadAllBytes($FilePath)
@@ -56,7 +56,7 @@ function Test-FileEncoding {
         }
     }
 
-    # Se não tem BOM, verifica se é ASCII ou UTF-8
+    # Se nao tem BOM, verifica se e ASCII ou UTF-8
     if ($detectedEncoding -eq 'Unknown') {
         $isAscii = $true
         foreach ($byte in $bytes) {
@@ -86,7 +86,7 @@ function Test-FileEncoding {
 
 <#
 .SYNOPSIS
-    Verifica se um arquivo contém caracteres corrompidos
+    Verifica se um arquivo contem caracteres corrompidos
 
 .PARAMETER FilePath
     Caminho do arquivo a verificar
@@ -102,27 +102,28 @@ function Test-CorruptedCharacters {
     )
 
     if (-not (Test-Path $FilePath)) {
-        throw "Arquivo não encontrado: $FilePath"
+        throw "Arquivo nao encontrado: $FilePath"
     }
 
     $content = Get-Content $FilePath -Raw -Encoding UTF8
 
     $issues = @()
 
-    # Verifica caracteres de substituição Unicode (U+FFFD)
-    if ($content -match '�') {
-        $issues += "Contém caracteres de substituição Unicode (�)"
+    # Verifica caractere de substituicao Unicode (U+FFFD)
+    $replacementChar = [string][char]0xFFFD
+    if ($content -like ("*" + $replacementChar + "*")) {
+        $issues += "Contem caractere de substituicao Unicode (U+FFFD)"
     }
 
     # Verifica null bytes
     if ($content -match '\x00') {
-        $issues += "Contém null bytes"
+        $issues += "Contem null bytes"
     }
 
-    # Verifica caracteres de controle inválidos
+    # Verifica caracteres de controle invalidos
     $controlCharsPattern = '[\x01-\x08\x0B\x0C\x0E-\x1F]'
     if ($content -match $controlCharsPattern) {
-        $issues += "Contém caracteres de controle inválidos"
+        $issues += "Contem caracteres de controle invalidos"
     }
 
     return [PSCustomObject]@{
@@ -134,7 +135,7 @@ function Test-CorruptedCharacters {
 
 <#
 .SYNOPSIS
-    Verifica se caracteres acentuados portugueses são lidos corretamente
+    Verifica se caracteres acentuados portugueses sao lidos corretamente
 
 .PARAMETER FilePath
     Caminho do arquivo a verificar
@@ -150,14 +151,17 @@ function Test-PortugueseAccents {
     )
 
     if (-not (Test-Path $FilePath)) {
-        throw "Arquivo não encontrado: $FilePath"
+        throw "Arquivo nao encontrado: $FilePath"
     }
 
     $contentUtf8 = Get-Content $FilePath -Raw -Encoding UTF8
     $contentDefault = Get-Content $FilePath -Raw
 
-    $accentedChars = @('ã', 'á', 'à', 'â', 'é', 'ê', 'í', 'ó', 'ô', 'õ', 'ú', 'ç',
-        'Ã', 'Á', 'À', 'Â', 'É', 'Ê', 'Í', 'Ó', 'Ô', 'Õ', 'Ú', 'Ç')
+    $accentedCodePoints = @(
+        0x00E3, 0x00E1, 0x00E0, 0x00E2, 0x00E9, 0x00EA, 0x00ED, 0x00F3, 0x00F4, 0x00F5, 0x00FA, 0x00E7,
+        0x00C3, 0x00C1, 0x00C0, 0x00C2, 0x00C9, 0x00CA, 0x00CD, 0x00D3, 0x00D4, 0x00D5, 0x00DA, 0x00C7
+    )
+    $accentedChars = $accentedCodePoints | ForEach-Object { [string][char]$_ }
 
     $foundAccents = @()
     foreach ($char in $accentedChars) {
@@ -201,7 +205,7 @@ function Test-LineEndings {
     )
 
     if (-not (Test-Path $FilePath)) {
-        throw "Arquivo não encontrado: $FilePath"
+        throw "Arquivo nao encontrado: $FilePath"
     }
 
     $bytes = [System.IO.File]::ReadAllBytes($FilePath)
@@ -249,16 +253,16 @@ function Test-LineEndings {
 
 <#
 .SYNOPSIS
-    Gera relatório de encoding para todos os arquivos em um diretório
+    Gera relatorio de encoding para todos os arquivos em um diretorio
 
 .PARAMETER Path
-    Caminho do diretório a analisar
+    Caminho do diretorio a analisar
 
 .PARAMETER Filter
     Filtro de arquivos (*.ps1, *.md, etc)
 
 .EXAMPLE
-    Get-EncodingReport -Path ".\tools\export" -Filter "*.ps1"
+    Get-EncodingReport -Path ".\tests" -Filter "*.ps1"
 #>
 function Get-EncodingReport {
     [CmdletBinding()]
@@ -271,7 +275,7 @@ function Get-EncodingReport {
     )
 
     if (-not (Test-Path $Path)) {
-        throw "Diretório não encontrado: $Path"
+        throw "Diretorio nao encontrado: $Path"
     }
 
     $files = Get-ChildItem -Path $Path -Filter $Filter -Recurse -File
@@ -301,7 +305,7 @@ function Get-EncodingReport {
     return $report
 }
 
-# Exporta funções
+# Exporta funcoes
 Export-ModuleMember -Function @(
     'Test-FileEncoding',
     'Test-CorruptedCharacters',

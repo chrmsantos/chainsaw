@@ -1,8 +1,9 @@
-﻿# CONFORMIDADE COM A LGPD - Lei Geral de Proteção de Dados Pessoais
+﻿# ATESTADO DE CONFORMIDADE COM A LGPD - Lei Geral de Proteção de Dados Pessoais
 
 **Sistema:** CHAINSAW - Sistema de Padronização de Proposituras Legislativas  
-**Versão:** 1.1-RC1  
-**Data:** 08 de novembro de 2025  
+**Versão:** 2.8.8
+**Desenvolvedor:** Christian Martin dos Santos  
+**Data:** 16 de dezembro de 2025
 **Lei de Referência:** Lei nº 13.709/2018 (LGPD)
 
 ---
@@ -37,10 +38,10 @@ O sistema processa **exclusivamente**:
 
 | Tipo de Dado | Finalidade | Base Legal LGPD | Armazenamento |
 |--------------|-----------|------------------|---------------|
-| Configurações locais do Word | Aplicar formatação padrão | Art. 7º, V - Execução de contrato | Local (máquina do usuário) |
-| Backups de documentos | Recuperação em caso de erro | Art. 7º, V - Execução de contrato | Local (.chainsaw/backups) |
-| Logs de operação | Debugging e auditoria | Art. 7º, V - Execução de contrato | Local (.chainsaw/logs) |
-| Templates de documento | Padronização de proposituras | Art. 7º, V - Execução de contrato | Local (AppData/Templates) |
+| Configuracoes locais do Word | Aplicar formatacao padrao | Art. 7, V - Execucao de contrato | Local (maquina do usuario) |
+| Backups de documentos | Recuperacao em caso de erro | Art. 7, V - Execucao de contrato | Local (`%TEMP%\.chainsaw\props\backups`) |
+| Logs de operacao | Debugging e auditoria | Art. 7, V - Execucao de contrato | Local (`%USERPROFILE%\chainsaw\source\logs`) |
+| Templates de documento | Padronizacao de proposituras | Art. 7, V - Execucao de contrato | Local (AppData/Templates) |
 
 **Importante:** Nenhum dos dados acima constitui "dado pessoal" conforme definição do Art. 5º, I da LGPD.
 
@@ -115,10 +116,10 @@ Mesmo sem coletar dados pessoais, o CHAINSAW garante conformidade:
 
 Para exercer qualquer direito:
 
-1. **Acesso a Logs:** `C:\Users\[usuario]\.chainsaw\logs\`
-2. **Acesso a Backups:** `C:\Users\[usuario]\.chainsaw\backups\`
-3. **Exclusão de Dados:** Deletar pasta `.chainsaw` manualmente
-4. **Desinstalação Completa:** Ver `docs/DESINSTALACAO.md`
+1. **Acesso a Logs:** `%USERPROFILE%\chainsaw\source\logs\`
+2. **Acesso a Backups:** `%TEMP%\.chainsaw\props\backups\`
+3. **Exclusao de Dados:** Deletar `%USERPROFILE%\chainsaw\source\logs\` (logs) e `%TEMP%\.chainsaw\` (backups) manualmente
+4. **Desinstalacao Completa:** Remover a pasta do projeto (ex: `C:\Users\[usuario]\chainsaw\`) e seus subdiretorios
 
 ---
 
@@ -154,7 +155,7 @@ Para exercer qualquer direito:
    - Auditoria pública disponível
 
 [OK] Testes Automatizados
-   - 172 testes unitários (100% de aprovação)
+   - 181 testes unitários (100% de aprovação)
    - Validação de segurança em VBA e PowerShell
    - Verificação de integridade de código
 
@@ -168,13 +169,13 @@ Para exercer qualquer direito:
 
 ```text
 [OK] Backups Locais
-   - Armazenados em: .chainsaw/backups/
+   - Armazenados em: %TEMP%\.chainsaw\props\backups\
    - Limite automático: 10 backups mais recentes
    - Rotação automática (FIFO)
    - Formato: .docx padrão (criptografável pelo usuário)
 
 [OK] Logs de Operação
-   - Armazenados em: .chainsaw/logs/
+   - Armazenados em: %USERPROFILE%\chainsaw\source\logs\
    - Formato: texto simples (sem dados sensíveis)
    - Rotação por data
    - Limpeza manual pelo usuário
@@ -189,7 +190,7 @@ Para exercer qualquer direito:
 
 | Controle | Implementação | Arquivo de Referência |
 |----------|---------------|----------------------|
-| **Validação de Caminhos** | Test-Path, validação de extensões | install.ps1, linhas 250-280 |
+| **Validação de Caminhos** | Test-Path, validação de extensões | tests/All.Tests.ps1 |
 | **Tratamento de Erros** | Try-Catch em todas as operações | Módulo1.bas, ErrorHandler |
 | **Limpeza de Recursos** | SafeCleanup, ReleaseObjects | Módulo1.bas, linhas 1500+ |
 | **Timeout de Operações** | MAX_OPERATION_TIMEOUT_SECONDS | Módulo1.bas, linha 100 |
@@ -206,7 +207,7 @@ Para exercer qualquer direito:
 [OK] **Constantes Privadas:** Configurações sensíveis como Private Const  
 [OK] **Error Handling:** Try-Catch completo em todas as operações críticas  
 
-#### Código PowerShell (install.ps1, export-config.ps1, update-vba-module.ps1)
+#### Código PowerShell (tests/*.ps1)
 
 [OK] **[CmdletBinding()]:** Uso correto de parâmetros vinculados  
 [OK] **ExecutionPolicy Bypass:** Apenas para scripts assinados localmente  
@@ -241,7 +242,7 @@ O desenvolvedor do CHAINSAW (Christian Martin dos Santos) garante:
 
 1. [OK] **Código Auditável:** Código-fonte aberto sob GPLv3
 2. [OK] **Documentação Completa:** Toda operação documentada
-3. [OK] **Testes Rigorosos:** 172 testes automatizados
+3. [OK] **Testes Rigorosos:** 181 testes automatizados
 4. [OK] **Atualizações de Segurança:** Correções de bugs e vulnerabilidades
 5. [OK] **Transparência:** Changelog completo de todas as versões
 
@@ -291,7 +292,7 @@ Embora o risco seja **mínimo** (processamento local), em caso de vulnerabilidad
 
 O CHAINSAW mantém logs de operação para auditoria:
 
-**Localização:** `.chainsaw/logs/chainsaw_[data].log`
+**Localização:** `%USERPROFILE%\chainsaw\source\logs\chainsaw_[data].log`
 
 #### Conteúdo dos Logs
 
@@ -305,7 +306,7 @@ O CHAINSAW mantém logs de operação para auditoria:
 
 ```text
 [2025-11-08 14:30:45] INFO: Iniciando padronização de documento
-[2025-11-08 14:30:46] INFO: Backup criado: .chainsaw/backups/backup_20251108_143046.docx
+[2025-11-08 14:30:46] INFO: Backup criado: %TEMP%\.chainsaw\props\backups\backup_20251108_143046.docx
 [2025-11-08 14:30:48] INFO: Formatação aplicada com sucesso
 ```
 
@@ -313,7 +314,7 @@ O CHAINSAW mantém logs de operação para auditoria:
 
 #### Sistema de Testes Automatizados
 
-- **172 testes** cobrindo segurança, integridade e conformidade
+- **181 testes** cobrindo segurança, integridade e conformidade
 - **100% de aprovação** obrigatória para releases
 - **Validações incluem:**
   - Ausência de hardcoded credentials
@@ -391,8 +392,9 @@ Se sua organização processar dados pessoais nos documentos:
 
 - `README.md` - Visão geral do sistema
 - `LICENSE` - Licença GNU GPLv3
-- `CHANGELOG.md` - Histórico de versões
-- `docs/SEGURANCA_PRIVACIDADE.md` - Política de Segurança e Privacidade
+- `VERSION` - Versao atual do projeto
+- `SECURITY.md` - Politica de seguranca
+- `PRIVACY_POLICY.md` - Politica de privacidade
 - `tests/` - Testes automatizados de segurança
 
 ---
@@ -409,8 +411,8 @@ Christian Martin dos Santos
 **Reporte de Vulnerabilidades:**  
 GitHub Issues (tag: security) ou email direto
 
-**Documentação Completa:**  
-Ver pasta `docs/` no repositório
+**Documentacao Completa:**
+Ver os arquivos `.md` na raiz do repositorio
 
 ---
 

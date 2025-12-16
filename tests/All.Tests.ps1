@@ -1,7 +1,5 @@
 ﻿#requires -Version 5.1
 Import-Module Pester -ErrorAction Stop
-#requires -Version 5.1
-Import-Module Pester -ErrorAction Stop
 . $PSScriptRoot\Helpers.ps1
 
 # Sobrepor Get-RepoRoot caso Helpers.ps1 contenha uma implementação falha
@@ -44,9 +42,9 @@ Describe 'CHAINSAW - Testes de Integridade' {
 
     Context 'Documentação' {
         It 'Existem docs essenciais mínimos' {
-            $expected = @('IDENTIFICACAO_ELEMENTOS.md','SUBSTITUICOES_CONDICIONAIS.md','VALIDACAO_TIPO_DOCUMENTO.md')
+            $expected = @('README.md','PRIVACY_POLICY.md','SECURITY.md','LGPD_ATESTADO.md','LICENSE','VERSION')
             foreach ($e in $expected) {
-                (Test-Path (Join-Path (Get-RepoRoot) "docs\$e")) | Should Be $true
+                (Test-Path (Join-Path (Get-RepoRoot) $e)) | Should Be $true
             }
         }
 
@@ -57,8 +55,8 @@ Describe 'CHAINSAW - Testes de Integridade' {
     }
 
     Context 'Test Suites' {
-        It 'Existe suite de testes de exportação' {
-            Test-Path (Join-Path (Get-RepoRoot) "tests\Export.Tests.ps1") | Should Be $true
+        It 'Existe suite de testes de encoding' {
+            Test-Path (Join-Path (Get-RepoRoot) "tests\Encoding.Tests.ps1") | Should Be $true
         }
 
         It 'Existe suite de testes VBA' {

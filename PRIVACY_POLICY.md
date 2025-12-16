@@ -23,7 +23,7 @@ O CHAINSAW é um software livre e de código aberto que processa documentos **ex
 ### 2.1 Controlador de Dados
 
 **Nome:** Projeto CHAINSAW (Open Source)  
-**Repositório:** https://github.com/chrmsantos/chainsaw  
+**Repositório:** <https://github.com/chrmsantos/chainsaw>  
 **Natureza:** Software Livre (GPLv3)  
 **Tipo:** Ferramenta de Processamento Local
 
@@ -60,8 +60,8 @@ O CHAINSAW processa **exclusivamente em seu computador**:
 | Tipo de Dado | Finalidade | Localização | Base Legal (LGPD) |
 |--------------|-----------|-------------|-------------------|
 | Configurações do Word | Aplicar formatação padrão | Registro do Windows | Art. 7º, V (Execução de contrato) |
-| Backups de documentos | Recuperação em caso de erro | `%USERPROFILE%\chainsaw\props\backups` | Art. 7º, V (Execução de contrato) |
-| Logs de operação | Debugging e diagnóstico | `%USERPROFILE%\chainsaw\props\logs` | Art. 7º, V (Execução de contrato) |
+| Backups de documentos | Recuperação em caso de erro | `%TEMP%\.chainsaw\props\backups` | Art. 7º, V (Execução de contrato) |
+| Logs de operação | Debugging e diagnóstico | `%USERPROFILE%\chainsaw\source\logs` | Art. 7º, V (Execução de contrato) |
 | Templates | Padronização de documentos | `%APPDATA%\Microsoft\Templates` | Art. 7º, V (Execução de contrato) |
 
 **Importante:** Nenhum dos dados acima constitui "dado pessoal" conforme Art. 5º, I da LGPD.
@@ -175,10 +175,10 @@ Para reportar vulnerabilidades de segurança, consulte `SECURITY.md` no reposit�
 
 Todos os dados são armazenados **localmente** em:
 
-```
+```text
 %USERPROFILE%\chainsaw\
-├── props\logs\                           # Logs de operação
-├── props\backups\                        # Backups de documentos
+├── source\logs\                          # Logs de operação
+├── %TEMP%\.chainsaw\props\backups\       # Backups de documentos (runtime)
 └── props\recovery_tmp\                   # Arquivos temporários de recuperação
 
 %APPDATA%\Microsoft\Templates\
@@ -187,7 +187,7 @@ Todos os dados são armazenados **localmente** em:
 
 ### 7.2 Retenção de Dados
 
-- **Logs**: Mantidos indefinidamente (podem ser excluídos manualmente)
+- **Logs**: Retenção limitada (mantém os 5 arquivos mais recentes por padrão)
 - **Backups**: Mantidos indefinidamente (podem ser excluídos manualmente)
 - **Configurações**: Mantidas enquanto o software for utilizado
 
@@ -361,7 +361,7 @@ Para questões relacionadas ao software, utilize o repositório GitHub do projet
 
 ### 17.1 Questões sobre Privacidade
 
-- **Repositório GitHub**: https://github.com/chrmsantos/chainsaw
+- **Repositório GitHub**: <https://github.com/chrmsantos/chainsaw>
 - **Issues**: Para reportar problemas ou fazer perguntas
 - **Documentação**: Consulte os arquivos .md no repositório
 
@@ -373,7 +373,7 @@ Consulte `SECURITY.md` para instruções sobre como reportar vulnerabilidades.
 
 Para dúvidas sobre conformidade com LGPD, consulte:
 
-- `LGPD_CONFORMIDADE.md`
+- `LGPD_ATESTADO.md`
 
 ---
 
@@ -381,12 +381,12 @@ Para dúvidas sobre conformidade com LGPD, consulte:
 
 ### 18.1 Atestado de Conformidade
 
-Este software possui **Atestado de Conformidade LGPD** disponível em `LGPD_CONFORMIDADE.md`.
+Este software possui **Atestado de Conformidade LGPD** disponível em `LGPD_ATESTADO.md`.
 
 ### 18.2 Auditoria
 
 O código-fonte está disponível para auditoria em:
-https://github.com/chrmsantos/chainsaw
+<https://github.com/chrmsantos/chainsaw>
 
 ### 18.3 Certificação de Não Coleta
 
