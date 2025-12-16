@@ -2738,6 +2738,12 @@ Private Function ApplyStdFontOptimized(doc As Document) As Boolean
 
     ' SINGLE PASS - Processa todos os parágrafos em uma passagem usando cache
     For i = 1 To cacheSize
+        ' Validação de limites
+        If i < 1 Or i > UBound(paragraphCache) Then
+            LogMessage "Erro: Índice de cache inválido (" & i & ")", LOG_LEVEL_WARNING
+            GoTo NextParagraph
+        End If
+
         cache = paragraphCache(i)
 
         ' Pula parágrafos vazios ou com imagens
@@ -5173,6 +5179,7 @@ End Function
 '================================================================================
 Private Function ApplyTextReplacements(doc As Document) As Boolean
     Dim errorContext As String
+    Dim i As Long  ' Movida para escopo de função
     On Error GoTo ErrorHandler
 
     ' Validação de documento
@@ -5196,7 +5203,6 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
 
     ' Funcionalidade 10: Substitui variantes de "d'Oeste"
     Dim dOesteVariants() As String
-    Dim i As Long
 
     ' Define as variantes possíveis dos 3 primeiros caracteres de "d'Oeste"
     ReDim dOesteVariants(0 To 15)
