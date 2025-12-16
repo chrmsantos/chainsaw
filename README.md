@@ -13,12 +13,12 @@ Ferramenta para padronizar proposituras legislativas no Microsoft Word.
 ```text
 chainsaw/
 |-- assets/
-|-- props/
-|   |-- backups/
 |-- source/
-|   |-- logs/
 |   `-- main/
 `-- tests/
+
+Logs: %USERPROFILE%\chainsaw\source\logs
+Backups: %TEMP%\.chainsaw\props\backups
 ```
 
 ## Testes
