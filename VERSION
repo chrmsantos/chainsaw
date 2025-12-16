@@ -2,16 +2,21 @@
 
 ## Current Version
 
-2.0.3
+2.8.8
 
 ## Release Information
 
 - **Status**: Beta
-- **Release Date**: 2025-11-28
+- **Release Date**: N/A
 - **Codename**: Padronizador
 - **Release Type**: Feature Release
 
 ## Version History
+
+### 2.8.8 - Beta
+
+- Alinhado ao CHAINSAW_VERSION do código
+- Limpeza de referências obsoletas e padronização de caminhos
 
 ### 2.0.3 (2025-11-28) - Beta
 
@@ -59,7 +64,7 @@
 
 This project follows **Semantic Versioning 2.0.0** (<https://semver.org/>)
 
-- **MAJOR.MINOR.PATCH** (e.g., 2.0.3)
+- **MAJOR.MINOR.PATCH** (e.g., 2.8.8)
   - **MAJOR**: Incompatible API changes
   - **MINOR**: Backward-compatible functionality additions
   - **PATCH**: Backward-compatible bug fixes
@@ -78,7 +83,7 @@ For security issues and vulnerability reporting, see SECURITY.md
 
 ## Compliance
 
-For LGPD compliance information, see LGPD_ATESTADO.md
+For LGPD compliance information, see LGPD_CONFORMIDADE.md
 
 ---
 **Last Updated**: 2025-12-04

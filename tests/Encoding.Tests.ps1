@@ -407,27 +407,25 @@ Describe 'CHAINSAW - Testes de Encoding e Emojis' {
 
     Context 'Validacao de Encoding Cross-Platform' {
 
-        It 'version.json pode ser lido em qualquer plataforma' {
-            $versionFile = "$projectRoot\version.json"
+        It 'VERSION pode ser lido em qualquer plataforma' {
+            $versionFile = "$projectRoot\VERSION"
 
             if (Test-Path $versionFile) {
-                # JSON deve ser UTF-8 sem BOM para compatibilidade
+                # Deve ser UTF-8 sem BOM para compatibilidade
                 $bytes = [System.IO.File]::ReadAllBytes($versionFile)
 
-                # Nao deve ter BOM
                 $hasUtf8Bom = ($bytes.Length -ge 3) -and
                 ($bytes[0] -eq 0xEF) -and
                 ($bytes[1] -eq 0xBB) -and
                 ($bytes[2] -eq 0xBF)
 
                 if ($hasUtf8Bom) {
-                    Write-Warning "version.json tem UTF-8 BOM - melhor usar UTF-8 sem BOM para JSON"
+                    Write-Warning "VERSION tem UTF-8 BOM - melhor usar UTF-8 sem BOM"
                 }
 
-                # Deve ser JSON valido
+                # Deve conter um número de versão simples
                 $content = Get-Content $versionFile -Raw -Encoding UTF8
-                $json = $content | ConvertFrom-Json
-                $json.version | Should Not BeNullOrEmpty
+                $content | Should Match '[0-9]+\.[0-9]+\.[0-9]+'
             }
         }
 

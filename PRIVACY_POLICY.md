@@ -1,7 +1,7 @@
 # POLÍTICA DE PRIVACIDADE
 
 **Projeto:** CHAINSAW - Sistema de Padronização de Proposituras Legislativas  
-**Versão:** 2.0.3  
+**Versão:** 2.8.8  
 **Data de Vigência:** 04 de dezembro de 2025  
 **Última Atualização:** 04 de dezembro de 2025
 
@@ -373,8 +373,7 @@ Consulte `SECURITY.md` para instruções sobre como reportar vulnerabilidades.
 
 Para dúvidas sobre conformidade com LGPD, consulte:
 
-- `LGPD_ATESTADO.md`
-- `docs/LGPD_CONFORMIDADE.md`
+- `LGPD_CONFORMIDADE.md`
 
 ---
 
@@ -382,7 +381,7 @@ Para dúvidas sobre conformidade com LGPD, consulte:
 
 ### 18.1 Atestado de Conformidade
 
-Este software possui **Atestado de Conformidade LGPD** disponível em `LGPD_ATESTADO.md`.
+Este software possui **Atestado de Conformidade LGPD** disponível em `LGPD_CONFORMIDADE.md`.
 
 ### 18.2 Auditoria
 
@@ -430,7 +429,7 @@ O CHAINSAW foi desenvolvido com **máximo respeito à privacidade** dos usuário
 
 **Data de Vigência:** 04 de dezembro de 2025  
 **Versão da Política:** 1.0  
-**Versão do Software:** 2.0.3  
+**Versão do Software:** 2.8.8  
 
 **Última Atualização:** 04 de dezembro de 2025
 
