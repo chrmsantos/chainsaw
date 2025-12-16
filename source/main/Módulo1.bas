@@ -243,8 +243,8 @@ Public Sub PadronizarDocumentoMain()
         Application.StatusBar = "Aviso: Log desabilitado"
     End If
 
-    ' Inicializa sistema de progresso (11 etapas do pipeline)
-    InitializeProgress 11
+    ' Inicializa sistema de progresso (14 etapas do pipeline - 2 passagens)
+    InitializeProgress 14
 
     If Not SetAppState(False, "Iniciando...") Then
         LogMessage "Falha ao configurar estado da aplicação", LOG_LEVEL_WARNING
@@ -282,26 +282,32 @@ Public Sub PadronizarDocumentoMain()
     End If
 
     ' ==========================================================================
-    ' PIPELINE DE FORMATAÇÃO (PASSO ÚNICO)
+    ' PIPELINE DE FORMATAÇÃO (DUPLA PASSAGEM)
     ' ==========================================================================
 
-    LogMessage "=== PIPELINE DE FORMATAÇÃO ===", LOG_LEVEL_INFO
+    LogMessage "=== PIPELINE DE FORMATAÇÃO (2 PASSAGENS) ===", LOG_LEVEL_INFO
 
     ' Constrói cache de parágrafos
     IncrementProgress "Indexando parágrafos"
     BuildParagraphCache doc
 
-    ' Formata documento
-    IncrementProgress "Formatando documento"
-    If Not PreviousFormatting(doc) Then
-        GoTo CleanUp
-    End If
+    ' Executa formatacao em 2 passagens para garantir estabilidade
+    Dim pipelinePass As Integer
+    For pipelinePass = 1 To 2
+        LogMessage "=== PASSAGEM " & pipelinePass & " DE 2 ===", LOG_LEVEL_INFO
 
-    ' Restaura imagens após formatações
-    IncrementProgress "Restaurando imagens"
-    If Not RestoreAllImages(doc) Then
-        LogMessage "Aviso: Algumas imagens podem ter sido afetadas durante o processamento", LOG_LEVEL_WARNING
-    End If
+        ' Formata documento
+        IncrementProgress "Formatando documento (" & pipelinePass & "ª passagem)"
+        If Not PreviousFormatting(doc) Then
+            GoTo CleanUp
+        End If
+
+        ' Restaura imagens após formatações
+        IncrementProgress "Restaurando imagens (" & pipelinePass & "ª passagem)"
+        If Not RestoreAllImages(doc) Then
+            LogMessage "Aviso: Algumas imagens podem ter sido afetadas durante o processamento", LOG_LEVEL_WARNING
+        End If
+    Next pipelinePass
 
     ' Formata recuos de parágrafos com imagens (zera recuo à esquerda)
     IncrementProgress "Ajustando layout"
