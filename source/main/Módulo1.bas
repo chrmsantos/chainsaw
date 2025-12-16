@@ -5060,7 +5060,7 @@ Private Function FormatDocumentTitle(doc As Document) As Boolean
     End If
 
     ' SEMPRE aplica formatação de título: caixa alta, negrito, sublinhado
-    firstPara.Range.text = UCase(newText) & vbCrLf
+    firstPara.Range.text = UCase(newText)
 
     ' Formatação completa do título (primeira linha)
     With firstPara.Range.Font
