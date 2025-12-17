@@ -1,7 +1,7 @@
 ﻿' =============================================================================
 ' CHAINSAW - Sistema de Padronizacao de Proposituras Legislativas
 ' =============================================================================
-' Versao: 2.9.3
+' Versao: 2.9.4
 ' Data: 2025-12-17
 ' Licenca: GNU GPLv3 (https://www.gnu.org/licenses/gpl-3.0.html)
 ' Compatibilidade: Microsoft Word 2010+
@@ -5599,6 +5599,102 @@ ErrorHandler:
 End Sub
 
 '================================================================================
+' FUNÇÕES AUXILIARES PARA MANIPULAÇÃO DE LINHAS EM BRANCO
+'================================================================================
+
+' Remove linhas vazias ANTES de um paragrafo especifico
+' Retorna o novo indice do paragrafo apos remocoes
+Private Function RemoveBlankLinesBefore(doc As Document, ByVal targetIndex As Long) As Long
+    On Error GoTo ErrorHandler
+
+    Dim para As Paragraph
+    Dim paraText As String
+    Dim i As Long
+
+    i = targetIndex - 1
+    Do While i >= 1
+        Set para = doc.Paragraphs(i)
+        paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+
+        If paraText = "" And Not HasVisualContent(para) Then
+            para.Range.Delete
+            targetIndex = targetIndex - 1
+            i = i - 1
+        Else
+            Exit Do
+        End If
+    Loop
+
+    RemoveBlankLinesBefore = targetIndex
+    Exit Function
+
+ErrorHandler:
+    RemoveBlankLinesBefore = targetIndex
+End Function
+
+' Remove linhas vazias DEPOIS de um paragrafo especifico
+Private Sub RemoveBlankLinesAfter(doc As Document, ByVal targetIndex As Long)
+    On Error GoTo ErrorHandler
+
+    Dim para As Paragraph
+    Dim paraText As String
+    Dim i As Long
+
+    i = targetIndex + 1
+    Do While i <= doc.Paragraphs.count
+        Set para = doc.Paragraphs(i)
+        paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+
+        If paraText = "" And Not HasVisualContent(para) Then
+            para.Range.Delete
+        Else
+            Exit Do
+        End If
+    Loop
+
+    Exit Sub
+
+ErrorHandler:
+    ' Silently continue
+End Sub
+
+' Insere N linhas em branco ANTES de um paragrafo
+Private Sub InsertBlankLinesBefore(doc As Document, ByVal targetIndex As Long, ByVal lineCount As Long)
+    On Error GoTo ErrorHandler
+
+    Dim para As Paragraph
+    Dim j As Long
+
+    Set para = doc.Paragraphs(targetIndex)
+    For j = 1 To lineCount
+        para.Range.InsertParagraphBefore
+    Next j
+
+    Exit Sub
+
+ErrorHandler:
+    LogMessage "Erro ao inserir linhas antes: " & Err.Description, LOG_LEVEL_WARNING
+End Sub
+
+' Insere N linhas em branco DEPOIS de um paragrafo
+Private Sub InsertBlankLinesAfter(doc As Document, ByVal targetIndex As Long, ByVal lineCount As Long)
+    On Error GoTo ErrorHandler
+
+    Dim para As Paragraph
+    Dim j As Long
+
+    Set para = doc.Paragraphs(targetIndex)
+    For j = 1 To lineCount
+        para.Range.InsertParagraphAfter
+    Next j
+
+    Exit Sub
+
+ErrorHandler:
+    LogMessage "Erro ao inserir linhas depois: " & Err.Description, LOG_LEVEL_WARNING
+End Sub
+
+'================================================================================
 ' INSERÇÃO DE LINHAS EM BRANCO NA JUSTIFICATIVA
 '================================================================================
 Private Sub InsertJustificativaBlankLines(doc As Document)
@@ -5630,54 +5726,16 @@ Private Sub InsertJustificativaBlankLines(doc As Document)
     Next i
 
     If justificativaIndex = 0 Then
-        Exit Sub ' Não encontrou "Justificativa"
+        Exit Sub ' Nao encontrou "Justificativa"
     End If
 
-    ' FASE 2: Remove TODAS as linhas vazias ANTES de "Justificativa"
-    i = justificativaIndex - 1
-    Do While i >= 1
-        Set para = doc.Paragraphs(i)
-        paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+    ' FASE 2-5: Remove linhas vazias e insere exatamente 2 antes e 2 depois
+    justificativaIndex = RemoveBlankLinesBefore(doc, justificativaIndex)
+    RemoveBlankLinesAfter doc, justificativaIndex
+    InsertBlankLinesBefore doc, justificativaIndex, 2
+    InsertBlankLinesAfter doc, justificativaIndex + 2, 2  ' +2 por causa das insercoes anteriores
 
-        If paraText = "" And Not HasVisualContent(para) Then
-            ' Remove linha vazia
-            para.Range.Delete
-            justificativaIndex = justificativaIndex - 1 ' Ajusta índice
-            i = i - 1
-        Else
-            ' Encontrou conteúdo, para de remover
-            Exit Do
-        End If
-    Loop
-
-    ' FASE 3: Remove TODAS as linhas vazias DEPOIS de "Justificativa"
-    i = justificativaIndex + 1
-    Do While i <= doc.Paragraphs.count
-        Set para = doc.Paragraphs(i)
-        paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
-
-        If paraText = "" And Not HasVisualContent(para) Then
-            ' Remove linha vazia
-            para.Range.Delete
-            ' Não incrementa i pois removemos o parágrafo
-        Else
-            ' Encontrou conteúdo, para de remover
-            Exit Do
-        End If
-    Loop
-
-    ' FASE 4: Insere EXATAMENTE 2 linhas em branco ANTES
-    Set para = doc.Paragraphs(justificativaIndex)
-    para.Range.InsertParagraphBefore
-    para.Range.InsertParagraphBefore
-
-    ' FASE 5: Insere EXATAMENTE 2 linhas em branco DEPOIS
-    ' Atualiza referência após inserções anteriores
-    Set para = doc.Paragraphs(justificativaIndex + 2) ' +2 porque inserimos 2 antes
-    para.Range.InsertParagraphAfter
-    para.Range.InsertParagraphAfter
-
-    LogMessage "Linhas em branco ajustadas: exatamente 2 antes e 2 depois de 'Justificativa'", LOG_LEVEL_INFO
+    LogMessage "Linhas em branco ajustadas: 2 antes e 2 depois de 'Justificativa'", LOG_LEVEL_INFO
 
     ' FASE 6: Processa "Plenário Dr. Tancredo Neves"
     Dim plenarioIndex As Long
@@ -5702,50 +5760,13 @@ Private Sub InsertJustificativaBlankLines(doc As Document)
     Next i
 
     If plenarioIndex > 0 Then
-        ' Remove TODAS as linhas vazias ANTES de "Plenário..."
-        i = plenarioIndex - 1
-        Do While i >= 1
-            Set para = doc.Paragraphs(i)
-            paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+        ' Remove linhas vazias e insere exatamente 2 antes e 2 depois
+        plenarioIndex = RemoveBlankLinesBefore(doc, plenarioIndex)
+        RemoveBlankLinesAfter doc, plenarioIndex
+        InsertBlankLinesBefore doc, plenarioIndex, 2
+        InsertBlankLinesAfter doc, plenarioIndex + 2, 2
 
-            If paraText = "" And Not HasVisualContent(para) Then
-                ' Remove linha vazia
-                para.Range.Delete
-                plenarioIndex = plenarioIndex - 1 ' Ajusta índice
-                i = i - 1
-            Else
-                ' Encontrou conteúdo, para de remover
-                Exit Do
-            End If
-        Loop
-
-        ' Remove TODAS as linhas vazias DEPOIS de "Plenário..."
-        i = plenarioIndex + 1
-        Do While i <= doc.Paragraphs.count
-            Set para = doc.Paragraphs(i)
-            paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
-
-            If paraText = "" And Not HasVisualContent(para) Then
-                ' Remove linha vazia
-                para.Range.Delete
-                ' Não incrementa i pois removemos o parágrafo
-            Else
-                ' Encontrou conteúdo, para de remover
-                Exit Do
-            End If
-        Loop
-
-        ' Insere EXATAMENTE 2 linhas em branco ANTES
-        Set para = doc.Paragraphs(plenarioIndex)
-        para.Range.InsertParagraphBefore
-        para.Range.InsertParagraphBefore
-
-        ' Insere EXATAMENTE 2 linhas em branco DEPOIS
-        Set para = doc.Paragraphs(plenarioIndex + 2) ' +2 porque inserimos 2 antes
-        para.Range.InsertParagraphAfter
-        para.Range.InsertParagraphAfter
-
-        LogMessage "2 linhas em branco inseridas antes e depois de 'Plenário Dr. Tancredo Neves'", LOG_LEVEL_INFO
+        LogMessage "2 linhas em branco inseridas antes e depois de 'Plenario Dr. Tancredo Neves'", LOG_LEVEL_INFO
     End If
 
     ' FASE 7: Processa "Excelentíssimo Senhor Prefeito Municipal,"
@@ -5771,28 +5792,11 @@ Private Sub InsertJustificativaBlankLines(doc As Document)
     Next i
 
     If prefeitoIndex > 0 Then
-        ' FASE 8: Remove TODAS as linhas vazias DEPOIS de "Excelentíssimo..."
-        i = prefeitoIndex + 1
-        Do While i <= doc.Paragraphs.count
-            Set para = doc.Paragraphs(i)
-            paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
+        ' Remove linhas vazias depois e insere exatamente 2
+        RemoveBlankLinesAfter doc, prefeitoIndex
+        InsertBlankLinesAfter doc, prefeitoIndex, 2
 
-            If paraText = "" And Not HasVisualContent(para) Then
-                ' Remove linha vazia
-                para.Range.Delete
-                ' Não incrementa i pois removemos o parágrafo
-            Else
-                ' Encontrou conteúdo, para de remover
-                Exit Do
-            End If
-        Loop
-
-        ' FASE 9: Insere EXATAMENTE 2 linhas em branco DEPOIS
-        Set para = doc.Paragraphs(prefeitoIndex)
-        para.Range.InsertParagraphAfter
-        para.Range.InsertParagraphAfter
-
-        LogMessage "2 linhas em branco inseridas após 'Excelentíssimo Senhor Prefeito Municipal,'", LOG_LEVEL_INFO
+        LogMessage "2 linhas em branco inseridas apos 'Excelentissimo Senhor Prefeito Municipal,'", LOG_LEVEL_INFO
     End If
 
     Exit Sub
