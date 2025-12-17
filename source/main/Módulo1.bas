@@ -1,7 +1,7 @@
 ﻿' =============================================================================
 ' CHAINSAW - Sistema de Padronizacao de Proposituras Legislativas
 ' =============================================================================
-' Versao: 2.9.1
+' Versao: 2.9.2
 ' Data: 2025-12-17
 ' Licenca: GNU GPLv3 (https://www.gnu.org/licenses/gpl-3.0.html)
 ' Compatibilidade: Microsoft Word 2010+
@@ -67,7 +67,7 @@ Private Const HEADER_IMAGE_HEIGHT_RATIO As Double = 0.19
 '================================================================================
 ' CONSTANTES DE SISTEMA
 '================================================================================
-Private Const CHAINSAW_VERSION As String = "2.9.1"
+Private Const CHAINSAW_VERSION As String = "2.9.2"
 Private Const MIN_SUPPORTED_VERSION As Long = 14
 Private Const REQUIRED_STRING As String = "$NUMERO$/$ANO$"
 Private Const MAX_BACKUP_FILES As Long = 10
@@ -88,15 +88,15 @@ Private Const CONSIDERANDO_MIN_LENGTH As Long = 12
 Private Const JUSTIFICATIVA_TEXT As String = "justificativa"
 
 '================================================================================
-' CONSTANTES DE IDENTIFICAÇÃO DE ELEMENTOS ESTRUTURAIS
+' CONSTANTES DE IDENTIFICACAO DE ELEMENTOS ESTRUTURAIS
 '================================================================================
-' Critérios para identificação dos elementos da propositura
-Private Const TITULO_MIN_LENGTH As Long = 15              ' Comprimento mínimo do título
-Private Const EMENTA_MIN_LEFT_INDENT As Single = 6        ' Recuo mínimo à esquerda da ementa (em pontos)
-Private Const PLENARIO_TEXT As String = "plenário ""dr. tancredo neves"""  ' Texto identificador da data
+' Criterios para identificacao dos elementos da propositura
+Private Const TITULO_MIN_LENGTH As Long = 15              ' Comprimento minimo do titulo
+Private Const EMENTA_MIN_LEFT_INDENT As Single = 6        ' Recuo minimo a esquerda da ementa (em pontos)
+Private Const PLENARIO_TEXT As String = "plenario"        ' Texto identificador da data (parcial)
 Private Const ANEXO_TEXT_SINGULAR As String = "anexo"     ' Texto identificador de anexo (singular)
 Private Const ANEXO_TEXT_PLURAL As String = "anexos"      ' Texto identificador de anexo (plural)
-Private Const ASSINATURA_PARAGRAPH_COUNT As Long = 3      ' Número de parágrafos da assinatura
+Private Const ASSINATURA_PARAGRAPH_COUNT As Long = 3      ' Numero de paragrafos da assinatura
 Private Const ASSINATURA_BLANK_LINES_BEFORE As Long = 2   ' Linhas em branco antes da assinatura
 
 '================================================================================
@@ -282,15 +282,14 @@ Public Sub PadronizarDocumentoMain()
     End If
 
     ' ==========================================================================
-    ' PIPELINE DE FORMATAÇÃO (DUPLA PASSAGEM)
+    ' PIPELINE DE FORMATACAO (DUPLA PASSAGEM)
     ' ==========================================================================
 
-    LogMessage "=== PIPELINE DE FORMATAÇÃO (2 PASSAGENS) ===", LOG_LEVEL_INFO
+    LogMessage "=== PIPELINE DE FORMATACAO (2 PASSAGENS) ===", LOG_LEVEL_INFO
 
-    ' Constrói cache de parágrafos e identifica estrutura do documento
-    IncrementProgress "Indexando parágrafos"
+    ' Constroi cache de paragrafos (inclui identificacao de estrutura)
+    IncrementProgress "Indexando paragrafos"
     BuildParagraphCache doc
-    IdentifyDocumentStructure doc
 
     ' Executa formatacao em 2 passagens para garantir estabilidade
     Dim pipelinePass As Integer
@@ -529,10 +528,9 @@ Private Sub CloseAllOpenFiles()
 
     Dim fileNumber As Integer
     For fileNumber = 1 To 511
-        If Not EOF(fileNumber) Then
-            Close fileNumber
-        End If
+        Close #fileNumber
     Next fileNumber
+    Err.Clear
 End Sub
 
 '================================================================================
@@ -634,16 +632,19 @@ End Function
 '================================================================================
 Private Function NormalizarTexto(text As String) As String
     Dim result As String
+    Dim loopGuard As Long
     result = text
 
-    ' Remove caracteres de controle em uma única passagem
+    ' Remove caracteres de controle em uma unica passagem
     result = Replace(result, vbCr, "")
     result = Replace(result, vbLf, "")
     result = Replace(result, vbTab, " ")
 
-    ' Remove espaços múltiplos
-    Do While InStr(result, "  ") > 0
+    ' Remove espacos multiplos com protecao contra loop infinito
+    loopGuard = 0
+    Do While InStr(result, "  ") > 0 And loopGuard < 500
         result = Replace(result, "  ", " ")
+        loopGuard = loopGuard + 1
     Loop
 
     NormalizarTexto = Trim(LCase(result))
