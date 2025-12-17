@@ -1,7 +1,7 @@
 ﻿' =============================================================================
 ' CHAINSAW - Sistema de Padronizacao de Proposituras Legislativas
 ' =============================================================================
-' Versao: 2.9.4
+' Versao: 2.9.5
 ' Data: 2025-12-17
 ' Licenca: GNU GPLv3 (https://www.gnu.org/licenses/gpl-3.0.html)
 ' Compatibilidade: Microsoft Word 2010+
@@ -5254,6 +5254,51 @@ ErrorHandler:
 End Function
 
 '================================================================================
+' FUNÇÃO AUXILIAR DE FIND/REPLACE - Elimina código repetitivo
+'================================================================================
+Private Function ExecuteFindReplace(doc As Document, _
+                                    searchText As String, _
+                                    replaceText As String, _
+                                    Optional matchCase As Boolean = False, _
+                                    Optional maxIterations As Long = 500) As Long
+    ' Retorna quantidade de substituicoes realizadas
+    On Error Resume Next
+    ExecuteFindReplace = 0
+
+    If doc Is Nothing Then Exit Function
+    If searchText = "" Then Exit Function
+
+    Dim rng As Range
+    Set rng = doc.Range
+    If rng Is Nothing Then Exit Function
+
+    Dim iterCount As Long
+    iterCount = 0
+
+    With rng.Find
+        .ClearFormatting
+        .Replacement.ClearFormatting
+        .text = searchText
+        .Replacement.text = replaceText
+        .Forward = True
+        .Wrap = wdFindContinue
+        .Format = False
+        .MatchCase = matchCase
+        .MatchWholeWord = False
+        .MatchWildcards = False
+        .MatchSoundsLike = False
+        .MatchAllWordForms = False
+
+        Do While .Execute(Replace:=True) And iterCount < maxIterations
+            iterCount = iterCount + 1
+            ExecuteFindReplace = ExecuteFindReplace + 1
+        Loop
+    End With
+
+    Err.Clear
+End Function
+
+'================================================================================
 ' APLICAÇÃO DE SUBSTITUIÇÕES DE TEXTO
 '================================================================================
 Private Function ApplyTextReplacements(doc As Document) As Boolean
@@ -5359,7 +5404,6 @@ NextVariant:
         On Error GoTo ErrorHandler
         Err.Clear
     Next i
-    errorContext = "ao Setor,"
 
     If totalReplacements > 0 Then
         LogMessage "Substituições de texto aplicadas: " & totalReplacements & " variante(s) substituída(s)", LOG_LEVEL_INFO
@@ -5368,60 +5412,18 @@ NextVariant:
     End If
 
     ' Funcionalidade 11: Substitui " ao Setor, " por " ao setor competente"
-    On Error Resume Next
-    Set rng = Nothing
-    Set rng = doc.Range
-    If Not rng Is Nothing Then
-        With rng.Find
-            .ClearFormatting
-            .Replacement.ClearFormatting
-            .text = " ao Setor, "
-            .Replacement.text = " ao setor competente"
-            .Forward = True
-            .Wrap = wdFindContinue
-            .Format = False
-            .MatchCase = True
-            .MatchWholeWord = False
-            .MatchWildcards = False
-            wasReplaced = .Execute(Replace:=wdReplaceAll)
-            If Err.Number = 0 And wasReplaced Then
-                LogMessage "Substituição aplicada: ' ao Setor, ' ? ' ao setor competente'", LOG_LEVEL_INFO
-            ElseIf Err.Number <> 0 Then
-                LogMessage "Erro ao substituir 'ao Setor,': " & Err.Description, LOG_LEVEL_WARNING
-            End If
-        End With
+    Dim setorCount As Long
+    setorCount = ExecuteFindReplace(doc, " ao Setor, ", " ao setor competente", True)
+    If setorCount > 0 Then
+        LogMessage "Substituicao aplicada: ' ao Setor, ' -> ' ao setor competente' (" & setorCount & "x)", LOG_LEVEL_INFO
     End If
-    Err.Clear
-    errorContext = "Setor Competente"
-    On Error GoTo ErrorHandler
 
     ' Funcionalidade 12: Substitui " Setor Competente " por " setor competente " (case insensitive)
-    On Error Resume Next
-    Set rng = Nothing
-    Set rng = doc.Range
-    If Not rng Is Nothing Then
-        With rng.Find
-            .ClearFormatting
-            .Replacement.ClearFormatting
-            .text = " Setor Competente "
-            .Replacement.text = " setor competente "
-            .Forward = True
-            .Wrap = wdFindContinue
-            .Format = False
-            .MatchCase = False
-            .MatchWholeWord = False
-            .MatchWildcards = False
-            wasReplaced = .Execute(Replace:=wdReplaceAll)
-            If Err.Number = 0 And wasReplaced Then
-                LogMessage "Substituição aplicada: ' Setor Competente ' ? ' setor competente '", LOG_LEVEL_INFO
-            ElseIf Err.Number <> 0 Then
-                LogMessage "Erro ao substituir 'Setor Competente': " & Err.Description, LOG_LEVEL_WARNING
-            End If
-        End With
+    Dim competenteCount As Long
+    competenteCount = ExecuteFindReplace(doc, " Setor Competente ", " setor competente ", False)
+    If competenteCount > 0 Then
+        LogMessage "Substituicao aplicada: ' Setor Competente ' -> ' setor competente ' (" & competenteCount & "x)", LOG_LEVEL_INFO
     End If
-    Err.Clear
-    errorContext = ""
-    On Error GoTo ErrorHandler
 
     ApplyTextReplacements = True
     Exit Function
