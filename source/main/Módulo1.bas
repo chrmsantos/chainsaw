@@ -4957,104 +4957,767 @@ End Function
 '================================================================================
 ' VERIFICAÇÃO DE DADOS SENSÍVEIS
 '================================================================================
+'================================================================================
+' VERIFICACAO DE DADOS SENSIVEIS (LGPD)
+' Detecta dados pessoais que requerem cuidado especial conforme Lei 13.709/2018
+' Art. 5 - Dados pessoais e dados pessoais sensiveis
+' Art. 11 - Tratamento de dados pessoais sensiveis
+'================================================================================
 Private Function CheckSensitiveData(doc As Document) As Boolean
     On Error GoTo ErrorHandler
 
     Dim docText As String
-    Dim lowerText As String
-    Dim foundItems As String
-    Dim itemCount As Long
+    Dim findings As String
+    Dim categoryCount As Long
+    Dim sensitiveSpecialCount As Long
 
-    ' Obtém todo o texto do documento
+    ' Obtem texto do documento
     docText = doc.Range.text
-    lowerText = LCase(docText)
 
-    foundItems = ""
-    itemCount = 0
-
-    ' Array com as strings sensíveis a serem verificadas (em minúsculas)
-    Dim sensitiveStrings() As String
-    Dim sensitiveLabels() As String
-    Dim i As Long
-
-    ' Define as strings a serem buscadas e seus rótulos para exibição
-    ReDim sensitiveStrings(11)
-    ReDim sensitiveLabels(11)
-
-    sensitiveStrings(0) = "cpf:"
-    sensitiveLabels(0) = "CPF:"
-
-    sensitiveStrings(1) = "cpf n°"
-    sensitiveLabels(1) = "CPF n°"
-
-    sensitiveStrings(2) = "rg:"
-    sensitiveLabels(2) = "RG:"
-
-    sensitiveStrings(3) = "rg n°"
-    sensitiveLabels(3) = "RG n°"
-
-    sensitiveStrings(4) = "nome da mãe:"
-    sensitiveLabels(4) = "Nome da mãe:"
-
-    sensitiveStrings(5) = "nascimento:"
-    sensitiveLabels(5) = "Nascimento:"
-
-    sensitiveStrings(6) = "naturalidade:"
-    sensitiveLabels(6) = "Naturalidade:"
-
-    sensitiveStrings(7) = "estado civil:"
-    sensitiveLabels(7) = "Estado civil:"
-
-    sensitiveStrings(8) = "placa:"
-    sensitiveLabels(8) = "Placa:"
-
-    sensitiveStrings(9) = "placa n°"
-    sensitiveLabels(9) = "Placa n°"
-
-    sensitiveStrings(10) = "renavam:"
-    sensitiveLabels(10) = "Renavam:"
-
-    sensitiveStrings(11) = "renavam n°"
-    sensitiveLabels(11) = "Renavam n°"
-
-    ' Verifica cada string sensível
-    For i = LBound(sensitiveStrings) To UBound(sensitiveStrings)
-        If InStr(1, lowerText, sensitiveStrings(i), vbTextCompare) > 0 Then
-            If foundItems <> "" Then
-                foundItems = foundItems & ", "
-            End If
-            foundItems = foundItems & sensitiveLabels(i)
-            itemCount = itemCount + 1
-        End If
-    Next i
-
-    ' Se encontrou dados sensíveis, exibe mensagem de aviso
-    If itemCount > 0 Then
-        Dim msg As String
-        msg = "DADOS SENSÍVEIS DETECTADOS" & vbCrLf & vbCrLf
-        msg = msg & "Encontrados " & itemCount & " campo(s):" & vbCrLf
-        msg = msg & foundItems & vbCrLf & vbCrLf
-        msg = msg & "AÇÃO:" & vbCrLf
-        msg = msg & "Verifique se há CPF, RG, filiação, etc." & vbCrLf
-        msg = msg & "Remova ou anonimize antes da publicação." & vbCrLf & vbCrLf
-        msg = msg & "LGPD: Dados sensíveis exigem cuidado especial."
-
-        MsgBox msg, vbExclamation, "Verificação de Dados Sensíveis"
-
-        LogMessage "Possíveis dados sensíveis detectados: " & foundItems, LOG_LEVEL_WARNING
-
-        CheckSensitiveData = False ' Retorna False para indicar que dados foram encontrados
+    If Len(docText) < 10 Then
+        CheckSensitiveData = True
         Exit Function
     End If
 
-    ' Nenhum dado sensível encontrado
-    LogMessage "Verificação de dados sensíveis concluída - nenhum campo sensível detectado", LOG_LEVEL_INFO
+    findings = ""
+    categoryCount = 0
+    sensitiveSpecialCount = 0
+
+    ' 1. Verifica documentos de identificacao (CPF, RG, CNH, etc)
+    Dim docIdFindings As String
+    docIdFindings = CheckDocumentIdentifiers(docText)
+    If Len(docIdFindings) > 0 Then
+        findings = findings & "[1] DOCUMENTOS DE IDENTIFICACAO:" & vbCrLf & docIdFindings & vbCrLf
+        categoryCount = categoryCount + 1
+    End If
+
+    ' 2. Verifica dados pessoais (filiacao, nascimento, etc)
+    Dim personalFindings As String
+    personalFindings = CheckPersonalData(docText)
+    If Len(personalFindings) > 0 Then
+        findings = findings & "[2] DADOS PESSOAIS:" & vbCrLf & personalFindings & vbCrLf
+        categoryCount = categoryCount + 1
+    End If
+
+    ' 3. Verifica dados de contato (email, telefone)
+    Dim contactFindings As String
+    contactFindings = CheckContactData(docText)
+    If Len(contactFindings) > 0 Then
+        findings = findings & "[3] DADOS DE CONTATO:" & vbCrLf & contactFindings & vbCrLf
+        categoryCount = categoryCount + 1
+    End If
+
+    ' 4. Verifica dados de veiculos (placa, renavam)
+    Dim vehicleFindings As String
+    vehicleFindings = CheckVehicleData(docText)
+    If Len(vehicleFindings) > 0 Then
+        findings = findings & "[4] DADOS DE VEICULOS:" & vbCrLf & vehicleFindings & vbCrLf
+        categoryCount = categoryCount + 1
+    End If
+
+    ' 5. Verifica dados financeiros (conta, PIX, renda)
+    Dim financialFindings As String
+    financialFindings = CheckFinancialData(docText)
+    If Len(financialFindings) > 0 Then
+        findings = findings & "[5] DADOS FINANCEIROS:" & vbCrLf & financialFindings & vbCrLf
+        categoryCount = categoryCount + 1
+    End If
+
+    ' 6. Verifica dados de saude (Art. 5, II - dado sensivel especial)
+    Dim healthFindings As String
+    healthFindings = CheckHealthData(docText)
+    If Len(healthFindings) > 0 Then
+        findings = findings & "[6] DADOS DE SAUDE (SENSIVEL ESPECIAL - Art.5,II):" & vbCrLf & healthFindings & vbCrLf
+        categoryCount = categoryCount + 1
+        sensitiveSpecialCount = sensitiveSpecialCount + 1
+    End If
+
+    ' 7. Verifica dados sensiveis especiais LGPD (Art. 5, II)
+    Dim sensitiveSpecialFindings As String
+    sensitiveSpecialFindings = CheckSensitiveSpecialData(docText)
+    If Len(sensitiveSpecialFindings) > 0 Then
+        findings = findings & "[7] DADOS SENSIVEIS ESPECIAIS (Art.5,II LGPD):" & vbCrLf & sensitiveSpecialFindings & vbCrLf
+        categoryCount = categoryCount + 1
+        sensitiveSpecialCount = sensitiveSpecialCount + 1
+    End If
+
+    ' 8. Verifica dados de menores de idade
+    Dim minorFindings As String
+    minorFindings = CheckMinorData(docText)
+    If Len(minorFindings) > 0 Then
+        findings = findings & "[8] DADOS DE MENORES (Art.14 LGPD):" & vbCrLf & minorFindings & vbCrLf
+        categoryCount = categoryCount + 1
+    End If
+
+    ' 9. Verifica dados judiciais/criminais
+    Dim judicialFindings As String
+    judicialFindings = CheckJudicialData(docText)
+    If Len(judicialFindings) > 0 Then
+        findings = findings & "[9] DADOS JUDICIAIS/CRIMINAIS:" & vbCrLf & judicialFindings & vbCrLf
+        categoryCount = categoryCount + 1
+    End If
+
+    ' Se encontrou dados sensiveis, exibe mensagem consolidada
+    If categoryCount > 0 Then
+        Dim msg As String
+        msg = "DADOS SENSIVEIS DETECTADOS (Lei 13.709/2018 - LGPD)" & vbCrLf & vbCrLf
+
+        If sensitiveSpecialCount > 0 Then
+            msg = msg & "ATENCAO: " & sensitiveSpecialCount & " categoria(s) de DADOS SENSIVEIS ESPECIAIS!" & vbCrLf
+            msg = msg & "(Art. 5, II - Requerem consentimento explicito)" & vbCrLf & vbCrLf
+        End If
+
+        msg = msg & "Total: " & categoryCount & " categoria(s) detectada(s):" & vbCrLf & vbCrLf
+        msg = msg & findings & vbCrLf
+        msg = msg & "FUNDAMENTACAO LEGAL:" & vbCrLf
+        msg = msg & "  - Art. 5: Define dados pessoais e sensiveis" & vbCrLf
+        msg = msg & "  - Art. 7: Bases legais para tratamento" & vbCrLf
+        msg = msg & "  - Art. 11: Tratamento de dados sensiveis" & vbCrLf
+        msg = msg & "  - Art. 14: Dados de criancas e adolescentes" & vbCrLf & vbCrLf
+        msg = msg & "RECOMENDACOES:" & vbCrLf
+        msg = msg & "  - Verifique a necessidade de cada dado" & vbCrLf
+        msg = msg & "  - Anonimize ou pseudonimize quando possivel" & vbCrLf
+        msg = msg & "  - Obtenha consentimento para dados sensiveis"
+
+        MsgBox msg, vbExclamation, "Verificacao LGPD - Dados Sensiveis"
+
+        LogMessage "LGPD: " & categoryCount & " categoria(s), " & sensitiveSpecialCount & " sensivel(is) especial(is)", LOG_LEVEL_WARNING
+        CheckSensitiveData = False
+        Exit Function
+    End If
+
+    LogMessage "Verificacao LGPD concluida - nenhum dado sensivel detectado", LOG_LEVEL_INFO
     CheckSensitiveData = True
     Exit Function
 
 ErrorHandler:
-    LogMessage "Erro ao verificar dados sensíveis: " & Err.Description, LOG_LEVEL_WARNING
-    CheckSensitiveData = True ' Retorna True para não bloquear o processamento
+    LogMessage "Erro na verificacao LGPD: " & Err.Description, LOG_LEVEL_WARNING
+    CheckSensitiveData = True
+End Function
+
+'================================================================================
+' VERIFICA DADOS SENSIVEIS ESPECIAIS (Art. 5, II LGPD)
+' Origem racial/etnica, conviccao religiosa, opiniao politica, filiacao sindical,
+' dados de saude, vida sexual, dados geneticos ou biometricos
+'================================================================================
+Private Function CheckSensitiveSpecialData(docText As String) As String
+    On Error Resume Next
+    CheckSensitiveSpecialData = ""
+
+    Dim lowerText As String
+    Dim findings As String
+
+    lowerText = LCase(docText)
+    findings = ""
+
+    ' Origem racial ou etnica
+    If InStr(lowerText, "raca:") > 0 Or InStr(lowerText, "etnia:") > 0 Or _
+       InStr(lowerText, "cor da pele") > 0 Or InStr(lowerText, "origem etnica") > 0 Or _
+       InStr(lowerText, "afrodescendente") > 0 Or InStr(lowerText, "indigena") > 0 Then
+        findings = findings & "  - Origem racial/etnica detectada" & vbCrLf
+    End If
+
+    ' Conviccao religiosa
+    If InStr(lowerText, "religiao:") > 0 Or InStr(lowerText, "crenca:") > 0 Or _
+       InStr(lowerText, "conviccao religiosa") > 0 Or InStr(lowerText, "fe:") > 0 Or _
+       InStr(lowerText, "praticante de") > 0 Then
+        findings = findings & "  - Conviccao religiosa detectada" & vbCrLf
+    End If
+
+    ' Opiniao politica
+    If InStr(lowerText, "opiniao politica") > 0 Or InStr(lowerText, "filiacao partidaria") > 0 Or _
+       InStr(lowerText, "partido politico:") > 0 Or InStr(lowerText, "ideologia:") > 0 Then
+        findings = findings & "  - Opiniao politica detectada" & vbCrLf
+    End If
+
+    ' Filiacao sindical
+    If InStr(lowerText, "sindicato:") > 0 Or InStr(lowerText, "filiacao sindical") > 0 Or _
+       InStr(lowerText, "sindicalizado") > 0 Or InStr(lowerText, "membro do sindicato") > 0 Then
+        findings = findings & "  - Filiacao sindical detectada" & vbCrLf
+    End If
+
+    ' Vida sexual
+    If InStr(lowerText, "orientacao sexual") > 0 Or InStr(lowerText, "identidade de genero") > 0 Or _
+       InStr(lowerText, "vida sexual") > 0 Or InStr(lowerText, "preferencia sexual") > 0 Then
+        findings = findings & "  - Dado sobre vida sexual detectado" & vbCrLf
+    End If
+
+    ' Dados geneticos
+    If InStr(lowerText, "dna") > 0 Or InStr(lowerText, "genetico") > 0 Or _
+       InStr(lowerText, "exame genetico") > 0 Or InStr(lowerText, "teste de paternidade") > 0 Then
+        findings = findings & "  - Dado genetico detectado" & vbCrLf
+    End If
+
+    ' Dados biometricos
+    If InStr(lowerText, "biometria") > 0 Or InStr(lowerText, "biometrico") > 0 Or _
+       InStr(lowerText, "impressao digital") > 0 Or InStr(lowerText, "reconhecimento facial") > 0 Or _
+       InStr(lowerText, "iris") > 0 Then
+        findings = findings & "  - Dado biometrico detectado" & vbCrLf
+    End If
+
+    CheckSensitiveSpecialData = findings
+End Function
+
+'================================================================================
+' VERIFICA DADOS DE MENORES DE IDADE (Art. 14 LGPD)
+'================================================================================
+Private Function CheckMinorData(docText As String) As String
+    On Error Resume Next
+    CheckMinorData = ""
+
+    Dim lowerText As String
+    Dim findings As String
+
+    lowerText = LCase(docText)
+    findings = ""
+
+    ' Mencoes a menores
+    If InStr(lowerText, "menor de idade") > 0 Or InStr(lowerText, "crianca") > 0 Or _
+       InStr(lowerText, "adolescente") > 0 Then
+        findings = findings & "  - Referencia a menor de idade detectada" & vbCrLf
+    End If
+
+    ' Dados escolares de menores
+    If (InStr(lowerText, "aluno") > 0 Or InStr(lowerText, "estudante") > 0) And _
+       (InStr(lowerText, "escola") > 0 Or InStr(lowerText, "colegio") > 0) Then
+        If InStr(lowerText, "fundamental") > 0 Or InStr(lowerText, "infantil") > 0 Then
+            findings = findings & "  - Dados escolares de menor detectados" & vbCrLf
+        End If
+    End If
+
+    ' Responsavel legal
+    If InStr(lowerText, "responsavel legal") > 0 Or InStr(lowerText, "representante legal") > 0 Or _
+       InStr(lowerText, "tutor:") > 0 Or InStr(lowerText, "curador:") > 0 Then
+        findings = findings & "  - Mencao a responsavel legal (possivel menor)" & vbCrLf
+    End If
+
+    ' ECA - Estatuto da Crianca e Adolescente
+    If InStr(lowerText, "eca") > 0 Or InStr(lowerText, "estatuto da crianca") > 0 Or _
+       InStr(lowerText, "conselho tutelar") > 0 Then
+        findings = findings & "  - Referencia ao ECA detectada" & vbCrLf
+    End If
+
+    CheckMinorData = findings
+End Function
+
+'================================================================================
+' VERIFICA DADOS JUDICIAIS E CRIMINAIS
+'================================================================================
+Private Function CheckJudicialData(docText As String) As String
+    On Error Resume Next
+    CheckJudicialData = ""
+
+    Dim lowerText As String
+    Dim findings As String
+
+    lowerText = LCase(docText)
+    findings = ""
+
+    ' Antecedentes criminais
+    If InStr(lowerText, "antecedentes criminais") > 0 Or InStr(lowerText, "folha corrida") > 0 Or _
+       InStr(lowerText, "certidao criminal") > 0 Then
+        findings = findings & "  - Antecedentes criminais detectados" & vbCrLf
+    End If
+
+    ' Processos judiciais
+    If InStr(lowerText, "processo n") > 0 And (InStr(lowerText, "vara") > 0 Or _
+       InStr(lowerText, "tribunal") > 0 Or InStr(lowerText, "juizo") > 0) Then
+        findings = findings & "  - Numero de processo judicial detectado" & vbCrLf
+    End If
+
+    ' Inquerito policial
+    If InStr(lowerText, "inquerito policial") > 0 Or InStr(lowerText, "boletim de ocorrencia") > 0 Or _
+       InStr(lowerText, "b.o.") > 0 Then
+        findings = findings & "  - Inquerito/BO detectado" & vbCrLf
+    End If
+
+    ' Condenacao
+    If InStr(lowerText, "condenado") > 0 Or InStr(lowerText, "sentenciado") > 0 Or _
+       InStr(lowerText, "apenado") > 0 Or InStr(lowerText, "reeducando") > 0 Then
+        findings = findings & "  - Informacao de condenacao detectada" & vbCrLf
+    End If
+
+    ' Medida protetiva
+    If InStr(lowerText, "medida protetiva") > 0 Or InStr(lowerText, "lei maria da penha") > 0 Then
+        findings = findings & "  - Medida protetiva detectada" & vbCrLf
+    End If
+
+    CheckJudicialData = findings
+End Function
+
+'================================================================================
+' VERIFICA DOCUMENTOS DE IDENTIFICACAO
+'================================================================================
+Private Function CheckDocumentIdentifiers(docText As String) As String
+    On Error Resume Next
+    CheckDocumentIdentifiers = ""
+
+    Dim lowerText As String
+    Dim findings As String
+    Dim cpfCount As Long
+    Dim rgCount As Long
+
+    lowerText = LCase(docText)
+    findings = ""
+
+    ' Verifica mencoes a CPF
+    cpfCount = 0
+    If InStr(lowerText, "cpf:") > 0 Then cpfCount = cpfCount + 1
+    If InStr(lowerText, "cpf n") > 0 Then cpfCount = cpfCount + 1
+    If InStr(lowerText, "cpf/mf") > 0 Then cpfCount = cpfCount + 1
+    If InStr(lowerText, "inscrito no cpf") > 0 Then cpfCount = cpfCount + 1
+
+    ' Detecta padrao numerico de CPF (XXX.XXX.XXX-XX)
+    If ContainsCPFPattern(docText) Then cpfCount = cpfCount + 1
+
+    If cpfCount > 0 Then
+        findings = findings & "  - CPF detectado" & vbCrLf
+    End If
+
+    ' Verifica mencoes a RG
+    rgCount = 0
+    If InStr(lowerText, "rg:") > 0 Then rgCount = rgCount + 1
+    If InStr(lowerText, "rg n") > 0 Then rgCount = rgCount + 1
+    If InStr(lowerText, "identidade n") > 0 Then rgCount = rgCount + 1
+    If InStr(lowerText, "carteira de identidade") > 0 Then rgCount = rgCount + 1
+
+    ' Detecta padrao numerico de RG
+    If ContainsRGPattern(docText) Then rgCount = rgCount + 1
+
+    If rgCount > 0 Then
+        findings = findings & "  - RG/Identidade detectado" & vbCrLf
+    End If
+
+    ' CNH
+    If InStr(lowerText, "cnh:") > 0 Or InStr(lowerText, "cnh n") > 0 Or _
+       InStr(lowerText, "habilitacao n") > 0 Then
+        findings = findings & "  - CNH detectada" & vbCrLf
+    End If
+
+    ' CTPS
+    If InStr(lowerText, "ctps") > 0 Or InStr(lowerText, "carteira de trabalho") > 0 Then
+        findings = findings & "  - CTPS detectada" & vbCrLf
+    End If
+
+    ' Titulo de eleitor
+    If InStr(lowerText, "titulo de eleitor") > 0 Or InStr(lowerText, "titulo eleitoral") > 0 Then
+        findings = findings & "  - Titulo de eleitor detectado" & vbCrLf
+    End If
+
+    ' PIS/PASEP
+    If InStr(lowerText, "pis:") > 0 Or InStr(lowerText, "pis/pasep") > 0 Or _
+       InStr(lowerText, "pasep:") > 0 Then
+        findings = findings & "  - PIS/PASEP detectado" & vbCrLf
+    End If
+
+    CheckDocumentIdentifiers = findings
+End Function
+
+'================================================================================
+' DETECTA PADRAO NUMERICO DE CPF (XXX.XXX.XXX-XX)
+'================================================================================
+Private Function ContainsCPFPattern(text As String) As Boolean
+    On Error Resume Next
+    ContainsCPFPattern = False
+
+    Dim i As Long
+    Dim segment As String
+    Dim digitCount As Long
+    Dim hasSeparator As Boolean
+
+    ' Busca sequencia de 11 digitos com separadores tipicos de CPF
+    For i = 1 To Len(text) - 13
+        segment = Mid(text, i, 14)
+
+        ' Verifica padrao XXX.XXX.XXX-XX
+        If Mid(segment, 4, 1) = "." And Mid(segment, 8, 1) = "." And Mid(segment, 12, 1) = "-" Then
+            digitCount = CountDigitsInString(segment)
+            If digitCount = 11 Then
+                ContainsCPFPattern = True
+                Exit Function
+            End If
+        End If
+    Next i
+
+    ' Busca sequencia de 11 digitos consecutivos
+    digitCount = 0
+    For i = 1 To Len(text)
+        If Mid(text, i, 1) Like "[0-9]" Then
+            digitCount = digitCount + 1
+            If digitCount = 11 Then
+                ' Verifica se nao e parte de um numero maior
+                If i < Len(text) Then
+                    If Not Mid(text, i + 1, 1) Like "[0-9]" Then
+                        ContainsCPFPattern = True
+                        Exit Function
+                    End If
+                End If
+            End If
+        Else
+            digitCount = 0
+        End If
+    Next i
+End Function
+
+'================================================================================
+' DETECTA PADRAO NUMERICO DE RG
+'================================================================================
+Private Function ContainsRGPattern(text As String) As Boolean
+    On Error Resume Next
+    ContainsRGPattern = False
+
+    Dim i As Long
+    Dim segment As String
+    Dim digitCount As Long
+
+    ' RG geralmente tem 7-9 digitos com separadores
+    ' Padrao comum: XX.XXX.XXX-X ou similar
+    For i = 1 To Len(text) - 11
+        segment = Mid(text, i, 12)
+
+        ' Verifica padrao XX.XXX.XXX-X
+        If Mid(segment, 3, 1) = "." And Mid(segment, 7, 1) = "." And Mid(segment, 11, 1) = "-" Then
+            digitCount = CountDigitsInString(segment)
+            If digitCount >= 8 And digitCount <= 10 Then
+                ContainsRGPattern = True
+                Exit Function
+            End If
+        End If
+    Next i
+End Function
+
+'================================================================================
+' CONTA DIGITOS EM UMA STRING
+'================================================================================
+Private Function CountDigitsInString(text As String) As Long
+    On Error Resume Next
+    CountDigitsInString = 0
+
+    Dim i As Long
+    Dim count As Long
+
+    count = 0
+    For i = 1 To Len(text)
+        If Mid(text, i, 1) Like "[0-9]" Then
+            count = count + 1
+        End If
+    Next i
+
+    CountDigitsInString = count
+End Function
+
+'================================================================================
+' VERIFICA DADOS PESSOAIS
+'================================================================================
+Private Function CheckPersonalData(docText As String) As String
+    On Error Resume Next
+    CheckPersonalData = ""
+
+    Dim lowerText As String
+    Dim findings As String
+
+    lowerText = LCase(docText)
+    findings = ""
+
+    ' Filiacao
+    If InStr(lowerText, "nome da mae") > 0 Or InStr(lowerText, "mae:") > 0 Or _
+       InStr(lowerText, "filiacao:") > 0 Or InStr(lowerText, "filho de") > 0 Or _
+       InStr(lowerText, "filha de") > 0 Then
+        findings = findings & "  - Filiacao detectada" & vbCrLf
+    End If
+
+    ' Data de nascimento
+    If InStr(lowerText, "nascimento:") > 0 Or InStr(lowerText, "nascido em") > 0 Or _
+       InStr(lowerText, "nascida em") > 0 Or InStr(lowerText, "data de nascimento") > 0 Then
+        findings = findings & "  - Data de nascimento detectada" & vbCrLf
+    End If
+
+    ' Naturalidade
+    If InStr(lowerText, "naturalidade:") > 0 Or InStr(lowerText, "natural de") > 0 Then
+        findings = findings & "  - Naturalidade detectada" & vbCrLf
+    End If
+
+    ' Estado civil
+    If InStr(lowerText, "estado civil:") > 0 Then
+        findings = findings & "  - Estado civil detectado" & vbCrLf
+    End If
+
+    ' Nacionalidade
+    If InStr(lowerText, "nacionalidade:") > 0 Then
+        findings = findings & "  - Nacionalidade detectada" & vbCrLf
+    End If
+
+    ' Profissao/Ocupacao
+    If InStr(lowerText, "profissao:") > 0 Or InStr(lowerText, "ocupacao:") > 0 Then
+        findings = findings & "  - Profissao/Ocupacao detectada" & vbCrLf
+    End If
+
+    ' Endereco residencial
+    If InStr(lowerText, "residente") > 0 And (InStr(lowerText, "rua ") > 0 Or _
+       InStr(lowerText, "avenida ") > 0) Then
+        findings = findings & "  - Endereco residencial detectado" & vbCrLf
+    End If
+
+    ' Sexo/Genero
+    If InStr(lowerText, "sexo:") > 0 Or InStr(lowerText, "genero:") > 0 Then
+        findings = findings & "  - Sexo/Genero detectado" & vbCrLf
+    End If
+
+    ' Escolaridade
+    If InStr(lowerText, "escolaridade:") > 0 Or InStr(lowerText, "grau de instrucao") > 0 Then
+        findings = findings & "  - Escolaridade detectada" & vbCrLf
+    End If
+
+    CheckPersonalData = findings
+End Function
+
+'================================================================================
+' VERIFICA DADOS DE CONTATO
+'================================================================================
+Private Function CheckContactData(docText As String) As String
+    On Error Resume Next
+    CheckContactData = ""
+
+    Dim lowerText As String
+    Dim findings As String
+
+    lowerText = LCase(docText)
+    findings = ""
+
+    ' Email
+    If ContainsEmailPattern(docText) Then
+        findings = findings & "  - Email detectado" & vbCrLf
+    End If
+
+    ' Telefone
+    If InStr(lowerText, "telefone:") > 0 Or InStr(lowerText, "tel:") > 0 Or _
+       InStr(lowerText, "celular:") > 0 Or InStr(lowerText, "fone:") > 0 Or _
+       ContainsPhonePattern(docText) Then
+        findings = findings & "  - Telefone detectado" & vbCrLf
+    End If
+
+    ' WhatsApp
+    If InStr(lowerText, "whatsapp") > 0 Or InStr(lowerText, "zap:") > 0 Then
+        findings = findings & "  - WhatsApp detectado" & vbCrLf
+    End If
+
+    CheckContactData = findings
+End Function
+
+'================================================================================
+' DETECTA PADRAO DE EMAIL
+'================================================================================
+Private Function ContainsEmailPattern(text As String) As Boolean
+    On Error Resume Next
+    ContainsEmailPattern = False
+
+    ' Busca por @ seguido de dominio
+    Dim atPos As Long
+    atPos = InStr(text, "@")
+
+    If atPos > 1 Then
+        ' Verifica se tem caracteres antes e depois do @
+        Dim beforeAt As String
+        Dim afterAt As String
+
+        beforeAt = Mid(text, atPos - 1, 1)
+        If atPos < Len(text) - 3 Then
+            afterAt = Mid(text, atPos + 1, 4)
+            ' Verifica se parece um dominio (letras seguidas de ponto)
+            If InStr(afterAt, ".") > 0 Then
+                ContainsEmailPattern = True
+            End If
+        End If
+    End If
+End Function
+
+'================================================================================
+' DETECTA PADRAO DE TELEFONE
+'================================================================================
+Private Function ContainsPhonePattern(text As String) As Boolean
+    On Error Resume Next
+    ContainsPhonePattern = False
+
+    Dim i As Long
+    Dim segment As String
+    Dim digitCount As Long
+
+    ' Busca padrao (XX) XXXXX-XXXX ou similar
+    For i = 1 To Len(text) - 13
+        segment = Mid(text, i, 15)
+
+        ' Verifica se comeca com (
+        If Mid(segment, 1, 1) = "(" Then
+            digitCount = CountDigitsInString(segment)
+            ' Telefone brasileiro tem 10-11 digitos
+            If digitCount >= 10 And digitCount <= 11 Then
+                ContainsPhonePattern = True
+                Exit Function
+            End If
+        End If
+    Next i
+End Function
+
+'================================================================================
+' VERIFICA DADOS DE VEICULOS
+'================================================================================
+Private Function CheckVehicleData(docText As String) As String
+    On Error Resume Next
+    CheckVehicleData = ""
+
+    Dim lowerText As String
+    Dim findings As String
+
+    lowerText = LCase(docText)
+    findings = ""
+
+    ' Placa
+    If InStr(lowerText, "placa:") > 0 Or InStr(lowerText, "placa n") > 0 Or _
+       ContainsPlacaPattern(docText) Then
+        findings = findings & "  - Placa de veiculo detectada" & vbCrLf
+    End If
+
+    ' Renavam
+    If InStr(lowerText, "renavam") > 0 Then
+        findings = findings & "  - RENAVAM detectado" & vbCrLf
+    End If
+
+    ' Chassi
+    If InStr(lowerText, "chassi") > 0 Then
+        findings = findings & "  - Chassi detectado" & vbCrLf
+    End If
+
+    CheckVehicleData = findings
+End Function
+
+'================================================================================
+' DETECTA PADRAO DE PLACA (ABC-1234 ou ABC1D23)
+'================================================================================
+Private Function ContainsPlacaPattern(text As String) As Boolean
+    On Error Resume Next
+    ContainsPlacaPattern = False
+
+    Dim i As Long
+    Dim segment As String
+    Dim c As String
+
+    ' Busca padrao antigo: ABC-1234 ou ABC1234
+    For i = 1 To Len(text) - 6
+        segment = UCase(Mid(text, i, 8))
+
+        ' Verifica 3 letras + hifen ou digito + 4 digitos
+        If Mid(segment, 1, 1) Like "[A-Z]" And _
+           Mid(segment, 2, 1) Like "[A-Z]" And _
+           Mid(segment, 3, 1) Like "[A-Z]" Then
+
+            ' Padrao com hifen: ABC-1234
+            If Mid(segment, 4, 1) = "-" Then
+                If Mid(segment, 5, 1) Like "[0-9]" And _
+                   Mid(segment, 6, 1) Like "[0-9]" And _
+                   Mid(segment, 7, 1) Like "[0-9]" And _
+                   Mid(segment, 8, 1) Like "[0-9]" Then
+                    ContainsPlacaPattern = True
+                    Exit Function
+                End If
+            End If
+
+            ' Padrao Mercosul: ABC1D23
+            If Mid(segment, 4, 1) Like "[0-9]" And _
+               Mid(segment, 5, 1) Like "[A-Z]" And _
+               Mid(segment, 6, 1) Like "[0-9]" And _
+               Mid(segment, 7, 1) Like "[0-9]" Then
+                ContainsPlacaPattern = True
+                Exit Function
+            End If
+        End If
+    Next i
+End Function
+
+'================================================================================
+' VERIFICA DADOS FINANCEIROS
+'================================================================================
+Private Function CheckFinancialData(docText As String) As String
+    On Error Resume Next
+    CheckFinancialData = ""
+
+    Dim lowerText As String
+    Dim findings As String
+
+    lowerText = LCase(docText)
+    findings = ""
+
+    ' Conta bancaria
+    If InStr(lowerText, "conta:") > 0 Or InStr(lowerText, "conta corrente") > 0 Or _
+       InStr(lowerText, "conta poupanca") > 0 Or InStr(lowerText, "n. da conta") > 0 Then
+        findings = findings & "  - Conta bancaria detectada" & vbCrLf
+    End If
+
+    ' Agencia
+    If InStr(lowerText, "agencia:") > 0 Or InStr(lowerText, "ag:") > 0 Then
+        findings = findings & "  - Agencia bancaria detectada" & vbCrLf
+    End If
+
+    ' PIX
+    If InStr(lowerText, "pix:") > 0 Or InStr(lowerText, "chave pix") > 0 Then
+        findings = findings & "  - Chave PIX detectada" & vbCrLf
+    End If
+
+    ' Salario/Renda
+    If InStr(lowerText, "salario:") > 0 Or InStr(lowerText, "renda:") > 0 Or _
+       InStr(lowerText, "remuneracao:") > 0 Then
+        findings = findings & "  - Informacao de renda detectada" & vbCrLf
+    End If
+
+    CheckFinancialData = findings
+End Function
+
+'================================================================================
+' VERIFICA DADOS DE SAUDE
+'================================================================================
+Private Function CheckHealthData(docText As String) As String
+    On Error Resume Next
+    CheckHealthData = ""
+
+    Dim lowerText As String
+    Dim findings As String
+
+    lowerText = LCase(docText)
+    findings = ""
+
+    ' Cartao SUS
+    If InStr(lowerText, "cartao sus") > 0 Or InStr(lowerText, "cns:") > 0 Or _
+       InStr(lowerText, "cartao nacional de saude") > 0 Then
+        findings = findings & "  - Cartao SUS detectado" & vbCrLf
+    End If
+
+    ' CID (Classificacao Internacional de Doencas)
+    If InStr(lowerText, "cid:") > 0 Or InStr(lowerText, "cid-10") > 0 Or _
+       InStr(lowerText, "cid 10") > 0 Then
+        findings = findings & "  - Codigo CID detectado (DADO SENSIVEL ESPECIAL)" & vbCrLf
+    End If
+
+    ' Laudo medico
+    If InStr(lowerText, "laudo medico") > 0 Or InStr(lowerText, "atestado medico") > 0 Then
+        findings = findings & "  - Laudo/Atestado medico detectado (DADO SENSIVEL ESPECIAL)" & vbCrLf
+    End If
+
+    ' Deficiencia (dado sensivel especial)
+    If InStr(lowerText, "deficiencia:") > 0 Or InStr(lowerText, "pcd") > 0 Or _
+       InStr(lowerText, "pessoa com deficiencia") > 0 Then
+        findings = findings & "  - Informacao de deficiencia detectada (DADO SENSIVEL ESPECIAL)" & vbCrLf
+    End If
+
+    ' Tipo sanguineo
+    If InStr(lowerText, "tipo sanguineo") > 0 Or InStr(lowerText, "fator rh") > 0 Then
+        findings = findings & "  - Tipo sanguineo detectado" & vbCrLf
+    End If
+
+    ' Alergia
+    If InStr(lowerText, "alergia:") > 0 Or InStr(lowerText, "alergico a") > 0 Then
+        findings = findings & "  - Informacao de alergia detectada" & vbCrLf
+    End If
+
+    CheckHealthData = findings
 End Function
 
 '================================================================================
