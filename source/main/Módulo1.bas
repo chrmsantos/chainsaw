@@ -2482,8 +2482,15 @@ Private Function PreviousChecking(doc As Document) As Boolean
     End If
 
     If doc.Type <> wdTypeDocument Then
-        Application.StatusBar = "Erro: Tipo não suportado"
-        LogMessage "Tipo de documento não suportado: " & doc.Type, LOG_LEVEL_ERROR
+        Application.StatusBar = "Erro: Tipo nao suportado"
+        LogMessage "Tipo de documento nao suportado: " & doc.Type, LOG_LEVEL_ERROR
+        PreviousChecking = False
+        Exit Function
+    End If
+
+    ' Verifica se a primeira palavra e um tipo valido de propositura
+    If Not ValidateProposituraType(doc) Then
+        LogMessage "Usuario cancelou processamento - tipo de propositura nao reconhecido", LOG_LEVEL_INFO
         PreviousChecking = False
         Exit Function
     End If
@@ -4161,12 +4168,223 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' VALIDAÇÃO DE ESTRUTURA DO DOCUMENTO
+' VALIDACAO DO TIPO DE PROPOSITURA
+'================================================================================
+' Verifica se a primeira palavra do documento e um tipo valido de propositura
+' Tipos validos: indicacao, requerimento, mocao (com tolerancia a erros de grafia)
+'================================================================================
+Private Function ValidateProposituraType(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+
+    ValidateProposituraType = True
+
+    ' Obtem a primeira palavra do documento
+    Dim firstWord As String
+    firstWord = GetFirstWord(doc)
+
+    If Len(firstWord) = 0 Then
+        LogMessage "Documento vazio ou sem texto no inicio", LOG_LEVEL_WARNING
+        Exit Function
+    End If
+
+    ' Converte para minusculas e remove acentos para comparacao
+    Dim normalizedWord As String
+    normalizedWord = NormalizeForComparison(firstWord)
+
+    ' Verifica se corresponde a um tipo valido (com tolerancia a erros)
+    If IsValidProposituraWord(normalizedWord) Then
+        LogMessage "Tipo de propositura identificado: " & firstWord, LOG_LEVEL_INFO
+        ValidateProposituraType = True
+        Exit Function
+    End If
+
+    ' Nao e um tipo reconhecido - pergunta ao usuario
+    Dim userResponse As VbMsgBoxResult
+    userResponse = MsgBox("A primeira palavra do titulo e: """ & firstWord & """" & vbCrLf & vbCrLf & _
+                          "Nao parece ser uma propositura de Indicacao, Requerimento ou Mocao," & vbCrLf & _
+                          "ou ha algum erro de grafia na primeira palavra do titulo." & vbCrLf & vbCrLf & _
+                          "Deseja prosseguir com o processamento mesmo assim?", _
+                          vbYesNo + vbQuestion, "CHAINSAW - Tipo de Propositura")
+
+    If userResponse = vbYes Then
+        LogMessage "Usuario optou por prosseguir com tipo nao reconhecido: " & firstWord, LOG_LEVEL_WARNING
+        ValidateProposituraType = True
+    Else
+        LogMessage "Usuario cancelou - tipo nao reconhecido: " & firstWord, LOG_LEVEL_INFO
+        ValidateProposituraType = False
+    End If
+
+    Exit Function
+
+ErrorHandler:
+    LogMessage "Erro ao validar tipo de propositura: " & Err.Description, LOG_LEVEL_WARNING
+    ValidateProposituraType = True ' Em caso de erro, permite prosseguir
+End Function
+
+'================================================================================
+' OBTEM A PRIMEIRA PALAVRA DO DOCUMENTO
+'================================================================================
+Private Function GetFirstWord(doc As Document) As String
+    On Error GoTo ErrorHandler
+
+    GetFirstWord = ""
+
+    ' Percorre os primeiros paragrafos ate encontrar texto
+    Dim i As Long
+    Dim paraText As String
+
+    For i = 1 To doc.Paragraphs.count
+        If i > 10 Then Exit For ' Limite de seguranca
+
+        paraText = Trim(Replace(Replace(doc.Paragraphs(i).Range.text, vbCr, ""), vbLf, ""))
+
+        If Len(paraText) > 0 Then
+            ' Extrai a primeira palavra (ate o primeiro espaco)
+            Dim spacePos As Long
+            spacePos = InStr(paraText, " ")
+
+            If spacePos > 0 Then
+                GetFirstWord = Left(paraText, spacePos - 1)
+            Else
+                GetFirstWord = paraText
+            End If
+
+            Exit For
+        End If
+    Next i
+
+    Exit Function
+
+ErrorHandler:
+    GetFirstWord = ""
+End Function
+
+'================================================================================
+' NORMALIZA TEXTO PARA COMPARACAO (remove acentos e converte para minusculas)
+'================================================================================
+Private Function NormalizeForComparison(text As String) As String
+    Dim result As String
+    result = LCase(text)
+
+    ' Remove acentos comuns do portugues
+    result = Replace(result, Chr(225), "a") ' a com acento agudo
+    result = Replace(result, Chr(227), "a") ' a com til
+    result = Replace(result, Chr(226), "a") ' a com circunflexo
+    result = Replace(result, Chr(224), "a") ' a com acento grave
+    result = Replace(result, Chr(233), "e") ' e com acento agudo
+    result = Replace(result, Chr(234), "e") ' e com circunflexo
+    result = Replace(result, Chr(237), "i") ' i com acento agudo
+    result = Replace(result, Chr(243), "o") ' o com acento agudo
+    result = Replace(result, Chr(245), "o") ' o com til
+    result = Replace(result, Chr(244), "o") ' o com circunflexo
+    result = Replace(result, Chr(250), "u") ' u com acento agudo
+    result = Replace(result, Chr(231), "c") ' c cedilha
+
+    NormalizeForComparison = result
+End Function
+
+'================================================================================
+' VERIFICA SE A PALAVRA E UM TIPO VALIDO DE PROPOSITURA
+'================================================================================
+Private Function IsValidProposituraWord(normalizedWord As String) As Boolean
+    IsValidProposituraWord = False
+
+    ' Padroes validos (normalizados, sem acentos)
+    ' indicacao, requerimento, mocao
+
+    ' Verifica correspondencia exata primeiro
+    If normalizedWord = "indicacao" Or _
+       normalizedWord = "requerimento" Or _
+       normalizedWord = "mocao" Then
+        IsValidProposituraWord = True
+        Exit Function
+    End If
+
+    ' Verifica com tolerancia a pequenos erros (distancia de Levenshtein <= 2)
+    If LevenshteinDistance(normalizedWord, "indicacao") <= 2 Then
+        IsValidProposituraWord = True
+        Exit Function
+    End If
+
+    If LevenshteinDistance(normalizedWord, "requerimento") <= 2 Then
+        IsValidProposituraWord = True
+        Exit Function
+    End If
+
+    If LevenshteinDistance(normalizedWord, "mocao") <= 2 Then
+        IsValidProposituraWord = True
+        Exit Function
+    End If
+End Function
+
+'================================================================================
+' CALCULA A DISTANCIA DE LEVENSHTEIN ENTRE DUAS STRINGS
+'================================================================================
+Private Function LevenshteinDistance(s1 As String, s2 As String) As Long
+    Dim len1 As Long, len2 As Long
+    Dim i As Long, j As Long
+    Dim cost As Long
+    Dim d() As Long
+
+    len1 = Len(s1)
+    len2 = Len(s2)
+
+    ' Casos triviais
+    If len1 = 0 Then
+        LevenshteinDistance = len2
+        Exit Function
+    End If
+
+    If len2 = 0 Then
+        LevenshteinDistance = len1
+        Exit Function
+    End If
+
+    ' Matriz de distancias
+    ReDim d(0 To len1, 0 To len2)
+
+    ' Inicializa primeira coluna e linha
+    For i = 0 To len1
+        d(i, 0) = i
+    Next i
+
+    For j = 0 To len2
+        d(0, j) = j
+    Next j
+
+    ' Calcula distancias
+    For i = 1 To len1
+        For j = 1 To len2
+            If Mid(s1, i, 1) = Mid(s2, j, 1) Then
+                cost = 0
+            Else
+                cost = 1
+            End If
+
+            ' Minimo entre insercao, delecao e substituicao
+            d(i, j) = MinOfThree(d(i - 1, j) + 1, d(i, j - 1) + 1, d(i - 1, j - 1) + cost)
+        Next j
+    Next i
+
+    LevenshteinDistance = d(len1, len2)
+End Function
+
+'================================================================================
+' RETORNA O MINIMO DE TRES VALORES
+'================================================================================
+Private Function MinOfThree(a As Long, b As Long, c As Long) As Long
+    MinOfThree = a
+    If b < MinOfThree Then MinOfThree = b
+    If c < MinOfThree Then MinOfThree = c
+End Function
+
+'================================================================================
+' VALIDACAO DE ESTRUTURA DO DOCUMENTO
 '================================================================================
 Private Function ValidateDocumentStructure(doc As Document) As Boolean
     On Error Resume Next
 
-    ' Verificação básica e rápida
+    ' Verificacao basica e rapida
     If doc.Range.End > 0 And doc.Sections.count > 0 Then
         ValidateDocumentStructure = True
     Else
@@ -5199,7 +5417,7 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' FORMATAÇÃO DE PARÁGRAFOS "CONSIDERANDO"
+' FORMATACAO DE PARAGRAFOS "CONSIDERANDO" E "ANTE O EXPOSTO"
 '================================================================================
 Private Function FormatConsiderandoParagraphs(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -5208,24 +5426,25 @@ Private Function FormatConsiderandoParagraphs(doc As Document) As Boolean
     Dim paraText As String
     Dim rng As Range
     Dim totalFormatted As Long
+    Dim anteExpostoFormatted As Long
     Dim i As Long
+    Dim nextChar As String
 
-    ' Percorre todos os parágrafos procurando por "considerando" no início
+    ' Percorre todos os paragrafos procurando por "considerando" ou "ante o exposto" no inicio
     For i = 1 To doc.Paragraphs.count
         Set para = doc.Paragraphs(i)
         paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
 
-        ' Verifica se o parágrafo começa com "considerando" (ignorando maiúsculas/minúsculas)
+        ' Verifica se o paragrafo comeca com "considerando" (ignorando maiusculas/minusculas)
         If Len(paraText) >= 12 And LCase(Left(paraText, 12)) = "considerando" Then
-            ' Verifica se após "considerando" vem espaço, vírgula, ponto-e-vírgula ou fim da linha
-            Dim nextChar As String
+            ' Verifica se apos "considerando" vem espaco, virgula, ponto-e-virgula ou fim da linha
             If Len(paraText) > 12 Then
                 nextChar = Mid(paraText, 13, 1)
                 If nextChar = " " Or nextChar = "," Or nextChar = ";" Or nextChar = ":" Then
-                    ' É realmente "considerando" no início do parágrafo
+                    ' E realmente "considerando" no inicio do paragrafo
                     Set rng = para.Range
 
-                    ' CORREÇÃO: Usa Find/Replace para preservar espaçamento
+                    ' CORRECAO: Usa Find/Replace para preservar espacamento
                     With rng.Find
                         .ClearFormatting
                         .Replacement.ClearFormatting
@@ -5233,12 +5452,12 @@ Private Function FormatConsiderandoParagraphs(doc As Document) As Boolean
                         .Replacement.text = "CONSIDERANDO"
                         .Replacement.Font.Bold = True
                         .MatchCase = False
-                        .MatchWholeWord = False  ' CORREÇÃO: False para não exigir palavra completa
+                        .MatchWholeWord = False
                         .Forward = True
                         .Wrap = wdFindStop
 
-                        ' Limita a busca ao início do parágrafo
-                        rng.End = rng.Start + 15  ' Seleciona apenas o início para evitar múltiplas substituições
+                        ' Limita a busca ao inicio do paragrafo
+                        rng.End = rng.Start + 15
 
                         If .Execute(Replace:=True) Then
                             totalFormatted = totalFormatted + 1
@@ -5246,7 +5465,7 @@ Private Function FormatConsiderandoParagraphs(doc As Document) As Boolean
                     End With
                 End If
             Else
-                ' Parágrafo contém apenas "considerando"
+                ' Paragrafo contem apenas "considerando"
                 Set rng = para.Range
                 rng.End = rng.Start + 12
 
@@ -5257,15 +5476,60 @@ Private Function FormatConsiderandoParagraphs(doc As Document) As Boolean
 
                 totalFormatted = totalFormatted + 1
             End If
+
+        ' Verifica se o paragrafo comeca com "ante o exposto" (14 caracteres)
+        ElseIf Len(paraText) >= 14 And LCase(Left(paraText, 14)) = "ante o exposto" Then
+            ' Verifica se apos "ante o exposto" vem espaco, virgula, ponto-e-virgula ou fim
+            If Len(paraText) > 14 Then
+                nextChar = Mid(paraText, 15, 1)
+                If nextChar = " " Or nextChar = "," Or nextChar = ";" Or nextChar = ":" Then
+                    Set rng = para.Range
+
+                    With rng.Find
+                        .ClearFormatting
+                        .Replacement.ClearFormatting
+                        .text = "ante o exposto"
+                        .Replacement.text = "ANTE O EXPOSTO"
+                        .Replacement.Font.Bold = True
+                        .MatchCase = False
+                        .MatchWholeWord = False
+                        .Forward = True
+                        .Wrap = wdFindStop
+
+                        rng.End = rng.Start + 17
+
+                        If .Execute(Replace:=True) Then
+                            anteExpostoFormatted = anteExpostoFormatted + 1
+                        End If
+                    End With
+                End If
+            Else
+                ' Paragrafo contem apenas "ante o exposto"
+                Set rng = para.Range
+                rng.End = rng.Start + 14
+
+                With rng
+                    .text = "ANTE O EXPOSTO"
+                    .Font.Bold = True
+                End With
+
+                anteExpostoFormatted = anteExpostoFormatted + 1
+            End If
         End If
     Next i
 
-    LogMessage "Formatação 'considerando' aplicada: " & totalFormatted & " ocorrências em negrito e caixa alta", LOG_LEVEL_INFO
+    If totalFormatted > 0 Then
+        LogMessage "Formatacao 'CONSIDERANDO' aplicada: " & totalFormatted & " ocorrencia(s)", LOG_LEVEL_INFO
+    End If
+    If anteExpostoFormatted > 0 Then
+        LogMessage "Formatacao 'ANTE O EXPOSTO' aplicada: " & anteExpostoFormatted & " ocorrencia(s)", LOG_LEVEL_INFO
+    End If
+
     FormatConsiderandoParagraphs = True
     Exit Function
 
 ErrorHandler:
-    LogMessage "Erro na formatação 'considerando': " & Err.Description, LOG_LEVEL_ERROR
+    LogMessage "Erro na formatacao CONSIDERANDO/ANTE O EXPOSTO: " & Err.Description, LOG_LEVEL_ERROR
     FormatConsiderandoParagraphs = False
 End Function
 
@@ -5315,7 +5579,50 @@ Private Function ExecuteFindReplace(doc As Document, _
 End Function
 
 '================================================================================
-' APLICAÇÃO DE SUBSTITUIÇÕES DE TEXTO
+' FORMATACAO DE "IN LOCO" EM ITALICO (REMOVE ASPAS)
+'================================================================================
+Private Sub FormatInLocoItalic(doc As Document)
+    On Error GoTo ErrorHandler
+
+    If doc Is Nothing Then Exit Sub
+
+    Dim rng As Range
+    Dim inLocoCount As Long
+    inLocoCount = 0
+
+    ' Procura por "in loco" (com aspas) e substitui por in loco em italico
+    Set rng = doc.Range
+
+    With rng.Find
+        .ClearFormatting
+        .Replacement.ClearFormatting
+        .text = Chr(34) & "in loco" & Chr(34)
+        .Replacement.text = "in loco"
+        .Replacement.Font.Italic = True
+        .Forward = True
+        .Wrap = wdFindContinue
+        .MatchCase = False
+        .MatchWholeWord = False
+        .MatchWildcards = False
+
+        Do While .Execute(Replace:=True)
+            inLocoCount = inLocoCount + 1
+            If inLocoCount > 100 Then Exit Do  ' Limite de seguranca
+        Loop
+    End With
+
+    If inLocoCount > 0 Then
+        LogMessage "Formatacao 'in loco' aplicada: " & inLocoCount & " ocorrencia(s) em italico", LOG_LEVEL_INFO
+    End If
+
+    Exit Sub
+
+ErrorHandler:
+    LogMessage "Erro ao formatar 'in loco': " & Err.Description, LOG_LEVEL_WARNING
+End Sub
+
+'================================================================================
+' APLICACAO DE SUBSTITUICOES DE TEXTO
 '================================================================================
 Private Function ApplyTextReplacements(doc As Document) As Boolean
     Dim errorContext As String
@@ -5440,6 +5747,25 @@ NextVariant:
     If competenteCount > 0 Then
         LogMessage "Substituicao aplicada: ' Setor Competente ' -> ' setor competente ' (" & competenteCount & "x)", LOG_LEVEL_INFO
     End If
+
+    ' Funcionalidade 13: Normaliza variantes de "tapa-buracos"
+    Dim tapaBuracosCount As Long
+    tapaBuracosCount = 0
+    ' Com aspas
+    tapaBuracosCount = tapaBuracosCount + ExecuteFindReplace(doc, Chr(34) & "tapa buraco" & Chr(34), "tapa-buracos", False)
+    tapaBuracosCount = tapaBuracosCount + ExecuteFindReplace(doc, Chr(34) & "tapa buracos" & Chr(34), "tapa-buracos", False)
+    tapaBuracosCount = tapaBuracosCount + ExecuteFindReplace(doc, Chr(34) & "tapa-buraco" & Chr(34), "tapa-buracos", False)
+    tapaBuracosCount = tapaBuracosCount + ExecuteFindReplace(doc, Chr(34) & "tapa-buracos" & Chr(34), "tapa-buracos", False)
+    ' Sem aspas (ordem importa: primeiro os com hifen para evitar duplicacao)
+    tapaBuracosCount = tapaBuracosCount + ExecuteFindReplace(doc, "tapa-buraco ", "tapa-buracos ", False)
+    tapaBuracosCount = tapaBuracosCount + ExecuteFindReplace(doc, "tapa buracos", "tapa-buracos", False)
+    tapaBuracosCount = tapaBuracosCount + ExecuteFindReplace(doc, "tapa buraco", "tapa-buracos", False)
+    If tapaBuracosCount > 0 Then
+        LogMessage "Substituicao aplicada: variantes de 'tapa-buracos' normalizadas (" & tapaBuracosCount & "x)", LOG_LEVEL_INFO
+    End If
+
+    ' Funcionalidade 14: Substitui "in loco" (com aspas) por in loco (italico, sem aspas)
+    FormatInLocoItalic doc
 
     ApplyTextReplacements = True
     Exit Function
