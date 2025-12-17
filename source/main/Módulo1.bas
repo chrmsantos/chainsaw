@@ -384,15 +384,12 @@ Public Sub PadronizarDocumentoMain()
     IncrementProgress "Finalizando"
     LogMessage "Documento padronizado com sucesso", LOG_LEVEL_INFO
 
-    ' Mostra 100% por 1 segundo antes de limpar
-    UpdateProgress "Concluído!", 100
+    ' Calcula tempo de execucao em segundos
+    Dim execSeconds As Long
+    execSeconds = CLng((Now - executionStartTime) * 86400)
 
-    ' Pausa de 1 segundo (Word VBA não tem Application.Wait)
-    Dim pauseTime As Double
-    pauseTime = Timer
-    Do While Timer < pauseTime + 1
-        DoEvents
-    Loop
+    ' Mostra mensagem final na barra de status: "Concluido! Ns. X erros."
+    Application.StatusBar = "Concluido! " & execSeconds & "s. " & errorCount & " erros."
 
 CleanUp:
     ' ---------------------------------------------------------------------------
@@ -408,13 +405,14 @@ CleanUp:
     On Error GoTo 0
     ' ---------------------------------------------------------------------------
 
-    ClearParagraphCache ' Limpa cache de parágrafos
+    ClearParagraphCache ' Limpa cache de paragrafos
     SafeCleanup
-    CleanupImageProtection ' Nova função para limpar variáveis de proteção de imagens
-    CleanupViewSettings    ' Nova função para limpar variáveis de configurações de visualização
+    CleanupImageProtection ' Nova funcao para limpar variaveis de protecao de imagens
+    CleanupViewSettings    ' Nova funcao para limpar variaveis de configuracoes de visualizacao
 
-    If Not SetAppState(True, "Concluído!") Then
-        LogMessage "Falha ao restaurar estado da aplicação", LOG_LEVEL_WARNING
+    ' Restaura estado da aplicacao preservando a StatusBar (mantem mensagem final)
+    If Not SetAppState(True, "", True) Then
+        LogMessage "Falha ao restaurar estado da aplicacao", LOG_LEVEL_WARNING
     End If
 
     SafeFinalizeLogging
@@ -1604,7 +1602,7 @@ Public Function GetElementInfo(doc As Document) As String
 End Function
 
 '================================================================================
-' ATUALIZAÇÃO DA BARRA DE PROGRESSO
+' ATUALIZACAO DA BARRA DE PROGRESSO
 '================================================================================
 Private Sub UpdateProgress(message As String, percentComplete As Long)
     Dim progressBar As String
@@ -1615,26 +1613,25 @@ Private Sub UpdateProgress(message As String, percentComplete As Long)
     If percentComplete < 0 Then percentComplete = 0
     If percentComplete > 100 Then percentComplete = 100
 
-    ' Barra de 20 caracteres
-    barLength = 20
+    ' Barra de 50 caracteres (barra solida)
+    barLength = 50
     filledLength = CLng(barLength * percentComplete / 100)
 
-    ' Constrói a barra visual
-    progressBar = "["
+    ' Constroi a barra visual solida (sem texto, apenas blocos)
+    progressBar = ""
     Dim i As Long
     For i = 1 To barLength
         If i <= filledLength Then
-            progressBar = progressBar & "¦"
+            progressBar = progressBar & Chr(219)  ' Bloco solido
         Else
-            progressBar = progressBar & "¦"
+            progressBar = progressBar & Chr(176)  ' Bloco claro
         End If
     Next i
-    progressBar = progressBar & "] " & Format(percentComplete, "0") & "%"
 
-    ' Atualiza StatusBar com mensagem e barra
-    Application.StatusBar = message & " " & progressBar
+    ' Atualiza StatusBar apenas com barra solida (sem mensagem)
+    Application.StatusBar = progressBar
 
-    ' Força atualização da tela
+    ' Forca atualizacao da tela
     DoEvents
 End Sub
 
@@ -2446,7 +2443,7 @@ End Function
 '================================================================================
 ' GERENCIAMENTO DE ESTADO DA APLICAÇÃO
 '================================================================================
-Private Function SetAppState(Optional ByVal enabled As Boolean = True, Optional ByVal statusMsg As String = "") As Boolean
+Private Function SetAppState(Optional ByVal enabled As Boolean = True, Optional ByVal statusMsg As String = "", Optional ByVal preserveStatusBar As Boolean = False) As Boolean
     On Error GoTo ErrorHandler
 
     Dim success As Boolean
@@ -2463,16 +2460,19 @@ Private Function SetAppState(Optional ByVal enabled As Boolean = True, Optional 
         If Err.Number <> 0 Then success = False
         On Error GoTo ErrorHandler
 
-        If statusMsg <> "" Then
-            On Error Resume Next
-            .StatusBar = statusMsg
-            If Err.Number <> 0 Then success = False
-            On Error GoTo ErrorHandler
-        ElseIf enabled Then
-            On Error Resume Next
-            .StatusBar = False
-            If Err.Number <> 0 Then success = False
-            On Error GoTo ErrorHandler
+        ' Nao modifica StatusBar se preserveStatusBar = True
+        If Not preserveStatusBar Then
+            If statusMsg <> "" Then
+                On Error Resume Next
+                .StatusBar = statusMsg
+                If Err.Number <> 0 Then success = False
+                On Error GoTo ErrorHandler
+            ElseIf enabled Then
+                On Error Resume Next
+                .StatusBar = False
+                If Err.Number <> 0 Then success = False
+                On Error GoTo ErrorHandler
+            End If
         End If
 
         On Error Resume Next
