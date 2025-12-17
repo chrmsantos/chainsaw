@@ -52,7 +52,7 @@ Private Const STANDARD_FONT_SIZE As Long = 12
 Private Const FOOTER_FONT_SIZE As Long = 9
 Private Const LINE_SPACING As Single = 14
 
-Private Const TOP_MARGIN_CM As Double = 4.6
+Private Const TOP_MARGIN_CM As Double = 4.85
 Private Const BOTTOM_MARGIN_CM As Double = 2
 Private Const LEFT_MARGIN_CM As Double = 3
 Private Const RIGHT_MARGIN_CM As Double = 3
