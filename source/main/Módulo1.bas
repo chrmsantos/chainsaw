@@ -1,7 +1,7 @@
 ﻿' =============================================================================
 ' CHAINSAW - Sistema de Padronizacao de Proposituras Legislativas
 ' =============================================================================
-' Versao: 2.9.2
+' Versao: 2.9.3
 ' Data: 2025-12-17
 ' Licenca: GNU GPLv3 (https://www.gnu.org/licenses/gpl-3.0.html)
 ' Compatibilidade: Microsoft Word 2010+
@@ -67,7 +67,7 @@ Private Const HEADER_IMAGE_HEIGHT_RATIO As Double = 0.19
 '================================================================================
 ' CONSTANTES DE SISTEMA
 '================================================================================
-Private Const CHAINSAW_VERSION As String = "2.9.2"
+Private Const CHAINSAW_VERSION As String = "2.9.3"
 Private Const MIN_SUPPORTED_VERSION As Long = 14
 Private Const REQUIRED_STRING As String = "$NUMERO$/$ANO$"
 Private Const MAX_BACKUP_FILES As Long = 10
@@ -140,6 +140,7 @@ End Type
 Private paragraphCache() As paragraphCache
 Private cacheSize As Long
 Private cacheEnabled As Boolean
+Private documentDirty As Boolean  ' Flag para otimizar pipeline de 2 passagens
 
 ' Barra de progresso
 Private totalSteps As Long
@@ -282,7 +283,7 @@ Public Sub PadronizarDocumentoMain()
     End If
 
     ' ==========================================================================
-    ' PIPELINE DE FORMATACAO (DUPLA PASSAGEM)
+    ' PIPELINE DE FORMATACAO (DUPLA PASSAGEM OTIMIZADA)
     ' ==========================================================================
 
     LogMessage "=== PIPELINE DE FORMATACAO (2 PASSAGENS) ===", LOG_LEVEL_INFO
@@ -292,8 +293,18 @@ Public Sub PadronizarDocumentoMain()
     BuildParagraphCache doc
 
     ' Executa formatacao em 2 passagens para garantir estabilidade
+    ' Segunda passagem so executa se primeira fez alteracoes (flag dirty)
     Dim pipelinePass As Integer
+    documentDirty = True  ' Primeira passagem sempre executa
+
     For pipelinePass = 1 To 2
+        ' Pula segunda passagem se documento nao foi modificado
+        If pipelinePass = 2 And Not documentDirty Then
+            LogMessage "=== PASSAGEM 2 IGNORADA (sem alteracoes na passagem 1) ===", LOG_LEVEL_INFO
+            Exit For
+        End If
+
+        documentDirty = False  ' Reset flag antes de cada passagem
         LogMessage "=== PASSAGEM " & pipelinePass & " DE 2 ===", LOG_LEVEL_INFO
 
         ' Formata documento
@@ -2766,11 +2777,6 @@ Private Function ApplyStdFontOptimized(doc As Document) As Boolean
 
     ' SINGLE PASS - Processa todos os paragrafos em uma passagem usando cache
     For i = 1 To cacheSize
-        ' Validacao de limites do cache
-        If i < 1 Or i > cacheSize Then
-            GoTo NextParagraph
-        End If
-
         cache = paragraphCache(i)
 
         ' Pula paragrafos vazios ou com imagens
@@ -2821,6 +2827,9 @@ NextParagraph:
 
     Dim elapsed As Single
     elapsed = Timer - startTime
+
+    ' Marca documento como modificado se houve formatacao
+    If formattedCount > 0 Then documentDirty = True
 
     LogMessage "Fonte padrao aplicada: " & formattedCount & " paragrafos em " & Format(elapsed, "0.00") & "s", LOG_LEVEL_INFO
     ApplyStdFontOptimized = True
@@ -2997,9 +3006,12 @@ Private Function ApplyStdFont(doc As Document) As Boolean
 NextParagraph:
     Next i
 
+    ' Marca documento como modificado se houve formatacao
+    If formattedCount > 0 Then documentDirty = True
+
     ' Log otimizado
     If skippedCount > 0 Then
-        LogMessage "Fontes formatadas: " & formattedCount & " parágrafos (incluindo " & skippedCount & " com proteção de imagens)"
+        LogMessage "Fontes formatadas: " & formattedCount & " paragrafos (incluindo " & skippedCount & " com protecao de imagens)"
     End If
 
     ApplyStdFont = True
@@ -3182,9 +3194,12 @@ Private Function ApplyStdParagraphs(doc As Document) As Boolean
         formattedCount = formattedCount + 1
     Next i
 
-    ' Log atualizado para refletir que todos os parágrafos são formatados
+    ' Marca documento como modificado se houve formatacao
+    If formattedCount > 0 Then documentDirty = True
+
+    ' Log atualizado para refletir que todos os paragrafos sao formatados
     If skippedCount > 0 Then
-        LogMessage "Parágrafos formatados: " & formattedCount & " (incluindo " & skippedCount & " com proteção de imagens)"
+        LogMessage "Paragrafos formatados: " & formattedCount & " (incluindo " & skippedCount & " com protecao de imagens)"
     End If
 
     ApplyStdParagraphs = True
@@ -6572,7 +6587,10 @@ Private Function CleanMultipleSpaces(doc As Document) As Boolean
         Loop
     End With
 
-    LogMessage "Limpeza de espaços concluída: " & spacesRemoved & " correções aplicadas (com proteção CONSIDERANDO)", LOG_LEVEL_INFO
+    ' Marca documento como modificado se houve limpeza
+    If spacesRemoved > 0 Then documentDirty = True
+
+    LogMessage "Limpeza de espacos concluida: " & spacesRemoved & " correcoes aplicadas (com protecao CONSIDERANDO)", LOG_LEVEL_INFO
     CleanMultipleSpaces = True
     Exit Function
 
