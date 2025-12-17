@@ -1,7 +1,7 @@
 ﻿' =============================================================================
 ' CHAINSAW - Sistema de Padronizacao de Proposituras Legislativas
 ' =============================================================================
-' Versao: 2.9.5
+' Versao: 2.9.6
 ' Data: 2025-12-17
 ' Licenca: GNU GPLv3 (https://www.gnu.org/licenses/gpl-3.0.html)
 ' Compatibilidade: Microsoft Word 2010+
@@ -67,7 +67,7 @@ Private Const HEADER_IMAGE_HEIGHT_RATIO As Double = 0.19
 '================================================================================
 ' CONSTANTES DE SISTEMA
 '================================================================================
-Private Const CHAINSAW_VERSION As String = "2.9.3"
+Private Const CHAINSAW_VERSION As String = "2.9.6"
 Private Const MIN_SUPPORTED_VERSION As Long = 14
 Private Const REQUIRED_STRING As String = "$NUMERO$/$ANO$"
 Private Const MAX_BACKUP_FILES As Long = 10
@@ -188,8 +188,19 @@ End Type
 
 Private originalViewSettings As ViewSettings
 
+Private Type ListFormatInfo
+    paraIndex As Long
+    HasList As Boolean
+    ListType As Long
+    ListLevelNumber As Long
+    ListString As String
+End Type
+
+Private savedListFormats() As ListFormatInfo
+Private listFormatCount As Long
+
 '================================================================================
-' VARIÁVEIS DE IDENTIFICAÇÃO DE ELEMENTOS ESTRUTURAIS
+' VARIAVEIS DE IDENTIFICACAO DE ELEMENTOS ESTRUTURAIS
 '================================================================================
 ' Índices dos elementos identificados no documento (0 = não encontrado)
 Private tituloParaIndex As Long
@@ -244,11 +255,11 @@ Public Sub PadronizarDocumentoMain()
         Application.StatusBar = "Aviso: Log desabilitado"
     End If
 
-    ' Inicializa sistema de progresso (14 etapas do pipeline - 2 passagens)
-    InitializeProgress 14
+    ' Inicializa sistema de progresso (18 etapas do pipeline - 2 passagens)
+    InitializeProgress 18
 
     If Not SetAppState(False, "Iniciando...") Then
-        LogMessage "Falha ao configurar estado da aplicação", LOG_LEVEL_WARNING
+        LogMessage "Falha ao configurar estado da aplicacao", LOG_LEVEL_WARNING
     End If
 
     IncrementProgress "Verificando documento"
@@ -280,6 +291,12 @@ Public Sub PadronizarDocumentoMain()
     IncrementProgress "Protegendo imagens"
     If Not BackupAllImages(doc) Then
         LogMessage "Aviso: Falha no backup de imagens - continuando com proteção básica", LOG_LEVEL_WARNING
+    End If
+
+    ' Backup de formatacoes de lista antes das formatacoes
+    IncrementProgress "Protegendo listas"
+    If Not BackupListFormats(doc) Then
+        LogMessage "Aviso: Falha no backup de listas - formatacoes de lista podem ser perdidas", LOG_LEVEL_WARNING
     End If
 
     ' ==========================================================================
@@ -320,22 +337,44 @@ Public Sub PadronizarDocumentoMain()
         End If
     Next pipelinePass
 
-    ' Formata recuos de parágrafos com imagens (zera recuo à esquerda)
+    ' Remove linhas em branco extras e aplica ajustes finais
+    IncrementProgress "Removendo linhas em branco extras"
+    RemoverLinhasEmBrancoExtras doc
+
+    ' Restaura formatacoes de lista apos formatacoes
+    IncrementProgress "Restaurando listas"
+    If Not RestoreListFormats(doc) Then
+        LogMessage "Aviso: Algumas formatacoes de lista podem nao ter sido restauradas", LOG_LEVEL_WARNING
+    End If
+
+    ' Formata paragrafos iniciados com numero (aplica recuo de lista numerada)
+    IncrementProgress "Ajustando numeracao"
+    If Not FormatNumberedParagraphsIndent(doc) Then
+        LogMessage "Aviso: Falha ao formatar recuos de paragrafos numerados", LOG_LEVEL_WARNING
+    End If
+
+    ' Formata paragrafos iniciados com marcador (aplica recuo de lista com marcadores)
+    IncrementProgress "Ajustando marcadores"
+    If Not FormatBulletedParagraphsIndent(doc) Then
+        LogMessage "Aviso: Falha ao formatar recuos de paragrafos com marcadores", LOG_LEVEL_WARNING
+    End If
+
+    ' Formata recuos de paragrafos com imagens (zera recuo a esquerda)
     IncrementProgress "Ajustando layout"
     If Not FormatImageParagraphsIndents(doc) Then
         LogMessage "Aviso: Falha ao formatar recuos de imagens", LOG_LEVEL_WARNING
     End If
 
-    ' Centraliza imagem entre 5ª e 7ª linha após Plenário
+    ' Centraliza imagem entre 5a e 7a linha apos Plenario
     IncrementProgress "Centralizando elementos"
     If Not CenterImageAfterPlenario(doc) Then
-        LogMessage "Aviso: Falha ao centralizar imagem após Plenário", LOG_LEVEL_WARNING
+        LogMessage "Aviso: Falha ao centralizar imagem apos Plenario", LOG_LEVEL_WARNING
     End If
 
-    ' Restaura configurações de visualização originais (exceto zoom)
-    IncrementProgress "Restaurando visualização"
+    ' Restaura configuracoes de visualizacao originais (exceto zoom)
+    IncrementProgress "Restaurando visualizacao"
     If Not RestoreViewSettings(doc) Then
-        LogMessage "Aviso: Algumas configurações de visualização podem não ter sido restauradas", LOG_LEVEL_WARNING
+        LogMessage "Aviso: Algumas configuracoes de visualizacao podem nao ter sido restauradas", LOG_LEVEL_WARNING
     End If
 
     If formattingCancelled Then
@@ -7198,7 +7237,420 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' CENTER IMAGE AFTER PLENARIO - Centraliza imagem entre 5ª e 7ª linha após Plenário
+' BACKUP LIST FORMATS - Salva formatacoes de lista antes do processamento
+'================================================================================
+Private Function BackupListFormats(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+
+    Dim para As Paragraph
+    Dim i As Long
+    Dim tempListInfo As ListFormatInfo
+
+    listFormatCount = 0
+    ReDim savedListFormats(0)
+
+    ' Conta quantos paragrafos tem formatacao de lista
+    Dim totalLists As Long
+    totalLists = 0
+    For Each para In doc.Paragraphs
+        If para.Range.ListFormat.ListType <> 0 Then
+            totalLists = totalLists + 1
+        End If
+    Next para
+
+    If totalLists = 0 Then
+        LogMessage "Nenhuma lista encontrada no documento", LOG_LEVEL_INFO
+        BackupListFormats = True
+        Exit Function
+    End If
+
+    ' Aloca array com tamanho adequado
+    ReDim savedListFormats(totalLists - 1)
+
+    ' Salva informacoes de cada paragrafo com lista
+    i = 1
+    For Each para In doc.Paragraphs
+        If para.Range.ListFormat.ListType <> 0 Then
+            With tempListInfo
+                .paraIndex = i
+                .HasList = True
+                .ListType = para.Range.ListFormat.ListType
+
+                ' Salva o nivel da lista se aplicavel
+                On Error Resume Next
+                .ListLevelNumber = para.Range.ListFormat.ListLevelNumber
+                If Err.Number <> 0 Then
+                    .ListLevelNumber = 1
+                    Err.Clear
+                End If
+                On Error GoTo ErrorHandler
+
+                ' Salva a string da lista (marcador ou numero)
+                On Error Resume Next
+                .ListString = para.Range.ListFormat.ListString
+                If Err.Number <> 0 Then
+                    .ListString = ""
+                    Err.Clear
+                End If
+                On Error GoTo ErrorHandler
+            End With
+
+            savedListFormats(listFormatCount) = tempListInfo
+            listFormatCount = listFormatCount + 1
+
+            If listFormatCount >= UBound(savedListFormats) + 1 Then Exit For
+        End If
+        i = i + 1
+    Next para
+
+    LogMessage "Formatacoes de lista salvas: " & listFormatCount & " paragrafos com lista", LOG_LEVEL_INFO
+    BackupListFormats = True
+    Exit Function
+
+ErrorHandler:
+    LogMessage "Erro ao salvar formatacoes de lista: " & Err.Description, LOG_LEVEL_WARNING
+    BackupListFormats = False
+End Function
+
+'================================================================================
+' RESTORE LIST FORMATS - Restaura formatacoes de lista apos o processamento
+'================================================================================
+Private Function RestoreListFormats(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+
+    If listFormatCount = 0 Then
+        RestoreListFormats = True
+        Exit Function
+    End If
+
+    Dim i As Long
+    Dim restoredCount As Long
+    Dim para As Paragraph
+
+    restoredCount = 0
+
+    For i = 0 To listFormatCount - 1
+        On Error Resume Next
+
+        With savedListFormats(i)
+            If .HasList And .paraIndex <= doc.Paragraphs.count Then
+                Set para = doc.Paragraphs(.paraIndex)
+
+                ' Remove qualquer formatacao de lista existente primeiro
+                para.Range.ListFormat.RemoveNumbers
+
+                ' Aplica a formatacao de lista original
+                Select Case .ListType
+                    Case 2 ' wdListBullet
+                        ' Lista com marcadores
+                        para.Range.ListFormat.ApplyBulletDefault
+
+                    Case 3, 4 ' wdListSimpleNumbering, wdListListNumOnly
+                        ' Lista numerada simples
+                        para.Range.ListFormat.ApplyNumberDefault
+
+                    Case 5 ' wdListMixedNumbering
+                        ' Lista com numeracao mista
+                        para.Range.ListFormat.ApplyNumberDefault
+
+                    Case 6 ' wdListOutlineNumbering
+                        ' Lista com numeracao de topicos
+                        para.Range.ListFormat.ApplyOutlineNumberDefault
+
+                    Case Else
+                        ' Tenta aplicar formatacao padrao
+                        If InStr(.ListString, ".") > 0 Or IsNumeric(Left(.ListString, 1)) Then
+                            para.Range.ListFormat.ApplyNumberDefault
+                        Else
+                            para.Range.ListFormat.ApplyBulletDefault
+                        End If
+                End Select
+
+                ' Tenta restaurar o nivel da lista
+                If .ListLevelNumber > 0 And .ListLevelNumber <= 9 Then
+                    para.Range.ListFormat.ListLevelNumber = .ListLevelNumber
+                End If
+
+                If Err.Number = 0 Then
+                    restoredCount = restoredCount + 1
+                Else
+                    LogMessage "Aviso: Nao foi possivel restaurar lista no paragrafo " & .paraIndex & ": " & Err.Description, LOG_LEVEL_WARNING
+                    Err.Clear
+                End If
+            End If
+        End With
+
+        On Error GoTo ErrorHandler
+    Next i
+
+    If restoredCount > 0 Then
+        LogMessage "Formatacoes de lista restauradas: " & restoredCount & " paragrafos", LOG_LEVEL_INFO
+    End If
+
+    ' Limpa o array
+    ReDim savedListFormats(0)
+    listFormatCount = 0
+
+    RestoreListFormats = True
+    Exit Function
+
+ErrorHandler:
+    LogMessage "Erro ao restaurar formatacoes de lista: " & Err.Description, LOG_LEVEL_WARNING
+    RestoreListFormats = False
+End Function
+
+'================================================================================
+' FORMAT NUMBERED PARAGRAPHS INDENT - Aplica recuo em paragrafos iniciados com numero
+'================================================================================
+Private Function FormatNumberedParagraphsIndent(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+
+    Dim para As Paragraph
+    Dim paraText As String
+    Dim firstChar As String
+    Dim formattedCount As Long
+    Dim defaultIndent As Single
+
+    formattedCount = 0
+
+    ' Recuo padrao de lista numerada (36 pontos = 1.27 cm)
+    defaultIndent = 36
+
+    ' Percorre todos os paragrafos
+    For Each para In doc.Paragraphs
+        paraText = Trim(para.Range.text)
+
+        ' Verifica se o paragrafo nao esta vazio
+        If Len(paraText) > 0 Then
+            ' Pega o primeiro caractere
+            firstChar = Left(paraText, 1)
+
+            ' Verifica se o primeiro caractere e um algarismo (0-9)
+            If IsNumeric(firstChar) Then
+                ' Verifica se o paragrafo nao tem formatacao de lista ja aplicada
+                If para.Range.ListFormat.ListType = 0 Then
+                    ' Aplica o recuo a esquerda igual ao de uma lista numerada
+                    With para.Format
+                        .leftIndent = defaultIndent
+                        .firstLineIndent = 0
+                    End With
+                    formattedCount = formattedCount + 1
+                End If
+            End If
+        End If
+    Next para
+
+    If formattedCount > 0 Then
+        LogMessage "Paragrafos iniciados com numero formatados com recuo de lista: " & formattedCount, LOG_LEVEL_INFO
+    End If
+
+    FormatNumberedParagraphsIndent = True
+    Exit Function
+
+ErrorHandler:
+    LogMessage "Erro ao formatar recuos de paragrafos numerados: " & Err.Description, LOG_LEVEL_WARNING
+    FormatNumberedParagraphsIndent = False
+End Function
+
+'================================================================================
+' FORMAT BULLETED PARAGRAPHS INDENT - Aplica recuo em paragrafos com marcadores
+'================================================================================
+Private Function FormatBulletedParagraphsIndent(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+
+    Dim para As Paragraph
+    Dim paraText As String
+    Dim firstChar As String
+    Dim formattedCount As Long
+    Dim defaultIndent As Single
+    Dim i As Long
+
+    formattedCount = 0
+
+    ' Recuo padrao de lista com marcadores (36 pontos = 1.27 cm)
+    defaultIndent = 36
+
+    ' Array com os marcadores mais comuns
+    Dim bulletMarkers() As String
+    bulletMarkers = Split("*,-,>,+,~", ",")
+
+    ' Percorre todos os paragrafos
+    For Each para In doc.Paragraphs
+        paraText = Trim(para.Range.text)
+
+        ' Verifica se o paragrafo nao esta vazio
+        If Len(paraText) > 0 Then
+            ' Pega o primeiro caractere
+            firstChar = Left(paraText, 1)
+
+            ' Verifica se o primeiro caractere e um marcador comum
+            Dim isBullet As Boolean
+            isBullet = False
+
+            For i = LBound(bulletMarkers) To UBound(bulletMarkers)
+                If firstChar = bulletMarkers(i) Then
+                    isBullet = True
+                    Exit For
+                End If
+            Next i
+
+            If isBullet Then
+                ' Verifica se o paragrafo nao tem formatacao de lista ja aplicada
+                If para.Range.ListFormat.ListType = 0 Then
+                    ' Aplica o recuo a esquerda igual ao de uma lista com marcadores
+                    With para.Format
+                        .leftIndent = defaultIndent
+                        .firstLineIndent = 0
+                    End With
+                    formattedCount = formattedCount + 1
+                End If
+            End If
+        End If
+    Next para
+
+    If formattedCount > 0 Then
+        LogMessage "Paragrafos iniciados com marcador formatados com recuo de lista: " & formattedCount, LOG_LEVEL_INFO
+    End If
+
+    FormatBulletedParagraphsIndent = True
+    Exit Function
+
+ErrorHandler:
+    LogMessage "Erro ao formatar recuos de paragrafos com marcadores: " & Err.Description, LOG_LEVEL_WARNING
+    FormatBulletedParagraphsIndent = False
+End Function
+
+'================================================================================
+' REMOVER LINHAS EM BRANCO EXTRAS - Remove linhas duplicadas e aplica ajustes
+'================================================================================
+Private Sub RemoverLinhasEmBrancoExtras(doc As Document)
+    On Error GoTo ErrorHandler
+
+    Dim i As Long
+    Dim removedCount As Long
+    Dim replacedCount As Long
+
+    removedCount = 0
+    replacedCount = 0
+
+    LogMessage "Removendo linhas em branco extras e aplicando ajustes...", LOG_LEVEL_INFO
+
+    ' --- Espacamento simples em todos os paragrafos ---
+    Dim p As Paragraph
+    For Each p In doc.Paragraphs
+        On Error Resume Next
+        With p.Format
+            .LineSpacingRule = wdLineSpaceSingle
+            .LineSpacing = 12
+            .SpaceBefore = 0
+            .SpaceAfter = 0
+        End With
+        On Error GoTo ErrorHandler
+    Next p
+
+    ' --- Remove linhas em branco extras ---
+    For i = doc.Paragraphs.count To 2 Step -1
+        Dim txtAtual As String, txtAnterior As String
+        txtAtual = Trim(Replace(doc.Paragraphs(i).Range.text, vbCr, ""))
+        txtAnterior = Trim(Replace(doc.Paragraphs(i - 1).Range.text, vbCr, ""))
+
+        If txtAtual = "" And txtAnterior = "" Then
+            On Error Resume Next
+            doc.Paragraphs(i).Range.Delete
+            If Err.Number = 0 Then removedCount = removedCount + 1
+            Err.Clear
+            On Error GoTo ErrorHandler
+        End If
+    Next i
+
+    ' --- Substituicoes no texto ---
+    With doc.Content.Find
+        .ClearFormatting
+        .Replacement.ClearFormatting
+        .Forward = True
+        .Wrap = 1 ' wdFindContinue
+        .Format = False
+        .MatchCase = False
+        .MatchWholeWord = False
+        .MatchWildcards = False
+
+        On Error Resume Next
+        .text = "por intermedio do Setor,"
+        .Replacement.text = "por intermedio do Setor competente,"
+        If .Execute(Replace:=2) Then replacedCount = replacedCount + 1
+
+        .text = "Indica ao Poder Executivo Municipal efetue"
+        .Replacement.text = "Indica ao Poder Executivo Municipal que efetue"
+        If .Execute(Replace:=2) Then replacedCount = replacedCount + 1
+
+        .text = "Fomos procurados por municipes, solicitando essa providencia, pois segundo eles,"
+        .Replacement.text = "Fomos procurados por municipes solicitando essa providencia, pois, segundo eles,"
+        If .Execute(Replace:=2) Then replacedCount = replacedCount + 1
+        On Error GoTo ErrorHandler
+    End With
+
+    ' --- Ajustes por paragrafo ---
+    Dim para As Paragraph
+    For Each para In doc.Paragraphs
+        Dim cleanTxt As String
+        cleanTxt = LCase(Trim(Replace(para.Range.text, vbCr, "")))
+        cleanTxt = Replace(cleanTxt, "-", "")
+
+        On Error Resume Next
+
+        ' Espacamento extra antes e depois da data
+        If InStr(cleanTxt, "plenario") > 0 And InStr(cleanTxt, "tancredo neves") > 0 Then
+            para.Format.SpaceBefore = 24
+            para.Format.SpaceAfter = 24
+        End If
+
+        ' Centraliza nome, cargo e partido
+        If Left(cleanTxt, 8) = "vereador" _
+           Or Left(cleanTxt, 9) = "vereadora" _
+           Or InStr(cleanTxt, "vicepresidente") > 0 Then
+
+            ' Cargo
+            With para.Format
+                .leftIndent = 0
+                .RightIndent = 0
+                .firstLineIndent = 0
+                .alignment = wdAlignParagraphCenter
+            End With
+
+            ' Nome (paragrafo anterior)
+            If Not para.Previous Is Nothing Then
+                With para.Previous.Format
+                    .leftIndent = 0
+                    .RightIndent = 0
+                    .firstLineIndent = 0
+                    .alignment = wdAlignParagraphCenter
+                End With
+                para.Previous.Range.Font.Bold = True
+            End If
+
+            ' Partido (paragrafo seguinte)
+            If Not para.Next Is Nothing Then
+                With para.Next.Format
+                    .leftIndent = 0
+                    .RightIndent = 0
+                    .firstLineIndent = 0
+                    .alignment = wdAlignParagraphCenter
+                End With
+            End If
+        End If
+
+        On Error GoTo ErrorHandler
+    Next para
+
+    LogMessage "Linhas em branco removidas: " & removedCount & ", substituicoes: " & replacedCount, LOG_LEVEL_INFO
+    Exit Sub
+
+ErrorHandler:
+    LogMessage "Erro em RemoverLinhasEmBrancoExtras: " & Err.Description, LOG_LEVEL_WARNING
+End Sub
+
+'================================================================================
+' CENTER IMAGE AFTER PLENARIO - Centraliza imagem entre 5a e 7a linha apos Plenario
 '================================================================================
 Private Function CenterImageAfterPlenario(doc As Document) As Boolean
     On Error GoTo ErrorHandler

@@ -68,8 +68,8 @@ Describe 'CHAINSAW - Testes do Módulo VBA Módulo1.bas' {
             $functions = [regex]::Matches($vbaContent, '(?m)^(Public |Private )?Function \w+')
         }
 
-        It 'Contém quantidade razoável de procedimentos (100-150)' {
-            $procedures.Count -ge 100 -and $procedures.Count -le 150 | Should Be $true
+        It 'Contem quantidade razoavel de procedimentos (100-160)' {
+            $procedures.Count -ge 100 -and $procedures.Count -le 160 | Should Be $true
         }
 
         It 'Possui procedimento principal PadronizarDocumentoMain' {

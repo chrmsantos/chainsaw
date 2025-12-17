@@ -2,26 +2,39 @@
 
 ## Current Version
 
-2.9.0 - Beta
+2.9.6 - Beta
 
 ## Release Information
 
 - **Status**: Beta
-- **Release Date**: N/A
+- **Release Date**: 2025-12-17
 - **Codename**: Padronizador
 - **Release Type**: Feature Release
 
 ## Version History
 
+### 2.9.6 (2025-12-17) - Beta
+
+- Adicionado sistema de backup/restore de formatacoes de lista
+- Adicionada funcao RemoverLinhasEmBrancoExtras para limpeza de texto
+- Adicionadas funcoes FormatNumberedParagraphsIndent e FormatBulletedParagraphsIndent
+- Implementadas substituicoes automaticas de texto para correcao gramatical
+- Centralizacao automatica de nome/cargo/partido do vereador
+- Espacamento especial antes/depois da data (Plenario)
+
+### 2.9.0 - Beta
+
+- Versao anterior estavel
+
 ### 2.8.8 - Beta
 
-- Alinhado ao CHAINSAW_VERSION do código
-- Limpeza de referências obsoletas e padronização de caminhos
+- Alinhado ao CHAINSAW_VERSION do codigo
+- Limpeza de referencias obsoletas e padronizacao de caminhos
 
 ### 2.0.3 (2025-11-28) - Beta
 
 - Current stable beta release
-- Sistema de padronização automática para proposituras legislativas
+- Sistema de padronizacao automatica para proposituras legislativas
 - Suporte para Word 2010+
 
 ## Stability Classification
