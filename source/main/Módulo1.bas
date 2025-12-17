@@ -4394,174 +4394,564 @@ Private Function ValidateDocumentStructure(doc As Document) As Boolean
 End Function
 
 '================================================================================
-' VALIDAÇÃO DE CONSISTÊNCIA DE ENDEREÇOS
+' VALIDACAO DE CONSISTENCIA EMENTA x PROPOSICAO
+' Compara elementos-chave entre ementa e texto da proposicao
 '================================================================================
 Private Function ValidateAddressConsistency(doc As Document) As Boolean
     On Error GoTo ErrorHandler
 
-    Dim para As Paragraph
-    Dim textualParaCount As Long
-    Dim secondTextualPara As Paragraph
-    Dim firstTextualParaBelowEmenta As Paragraph
-    Dim para2Text As String
-    Dim para3Text As String
-    Dim ruaPosition As Long
-    Dim twoWords As String
-    Dim word1 As String, word2 As String
-    Dim i As Long
+    Dim ementaText As String
+    Dim proposicaoText As String
+    Dim inconsistencies As String
+    Dim inconsistencyCount As Long
 
-    textualParaCount = 0
-    Set secondTextualPara = Nothing
-    Set firstTextualParaBelowEmenta = Nothing
+    ' Obtem textos da ementa e proposicao usando o cache de estrutura
+    ementaText = GetEmentaText(doc)
+    proposicaoText = GetProposicaoText(doc)
 
-    ' Identifica o 2º parágrafo textual (ementa) e o 1º abaixo dele
-    For Each para In doc.Paragraphs
-        If Len(Trim(para.Range.text)) > 1 Then ' > 1 para ignorar apenas marca de parágrafo
-            textualParaCount = textualParaCount + 1
-
-            If textualParaCount = 2 Then
-                Set secondTextualPara = para
-            ElseIf textualParaCount = 3 Then
-                ' Pula o 3º (geralmente data/local)
-                ' Nada a fazer aqui
-            ElseIf textualParaCount = 4 Then
-                ' Este é o 1º parágrafo textual abaixo da ementa
-                Set firstTextualParaBelowEmenta = para
-                Exit For
-            End If
-        End If
-    Next para
-
-    ' Se não encontrou os parágrafos necessários, retorna True (sem verificação)
-    If secondTextualPara Is Nothing Or firstTextualParaBelowEmenta Is Nothing Then
+    ' Se nao conseguiu identificar ementa ou proposicao, retorna True (sem verificacao)
+    If Len(ementaText) < 10 Or Len(proposicaoText) < 20 Then
+        LogMessage "Ementa ou proposicao nao identificadas para validacao", LOG_LEVEL_INFO
         ValidateAddressConsistency = True
         Exit Function
     End If
 
-    para2Text = secondTextualPara.Range.text
-    para3Text = firstTextualParaBelowEmenta.Range.text
+    inconsistencies = ""
+    inconsistencyCount = 0
 
-    ' Procura pela palavra "Rua" (case insensitive) no segundo parágrafo (ementa)
-    ruaPosition = InStr(1, para2Text, "rua", vbTextCompare)
-
-    If ruaPosition = 0 Then
-        ' Não encontrou "Rua", não há o que verificar
-        ValidateAddressConsistency = True
-        Exit Function
+    ' 1. Verifica enderecos (Rua, Avenida, etc)
+    Dim addressInconsistency As String
+    addressInconsistency = CheckAddressConsistency(ementaText, proposicaoText)
+    If Len(addressInconsistency) > 0 Then
+        inconsistencies = inconsistencies & addressInconsistency & vbCrLf
+        inconsistencyCount = inconsistencyCount + 1
     End If
 
-    ' Extrai o texto após "Rua"
-    Dim textAfterRua As String
-    textAfterRua = Mid(para2Text, ruaPosition + 3) ' +3 para pular "Rua"
-    textAfterRua = Trim(textAfterRua)
-
-    ' Remove caracteres de pontuação e quebras de linha
-    textAfterRua = Replace(textAfterRua, vbCr, " ")
-    textAfterRua = Replace(textAfterRua, vbLf, " ")
-    textAfterRua = Replace(textAfterRua, vbTab, " ")
-    textAfterRua = Replace(textAfterRua, ",", " ")
-    textAfterRua = Replace(textAfterRua, ".", " ")
-    textAfterRua = Replace(textAfterRua, ";", " ")
-    textAfterRua = Replace(textAfterRua, ":", " ")
-
-    ' Remove múltiplos espaços com proteção
-    Dim spaceCounter As Long
-    spaceCounter = 0
-    Do While InStr(textAfterRua, "  ") > 0 And spaceCounter < MAX_LOOP_ITERATIONS
-        textAfterRua = Replace(textAfterRua, "  ", " ")
-        spaceCounter = spaceCounter + 1
-    Loop
-    textAfterRua = Trim(textAfterRua)
-
-    ' Extrai as DUAS primeiras palavras/números após "Rua"
-    Dim words() As String
-    words = Split(textAfterRua, " ")
-
-    If UBound(words) < 1 Then
-        ' Não há duas palavras subsequentes, não há o que verificar
-        ValidateAddressConsistency = True
-        Exit Function
+    ' 2. Verifica valores monetarios (R$)
+    Dim monetaryInconsistency As String
+    monetaryInconsistency = CheckMonetaryConsistency(ementaText, proposicaoText)
+    If Len(monetaryInconsistency) > 0 Then
+        inconsistencies = inconsistencies & monetaryInconsistency & vbCrLf
+        inconsistencyCount = inconsistencyCount + 1
     End If
 
-    word1 = Trim(words(0))
-    word2 = Trim(words(1))
-
-    ' Remove caracteres especiais das palavras
-    word1 = Replace(word1, Chr(13), "")
-    word1 = Replace(word1, Chr(10), "")
-    word2 = Replace(word2, Chr(13), "")
-    word2 = Replace(word2, Chr(10), "")
-
-    ' Ignora palavras muito curtas (preposições, artigos)
-    If Len(word1) <= 2 Then
-        ' Se a primeira palavra é muito curta (ex: "de", "do"), usa a próxima
-        If UBound(words) >= 2 Then
-            word1 = word2
-            word2 = Trim(words(2))
-            word2 = Replace(word2, Chr(13), "")
-            word2 = Replace(word2, Chr(10), "")
-        End If
+    ' 3. Verifica numeros de referencia (n., n.o, numero)
+    Dim numberInconsistency As String
+    numberInconsistency = CheckNumberConsistency(ementaText, proposicaoText)
+    If Len(numberInconsistency) > 0 Then
+        inconsistencies = inconsistencies & numberInconsistency & vbCrLf
+        inconsistencyCount = inconsistencyCount + 1
     End If
 
-    ' Normaliza o texto do parágrafo textual para comparação mais flexível
-    Dim normalizedPara3Text As String
-    normalizedPara3Text = para3Text
-    normalizedPara3Text = Replace(normalizedPara3Text, "n.º", " ")
-    normalizedPara3Text = Replace(normalizedPara3Text, "nº", " ")
-    normalizedPara3Text = Replace(normalizedPara3Text, "n°", " ")
-    normalizedPara3Text = Replace(normalizedPara3Text, "número", " ")
-    normalizedPara3Text = Replace(normalizedPara3Text, ",", " ")
-    normalizedPara3Text = Replace(normalizedPara3Text, ".", " ")
-
-    ' Verifica se as DUAS palavras existem no primeiro parágrafo textual abaixo da ementa (case insensitive)
-    Dim foundWord1 As Boolean
-    Dim foundWord2 As Boolean
-
-    ' Busca com contexto "Rua" próximo para reduzir falsos positivos
-    Dim ruaPosInPara3 As Long
-    ruaPosInPara3 = InStr(1, normalizedPara3Text, "rua", vbTextCompare)
-
-    If ruaPosInPara3 > 0 Then
-        ' Extrai contexto de 100 caracteres após "Rua" no parágrafo textual
-        Dim contextAfterRua As String
-        contextAfterRua = Mid(normalizedPara3Text, ruaPosInPara3, 100)
-
-        ' Busca as palavras no contexto próximo a "Rua"
-        foundWord1 = InStr(1, contextAfterRua, word1, vbTextCompare) > 0
-        foundWord2 = InStr(1, contextAfterRua, word2, vbTextCompare) > 0
-    Else
-        ' Se não encontrou "Rua" no texto, busca as palavras em todo o parágrafo
-        foundWord1 = InStr(1, normalizedPara3Text, word1, vbTextCompare) > 0
-        foundWord2 = InStr(1, normalizedPara3Text, word2, vbTextCompare) > 0
+    ' 4. Verifica bairros mencionados
+    Dim bairroInconsistency As String
+    bairroInconsistency = CheckBairroConsistency(ementaText, proposicaoText)
+    If Len(bairroInconsistency) > 0 Then
+        inconsistencies = inconsistencies & bairroInconsistency & vbCrLf
+        inconsistencyCount = inconsistencyCount + 1
     End If
 
-    ' Se as duas palavras não foram encontradas, exibe recomendação
-    If Not (foundWord1 And foundWord2) Then
+    ' Se encontrou inconsistencias, exibe mensagem consolidada
+    If inconsistencyCount > 0 Then
         Dim msg As String
-        msg = "VERIFICAR ENDEREÇO" & vbCrLf & vbCrLf
-        msg = msg & "Possível inconsistência entre ementa e texto." & vbCrLf & vbCrLf
-        msg = msg & "Ementa (2º parágrafo): " & word1 & " " & word2 & vbCrLf & vbCrLf
-        msg = msg & "Texto (1º parágrafo):" & vbCrLf
-        msg = msg & "  • " & word1 & ": " & IIf(foundWord1, "Sim", "NÃO") & vbCrLf
-        msg = msg & "  • " & word2 & ": " & IIf(foundWord2, "Sim", "NÃO") & vbCrLf & vbCrLf
-        msg = msg & "Verifique a consistência dos endereços."
+        msg = "VERIFICAR CONSISTENCIA" & vbCrLf & vbCrLf
+        msg = msg & "Foram encontradas " & inconsistencyCount & " possivel(is) inconsistencia(s) entre a ementa e o texto:" & vbCrLf & vbCrLf
+        msg = msg & inconsistencies & vbCrLf
+        msg = msg & "Recomenda-se revisar o documento antes de prosseguir."
 
-        MsgBox msg, vbExclamation, "Verificação de Endereço"
+        MsgBox msg, vbExclamation, "Verificacao de Consistencia"
 
-        LogMessage "Inconsistência de endereço detectada: '" & word1 & " " & word2 & "' não encontrado completamente no 1º parágrafo textual", LOG_LEVEL_WARNING
-
+        LogMessage "Inconsistencias detectadas: " & inconsistencyCount & " item(ns)", LOG_LEVEL_WARNING
         ValidateAddressConsistency = False
         Exit Function
     End If
 
-    ' Tudo OK, endereços consistentes
-    LogMessage "Endereços validados com sucesso: ementa x 1º parágrafo textual", LOG_LEVEL_INFO
+    ' Tudo OK
+    LogMessage "Validacao ementa x proposicao: sem inconsistencias detectadas", LOG_LEVEL_INFO
     ValidateAddressConsistency = True
     Exit Function
 
 ErrorHandler:
-    LogMessage "Erro ao validar consistência de endereços: " & Err.Description, LOG_LEVEL_WARNING
-    ValidateAddressConsistency = True ' Retorna True para não bloquear o processamento
+    LogMessage "Erro ao validar consistencia ementa/proposicao: " & Err.Description, LOG_LEVEL_WARNING
+    ValidateAddressConsistency = True
+End Function
+
+'================================================================================
+' OBTEM TEXTO DA EMENTA
+'================================================================================
+Private Function GetEmentaText(doc As Document) As String
+    On Error Resume Next
+    GetEmentaText = ""
+
+    If doc Is Nothing Then Exit Function
+
+    Dim i As Long
+    Dim para As Paragraph
+    Dim paraText As String
+    Dim textualCount As Long
+
+    textualCount = 0
+
+    ' Percorre paragrafos buscando o 2o paragrafo textual (ementa)
+    For i = 1 To doc.Paragraphs.count
+        If i > 20 Then Exit For ' Limite de seguranca
+
+        Set para = doc.Paragraphs(i)
+        paraText = Trim(para.Range.text)
+
+        ' Ignora paragrafos vazios
+        If Len(paraText) > 1 Then
+            textualCount = textualCount + 1
+
+            ' 2o paragrafo textual e a ementa
+            If textualCount = 2 Then
+                ' Verifica se tem recuo (caracteristica da ementa)
+                If para.Format.leftIndent > 5 Then
+                    GetEmentaText = paraText
+                    Exit Function
+                End If
+            End If
+        End If
+    Next i
+End Function
+
+'================================================================================
+' OBTEM TEXTO DA PROPOSICAO (CORPO DO DOCUMENTO)
+'================================================================================
+Private Function GetProposicaoText(doc As Document) As String
+    On Error Resume Next
+    GetProposicaoText = ""
+
+    If doc Is Nothing Then Exit Function
+
+    Dim i As Long
+    Dim para As Paragraph
+    Dim paraText As String
+    Dim textualCount As Long
+    Dim result As String
+    Dim paraCount As Long
+
+    textualCount = 0
+    result = ""
+    paraCount = 0
+
+    ' Percorre paragrafos coletando texto apos a ementa
+    For i = 1 To doc.Paragraphs.count
+        If i > 50 Then Exit For ' Limite de seguranca
+
+        Set para = doc.Paragraphs(i)
+        paraText = Trim(para.Range.text)
+
+        ' Ignora paragrafos vazios
+        If Len(paraText) > 1 Then
+            textualCount = textualCount + 1
+
+            ' Coleta paragrafos do 4o em diante (apos titulo, ementa, data)
+            If textualCount >= 4 Then
+                ' Para ao encontrar "Justificativa" ou assinatura
+                Dim lowerText As String
+                lowerText = LCase(paraText)
+                If InStr(lowerText, "justificativa") > 0 Then Exit For
+                If InStr(lowerText, "vereador") > 0 Then Exit For
+
+                result = result & " " & paraText
+                paraCount = paraCount + 1
+
+                ' Limita a 10 paragrafos para nao sobrecarregar
+                If paraCount >= 10 Then Exit For
+            End If
+        End If
+    Next i
+
+    GetProposicaoText = result
+End Function
+
+'================================================================================
+' VERIFICA CONSISTENCIA DE ENDERECOS
+'================================================================================
+Private Function CheckAddressConsistency(ementaText As String, proposicaoText As String) As String
+    On Error Resume Next
+    CheckAddressConsistency = ""
+
+    Dim addressKeywords() As Variant
+    addressKeywords = Array("rua ", "avenida ", "av. ", "travessa ", "alameda ", "praca ", "estrada ")
+
+    Dim kw As Variant
+    Dim kwPos As Long
+    Dim addressInEmenta As String
+    Dim foundInProposicao As Boolean
+
+    For Each kw In addressKeywords
+        kwPos = InStr(1, LCase(ementaText), CStr(kw), vbTextCompare)
+
+        If kwPos > 0 Then
+            ' Extrai endereco da ementa (ate 50 caracteres apos a palavra-chave)
+            addressInEmenta = ExtractAddressWords(ementaText, kwPos, CStr(kw))
+
+            If Len(addressInEmenta) > 3 Then
+                ' Verifica se endereco existe na proposicao
+                foundInProposicao = CheckAddressInText(addressInEmenta, proposicaoText)
+
+                If Not foundInProposicao Then
+                    CheckAddressConsistency = "ENDERECO: '" & UCase(kw) & addressInEmenta & "' da ementa nao encontrado no texto."
+                    Exit Function
+                End If
+            End If
+        End If
+    Next kw
+End Function
+
+'================================================================================
+' EXTRAI PALAVRAS DO ENDERECO
+'================================================================================
+Private Function ExtractAddressWords(text As String, startPos As Long, keyword As String) As String
+    On Error Resume Next
+    ExtractAddressWords = ""
+
+    Dim afterKeyword As String
+    Dim words() As String
+    Dim result As String
+    Dim i As Long
+
+    ' Pega texto apos a palavra-chave
+    afterKeyword = Mid(text, startPos + Len(keyword), 60)
+    afterKeyword = CleanTextForComparison(afterKeyword)
+
+    ' Divide em palavras
+    words = Split(afterKeyword, " ")
+
+    result = ""
+    For i = 0 To UBound(words)
+        If i > 2 Then Exit For ' Maximo 3 palavras
+
+        Dim word As String
+        word = Trim(words(i))
+
+        ' Ignora artigos e preposicoes
+        If Len(word) > 2 Then
+            If result <> "" Then result = result & " "
+            result = result & word
+        End If
+    Next i
+
+    ExtractAddressWords = result
+End Function
+
+'================================================================================
+' VERIFICA SE ENDERECO EXISTE NO TEXTO
+'================================================================================
+Private Function CheckAddressInText(address As String, text As String) As Boolean
+    On Error Resume Next
+    CheckAddressInText = False
+
+    Dim normalizedAddress As String
+    Dim normalizedText As String
+    Dim words() As String
+    Dim word As Variant
+    Dim foundCount As Long
+    Dim totalWords As Long
+
+    normalizedAddress = CleanTextForComparison(address)
+    normalizedText = CleanTextForComparison(text)
+
+    words = Split(normalizedAddress, " ")
+    foundCount = 0
+    totalWords = 0
+
+    For Each word In words
+        If Len(Trim(CStr(word))) > 2 Then
+            totalWords = totalWords + 1
+            If InStr(1, normalizedText, CStr(word), vbTextCompare) > 0 Then
+                foundCount = foundCount + 1
+            End If
+        End If
+    Next word
+
+    ' Considera consistente se encontrou pelo menos 70% das palavras
+    If totalWords > 0 Then
+        CheckAddressInText = (foundCount / totalWords) >= 0.7
+    End If
+End Function
+
+'================================================================================
+' VERIFICA CONSISTENCIA DE VALORES MONETARIOS
+'================================================================================
+Private Function CheckMonetaryConsistency(ementaText As String, proposicaoText As String) As String
+    On Error Resume Next
+    CheckMonetaryConsistency = ""
+
+    Dim rsPos As Long
+    Dim valueInEmenta As String
+    Dim normalizedProposicao As String
+
+    ' Procura por R$ na ementa
+    rsPos = InStr(1, ementaText, "R$", vbTextCompare)
+
+    If rsPos > 0 Then
+        ' Extrai valor (R$ seguido de numeros)
+        valueInEmenta = ExtractMonetaryValue(ementaText, rsPos)
+
+        If Len(valueInEmenta) > 0 Then
+            ' Normaliza proposicao para comparacao
+            normalizedProposicao = CleanTextForComparison(proposicaoText)
+            normalizedProposicao = Replace(normalizedProposicao, ".", "")
+            normalizedProposicao = Replace(normalizedProposicao, ",", "")
+
+            ' Remove pontuacao do valor para comparacao
+            Dim normalizedValue As String
+            normalizedValue = Replace(valueInEmenta, ".", "")
+            normalizedValue = Replace(normalizedValue, ",", "")
+            normalizedValue = Replace(normalizedValue, " ", "")
+
+            ' Verifica se valor numerico existe na proposicao
+            If InStr(1, normalizedProposicao, normalizedValue, vbTextCompare) = 0 Then
+                CheckMonetaryConsistency = "VALOR: 'R$ " & valueInEmenta & "' da ementa nao encontrado no texto."
+            End If
+        End If
+    End If
+End Function
+
+'================================================================================
+' EXTRAI VALOR MONETARIO
+'================================================================================
+Private Function ExtractMonetaryValue(text As String, rsPos As Long) As String
+    On Error Resume Next
+    ExtractMonetaryValue = ""
+
+    Dim afterRS As String
+    Dim i As Long
+    Dim c As String
+    Dim result As String
+    Dim foundDigit As Boolean
+
+    afterRS = Mid(text, rsPos + 2, 30) ' Pega ate 30 caracteres apos R$
+    afterRS = Trim(afterRS)
+
+    result = ""
+    foundDigit = False
+
+    For i = 1 To Len(afterRS)
+        c = Mid(afterRS, i, 1)
+
+        ' Aceita digitos, ponto, virgula e espaco
+        If c Like "[0-9]" Then
+            result = result & c
+            foundDigit = True
+        ElseIf (c = "." Or c = "," Or c = " ") And foundDigit Then
+            result = result & c
+        ElseIf foundDigit Then
+            Exit For ' Terminou o numero
+        End If
+    Next i
+
+    ExtractMonetaryValue = Trim(result)
+End Function
+
+'================================================================================
+' VERIFICA CONSISTENCIA DE NUMEROS DE REFERENCIA
+'================================================================================
+Private Function CheckNumberConsistency(ementaText As String, proposicaoText As String) As String
+    On Error Resume Next
+    CheckNumberConsistency = ""
+
+    Dim numberPatterns() As Variant
+    numberPatterns = Array("n. ", "n.o ", "no ", "numero ")
+
+    Dim pattern As Variant
+    Dim patternPos As Long
+    Dim numberInEmenta As String
+    Dim normalizedProposicao As String
+
+    normalizedProposicao = CleanTextForComparison(proposicaoText)
+
+    For Each pattern In numberPatterns
+        patternPos = InStr(1, LCase(ementaText), CStr(pattern), vbTextCompare)
+
+        If patternPos > 0 Then
+            ' Extrai numero apos o padrao
+            numberInEmenta = ExtractReferenceNumber(ementaText, patternPos + Len(pattern))
+
+            If Len(numberInEmenta) > 0 Then
+                ' Verifica se numero existe na proposicao
+                If InStr(1, normalizedProposicao, numberInEmenta, vbTextCompare) = 0 Then
+                    CheckNumberConsistency = "NUMERO: '" & numberInEmenta & "' da ementa nao encontrado no texto."
+                    Exit Function
+                End If
+            End If
+        End If
+    Next pattern
+End Function
+
+'================================================================================
+' EXTRAI NUMERO DE REFERENCIA
+'================================================================================
+Private Function ExtractReferenceNumber(text As String, startPos As Long) As String
+    On Error Resume Next
+    ExtractReferenceNumber = ""
+
+    Dim afterPattern As String
+    Dim i As Long
+    Dim c As String
+    Dim result As String
+
+    afterPattern = Mid(text, startPos, 20)
+    afterPattern = Trim(afterPattern)
+
+    result = ""
+
+    For i = 1 To Len(afterPattern)
+        c = Mid(afterPattern, i, 1)
+
+        If c Like "[0-9]" Then
+            result = result & c
+        ElseIf c = "." Or c = "/" Or c = "-" Then
+            ' Aceita separadores comuns em numeros de referencia
+            If Len(result) > 0 Then result = result & c
+        ElseIf Len(result) > 0 Then
+            Exit For ' Terminou o numero
+        End If
+    Next i
+
+    ' Remove separadores no final
+    Do While Right(result, 1) = "." Or Right(result, 1) = "/" Or Right(result, 1) = "-"
+        result = Left(result, Len(result) - 1)
+    Loop
+
+    ExtractReferenceNumber = result
+End Function
+
+'================================================================================
+' VERIFICA CONSISTENCIA DE BAIRROS
+'================================================================================
+Private Function CheckBairroConsistency(ementaText As String, proposicaoText As String) As String
+    On Error Resume Next
+    CheckBairroConsistency = ""
+
+    Dim bairroPatterns() As Variant
+    bairroPatterns = Array("bairro ", "no bairro ", "do bairro ")
+
+    Dim pattern As Variant
+    Dim patternPos As Long
+    Dim bairroInEmenta As String
+    Dim normalizedProposicao As String
+
+    normalizedProposicao = CleanTextForComparison(proposicaoText)
+
+    For Each pattern In bairroPatterns
+        patternPos = InStr(1, LCase(ementaText), CStr(pattern), vbTextCompare)
+
+        If patternPos > 0 Then
+            ' Extrai nome do bairro (ate 30 caracteres)
+            bairroInEmenta = ExtractBairroName(ementaText, patternPos + Len(pattern))
+
+            If Len(bairroInEmenta) > 2 Then
+                ' Verifica se bairro existe na proposicao (com tolerancia)
+                If Not CheckBairroInText(bairroInEmenta, normalizedProposicao) Then
+                    CheckBairroConsistency = "BAIRRO: '" & bairroInEmenta & "' da ementa nao encontrado no texto."
+                    Exit Function
+                End If
+            End If
+        End If
+    Next pattern
+End Function
+
+'================================================================================
+' EXTRAI NOME DO BAIRRO
+'================================================================================
+Private Function ExtractBairroName(text As String, startPos As Long) As String
+    On Error Resume Next
+    ExtractBairroName = ""
+
+    Dim afterPattern As String
+    Dim words() As String
+    Dim result As String
+    Dim i As Long
+
+    afterPattern = Mid(text, startPos, 40)
+    afterPattern = CleanTextForComparison(afterPattern)
+
+    words = Split(afterPattern, " ")
+    result = ""
+
+    For i = 0 To UBound(words)
+        If i > 2 Then Exit For ' Maximo 3 palavras
+
+        Dim word As String
+        word = Trim(words(i))
+
+        ' Para se encontrar pontuacao ou palavras-chave que indicam fim
+        If InStr(word, ",") > 0 Or InStr(word, ".") > 0 Then Exit For
+        If LCase(word) = "neste" Or LCase(word) = "desta" Then Exit For
+
+        If Len(word) > 1 Then
+            If result <> "" Then result = result & " "
+            result = result & word
+        End If
+    Next i
+
+    ExtractBairroName = result
+End Function
+
+'================================================================================
+' VERIFICA SE BAIRRO EXISTE NO TEXTO
+'================================================================================
+Private Function CheckBairroInText(bairro As String, text As String) As Boolean
+    On Error Resume Next
+    CheckBairroInText = False
+
+    ' Busca exata primeiro
+    If InStr(1, text, bairro, vbTextCompare) > 0 Then
+        CheckBairroInText = True
+        Exit Function
+    End If
+
+    ' Busca por palavras individuais
+    Dim words() As String
+    Dim word As Variant
+    Dim foundCount As Long
+
+    words = Split(bairro, " ")
+    foundCount = 0
+
+    For Each word In words
+        If Len(Trim(CStr(word))) > 2 Then
+            If InStr(1, text, CStr(word), vbTextCompare) > 0 Then
+                foundCount = foundCount + 1
+            End If
+        End If
+    Next word
+
+    ' Considera encontrado se achou pelo menos metade das palavras
+    CheckBairroInText = (foundCount >= (UBound(words) + 1) / 2)
+End Function
+
+'================================================================================
+' LIMPA TEXTO PARA COMPARACAO
+'================================================================================
+Private Function CleanTextForComparison(text As String) As String
+    On Error Resume Next
+    CleanTextForComparison = text
+
+    Dim result As String
+    result = text
+
+    ' Remove quebras de linha
+    result = Replace(result, vbCr, " ")
+    result = Replace(result, vbLf, " ")
+    result = Replace(result, vbTab, " ")
+
+    ' Normaliza variacoes de caracteres
+    result = Replace(result, Chr(160), " ")  ' Non-breaking space
+
+    ' Remove multiplos espacos
+    Dim counter As Long
+    counter = 0
+    Do While InStr(result, "  ") > 0 And counter < 100
+        result = Replace(result, "  ", " ")
+        counter = counter + 1
+    Loop
+
+    CleanTextForComparison = Trim(result)
 End Function
 
 '================================================================================
