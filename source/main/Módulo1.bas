@@ -388,8 +388,8 @@ Public Sub PadronizarDocumentoMain()
     Dim execSeconds As Long
     execSeconds = CLng((Now - executionStartTime) * 86400)
 
-    ' Mostra mensagem final na barra de status: "Concluido! Ns. X erros."
-    Application.StatusBar = "Concluido! " & execSeconds & "s. " & errorCount & " erros."
+    ' Mostra mensagem final na barra de status
+    Application.StatusBar = "Concluido em " & execSeconds & "s com " & errorCount & " erros."
 
 CleanUp:
     ' ---------------------------------------------------------------------------
@@ -1605,31 +1605,8 @@ End Function
 ' ATUALIZACAO DA BARRA DE PROGRESSO
 '================================================================================
 Private Sub UpdateProgress(message As String, percentComplete As Long)
-    Dim progressBar As String
-    Dim barLength As Long
-    Dim filledLength As Long
-
-    ' Limita entre 0 e 100
-    If percentComplete < 0 Then percentComplete = 0
-    If percentComplete > 100 Then percentComplete = 100
-
-    ' Barra de 50 caracteres (barra solida)
-    barLength = 50
-    filledLength = CLng(barLength * percentComplete / 100)
-
-    ' Constroi a barra visual solida (sem texto, apenas blocos)
-    progressBar = ""
-    Dim i As Long
-    For i = 1 To barLength
-        If i <= filledLength Then
-            progressBar = progressBar & Chr(219)  ' Bloco solido
-        Else
-            progressBar = progressBar & Chr(176)  ' Bloco claro
-        End If
-    Next i
-
-    ' Atualiza StatusBar apenas com barra solida (sem mensagem)
-    Application.StatusBar = progressBar
+    ' Mostra apenas "Padronizando..." durante a execucao
+    Application.StatusBar = "Padronizando..."
 
     ' Forca atualizacao da tela
     DoEvents
