@@ -1,9 +1,9 @@
 ﻿' =============================================================================
-' CHAINSAW - Sistema de Padronização de Proposituras Legislativas
+' CHAINSAW - Sistema de Padronizacao de Proposituras Legislativas
 ' =============================================================================
-' Versão: 2.9.0
+' Versao: 2.9.1
 ' Data: 2025-12-17
-' Licença: GNU GPLv3 (https://www.gnu.org/licenses/gpl-3.0.html)
+' Licenca: GNU GPLv3 (https://www.gnu.org/licenses/gpl-3.0.html)
 ' Compatibilidade: Microsoft Word 2010+
 ' Autor: Christian Martin dos Santos (chrmsantos@protonmail.com)
 ' =============================================================================
@@ -67,7 +67,7 @@ Private Const HEADER_IMAGE_HEIGHT_RATIO As Double = 0.19
 '================================================================================
 ' CONSTANTES DE SISTEMA
 '================================================================================
-Private Const CHAINSAW_VERSION As String = "2.9.0"
+Private Const CHAINSAW_VERSION As String = "2.9.1"
 Private Const MIN_SUPPORTED_VERSION As Long = 14
 Private Const REQUIRED_STRING As String = "$NUMERO$/$ANO$"
 Private Const MAX_BACKUP_FILES As Long = 10
@@ -2736,38 +2736,68 @@ Private Function ApplyStdFontOptimized(doc As Document) As Boolean
     startTime = Timer
     formattedCount = 0
 
-    LogMessage "Aplicando fonte padrão (modo otimizado com cache)...", LOG_LEVEL_INFO
+    LogMessage "Aplicando fonte padrao (modo otimizado com cache)...", LOG_LEVEL_INFO
 
-    ' SINGLE PASS - Processa todos os parágrafos em uma passagem usando cache
+    ' Valida cache antes de processar
+    If cacheSize < 1 Then
+        LogMessage "Cache vazio - usando metodo tradicional", LOG_LEVEL_INFO
+        ApplyStdFontOptimized = ApplyStdFont(doc)
+        Exit Function
+    End If
+
+    ' Valida limites do array
+    On Error Resume Next
+    Dim cacheUpperBound As Long
+    cacheUpperBound = UBound(paragraphCache)
+    If Err.Number <> 0 Or cacheUpperBound < 1 Then
+        Err.Clear
+        On Error GoTo ErrorHandler
+        LogMessage "Array de cache invalido - usando metodo tradicional", LOG_LEVEL_WARNING
+        ApplyStdFontOptimized = ApplyStdFont(doc)
+        Exit Function
+    End If
+    On Error GoTo ErrorHandler
+
+    ' Ajusta cacheSize se necessario
+    If cacheSize > cacheUpperBound Then
+        cacheSize = cacheUpperBound
+    End If
+
+    ' SINGLE PASS - Processa todos os paragrafos em uma passagem usando cache
     For i = 1 To cacheSize
-        ' Validação de limites
-        If i < 1 Or i > UBound(paragraphCache) Then
-            LogMessage "Erro: Índice de cache inválido (" & i & ")", LOG_LEVEL_WARNING
+        ' Validacao de limites do cache
+        If i < 1 Or i > cacheSize Then
             GoTo NextParagraph
         End If
 
         cache = paragraphCache(i)
 
-        ' Pula parágrafos vazios ou com imagens
+        ' Pula paragrafos vazios ou com imagens
         If Not cache.needsFormatting Then
+            GoTo NextParagraph
+        End If
+
+        ' Validacao do indice do paragrafo no documento
+        If cache.index < 1 Or cache.index > doc.Paragraphs.count Then
+            LogMessage "Erro: Indice de paragrafo invalido (" & cache.index & ")", LOG_LEVEL_WARNING
             GoTo NextParagraph
         End If
 
         Set para = doc.Paragraphs(cache.index)
 
-        ' Aplica fonte padrão
+        ' Aplica fonte padrao
         On Error Resume Next
         With para.Range.Font
             .Name = STANDARD_FONT
             .size = STANDARD_FONT_SIZE
             .Color = wdColorAutomatic
 
-            ' Remove sublinhado exceto para título (primeiro parágrafo com texto)
+            ' Remove sublinhado exceto para titulo (primeiro paragrafo com texto)
             If i > 3 Then
                 .Underline = wdUnderlineNone
             End If
 
-            ' Remove negrito exceto para parágrafos especiais
+            ' Remove negrito exceto para paragrafos especiais
             If Not cache.isSpecial Or cache.specialType = "vereador" Then
                 .Bold = False
             End If
@@ -2776,13 +2806,13 @@ Private Function ApplyStdFontOptimized(doc As Document) As Boolean
         If Err.Number = 0 Then
             formattedCount = formattedCount + 1
         Else
-            LogMessage "Erro ao formatar parágrafo " & i & ": " & Err.Description, LOG_LEVEL_WARNING
+            LogMessage "Erro ao formatar paragrafo " & i & ": " & Err.Description, LOG_LEVEL_WARNING
             Err.Clear
         End If
         On Error GoTo ErrorHandler
 
 NextParagraph:
-        ' Atualiza progresso a cada 500 parágrafos
+        ' Atualiza progresso a cada 500 paragrafos
         If i Mod 500 = 0 Then
             DoEvents ' Permite cancelamento
         End If
@@ -2791,7 +2821,7 @@ NextParagraph:
     Dim elapsed As Single
     elapsed = Timer - startTime
 
-    LogMessage "Fonte padrão aplicada: " & formattedCount & " parágrafos em " & Format(elapsed, "0.00") & "s", LOG_LEVEL_INFO
+    LogMessage "Fonte padrao aplicada: " & formattedCount & " paragrafos em " & Format(elapsed, "0.00") & "s", LOG_LEVEL_INFO
     ApplyStdFontOptimized = True
     Exit Function
 
@@ -5023,6 +5053,37 @@ Private Function FormatDocumentTitle(doc As Document) As Boolean
     Dim words() As String
     Dim i As Long
     Dim newText As String
+    Dim testRange As Range
+
+    ' Verifica se o documento esta protegido
+    If doc.ProtectionType <> wdNoProtection Then
+        LogMessage "Documento protegido - formatacao de titulo ignorada", LOG_LEVEL_INFO
+        FormatDocumentTitle = True
+        Exit Function
+    End If
+
+    ' Testa se e possivel editar o primeiro paragrafo
+    On Error Resume Next
+    Set testRange = doc.Paragraphs(1).Range
+    If testRange Is Nothing Then
+        Err.Clear
+        On Error GoTo ErrorHandler
+        LogMessage "Range invalido - formatacao de titulo ignorada", LOG_LEVEL_INFO
+        FormatDocumentTitle = True
+        Exit Function
+    End If
+    ' Tenta modificar uma propriedade para verificar acesso de escrita
+    Dim originalBold As Boolean
+    originalBold = testRange.Font.Bold
+    testRange.Font.Bold = originalBold
+    If Err.Number <> 0 Then
+        Err.Clear
+        On Error GoTo ErrorHandler
+        LogMessage "Selecao protegida - formatacao de titulo ignorada", LOG_LEVEL_INFO
+        FormatDocumentTitle = True
+        Exit Function
+    End If
+    On Error GoTo ErrorHandler
 
     ' Encontra o primeiro parágrafo com texto (após exclusão de linhas em branco)
     For i = 1 To doc.Paragraphs.count
@@ -5206,27 +5267,39 @@ Private Function ApplyTextReplacements(doc As Document) As Boolean
     ' Funcionalidade 10: Substitui variantes de "d'Oeste"
     Dim dOesteVariants() As String
 
-    ' Define as variantes possíveis dos 3 primeiros caracteres de "d'Oeste"
+    ' Define as variantes possiveis dos 3 primeiros caracteres de "d'Oeste"
     ReDim dOesteVariants(0 To 15)
     dOesteVariants(0) = "d'O"   ' Original
-    dOesteVariants(1) = "d´O"   ' Acento agudo
+    dOesteVariants(1) = "d" & Chr(180) & "O"   ' Acento agudo (Chr 180)
     dOesteVariants(2) = "d`O"   ' Acento grave
-    dOesteVariants(3) = "d" & Chr(8220) & "O"   ' Aspas curvas esquerda
-    dOesteVariants(4) = "d'o"   ' Minúscula
-    dOesteVariants(5) = "d´o"
+    dOesteVariants(3) = "d" & ChrW(8220) & "O"   ' Aspas curvas esquerda (Unicode)
+    dOesteVariants(4) = "d'o"   ' Minuscula
+    dOesteVariants(5) = "d" & Chr(180) & "o"
     dOesteVariants(6) = "d`o"
-    dOesteVariants(7) = "d" & Chr(8220) & "o"
-    dOesteVariants(8) = "D'O"   ' Maiúscula no D
-    dOesteVariants(9) = "D´O"
+    dOesteVariants(7) = "d" & ChrW(8220) & "o"
+    dOesteVariants(8) = "D'O"   ' Maiuscula no D
+    dOesteVariants(9) = "D" & Chr(180) & "O"
     dOesteVariants(10) = "D`O"
-    dOesteVariants(11) = "D" & Chr(8220) & "O"
+    dOesteVariants(11) = "D" & ChrW(8220) & "O"
     dOesteVariants(12) = "D'o"
-    dOesteVariants(13) = "D´o"
+    dOesteVariants(13) = "D" & Chr(180) & "o"
     dOesteVariants(14) = "D`o"
-    dOesteVariants(15) = "D" & Chr(8220) & "o"
+    dOesteVariants(15) = "D" & ChrW(8220) & "o"
+
+    ' Valida o array antes de processar
+    On Error Resume Next
+    Dim arraySize As Long
+    arraySize = UBound(dOesteVariants)
+    If Err.Number <> 0 Or arraySize < 0 Then
+        LogMessage "Erro ao inicializar array de variantes - substituições de texto ignoradas", LOG_LEVEL_WARNING
+        Err.Clear
+        ApplyTextReplacements = True
+        Exit Function
+    End If
+    On Error GoTo ErrorHandler
 
     ' Processa cada variante de forma segura
-    For i = 0 To UBound(dOesteVariants)
+    For i = 0 To arraySize
         On Error Resume Next
         errorContext = "dOesteVariants(" & i & ")"
         ' Valida a variante antes de usar
@@ -5338,14 +5411,17 @@ NextVariant:
     Exit Function
 
 ErrorHandler:
-    If errorContext <> "" Then
-        LogMessage "Erro crítico nas substituições de texto (contexto: " & errorContext & "): " & Err.Description, LOG_LEVEL_ERROR
-    ElseIf IsNumeric(i) Then
-        LogMessage "Erro crítico nas substituições de texto (variante: " & i & "): " & Err.Description, LOG_LEVEL_ERROR
+    Dim errMsg As String
+    errMsg = Err.Description
+    If Len(errorContext) > 0 Then
+        LogMessage "Erro nas substituicoes de texto (contexto: " & errorContext & "): " & errMsg, LOG_LEVEL_WARNING
+    ElseIf i >= 0 And i <= 15 Then
+        LogMessage "Erro nas substituicoes de texto (variante: " & CStr(i) & "): " & errMsg, LOG_LEVEL_WARNING
     Else
-        LogMessage "Erro crítico nas substituições de texto: " & Err.Description, LOG_LEVEL_ERROR
+        LogMessage "Erro nas substituicoes de texto: " & errMsg, LOG_LEVEL_WARNING
     End If
-    ApplyTextReplacements = False
+    ' Continua execucao - erros de substituicao nao sao criticos
+    ApplyTextReplacements = True
 End Function
 
 '================================================================================
