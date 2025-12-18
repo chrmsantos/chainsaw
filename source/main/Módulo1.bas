@@ -4187,54 +4187,91 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' INSERÇÃO DE NÚMEROS DE PÁGINA NO RODAPÉ
+' INSERCAO DE NUMEROS DE PAGINA NO RODAPE + SIGLA AFV
 '================================================================================
+' Insere rodape com:
+' - Sigla "afv" a esquerda (Arial 6pt, cinza)
+' - "Pagina X de Y" centralizado (Arial 9pt)
+'--------------------------------------------------------------------------------
 Private Function InsertFooterStamp(doc As Document) As Boolean
     On Error GoTo ErrorHandler
 
     Dim sec As Section
     Dim footer As HeaderFooter
-    Dim rng As Range
-    Dim sectionsProcessed As Long
+    Dim rngAFV As Range
+    Dim rngPage As Range
+    Dim rngDash As Range
+    Dim rngNum As Range
+    Dim fPage As Field
+    Dim fTotal As Field
 
     For Each sec In doc.Sections
         Set footer = sec.Footers(wdHeaderFooterPrimary)
 
         If footer.Exists Then
             footer.LinkToPrevious = False
-            Set rng = footer.Range
 
-            rng.Delete
+            ' Limpa todo o rodape
+            footer.Range.Delete
 
-            Set rng = footer.Range
-            rng.Collapse Direction:=wdCollapseEnd
-            rng.Fields.Add Range:=rng, Type:=wdFieldPage
+            ' Insere "afv" a esquerda (Arial 6pt, cinza)
+            Set rngAFV = footer.Range
+            rngAFV.Collapse Direction:=wdCollapseStart
+            rngAFV.text = "afv"
+            With rngAFV.Font
+                .Name = STANDARD_FONT
+                .size = 6
+                .Color = RGB(128, 128, 128)
+            End With
+            rngAFV.ParagraphFormat.alignment = wdAlignParagraphLeft
+            rngAFV.InsertParagraphAfter
 
-            Set rng = footer.Range
-            rng.Collapse Direction:=wdCollapseEnd
-            rng.text = "-"
+            ' Insere "Pagina X de Y" centralizado
+            Set rngPage = footer.Range.Paragraphs.Last.Range
+            rngPage.text = ""
+            rngPage.Collapse Direction:=wdCollapseStart
 
-            Set rng = footer.Range
-            rng.Collapse Direction:=wdCollapseEnd
-            rng.Fields.Add Range:=rng, Type:=wdFieldNumPages
+            rngPage.text = "Pagina "
+            With rngPage.Font
+                .Name = STANDARD_FONT
+                .size = FOOTER_FONT_SIZE
+            End With
+            rngPage.Collapse Direction:=wdCollapseEnd
 
-            With footer.Range
+            ' Campo PAGE (numero da pagina atual)
+            Set fPage = rngPage.Fields.Add(Range:=rngPage, Type:=wdFieldPage)
+
+            ' Texto "de"
+            Set rngDash = footer.Range.Paragraphs.Last.Range
+            rngDash.Collapse Direction:=wdCollapseEnd
+            rngDash.text = " de "
+
+            ' Campo NUMPAGES (total de paginas)
+            Set rngNum = footer.Range.Paragraphs.Last.Range
+            rngNum.Collapse Direction:=wdCollapseEnd
+            Set fTotal = rngNum.Fields.Add(Range:=rngNum, Type:=wdFieldNumPages)
+
+            ' Centraliza os numeros de pagina
+            footer.Range.Paragraphs.Last.Range.ParagraphFormat.alignment = wdAlignParagraphCenter
+
+            ' Formata os campos de numero de pagina
+            With fPage.result
                 .Font.Name = STANDARD_FONT
                 .Font.size = FOOTER_FONT_SIZE
-                .ParagraphFormat.alignment = wdAlignParagraphCenter
-                .Fields.Update
             End With
 
-            sectionsProcessed = sectionsProcessed + 1
+            With fTotal.result
+                .Font.Name = STANDARD_FONT
+                .Font.size = FOOTER_FONT_SIZE
+            End With
         End If
     Next sec
 
-    ' Log detalhado removido para performance
     InsertFooterStamp = True
     Exit Function
 
 ErrorHandler:
-    LogMessage "Erro ao inserir rodapé: " & Err.Description, LOG_LEVEL_ERROR
+    LogMessage "Erro ao inserir rodape: " & Err.Description, LOG_LEVEL_ERROR
     InsertFooterStamp = False
 End Function
 
