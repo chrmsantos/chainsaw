@@ -12,106 +12,106 @@ function Get-RepoRoot {
 Describe 'CHAINSAW - Testes do Módulo VBA Módulo1.bas' {
 
     BeforeAll {
-        $repoRoot = Get-RepoRoot
-        $vbaPath = Join-Path $repoRoot "source\main\Módulo1.bas"
-        $vbaContent = Get-Content $vbaPath -Raw -Encoding UTF8
-        $vbaLines = Get-Content $vbaPath -Encoding UTF8
+        $script:repoRoot = Get-RepoRoot
+        $script:vbaPath = Join-Path $script:repoRoot "source\main\Módulo1.bas"
+        $script:vbaContent = Get-Content $script:vbaPath -Raw -Encoding UTF8
+        $script:vbaLines = Get-Content $script:vbaPath -Encoding UTF8
     }
 
     Context 'Estrutura e Metadados do Arquivo' {
 
         It 'Arquivo Módulo1.bas existe' {
-            Test-Path $vbaPath | Should Be $true
+            Test-Path $script:vbaPath | Should Be $true
         }
 
         It 'Arquivo não está vazio' {
-            (Get-Item $vbaPath).Length -gt 0 | Should Be $true
+            (Get-Item $script:vbaPath).Length -gt 0 | Should Be $true
         }
 
         It 'Tamanho do arquivo é razoável (< 5MB)' {
-            $sizeMB = (Get-Item $vbaPath).Length / 1MB
+            $sizeMB = (Get-Item $script:vbaPath).Length / 1MB
             $sizeMB -lt 5 | Should Be $true
         }
 
         It 'Contém cabeçalho CHAINSAW' {
-            $vbaContent -match 'CHAINSAW' | Should Be $true
+            $script:vbaContent -match 'CHAINSAW' | Should Be $true
         }
 
         It 'Contém informações de versão' {
-            $vbaContent -match 'Vers[aã]o:\s*\d+\.\d+' | Should Be $true
+            $script:vbaContent -match 'Vers[aã]o:\s*\d+\.\d+' | Should Be $true
         }
 
         It 'Contém licença GNU GPLv3' {
-            $vbaContent -match 'GNU GPLv3' | Should Be $true
+            $script:vbaContent -match 'GNU GPLv3' | Should Be $true
         }
 
         It 'Contém informação de autor' {
-            $vbaContent -match 'Autor:' | Should Be $true
+            $script:vbaContent -match 'Autor:' | Should Be $true
         }
 
         It 'Contém declaração Option Explicit' {
-            $vbaContent -match '(?m)^Option Explicit' | Should Be $true
+            $script:vbaContent -match '(?m)^Option Explicit' | Should Be $true
         }
 
         It 'Número total de linhas corresponde ao esperado (> 7000)' {
-            $vbaLines.Count -gt 7000 | Should Be $true
+            $script:vbaLines.Count -gt 7000 | Should Be $true
         }
     }
 
     Context 'Análise de Procedimentos e Funções' {
 
         BeforeAll {
-            $procedures = [regex]::Matches($vbaContent, '(?m)^(Public |Private )?(Sub |Function )\w+')
-            $publicProcs = [regex]::Matches($vbaContent, '(?m)^Public (Sub |Function )\w+')
-            $privateProcs = [regex]::Matches($vbaContent, '(?m)^Private (Sub |Function )\w+')
-            $subs = [regex]::Matches($vbaContent, '(?m)^(Public |Private )?Sub \w+')
-            $functions = [regex]::Matches($vbaContent, '(?m)^(Public |Private )?Function \w+')
+            $script:procedures = [regex]::Matches($script:vbaContent, '(?m)^(Public |Private )?(Sub |Function )\w+')
+            $script:publicProcs = [regex]::Matches($script:vbaContent, '(?m)^Public (Sub |Function )\w+')
+            $script:privateProcs = [regex]::Matches($script:vbaContent, '(?m)^Private (Sub |Function )\w+')
+            $script:subs = [regex]::Matches($script:vbaContent, '(?m)^(Public |Private )?Sub \w+')
+            $script:functions = [regex]::Matches($script:vbaContent, '(?m)^(Public |Private )?Function \w+')
         }
 
         It 'Contem quantidade razoavel de procedimentos (100-250)' {
-            $procedures.Count -ge 100 -and $procedures.Count -le 250 | Should Be $true
+            $script:procedures.Count -ge 100 -and $script:procedures.Count -le 250 | Should Be $true
         }
 
         It 'Possui procedimento principal PadronizarDocumentoMain' {
-            $vbaContent -match '(?m)^Public Sub PadronizarDocumentoMain\(' | Should Be $true
+            $script:vbaContent -match '(?m)^Public Sub PadronizarDocumentoMain\(' | Should Be $true
         }
 
         It 'Procedimentos publicos sao minoria (< 20% do total)' {
-            $publicRatio = $publicProcs.Count / $procedures.Count
+            $publicRatio = $script:publicProcs.Count / $script:procedures.Count
             $publicRatio -lt 0.20 | Should Be $true
         }
 
         It 'Possui funções de validação (ValidateDocument)' {
-            $vbaContent -match 'Function ValidateDocument' | Should Be $true
+            $script:vbaContent -match 'Function ValidateDocument' | Should Be $true
         }
 
         It 'Possui funções de identificação de elementos estruturais' {
-            ($vbaContent -match 'GetTituloRange') -and
-            ($vbaContent -match 'GetEmentaRange') -and
-            ($vbaContent -match 'GetProposicaoRange') | Should Be $true
+            ($script:vbaContent -match 'GetTituloRange') -and
+            ($script:vbaContent -match 'GetEmentaRange') -and
+            ($script:vbaContent -match 'GetProposicaoRange') | Should Be $true
         }
 
         It 'Possui sistema de tratamento de erros (ShowUserFriendlyError)' {
-            $vbaContent -match 'ShowUserFriendlyError' | Should Be $true
+            $script:vbaContent -match 'ShowUserFriendlyError' | Should Be $true
         }
 
         It 'Possui sistema de recuperação de emergência (EmergencyRecovery)' {
-            $vbaContent -match 'EmergencyRecovery' | Should Be $true
+            $script:vbaContent -match 'EmergencyRecovery' | Should Be $true
         }
 
         It 'Possui funções de normalização de texto' {
-            $vbaContent -match 'NormalizarTexto' | Should Be $true
+            $script:vbaContent -match 'NormalizarTexto' | Should Be $true
         }
 
         It 'Todas as funções têm End Function' {
-            $functionStarts = [regex]::Matches($vbaContent, '(?m)^(Public |Private )?Function \w+').Count
-            $functionEnds = [regex]::Matches($vbaContent, '(?m)^End Function').Count
+            $functionStarts = [regex]::Matches($script:vbaContent, '(?m)^(Public |Private )?Function \w+').Count
+            $functionEnds = [regex]::Matches($script:vbaContent, '(?m)^End Function').Count
             $functionStarts -eq $functionEnds | Should Be $true
         }
 
         It 'Todas as subs têm End Sub' {
-            $subStarts = [regex]::Matches($vbaContent, '(?m)^(Public |Private )?Sub \w+').Count
-            $subEnds = [regex]::Matches($vbaContent, '(?m)^End Sub').Count
+            $subStarts = [regex]::Matches($script:vbaContent, '(?m)^(Public |Private )?Sub \w+').Count
+            $subEnds = [regex]::Matches($script:vbaContent, '(?m)^End Sub').Count
             $subStarts -eq $subEnds | Should Be $true
         }
     }
@@ -119,143 +119,143 @@ Describe 'CHAINSAW - Testes do Módulo VBA Módulo1.bas' {
     Context 'Constantes e Configurações' {
 
         It 'Define constantes do Word (wdNoProtection, wdTypeDocument, etc)' {
-            ($vbaContent -match 'wdNoProtection') -and
-            ($vbaContent -match 'wdTypeDocument') -and
-            ($vbaContent -match 'wdAlignParagraphCenter') | Should Be $true
+            ($script:vbaContent -match 'wdNoProtection') -and
+            ($script:vbaContent -match 'wdTypeDocument') -and
+            ($script:vbaContent -match 'wdAlignParagraphCenter') | Should Be $true
         }
 
         It 'Define constantes de formatação (STANDARD_FONT, STANDARD_FONT_SIZE)' {
-            ($vbaContent -match 'STANDARD_FONT') -and
-            ($vbaContent -match 'STANDARD_FONT_SIZE') | Should Be $true
+            ($script:vbaContent -match 'STANDARD_FONT') -and
+            ($script:vbaContent -match 'STANDARD_FONT_SIZE') | Should Be $true
         }
 
         It 'Define margens do documento (TOP_MARGIN_CM, BOTTOM_MARGIN_CM, etc)' {
-            ($vbaContent -match 'TOP_MARGIN_CM') -and
-            ($vbaContent -match 'BOTTOM_MARGIN_CM') -and
-            ($vbaContent -match 'LEFT_MARGIN_CM') -and
-            ($vbaContent -match 'RIGHT_MARGIN_CM') | Should Be $true
+            ($script:vbaContent -match 'TOP_MARGIN_CM') -and
+            ($script:vbaContent -match 'BOTTOM_MARGIN_CM') -and
+            ($script:vbaContent -match 'LEFT_MARGIN_CM') -and
+            ($script:vbaContent -match 'RIGHT_MARGIN_CM') | Should Be $true
         }
 
         It 'Define configurações de imagem do cabeçalho' {
-            ($vbaContent -match 'HEADER_IMAGE_RELATIVE_PATH') -and
-            ($vbaContent -match 'HEADER_IMAGE_MAX_WIDTH_CM') | Should Be $true
+            ($script:vbaContent -match 'HEADER_IMAGE_RELATIVE_PATH') -and
+            ($script:vbaContent -match 'HEADER_IMAGE_MAX_WIDTH_CM') | Should Be $true
         }
 
         It 'Define constantes de sistema (MIN_SUPPORTED_VERSION, MAX_RETRY_ATTEMPTS)' {
-            ($vbaContent -match 'MIN_SUPPORTED_VERSION') -and
-            ($vbaContent -match 'MAX_RETRY_ATTEMPTS') | Should Be $true
+            ($script:vbaContent -match 'MIN_SUPPORTED_VERSION') -and
+            ($script:vbaContent -match 'MAX_RETRY_ATTEMPTS') | Should Be $true
         }
 
         It 'Define constantes de backup e logs (GetChainsawBackupsPath, GetChainsawRecoveryPath)' {
-            ($vbaContent -match 'GetChainsawBackupsPath') -and
-            ($vbaContent -match 'GetChainsawRecoveryPath') | Should Be $true
+            ($script:vbaContent -match 'GetChainsawBackupsPath') -and
+            ($script:vbaContent -match 'GetChainsawRecoveryPath') | Should Be $true
         }
 
         It 'Define níveis de log (LOG_LEVEL_INFO, LOG_LEVEL_WARNING, LOG_LEVEL_ERROR)' {
-            ($vbaContent -match 'LOG_LEVEL_INFO') -and
-            ($vbaContent -match 'LOG_LEVEL_WARNING') -and
-            ($vbaContent -match 'LOG_LEVEL_ERROR') | Should Be $true
+            ($script:vbaContent -match 'LOG_LEVEL_INFO') -and
+            ($script:vbaContent -match 'LOG_LEVEL_WARNING') -and
+            ($script:vbaContent -match 'LOG_LEVEL_ERROR') | Should Be $true
         }
 
         It 'Fonte padrão é Arial' {
-            $vbaContent -match 'STANDARD_FONT.*=.*"Arial"' | Should Be $true
+            $script:vbaContent -match 'STANDARD_FONT.*=.*"Arial"' | Should Be $true
         }
 
         It 'Tamanho de fonte padrão é 12' {
-            $vbaContent -match 'STANDARD_FONT_SIZE.*=.*12' | Should Be $true
+            $script:vbaContent -match 'STANDARD_FONT_SIZE.*=.*12' | Should Be $true
         }
     }
 
     Context 'Sistema de Cache de Parágrafos' {
 
         It 'Possui função BuildParagraphCache' {
-            $vbaContent -match 'Sub BuildParagraphCache' | Should Be $true
+            $script:vbaContent -match 'Sub BuildParagraphCache' | Should Be $true
         }
 
         It 'Possui função ClearParagraphCache' {
-            $vbaContent -match 'Sub ClearParagraphCache' | Should Be $true
+            $script:vbaContent -match 'Sub ClearParagraphCache' | Should Be $true
         }
 
         It 'Possui sistema de identificação de estrutura do documento' {
-            $vbaContent -match 'IdentifyDocumentStructure' | Should Be $true
+            $script:vbaContent -match 'IdentifyDocumentStructure' | Should Be $true
         }
     }
 
     Context 'Identificação de Elementos Estruturais' {
 
         It 'Possui função para identificar Título (IsTituloElement)' {
-            $vbaContent -match 'Function IsTituloElement' | Should Be $true
+            $script:vbaContent -match 'Function IsTituloElement' | Should Be $true
         }
 
         It 'Possui função para identificar Ementa (IsEmentaElement)' {
-            $vbaContent -match 'Function IsEmentaElement' | Should Be $true
+            $script:vbaContent -match 'Function IsEmentaElement' | Should Be $true
         }
 
         It 'Possui função para identificar Justificativa (IsJustificativaTitleElement)' {
-            $vbaContent -match 'Function IsJustificativaTitleElement' | Should Be $true
+            $script:vbaContent -match 'Function IsJustificativaTitleElement' | Should Be $true
         }
 
         It 'Possui função para identificar Data (IsDataElement)' {
-            $vbaContent -match 'Function IsDataElement' | Should Be $true
+            $script:vbaContent -match 'Function IsDataElement' | Should Be $true
         }
 
         It 'Possui função para identificar Assinatura (IsAssinaturaStart)' {
-            $vbaContent -match 'Function IsAssinaturaStart' | Should Be $true
+            $script:vbaContent -match 'Function IsAssinaturaStart' | Should Be $true
         }
 
         It 'Possui função para identificar Título de Anexo (IsTituloAnexoElement)' {
-            $vbaContent -match 'Function IsTituloAnexoElement' | Should Be $true
+            $script:vbaContent -match 'Function IsTituloAnexoElement' | Should Be $true
         }
 
         It 'Possui GetProposituraRange para retornar range da propositura completa' {
-            $vbaContent -match 'Function GetProposituraRange' | Should Be $true
+            $script:vbaContent -match 'Function GetProposituraRange' | Should Be $true
         }
 
         It 'Possui GetElementInfo para relatório de elementos' {
-            $vbaContent -match 'GetElementInfo' | Should Be $true
+            $script:vbaContent -match 'GetElementInfo' | Should Be $true
         }
     }
 
     Context 'Tratamento de Erros e Recuperação' {
 
         It 'Possui tratamento On Error em procedimentos críticos' {
-            $vbaContent -match 'On Error GoTo' | Should Be $true
+            $script:vbaContent -match 'On Error GoTo' | Should Be $true
         }
 
         It 'Possui labels de tratamento de erro (ErrorHandler:)' {
-            $vbaContent -match 'ErrorHandler:' | Should Be $true
+            $script:vbaContent -match 'ErrorHandler:' | Should Be $true
         }
 
         It 'Possui função SafeCleanup' {
-            $vbaContent -match 'Sub SafeCleanup' | Should Be $true
+            $script:vbaContent -match 'Sub SafeCleanup' | Should Be $true
         }
 
         It 'Possui função ReleaseObjects' {
-            $vbaContent -match 'Sub ReleaseObjects' | Should Be $true
+            $script:vbaContent -match 'Sub ReleaseObjects' | Should Be $true
         }
 
         It 'Possui verificação de timeout (IsOperationTimeout)' {
-            $vbaContent -match 'Function IsOperationTimeout' | Should Be $true
+            $script:vbaContent -match 'Function IsOperationTimeout' | Should Be $true
         }
 
         It 'Implementa sistema de retry (MAX_RETRY_ATTEMPTS)' {
-            $vbaContent -match 'MAX_RETRY_ATTEMPTS' | Should Be $true
+            $script:vbaContent -match 'MAX_RETRY_ATTEMPTS' | Should Be $true
         }
     }
 
     Context 'Validação de Sintaxe VBA' {
 
         It 'Não contém tabs (usa apenas espaços)' {
-            $vbaContent -notmatch "`t" | Should Be $true
+            $script:vbaContent -notmatch "`t" | Should Be $true
         }
 
         It 'Parênteses balanceados em declarações de função' {
-            $functionDeclarations = [regex]::Matches($vbaContent, '(?m)^(Public |Private )?Function [^(]+\([^)]*\)')
+            $functionDeclarations = [regex]::Matches($script:vbaContent, '(?m)^(Public |Private )?Function [^(]+\([^)]*\)')
             $functionDeclarations.Count -gt 0 | Should Be $true
         }
 
         It 'Não contém caracteres de controle inválidos' {
-            $invalidChars = [regex]::Matches($vbaContent, '[\x00-\x08\x0B\x0C\x0E-\x1F]')
+            $invalidChars = [regex]::Matches($script:vbaContent, '[\x00-\x08\x0B\x0C\x0E-\x1F]')
             $invalidChars.Count -eq 0 | Should Be $true
         }
 
@@ -266,7 +266,7 @@ Describe 'CHAINSAW - Testes do Módulo VBA Módulo1.bas' {
 
         It 'Usa aspas duplas para strings, não aspas simples' {
             # VBA usa aspas duplas "" para strings, ' é apenas para comentários
-            $stringDeclarations = [regex]::Matches($vbaContent, '=\s*"[^"]*"')
+            $stringDeclarations = [regex]::Matches($script:vbaContent, '=\s*"[^"]*"')
             $stringDeclarations.Count -gt 0 | Should Be $true
         }
     }
@@ -274,7 +274,7 @@ Describe 'CHAINSAW - Testes do Módulo VBA Módulo1.bas' {
     Context 'Comentários e Documentação' {
 
         It 'Contém comentários de seção (linhas com ====)' {
-            $vbaContent -match '={20,}' | Should Be $true
+            $script:vbaContent -match '={20,}' | Should Be $true
         }
 
 It 'Taxa de comentários adequada (> 5% das linhas)' {
@@ -284,60 +284,60 @@ It 'Taxa de comentários adequada (> 5% das linhas)' {
         }
 
         It 'Contém seções organizadas (CONSTANTES, FUNÇÕES, etc)' {
-            $vbaContent -match 'CONSTANTES' | Should Be $true
+            $script:vbaContent -match 'CONSTANTES' | Should Be $true
         }
     }
 
     Context 'Funcionalidades de Backup e Log' {
 
         It 'Possui sistema de backup (CreateDocumentBackup)' {
-            $vbaContent -match 'CreateDocumentBackup' | Should Be $true
+            $script:vbaContent -match 'CreateDocumentBackup' | Should Be $true
         }
 
         It 'Possui limite de arquivos de backup (MAX_BACKUP_FILES)' {
-            $vbaContent -match 'MAX_BACKUP_FILES' | Should Be $true
+            $script:vbaContent -match 'MAX_BACKUP_FILES' | Should Be $true
         }
 
         It 'Implementa sistema de logging' {
-            ($vbaContent -match 'LOG_LEVEL') -or ($vbaContent -match 'WriteLog') | Should Be $true
+            ($script:vbaContent -match 'LOG_LEVEL') -or ($script:vbaContent -match 'WriteLog') | Should Be $true
         }
 
         It 'Possui modo de debug (DEBUG_MODE)' {
-            $vbaContent -match 'DEBUG_MODE' | Should Be $true
+            $script:vbaContent -match 'DEBUG_MODE' | Should Be $true
         }
     }
 
     Context 'Processamento de Texto' {
 
         It 'Possui função GetCleanParagraphText' {
-            $vbaContent -match 'Function GetCleanParagraphText' | Should Be $true
+            $script:vbaContent -match 'Function GetCleanParagraphText' | Should Be $true
         }
 
         It 'Possui função RemovePunctuation' {
-            $vbaContent -match 'Function RemovePunctuation' | Should Be $true
+            $script:vbaContent -match 'Function RemovePunctuation' | Should Be $true
         }
 
         It 'Possui função para detectar parágrafos especiais (DetectSpecialParagraph)' {
-            $vbaContent -match 'Function DetectSpecialParagraph' | Should Be $true
+            $script:vbaContent -match 'Function DetectSpecialParagraph' | Should Be $true
         }
 
         It 'Possui função para contar linhas em branco (CountBlankLinesBefore)' {
-            $vbaContent -match 'Function CountBlankLinesBefore' | Should Be $true
+            $script:vbaContent -match 'Function CountBlankLinesBefore' | Should Be $true
         }
     }
 
     Context 'Validação de Documento' {
 
         It 'Possui verificação de saúde do documento (IsDocumentHealthy)' {
-            $vbaContent -match 'Function IsDocumentHealthy' | Should Be $true
+            $script:vbaContent -match 'Function IsDocumentHealthy' | Should Be $true
         }
 
         It 'Valida versão mínima do Word (MIN_SUPPORTED_VERSION = 14, Word 2010+)' {
-            $vbaContent -match 'MIN_SUPPORTED_VERSION.*=.*14' | Should Be $true
+            $script:vbaContent -match 'MIN_SUPPORTED_VERSION.*=.*14' | Should Be $true
         }
 
         It 'Possui validação de string obrigatória (REQUIRED_STRING)' {
-            $vbaContent -match 'REQUIRED_STRING' | Should Be $true
+            $script:vbaContent -match 'REQUIRED_STRING' | Should Be $true
         }
     }
 
@@ -350,141 +350,141 @@ It 'Taxa de comentários adequada (> 5% das linhas)' {
         }
 
         It 'Número de procedimentos por 1000 linhas é razoável (15-25)' {
-            $procedures = [regex]::Matches($vbaContent, '(?m)^(Public |Private )?(Sub |Function )\w+')
+            $procedures = [regex]::Matches($script:vbaContent, '(?m)^(Public |Private )?(Sub |Function )\w+')
             $procsPerK = ($procedures.Count / $vbaLines.Count) * 1000
             ($procsPerK -ge 15) -and ($procsPerK -le 25) | Should Be $true
         }
 
         It 'Possui proteções contra loops infinitos (MAX_LOOP_ITERATIONS)' {
-            $vbaContent -match 'MAX_LOOP_ITERATIONS' | Should Be $true
+            $script:vbaContent -match 'MAX_LOOP_ITERATIONS' | Should Be $true
         }
 
         It 'Possui timeout para operações longas (MAX_OPERATION_TIMEOUT_SECONDS)' {
-            $vbaContent -match 'MAX_OPERATION_TIMEOUT_SECONDS' | Should Be $true
+            $script:vbaContent -match 'MAX_OPERATION_TIMEOUT_SECONDS' | Should Be $true
         }
     }
 
     Context 'Configurações de Formatação' {
 
         It 'Define espaçamento entre linhas (LINE_SPACING)' {
-            $vbaContent -match 'LINE_SPACING' | Should Be $true
+            $script:vbaContent -match 'LINE_SPACING' | Should Be $true
         }
 
         It 'Define configurações de cabeçalho e rodapé' {
-            ($vbaContent -match 'HEADER_DISTANCE_CM') -and
-            ($vbaContent -match 'FOOTER_DISTANCE_CM') -and
-            ($vbaContent -match 'FOOTER_FONT_SIZE') | Should Be $true
+            ($script:vbaContent -match 'HEADER_DISTANCE_CM') -and
+            ($script:vbaContent -match 'FOOTER_DISTANCE_CM') -and
+            ($script:vbaContent -match 'FOOTER_FONT_SIZE') | Should Be $true
         }
 
         It 'Define orientação de página (wdOrientPortrait)' {
-            $vbaContent -match 'wdOrientPortrait' | Should Be $true
+            $script:vbaContent -match 'wdOrientPortrait' | Should Be $true
         }
 
         It 'Define configurações de sublinhado (wdUnderlineNone, wdUnderlineSingle)' {
-            ($vbaContent -match 'wdUnderlineNone') -and
-            ($vbaContent -match 'wdUnderlineSingle') | Should Be $true
+            ($script:vbaContent -match 'wdUnderlineNone') -and
+            ($script:vbaContent -match 'wdUnderlineSingle') | Should Be $true
         }
     }
 
     Context 'Recursos Avançados' {
 
         It 'Suporta múltiplas visualizações (wdPrintView)' {
-            $vbaContent -match 'wdPrintView' | Should Be $true
+            $script:vbaContent -match 'wdPrintView' | Should Be $true
         }
 
         It 'Gerencia alertas do Word (wdAlertsAll, wdAlertsNone)' {
-            ($vbaContent -match 'wdAlertsAll') -or
-            ($vbaContent -match 'wdAlertsNone') | Should Be $true
+            ($script:vbaContent -match 'wdAlertsAll') -or
+            ($script:vbaContent -match 'wdAlertsNone') | Should Be $true
         }
 
         It 'Trabalha com campos do Word (wdFieldPage, wdFieldNumPages)' {
-            ($vbaContent -match 'wdFieldPage') -or
-            ($vbaContent -match 'wdFieldNumPages') | Should Be $true
+            ($script:vbaContent -match 'wdFieldPage') -or
+            ($script:vbaContent -match 'wdFieldNumPages') | Should Be $true
         }
 
         It 'Gerencia shapes e imagens (msoPicture, msoTextEffect)' {
-            ($vbaContent -match 'msoPicture') -or
-            ($vbaContent -match 'msoTextEffect') | Should Be $true
+            ($script:vbaContent -match 'msoPicture') -or
+            ($script:vbaContent -match 'msoTextEffect') | Should Be $true
         }
     }
 
     Context 'Segurança e Boas Práticas' {
 
         It 'Fecha arquivos abertos (CloseAllOpenFiles)' {
-            $vbaContent -match 'CloseAllOpenFiles' | Should Be $true
+            $script:vbaContent -match 'CloseAllOpenFiles' | Should Be $true
         }
 
         It 'Não contém senhas ou credenciais hardcoded' {
-            $vbaContent -notmatch '(?i)(password|senha|pwd)\s*=\s*"[^"]+"' | Should Be $true
+            $script:vbaContent -notmatch '(?i)(password|senha|pwd)\s*=\s*"[^"]+"' | Should Be $true
         }
 
         It 'Não contém caminhos absolutos hardcoded (usa caminhos relativos)' {
             # Permite constantes mas não caminhos C:\ direto no código
-            $hardcodedPaths = [regex]::Matches($vbaContent, '(?<!Const\s+\w+\s*As\s*String\s*=\s*)"[A-Z]:\\[^"]*"')
+            $hardcodedPaths = [regex]::Matches($script:vbaContent, '(?<!Const\s+\w+\s*As\s*String\s*=\s*)"[A-Z]:\\[^"]*"')
             $hardcodedPaths.Count -eq 0 | Should Be $true
         }
 
         It 'Usa controle de versão documentado' {
-            $vbaContent -match 'Vers[aã]o:\s*\d+\.\d+' | Should Be $true
+            $script:vbaContent -match 'Vers[aã]o:\s*\d+\.\d+' | Should Be $true
         }
     }
 
     Context 'Performance e Otimização' {
 
         It 'Usa variáveis tipadas (As Long, As String, As Range, etc)' {
-            ($vbaContent -match '\bAs Long\b') -and
-            ($vbaContent -match '\bAs String\b') -and
-            ($vbaContent -match '\bAs Range\b') | Should Be $true
+            ($script:vbaContent -match '\bAs Long\b') -and
+            ($script:vbaContent -match '\bAs String\b') -and
+            ($script:vbaContent -match '\bAs Range\b') | Should Be $true
         }
 
         It 'Define constantes Private (performance em VBA)' {
-            $vbaContent -match '(?m)^Private Const ' | Should Be $true
+            $script:vbaContent -match '(?m)^Private Const ' | Should Be $true
         }
 
         It 'Limita escaneamento inicial de parágrafos (MAX_INITIAL_PARAGRAPHS_TO_SCAN)' {
-            $vbaContent -match 'MAX_INITIAL_PARAGRAPHS_TO_SCAN' | Should Be $true
+            $script:vbaContent -match 'MAX_INITIAL_PARAGRAPHS_TO_SCAN' | Should Be $true
         }
     }
 
     Context 'Integração e Compatibilidade' {
 
         It 'Compatível com Word 2010+ (versão 14+)' {
-            $vbaContent -match 'MIN_SUPPORTED_VERSION.*=.*14' | Should Be $true
+            $script:vbaContent -match 'MIN_SUPPORTED_VERSION.*=.*14' | Should Be $true
         }
 
         It 'Referencia Microsoft Word corretamente' {
-            $vbaContent -match 'Word' | Should Be $true
+            $script:vbaContent -match 'Word' | Should Be $true
         }
 
         It 'Trabalha com objetos Document corretamente' {
-            $vbaContent -match '\bDocument\b' | Should Be $true
+            $script:vbaContent -match '\bDocument\b' | Should Be $true
         }
 
         It 'Trabalha com objetos Range corretamente' {
-            $vbaContent -match '\bRange\b' | Should Be $true
+            $script:vbaContent -match '\bRange\b' | Should Be $true
         }
 
         It 'Trabalha com objetos Paragraph corretamente' {
-            $vbaContent -match '\bParagraph\b' | Should Be $true
+            $script:vbaContent -match '\bParagraph\b' | Should Be $true
         }
     }
 
     Context 'Funcionalidades Específicas do Chainsaw' {
 
         It 'Processa "considerando" corretamente (CONSIDERANDO_PREFIX)' {
-            $vbaContent -match 'CONSIDERANDO_PREFIX' | Should Be $true
+            $script:vbaContent -match 'CONSIDERANDO_PREFIX' | Should Be $true
         }
 
         It 'Define comprimento mínimo para considerando (CONSIDERANDO_MIN_LENGTH)' {
-            $vbaContent -match 'CONSIDERANDO_MIN_LENGTH' | Should Be $true
+            $script:vbaContent -match 'CONSIDERANDO_MIN_LENGTH' | Should Be $true
         }
 
         It 'Referencia pasta de assets (stamp.png)' {
-            $vbaContent -match 'stamp\.png' | Should Be $true
+            $script:vbaContent -match 'stamp\.png' | Should Be $true
         }
 
         It 'Usa estrutura .chainsaw para organização' {
-            $vbaContent -match '\\props\\' | Should Be $true
+            $script:vbaContent -match '\\props\\' | Should Be $true
         }
     }
 
@@ -504,7 +504,7 @@ It 'Taxa de comentários adequada (> 5% das linhas)' {
         }
 
         It 'Usa nomenclatura consistente (CamelCase para funções)' {
-            $funcs = [regex]::Matches($vbaContent, '(?m)^(Public |Private )?Function ([A-Z][a-zA-Z0-9]+)')
+            $funcs = [regex]::Matches($script:vbaContent, '(?m)^(Public |Private )?Function ([A-Z][a-zA-Z0-9]+)')
             $funcs.Count -gt 0 | Should Be $true
         }
 
@@ -519,27 +519,27 @@ It 'Taxa de comentários adequada (> 5% das linhas)' {
 
         It 'Todas as declaracoes de variavel sao validas (Dim, Private, Public)' {
             # Verifica se não há declarações mal formadas
-            $invalidDeclarations = [regex]::Matches($vbaContent, '(?m)^(Dim|Private|Public)\s+As\s+')
+            $invalidDeclarations = [regex]::Matches($script:vbaContent, '(?m)^(Dim|Private|Public)\s+As\s+')
             $invalidDeclarations.Count -eq 0 | Should Be $true
         }
 
         It 'Todas as atribuicoes Set usam palavra-chave Set corretamente' {
             # Set é obrigatório para objetos em VBA
             # Verifica que não há atribuições diretas de objetos sem Set
-            $validSetStatements = [regex]::Matches($vbaContent, '(?m)^\s*Set\s+\w+\s*=')
+            $validSetStatements = [regex]::Matches($script:vbaContent, '(?m)^\s*Set\s+\w+\s*=')
             $validSetStatements.Count -gt 0 | Should Be $true
         }
 
         It 'Nao ha declaracoes duplicadas de procedimentos' {
-            $procedures = [regex]::Matches($vbaContent, '(?m)^(Public |Private )?(Sub |Function )(\w+)')
+            $procedures = [regex]::Matches($script:vbaContent, '(?m)^(Public |Private )?(Sub |Function )(\w+)')
             $procedureNames = $procedures | ForEach-Object { $_.Groups[3].Value }
             $uniqueNames = $procedureNames | Select-Object -Unique
             $procedureNames.Count -eq $uniqueNames.Count | Should Be $true
         }
 
         It 'Todos os If tem End If correspondente' {
-            $ifCount = [regex]::Matches($vbaContent, '(?m)^\s*(If|ElseIf)\s+.+\s+Then\s*$').Count
-            $endIfCount = [regex]::Matches($vbaContent, '(?m)^\s*End If').Count
+            $ifCount = [regex]::Matches($script:vbaContent, '(?m)^\s*(If|ElseIf)\s+.+\s+Then\s*$').Count
+            $endIfCount = [regex]::Matches($script:vbaContent, '(?m)^\s*End If').Count
             # Pode haver If inline (Then ... : End If na mesma linha)
             # Então End If deve ser >= If multilinhas
             $endIfCount -ge ($ifCount * 0.8) | Should Be $true
@@ -547,33 +547,33 @@ It 'Taxa de comentários adequada (> 5% das linhas)' {
 
         It 'Todos os For tem Next correspondente' {
             # Permite loops inline (ex: For ... : ... : Next i)
-            $forCount = [regex]::Matches($vbaContent, '(?m)(^\s*For\s+|:\s*For\s+)').Count
-            $nextCount = [regex]::Matches($vbaContent, '(?m)(^\s*Next\b|:\s*Next\b)').Count
+            $forCount = [regex]::Matches($script:vbaContent, '(?m)(^\s*For\s+|:\s*For\s+)').Count
+            $nextCount = [regex]::Matches($script:vbaContent, '(?m)(^\s*Next\b|:\s*Next\b)').Count
             [Math]::Abs($forCount - $nextCount) -le 1 | Should Be $true
         }
 
         It 'Todos os Do tem Loop correspondente' {
-            $doCount = [regex]::Matches($vbaContent, '(?m)^\s*Do\s*(While|Until)?').Count
-            $loopCount = [regex]::Matches($vbaContent, '(?m)^\s*Loop\b').Count
+            $doCount = [regex]::Matches($script:vbaContent, '(?m)^\s*Do\s*(While|Until)?').Count
+            $loopCount = [regex]::Matches($script:vbaContent, '(?m)^\s*Loop\b').Count
             # Permite margem de até 10 loops (pode haver Do...Loop While inline, comentários, etc)
             [Math]::Abs($doCount - $loopCount) -le 10 | Should Be $true
         }
 
         It 'Todos os With tem End With correspondente' {
-            $withCount = [regex]::Matches($vbaContent, '(?m)^\s*With\s+').Count
-            $endWithCount = [regex]::Matches($vbaContent, '(?m)^\s*End With').Count
+            $withCount = [regex]::Matches($script:vbaContent, '(?m)^\s*With\s+').Count
+            $endWithCount = [regex]::Matches($script:vbaContent, '(?m)^\s*End With').Count
             $withCount -eq $endWithCount | Should Be $true
         }
 
         It 'Todos os Select Case tem End Select correspondente' {
-            $selectCount = [regex]::Matches($vbaContent, '(?m)^\s*Select Case\s+').Count
-            $endSelectCount = [regex]::Matches($vbaContent, '(?m)^\s*End Select').Count
+            $selectCount = [regex]::Matches($script:vbaContent, '(?m)^\s*Select Case\s+').Count
+            $endSelectCount = [regex]::Matches($script:vbaContent, '(?m)^\s*End Select').Count
             $selectCount -eq $endSelectCount | Should Be $true
         }
 
         It 'Nao ha uso de GoTo sem label correspondente' {
-            $goToStatements = [regex]::Matches($vbaContent, '(?m)^\s*(?:On Error )?GoTo\s+(\w+)')
-            $labels = [regex]::Matches($vbaContent, '(?m)^(\w+):')
+            $goToStatements = [regex]::Matches($script:vbaContent, '(?m)^\s*(?:On Error )?GoTo\s+(\w+)')
+            $labels = [regex]::Matches($script:vbaContent, '(?m)^(\w+):')
 
             foreach ($goTo in $goToStatements) {
                 $targetLabel = $goTo.Groups[1].Value
@@ -585,8 +585,8 @@ It 'Taxa de comentários adequada (> 5% das linhas)' {
         }
 
         It 'Todas as funcoes tem tipo de retorno declarado' {
-            $functions = [regex]::Matches($vbaContent, '(?m)^(Public |Private )?Function\s+(\w+)\([^)]*\)\s+As\s+\w+')
-            $allFunctions = [regex]::Matches($vbaContent, '(?m)^(Public |Private )?Function\s+(\w+)')
+            $functions = [regex]::Matches($script:vbaContent, '(?m)^(Public |Private )?Function\s+(\w+)\([^)]*\)\s+As\s+\w+')
+            $allFunctions = [regex]::Matches($script:vbaContent, '(?m)^(Public |Private )?Function\s+(\w+)')
             # Todas as funções devem ter tipo de retorno
             $functions.Count -eq $allFunctions.Count | Should Be $true
         }
@@ -595,14 +595,14 @@ It 'Taxa de comentários adequada (> 5% das linhas)' {
             # Verifica alguns procedimentos críticos que são chamados
             $calledProcs = @('BuildParagraphCache', 'ClearParagraphCache', 'SafeCleanup', 'LogMessage')
             foreach ($proc in $calledProcs) {
-                $procDeclared = $vbaContent -match "(Sub |Function )$proc"
+                $procDeclared = $script:vbaContent -match "(Sub |Function )$proc"
                 $procDeclared | Should Be $true
             }
         }
 
         It 'Todas as constantes tem valor atribuido' {
-            $constants = [regex]::Matches($vbaContent, '(?m)^(Public |Private )?Const\s+\w+\s+As\s+\w+\s*=')
-            $allConstants = [regex]::Matches($vbaContent, '(?m)^(Public |Private )?Const\s+\w+')
+            $constants = [regex]::Matches($script:vbaContent, '(?m)^(Public |Private )?Const\s+\w+\s+As\s+\w+\s*=')
+            $allConstants = [regex]::Matches($script:vbaContent, '(?m)^(Public |Private )?Const\s+\w+')
             $constants.Count -eq $allConstants.Count | Should Be $true
         }
 
@@ -610,7 +610,7 @@ It 'Taxa de comentários adequada (> 5% das linhas)' {
             # Verifica algumas variáveis críticas que devem ser usadas
             $criticalVars = @('doc', 'para', 'rng')
             foreach ($var in $criticalVars) {
-                $varUsage = [regex]::Matches($vbaContent, "\b$var\b").Count
+                $varUsage = [regex]::Matches($script:vbaContent, "\b$var\b").Count
                 $varUsage -gt 1 | Should Be $true # Declaração + uso
             }
         }
@@ -668,9 +668,9 @@ It 'Taxa de comentários adequada (> 5% das linhas)' {
             $objectVars = @('doc', 'rng', 'para')
             $releasedCount = 0
             foreach ($var in $objectVars) {
-                if ($vbaContent -match "Set\s+$var\s*=") {
+                if ($script:vbaContent -match "Set\s+$var\s*=") {
                     # Se Set é usado, deve haver Set = Nothing
-                    if ($vbaContent -match "Set\s+$var\s*=\s*Nothing") {
+                    if ($script:vbaContent -match "Set\s+$var\s*=\s*Nothing") {
                         $releasedCount++
                     }
                 }
@@ -680,7 +680,7 @@ It 'Taxa de comentários adequada (> 5% das linhas)' {
         }
 
         It 'Nao ha recursao infinita detectavel (funcao chama a si mesma sem condicao)' {
-            $functions = [regex]::Matches($vbaContent, '(?s)(Public |Private )?Function\s+(\w+).*?End Function')
+            $functions = [regex]::Matches($script:vbaContent, '(?s)(Public |Private )?Function\s+(\w+).*?End Function')
             $recursiveWithoutExit = 0
 
             foreach ($func in $functions) {
@@ -702,19 +702,19 @@ It 'Taxa de comentários adequada (> 5% das linhas)' {
         }
 
         It 'Nao ha atribuicoes a constantes' {
-            $constants = [regex]::Matches($vbaContent, '(?m)^(Public |Private )?Const\s+(\w+)')
+            $constants = [regex]::Matches($script:vbaContent, '(?m)^(Public |Private )?Const\s+(\w+)')
 
             foreach ($const in $constants) {
                 $constName = $const.Groups[2].Value
                 # Não deve haver atribuição após declaração
-                $reassignment = [regex]::Matches($vbaContent, "(?m)^\s*$constName\s*=")
+                $reassignment = [regex]::Matches($script:vbaContent, "(?m)^\s*$constName\s*=")
                 $reassignment.Count -eq 0 | Should Be $true
             }
         }
 
         It 'Arrays sao declarados corretamente com parenteses' {
             # Arrays em VBA usam () para dimensões (podem ser vazios para dynamic arrays)
-            $arrayDeclarations = [regex]::Matches($vbaContent, '(?m)Dim\s+\w+\([^)]*\)\s+As')
+            $arrayDeclarations = [regex]::Matches($script:vbaContent, '(?m)Dim\s+\w+\([^)]*\)\s+As')
             # Se houver arrays, a maioria deve estar bem formada
             if ($arrayDeclarations.Count -gt 0) {
                 $wellFormed = 0
@@ -733,9 +733,9 @@ It 'Taxa de comentários adequada (> 5% das linhas)' {
 
         It 'On Error Resume Next tem On Error GoTo 0 correspondente (restauracao de erro)' {
             # Boa prática: sempre restaurar tratamento de erro padrão
-            $resumeNextCount = [regex]::Matches($vbaContent, '(?m)On Error Resume Next').Count
-            $errorGoTo0Count = [regex]::Matches($vbaContent, '(?m)On Error GoTo 0').Count
-            $errorGotoLabelCount = [regex]::Matches($vbaContent, '(?m)On Error GoTo \w+').Count
+            $resumeNextCount = [regex]::Matches($script:vbaContent, '(?m)On Error Resume Next').Count
+            $errorGoTo0Count = [regex]::Matches($script:vbaContent, '(?m)On Error GoTo 0').Count
+            $errorGotoLabelCount = [regex]::Matches($script:vbaContent, '(?m)On Error GoTo \w+').Count
 
             # Deve haver alguma forma de tratamento de erro (GoTo 0 ou GoTo Label)
             if ($resumeNextCount -gt 0) {
@@ -752,7 +752,7 @@ It 'Taxa de comentários adequada (> 5% das linhas)' {
 
         It 'Loops For Each sobre Paragraphs tem DoEvents para responsividade' {
             # Loops pesados sobre doc.Paragraphs devem ter DoEvents
-            $forEachParaLoops = [regex]::Matches($vbaContent, '(?s)For Each\s+\w+\s+In\s+doc\.Paragraphs.*?Next\s+\w+')
+            $forEachParaLoops = [regex]::Matches($script:vbaContent, '(?s)For Each\s+\w+\s+In\s+doc\.Paragraphs.*?Next\s+\w+')
             $loopsWithDoEvents = 0
 
             foreach ($loop in $forEachParaLoops) {
@@ -771,7 +771,7 @@ It 'Taxa de comentários adequada (> 5% das linhas)' {
 
         It 'Loops For To sobre Paragraphs.Count tem DoEvents para responsividade' {
             # Loops For i = 1 To doc.Paragraphs.Count devem ter DoEvents
-            $forToParaLoops = [regex]::Matches($vbaContent, '(?s)For\s+\w+\s*=\s*\d+\s+To\s+doc\.Paragraphs\.Count.*?Next\s+\w*')
+            $forToParaLoops = [regex]::Matches($script:vbaContent, '(?s)For\s+\w+\s*=\s*\d+\s+To\s+doc\.Paragraphs\.Count.*?Next\s+\w*')
             $loopsWithDoEvents = 0
 
             foreach ($loop in $forToParaLoops) {
@@ -790,13 +790,13 @@ It 'Taxa de comentários adequada (> 5% das linhas)' {
 
         It 'Existe controle de iteracao com Mod para DoEvents eficiente' {
             # DoEvents deve ser chamado a cada N iteracoes, nao em cada iteracao
-            $modDoEventsPattern = [regex]::Matches($vbaContent, 'Mod\s+\d+\s*=\s*0\s*Then\s*DoEvents')
+            $modDoEventsPattern = [regex]::Matches($script:vbaContent, 'Mod\s+\d+\s*=\s*0\s*Then\s*DoEvents')
             $modDoEventsPattern.Count -ge 5 | Should Be $true
         }
 
         It 'Intervalo de DoEvents e razoavel (entre 10 e 100 iteracoes)' {
             # Verifica se os intervalos de Mod estao entre 10 e 100
-            $modValues = [regex]::Matches($vbaContent, 'Mod\s+(\d+)\s*=\s*0\s*Then\s*DoEvents')
+            $modValues = [regex]::Matches($script:vbaContent, 'Mod\s+(\d+)\s*=\s*0\s*Then\s*DoEvents')
             $validIntervals = 0
 
             foreach ($match in $modValues) {
@@ -815,48 +815,48 @@ It 'Taxa de comentários adequada (> 5% das linhas)' {
         }
 
         It 'Possui protecao contra loops infinitos (MAX_LOOP_ITERATIONS)' {
-            $vbaContent -match 'MAX_LOOP_ITERATIONS' | Should Be $true
+            $script:vbaContent -match 'MAX_LOOP_ITERATIONS' | Should Be $true
         }
 
         It 'Possui timeout para operacoes longas (MAX_OPERATION_TIMEOUT_SECONDS)' {
-            $vbaContent -match 'MAX_OPERATION_TIMEOUT_SECONDS' | Should Be $true
+            $script:vbaContent -match 'MAX_OPERATION_TIMEOUT_SECONDS' | Should Be $true
         }
 
         It 'Possui limite de paragrafos para scan inicial (MAX_INITIAL_PARAGRAPHS_TO_SCAN)' {
-            $vbaContent -match 'MAX_INITIAL_PARAGRAPHS_TO_SCAN' | Should Be $true
+            $script:vbaContent -match 'MAX_INITIAL_PARAGRAPHS_TO_SCAN' | Should Be $true
         }
 
         It 'Loops tem clausula Exit For para saida antecipada quando necessario' {
-            $exitForCount = [regex]::Matches($vbaContent, 'Exit For').Count
+            $exitForCount = [regex]::Matches($script:vbaContent, 'Exit For').Count
             # Deve haver multiplas saidas antecipadas para otimizacao
             $exitForCount -ge 20 | Should Be $true
         }
 
         It 'Usa cache de paragrafos para evitar multiplas iteracoes' {
-            ($vbaContent -match 'BuildParagraphCache') -and
-            ($vbaContent -match 'paragraphCache\(') -and
-            ($vbaContent -match 'ClearParagraphCache') | Should Be $true
+            ($script:vbaContent -match 'BuildParagraphCache') -and
+            ($script:vbaContent -match 'paragraphCache\(') -and
+            ($script:vbaContent -match 'ClearParagraphCache') | Should Be $true
         }
 
         It 'ScreenUpdating e gerenciado durante processamento pesado' {
             # Verifica se ScreenUpdating e controlado (pode ser via variavel ou direto)
-            $screenUpdatingManaged = ($vbaContent -match '\.ScreenUpdating\s*=') -or
-                                     ($vbaContent -match 'ScreenUpdating\s*=\s*enabled')
+            $screenUpdatingManaged = ($script:vbaContent -match '\.ScreenUpdating\s*=') -or
+                                     ($script:vbaContent -match 'ScreenUpdating\s*=\s*enabled')
 
             # Deve haver controle de ScreenUpdating
             $screenUpdatingManaged | Should Be $true
         }
 
         It 'DisplayAlerts e gerenciado durante processamento' {
-            $alertsNone = $vbaContent -match 'wdAlertsNone'
-            $alertsAll = $vbaContent -match 'wdAlertsAll'
+            $alertsNone = $script:vbaContent -match 'wdAlertsNone'
+            $alertsAll = $script:vbaContent -match 'wdAlertsAll'
 
             $alertsNone -and $alertsAll | Should Be $true
         }
 
         It 'Nao ha chamadas DoEvents dentro de loops muito apertados (sem Mod)' {
             # DoEvents direto em loop sem Mod causa lentidao
-            $directDoEvents = [regex]::Matches($vbaContent, '(?s)For\s+(Each\s+)?\w+.*?DoEvents\s*\n\s*Next')
+            $directDoEvents = [regex]::Matches($script:vbaContent, '(?s)For\s+(Each\s+)?\w+.*?DoEvents\s*\n\s*Next')
             $badPatterns = 0
 
             foreach ($match in $directDoEvents) {
@@ -872,20 +872,20 @@ It 'Taxa de comentários adequada (> 5% das linhas)' {
 
         It 'Objetos Range sao usados para operacoes em lote quando possivel' {
             # doc.Range deve ser usado para operacoes globais
-            $docRangeUsage = [regex]::Matches($vbaContent, 'doc\.Range').Count
+            $docRangeUsage = [regex]::Matches($script:vbaContent, 'doc\.Range').Count
             $docRangeUsage -ge 5 | Should Be $true
         }
 
         It 'Usa With blocks para reduzir referencias de objeto repetidas' {
-            $withCount = [regex]::Matches($vbaContent, '(?m)^\s*With\s+').Count
+            $withCount = [regex]::Matches($script:vbaContent, '(?m)^\s*With\s+').Count
             # Deve haver uso significativo de With para performance
             $withCount -ge 30 | Should Be $true
         }
 
         It 'Variaveis de loop sao declaradas como Long (nao Integer para performance)' {
             # Long e mais rapido que Integer em VBA 32/64 bits
-            $loopVarsAsLong = [regex]::Matches($vbaContent, 'Dim\s+(i|j|k|n|idx|count|counter)\s+As\s+Long').Count
-            $loopVarsAsInteger = [regex]::Matches($vbaContent, 'Dim\s+(i|j|k|n|idx|count|counter)\s+As\s+Integer').Count
+            $loopVarsAsLong = [regex]::Matches($script:vbaContent, 'Dim\s+(i|j|k|n|idx|count|counter)\s+As\s+Long').Count
+            $loopVarsAsInteger = [regex]::Matches($script:vbaContent, 'Dim\s+(i|j|k|n|idx|count|counter)\s+As\s+Integer').Count
 
             # Long deve ser predominante sobre Integer para contadores
             $loopVarsAsLong -ge $loopVarsAsInteger | Should Be $true
@@ -893,24 +893,24 @@ It 'Taxa de comentários adequada (> 5% das linhas)' {
 
         It 'Strings sao concatenadas eficientemente (nao em loops apertados sem StringBuilder)' {
             # Verifica se ha uso de buffer de string ou concatenacao otimizada
-            $hasStringBuffer = $vbaContent -match 'logBuffer|StringBuilder|strBuffer'
+            $hasStringBuffer = $script:vbaContent -match 'logBuffer|StringBuilder|strBuffer'
             $hasStringBuffer | Should Be $true
         }
 
         It 'Collection/Dictionary e usado para cache quando apropriado' {
-            $collectionUsage = ($vbaContent -match 'New Collection') -or ($vbaContent -match 'Scripting\.Dictionary')
+            $collectionUsage = ($script:vbaContent -match 'New Collection') -or ($script:vbaContent -match 'Scripting\.Dictionary')
             $collectionUsage | Should Be $true
         }
 
         It 'Possui sistema de progresso para feedback ao usuario' {
-            ($vbaContent -match 'UpdateProgress') -and
-            ($vbaContent -match 'IncrementProgress') -and
-            ($vbaContent -match 'Application\.StatusBar') | Should Be $true
+            ($script:vbaContent -match 'UpdateProgress') -and
+            ($script:vbaContent -match 'IncrementProgress') -and
+            ($script:vbaContent -match 'Application\.StatusBar') | Should Be $true
         }
 
         It 'Limite de protecao em loops Do While/Until' {
             # Loops Do devem ter contador de seguranca ou condicao de saida clara
-            $doLoops = [regex]::Matches($vbaContent, '(?s)Do\s+(While|Until).*?Loop')
+            $doLoops = [regex]::Matches($script:vbaContent, '(?s)Do\s+(While|Until).*?Loop')
             $protectedLoops = 0
 
             foreach ($loop in $doLoops) {
@@ -930,14 +930,14 @@ It 'Taxa de comentários adequada (> 5% das linhas)' {
 
         It 'Nao ha acesso repetido a propriedades em loops (usa variaveis locais)' {
             # Verifica se doc.Paragraphs.Count e armazenado em variavel
-            $paragraphCountCached = $vbaContent -match '(paraCount|cacheSize|totalParagraphs)\s*=\s*doc\.Paragraphs\.Count'
+            $paragraphCountCached = $script:vbaContent -match '(paraCount|cacheSize|totalParagraphs)\s*=\s*doc\.Paragraphs\.Count'
             $paragraphCountCached | Should Be $true
         }
 
         It 'Funcoes de formatacao usam operacoes em lote quando possivel' {
             # With .Font e With .ParagraphFormat indicam operacoes em lote
-            $batchFontOps = [regex]::Matches($vbaContent, 'With\s+\.Font').Count
-            $batchParaOps = [regex]::Matches($vbaContent, 'With\s+\.ParagraphFormat|With\s+\.Format').Count
+            $batchFontOps = [regex]::Matches($script:vbaContent, 'With\s+\.Font').Count
+            $batchParaOps = [regex]::Matches($script:vbaContent, 'With\s+\.ParagraphFormat|With\s+\.Format').Count
 
             ($batchFontOps -ge 3) -and ($batchParaOps -ge 3) | Should Be $true
         }
@@ -947,7 +947,7 @@ It 'Taxa de comentários adequada (> 5% das linhas)' {
 
         It 'Loops For Each sobre Paragraphs possuem DoEvents para responsividade' {
             # Conta loops For Each sobre doc.Paragraphs
-            $forEachParagraphs = [regex]::Matches($vbaContent, '(?s)For Each\s+\w+\s+In\s+doc\.Paragraphs.*?Next\s+\w+')
+            $forEachParagraphs = [regex]::Matches($script:vbaContent, '(?s)For Each\s+\w+\s+In\s+doc\.Paragraphs.*?Next\s+\w+')
             $loopsWithDoEvents = 0
 
             foreach ($loop in $forEachParagraphs) {
@@ -967,7 +967,7 @@ It 'Taxa de comentários adequada (> 5% das linhas)' {
 
         It 'Loops For i To Count sobre Paragraphs possuem DoEvents' {
             # Conta loops For i To doc.Paragraphs.Count ou cacheSize
-            $forToLoops = [regex]::Matches($vbaContent, '(?s)For\s+\w+\s*=\s*\d+\s+To\s+(doc\.Paragraphs\.Count|cacheSize|paraCount).*?Next\s+\w+')
+            $forToLoops = [regex]::Matches($script:vbaContent, '(?s)For\s+\w+\s*=\s*\d+\s+To\s+(doc\.Paragraphs\.Count|cacheSize|paraCount).*?Next\s+\w+')
             $loopsWithDoEvents = 0
 
             foreach ($loop in $forToLoops) {
@@ -987,7 +987,7 @@ It 'Taxa de comentários adequada (> 5% das linhas)' {
 
         It 'DoEvents e chamado com frequencia adequada (Mod 15-50)' {
             # Verifica se DoEvents e chamado a cada N iteracoes
-            $doEventsPattern = [regex]::Matches($vbaContent, 'Mod\s+(\d+)\s*=\s*0\s+Then\s+DoEvents')
+            $doEventsPattern = [regex]::Matches($script:vbaContent, 'Mod\s+(\d+)\s*=\s*0\s+Then\s+DoEvents')
             $adequateFrequency = 0
 
             foreach ($match in $doEventsPattern) {
@@ -1005,14 +1005,14 @@ It 'Taxa de comentários adequada (> 5% das linhas)' {
         It 'Nao possui loops aninhados sobre Paragraphs (O(n^2))' {
             # Detecta loops aninhados perigosos
             $nestedLoopPattern = '(?s)For\s+(Each\s+\w+\s+In|i\s*=).*?Paragraphs.*?(For\s+(Each\s+\w+\s+In|j\s*=).*?Paragraphs)'
-            $nestedLoops = [regex]::Matches($vbaContent, $nestedLoopPattern)
+            $nestedLoops = [regex]::Matches($script:vbaContent, $nestedLoopPattern)
 
             # Nao deve haver loops aninhados sobre Paragraphs (pode travar)
             $nestedLoops.Count | Should Be 0
         }
 
         It 'Funcao ClearAllFormatting possui DoEvents' {
-            $clearAllFormattingMatch = [regex]::Match($vbaContent, '(?s)Function ClearAllFormatting.*?End Function')
+            $clearAllFormattingMatch = [regex]::Match($script:vbaContent, '(?s)Function ClearAllFormatting.*?End Function')
             if ($clearAllFormattingMatch.Success) {
                 $clearAllFormattingMatch.Value -match 'DoEvents' | Should Be $true
             } else {
@@ -1021,7 +1021,7 @@ It 'Taxa de comentários adequada (> 5% das linhas)' {
         }
 
         It 'Funcao BuildParagraphCache possui DoEvents' {
-            $buildCacheMatch = [regex]::Match($vbaContent, '(?s)Sub BuildParagraphCache.*?End Sub')
+            $buildCacheMatch = [regex]::Match($script:vbaContent, '(?s)Sub BuildParagraphCache.*?End Sub')
             if ($buildCacheMatch.Success) {
                 $buildCacheMatch.Value -match 'DoEvents|UpdateProgress' | Should Be $true
             } else {
@@ -1030,7 +1030,7 @@ It 'Taxa de comentários adequada (> 5% das linhas)' {
         }
 
         It 'Funcao BackupAllImages possui DoEvents' {
-            $backupImagesMatch = [regex]::Match($vbaContent, '(?s)Function BackupAllImages.*?End Function')
+            $backupImagesMatch = [regex]::Match($script:vbaContent, '(?s)Function BackupAllImages.*?End Function')
             if ($backupImagesMatch.Success) {
                 $backupImagesMatch.Value -match 'DoEvents' | Should Be $true
             } else {
@@ -1039,7 +1039,7 @@ It 'Taxa de comentários adequada (> 5% das linhas)' {
         }
 
         It 'Funcao BackupListFormats possui DoEvents' {
-            $backupListMatch = [regex]::Match($vbaContent, '(?s)Function BackupListFormats.*?End Function')
+            $backupListMatch = [regex]::Match($script:vbaContent, '(?s)Function BackupListFormats.*?End Function')
             if ($backupListMatch.Success) {
                 $backupListMatch.Value -match 'DoEvents' | Should Be $true
             } else {
@@ -1058,7 +1058,7 @@ It 'Taxa de comentários adequada (> 5% das linhas)' {
 
             $hasLimits = $false
             foreach ($pattern in $safetyLimits) {
-                if ($vbaContent -match $pattern) {
+                if ($script:vbaContent -match $pattern) {
                     $hasLimits = $true
                     break
                 }
@@ -1069,20 +1069,21 @@ It 'Taxa de comentários adequada (> 5% das linhas)' {
 
         It 'ScreenUpdating e desabilitado durante processamento pesado' {
             # ScreenUpdating = False deve existir para performance
-            ($vbaContent -match 'ScreenUpdating\s*=\s*False') -or
-            ($vbaContent -match '\.ScreenUpdating\s*=\s*enabled') | Should Be $true
+            ($script:vbaContent -match 'ScreenUpdating\s*=\s*False') -or
+            ($script:vbaContent -match '\.ScreenUpdating\s*=\s*enabled') | Should Be $true
         }
 
         It 'DisplayAlerts e gerenciado durante processamento' {
-            ($vbaContent -match 'DisplayAlerts\s*=\s*wdAlertsNone') -or
-            ($vbaContent -match 'DisplayAlerts\s*=\s*-1') | Should Be $true
+            ($script:vbaContent -match 'DisplayAlerts\s*=\s*wdAlertsNone') -or
+            ($script:vbaContent -match 'DisplayAlerts\s*=\s*-1') | Should Be $true
         }
 
         It 'Quantidade total de DoEvents no codigo e adequada' {
-            $doEventsCount = [regex]::Matches($vbaContent, '\bDoEvents\b').Count
+            $doEventsCount = [regex]::Matches($script:vbaContent, '\bDoEvents\b').Count
 
             # Deve haver pelo menos 10 chamadas DoEvents no codigo
             $doEventsCount -ge 10 | Should Be $true
         }
     }
 }
+
