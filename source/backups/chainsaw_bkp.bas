@@ -389,7 +389,8 @@ Public Sub PadronizarDocumentoMain()
     execSeconds = CLng((Now - executionStartTime) * 86400)
 
     ' Mostra mensagem final na barra de status
-    Application.StatusBar = "Concluido em " & execSeconds & "s com " & errorCount & " erros."
+    Application.Sta
+    tusBar = "Padronizacao concluida em " & execSeconds & "s, com " & errorCount & " erros e " & warningCount & " avisos! (chainsaw)"
 
 CleanUp:
     ' ---------------------------------------------------------------------------
@@ -417,41 +418,35 @@ CleanUp:
 
     SafeFinalizeLogging
 
-    ' Exibe mensagem de conclusão com informações completas
-    If Not formattingCancelled Then
-        Dim executionTimeText As String
-        Dim duration As Double
-
-        ' Calcula duração total
-        duration = (Now - executionStartTime) * 86400
-        If duration < 60 Then
-            executionTimeText = Format(duration, "0.0") & " segundos"
-        ElseIf duration < 3600 Then
-            executionTimeText = Format(Int(duration / 60), "0") & " minuto(s) e " & Format(duration Mod 60, "00") & " segundo(s)"
-        Else
-            executionTimeText = Format(Int(duration / 3600), "0") & " hora(s) e " & Format(Int((duration Mod 3600) / 60), "00") & " minuto(s)"
-        End If
-
-        ' Monta mensagem com informações de erros/avisos
-        Dim statusMsg As String
-        If errorCount > 0 Then
-            statusMsg = vbCrLf & vbCrLf & "[!] ATENÇÃO: " & errorCount & " erro(s) detectado(s) durante a execução." & vbCrLf & _
-                       "   Verifique o log para mais detalhes."
-        ElseIf warningCount > 0 Then
-            statusMsg = vbCrLf & vbCrLf & "[i] INFORMAÇÃO: " & warningCount & " aviso(s) registrado(s) durante a execução." & vbCrLf & _
-                       "   Verifique o log para mais detalhes."
-        Else
-            statusMsg = vbCrLf & vbCrLf & "[OK] Nenhum erro ou aviso detectado durante a execução."
-        End If
-
-        ' Mensagem de sucesso com informações completas
-        MsgBox "[OK] Processamento concluído com sucesso em " & executionTimeText & "!" & vbCrLf & vbCrLf & _
-               "[DIR] Backup criado em:" & vbCrLf & _
-               "   " & IIf(backupFilePath <> "", backupFilePath, GetChainsawBackupsPath()) & vbCrLf & vbCrLf & _
-               "[LOG] Log salvo em:" & vbCrLf & _
-               "   " & logFilePath & statusMsg, _
-               vbInformation, "CHAINSAW - Padronização Concluída"
-    End If
+    ' Mensagem de conclusao desativada - informacoes exibidas apenas na StatusBar
+    ' If Not formattingCancelled Then
+    '     Dim executionTimeText As String
+    '     Dim duration As Double
+    '     duration = (Now - executionStartTime) * 86400
+    '     If duration < 60 Then
+    '         executionTimeText = Format(duration, "0.0") & " segundos"
+    '     ElseIf duration < 3600 Then
+    '         executionTimeText = Format(Int(duration / 60), "0") & " minuto(s) e " & Format(duration Mod 60, "00") & " segundo(s)"
+    '     Else
+    '         executionTimeText = Format(Int(duration / 3600), "0") & " hora(s) e " & Format(Int((duration Mod 3600) / 60), "00") & " minuto(s)"
+    '     End If
+    '     Dim statusMsg As String
+    '     If errorCount > 0 Then
+    '         statusMsg = vbCrLf & vbCrLf & "[!] ATENCAO: " & errorCount & " erro(s) detectado(s) durante a execucao." & vbCrLf & _
+    '                    "   Verifique o log para mais detalhes."
+    '     ElseIf warningCount > 0 Then
+    '         statusMsg = vbCrLf & vbCrLf & "[i] INFORMACAO: " & warningCount & " aviso(s) registrado(s) durante a execucao." & vbCrLf & _
+    '                    "   Verifique o log para mais detalhes."
+    '     Else
+    '         statusMsg = vbCrLf & vbCrLf & "[OK] Nenhum erro ou aviso detectado durante a execucao."
+    '     End If
+    '     MsgBox "[OK] Processamento concluido com sucesso em " & executionTimeText & "!" & vbCrLf & vbCrLf & _
+    '            "[DIR] Backup criado em:" & vbCrLf & _
+    '            "   " & IIf(backupFilePath <> "", backupFilePath, GetChainsawBackupsPath()) & vbCrLf & vbCrLf & _
+    '            "[LOG] Log salvo em:" & vbCrLf & _
+    '            "   " & logFilePath & statusMsg, _
+    '            vbInformation, "CHAINSAW - Padronizacao Concluida"
+    ' End If
 
     ' Posiciona cursor no início do documento
     On Error Resume Next
@@ -8596,11 +8591,16 @@ Private Function FormatImageParagraphsIndents(doc As Document) As Boolean
     Dim formattedCount As Long
     formattedCount = 0
 
-    ' Percorre todos os parágrafos
+    ' Percorre todos os paragrafos
+    Dim imgCounter As Long
+    imgCounter = 0
     For Each para In doc.Paragraphs
-        ' Verifica se o parágrafo contém imagens inline
+        imgCounter = imgCounter + 1
+        If imgCounter Mod 30 = 0 Then DoEvents ' Responsividade
+
+        ' Verifica se o paragrafo contem imagens inline
         If para.Range.InlineShapes.count > 0 Then
-            ' Zera o recuo à esquerda e centraliza
+            ' Zera o recuo a esquerda e centraliza
             With para.Format
                 .leftIndent = 0
                 .firstLineIndent = 0
@@ -8870,7 +8870,12 @@ Private Function FormatBulletedParagraphsIndent(doc As Document) As Boolean
     bulletMarkers = Split("*,-,>,+,~", ",")
 
     ' Percorre todos os paragrafos
+    Dim bulletCounter As Long
+    bulletCounter = 0
     For Each para In doc.Paragraphs
+        bulletCounter = bulletCounter + 1
+        If bulletCounter Mod 30 = 0 Then DoEvents ' Responsividade
+
         paraText = Trim(para.Range.text)
 
         ' Verifica se o paragrafo nao esta vazio
@@ -8986,7 +8991,12 @@ Private Sub RemoverLinhasEmBrancoExtras(doc As Document)
 
     ' --- Ajustes por paragrafo ---
     Dim para As Paragraph
+    Dim adjustCounter As Long
+    adjustCounter = 0
     For Each para In doc.Paragraphs
+        adjustCounter = adjustCounter + 1
+        If adjustCounter Mod 30 = 0 Then DoEvents ' Responsividade
+
         Dim cleanTxt As String
         cleanTxt = LCase(Trim(Replace(para.Range.text, vbCr, "")))
         cleanTxt = Replace(cleanTxt, "-", "")
@@ -9362,11 +9372,16 @@ Private Sub ReplacePlenarioDateParagraph(doc As Document)
                  " de maio de, de junho de, de julho de, de agosto de," & _
                  " de setembro de, de outubro de, de novembro de, de dezembro de", ",")
 
-    ' Processa cada parágrafo
+    ' Processa cada paragrafo
+    Dim plenCounter As Long
+    plenCounter = 0
     For Each para In doc.Paragraphs
+        plenCounter = plenCounter + 1
+        If plenCounter Mod 30 = 0 Then DoEvents ' Responsividade
+
         matchCount = 0
 
-        ' Pula parágrafos muito longos
+        ' Pula paragrafos muito longos
         If Len(para.Range.text) <= 80 Then
             paraText = para.Range.text
 
