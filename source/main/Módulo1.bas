@@ -7888,14 +7888,15 @@ Public Sub RestaurarBackup()
     ' Abre o backup restaurado
     Application.Documents.Open originalPath
 
-    Application.StatusBar = "Backup restaurado com sucesso"
+    Application.StatusBar = "Backup restaurado com sucesso! (chainsaw)"
 
-    MsgBox "[OK] Backup restaurado com sucesso!" & vbCrLf & vbCrLf & _
-           "[DIR] Documento descartado salvo em:" & vbCrLf & _
-           "   " & discardedPath & vbCrLf & vbCrLf & _
-           "[DIR] Backup restaurado:" & vbCrLf & _
-           "   " & originalPath, _
-           vbInformation, "CHAINSAW - Backup Restaurado"
+    ' Mensagem de conclusao desativada - informacoes exibidas apenas na StatusBar
+    ' MsgBox "[OK] Backup restaurado com sucesso!" & vbCrLf & vbCrLf & _
+    '        "[DIR] Documento descartado salvo em:" & vbCrLf & _
+    '        "   " & discardedPath & vbCrLf & vbCrLf & _
+    '        "[DIR] Backup restaurado:" & vbCrLf & _
+    '        "   " & originalPath, _
+    '        vbInformation, "CHAINSAW - Backup Restaurado"
 
     Exit Sub
 
