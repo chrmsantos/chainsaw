@@ -4187,10 +4187,10 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' INSERCAO DE NUMEROS DE PAGINA NO RODAPE + SIGLA AFV
+' INSERCAO DE NUMEROS DE PAGINA NO RODAPE + INICIAIS DO USUARIO
 '================================================================================
 ' Insere rodape com:
-' - Sigla "afv" a esquerda (Arial 6pt, cinza)
+' - Iniciais do usuario a esquerda (Arial 6pt, cinza)
 ' - "Pagina X de Y" centralizado (Arial 9pt)
 '--------------------------------------------------------------------------------
 Private Function InsertFooterStamp(doc As Document) As Boolean
@@ -4198,12 +4198,16 @@ Private Function InsertFooterStamp(doc As Document) As Boolean
 
     Dim sec As Section
     Dim footer As HeaderFooter
-    Dim rngAFV As Range
+    Dim rngInitials As Range
     Dim rngPage As Range
     Dim rngDash As Range
     Dim rngNum As Range
     Dim fPage As Field
     Dim fTotal As Field
+    Dim userInitials As String
+
+    ' Obtem as iniciais do usuario atual
+    userInitials = GetUserInitials()
 
     For Each sec In doc.Sections
         Set footer = sec.Footers(wdHeaderFooterPrimary)
@@ -4214,17 +4218,17 @@ Private Function InsertFooterStamp(doc As Document) As Boolean
             ' Limpa todo o rodape
             footer.Range.Delete
 
-            ' Insere "afv" a esquerda (Arial 6pt, cinza)
-            Set rngAFV = footer.Range
-            rngAFV.Collapse Direction:=wdCollapseStart
-            rngAFV.text = "afv"
-            With rngAFV.Font
+            ' Insere iniciais do usuario a esquerda (Arial 6pt, cinza)
+            Set rngInitials = footer.Range
+            rngInitials.Collapse Direction:=wdCollapseStart
+            rngInitials.text = userInitials
+            With rngInitials.Font
                 .Name = STANDARD_FONT
                 .size = 6
                 .Color = RGB(128, 128, 128)
             End With
-            rngAFV.ParagraphFormat.alignment = wdAlignParagraphLeft
-            rngAFV.InsertParagraphAfter
+            rngInitials.ParagraphFormat.alignment = wdAlignParagraphLeft
+            rngInitials.InsertParagraphAfter
 
             ' Insere "Pagina X de Y" centralizado
             Set rngPage = footer.Range.Paragraphs.Last.Range
@@ -4273,6 +4277,55 @@ Private Function InsertFooterStamp(doc As Document) As Boolean
 ErrorHandler:
     LogMessage "Erro ao inserir rodape: " & Err.Description, LOG_LEVEL_ERROR
     InsertFooterStamp = False
+End Function
+
+'================================================================================
+' UTILITY: GET USER INITIALS
+'================================================================================
+' Retorna as iniciais do usuario baseado no nome de usuario do Windows
+' Mapeamento:
+'   avendemiato -> afv
+'   csantos     -> cms
+'   alexandre   -> ajc
+'   lcurtes     -> lc
+'   marta       -> mfcp
+'   henrique    -> hmg
+'   bruno       -> bra
+'--------------------------------------------------------------------------------
+Private Function GetUserInitials() As String
+    On Error GoTo ErrorHandler
+
+    Dim userName As String
+    userName = LCase(Environ("USERNAME"))
+
+    Select Case userName
+        Case "avendemiato"
+            GetUserInitials = "afv"
+        Case "csantos"
+            GetUserInitials = "cms"
+        Case "alexandre"
+            GetUserInitials = "ajc"
+        Case "lcurtes"
+            GetUserInitials = "lc"
+        Case "marta"
+            GetUserInitials = "mfcp"
+        Case "henrique"
+            GetUserInitials = "hmg"
+        Case "bruno"
+            GetUserInitials = "bra"
+        Case Else
+            ' Usuario nao mapeado: usa primeiras 3 letras do username
+            If Len(userName) >= 3 Then
+                GetUserInitials = Left(userName, 3)
+            Else
+                GetUserInitials = userName
+            End If
+    End Select
+
+    Exit Function
+
+ErrorHandler:
+    GetUserInitials = "usr"
 End Function
 
 '================================================================================
