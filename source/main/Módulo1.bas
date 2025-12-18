@@ -418,41 +418,35 @@ CleanUp:
 
     SafeFinalizeLogging
 
-    ' Exibe mensagem de conclusão com informações completas
-    If Not formattingCancelled Then
-        Dim executionTimeText As String
-        Dim duration As Double
-
-        ' Calcula duração total
-        duration = (Now - executionStartTime) * 86400
-        If duration < 60 Then
-            executionTimeText = Format(duration, "0.0") & " segundos"
-        ElseIf duration < 3600 Then
-            executionTimeText = Format(Int(duration / 60), "0") & " minuto(s) e " & Format(duration Mod 60, "00") & " segundo(s)"
-        Else
-            executionTimeText = Format(Int(duration / 3600), "0") & " hora(s) e " & Format(Int((duration Mod 3600) / 60), "00") & " minuto(s)"
-        End If
-
-        ' Monta mensagem com informações de erros/avisos
-        Dim statusMsg As String
-        If errorCount > 0 Then
-            statusMsg = vbCrLf & vbCrLf & "[!] ATENÇÃO: " & errorCount & " erro(s) detectado(s) durante a execução." & vbCrLf & _
-                       "   Verifique o log para mais detalhes."
-        ElseIf warningCount > 0 Then
-            statusMsg = vbCrLf & vbCrLf & "[i] INFORMAÇÃO: " & warningCount & " aviso(s) registrado(s) durante a execução." & vbCrLf & _
-                       "   Verifique o log para mais detalhes."
-        Else
-            statusMsg = vbCrLf & vbCrLf & "[OK] Nenhum erro ou aviso detectado durante a execução."
-        End If
-
-        ' Mensagem de sucesso com informações completas
-        MsgBox "[OK] Processamento concluído com sucesso em " & executionTimeText & "!" & vbCrLf & vbCrLf & _
-               "[DIR] Backup criado em:" & vbCrLf & _
-               "   " & IIf(backupFilePath <> "", backupFilePath, GetChainsawBackupsPath()) & vbCrLf & vbCrLf & _
-               "[LOG] Log salvo em:" & vbCrLf & _
-               "   " & logFilePath & statusMsg, _
-               vbInformation, "CHAINSAW - Padronização Concluída"
-    End If
+    ' Mensagem de conclusao desativada - informacoes exibidas apenas na StatusBar
+    ' If Not formattingCancelled Then
+    '     Dim executionTimeText As String
+    '     Dim duration As Double
+    '     duration = (Now - executionStartTime) * 86400
+    '     If duration < 60 Then
+    '         executionTimeText = Format(duration, "0.0") & " segundos"
+    '     ElseIf duration < 3600 Then
+    '         executionTimeText = Format(Int(duration / 60), "0") & " minuto(s) e " & Format(duration Mod 60, "00") & " segundo(s)"
+    '     Else
+    '         executionTimeText = Format(Int(duration / 3600), "0") & " hora(s) e " & Format(Int((duration Mod 3600) / 60), "00") & " minuto(s)"
+    '     End If
+    '     Dim statusMsg As String
+    '     If errorCount > 0 Then
+    '         statusMsg = vbCrLf & vbCrLf & "[!] ATENCAO: " & errorCount & " erro(s) detectado(s) durante a execucao." & vbCrLf & _
+    '                    "   Verifique o log para mais detalhes."
+    '     ElseIf warningCount > 0 Then
+    '         statusMsg = vbCrLf & vbCrLf & "[i] INFORMACAO: " & warningCount & " aviso(s) registrado(s) durante a execucao." & vbCrLf & _
+    '                    "   Verifique o log para mais detalhes."
+    '     Else
+    '         statusMsg = vbCrLf & vbCrLf & "[OK] Nenhum erro ou aviso detectado durante a execucao."
+    '     End If
+    '     MsgBox "[OK] Processamento concluido com sucesso em " & executionTimeText & "!" & vbCrLf & vbCrLf & _
+    '            "[DIR] Backup criado em:" & vbCrLf & _
+    '            "   " & IIf(backupFilePath <> "", backupFilePath, GetChainsawBackupsPath()) & vbCrLf & vbCrLf & _
+    '            "[LOG] Log salvo em:" & vbCrLf & _
+    '            "   " & logFilePath & statusMsg, _
+    '            vbInformation, "CHAINSAW - Padronizacao Concluida"
+    ' End If
 
     ' Posiciona cursor no início do documento
     On Error Resume Next
