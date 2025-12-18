@@ -4230,25 +4230,18 @@ Private Function InsertFooterStamp(doc As Document) As Boolean
             rngInitials.ParagraphFormat.alignment = wdAlignParagraphLeft
             rngInitials.InsertParagraphAfter
 
-            ' Insere "Pagina X de Y" centralizado
+            ' Insere "X-Y" centralizado (numero da pagina - total de paginas)
             Set rngPage = footer.Range.Paragraphs.Last.Range
             rngPage.text = ""
             rngPage.Collapse Direction:=wdCollapseStart
 
-            rngPage.text = "Pagina "
-            With rngPage.Font
-                .Name = STANDARD_FONT
-                .size = FOOTER_FONT_SIZE
-            End With
-            rngPage.Collapse Direction:=wdCollapseEnd
-
             ' Campo PAGE (numero da pagina atual)
             Set fPage = rngPage.Fields.Add(Range:=rngPage, Type:=wdFieldPage)
 
-            ' Texto "de"
+            ' Texto "-"
             Set rngDash = footer.Range.Paragraphs.Last.Range
             rngDash.Collapse Direction:=wdCollapseEnd
-            rngDash.text = " de "
+            rngDash.text = "-"
 
             ' Campo NUMPAGES (total de paginas)
             Set rngNum = footer.Range.Paragraphs.Last.Range
