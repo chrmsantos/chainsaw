@@ -7,6 +7,132 @@
 ' Compatibilidade: Microsoft Word 2010+
 ' Autor: Christian Martin dos Santos (chrmsantos@protonmail.com)
 ' =============================================================================
+'
+' =============================================================================
+' INDICE DE MODULOS (Ctrl+F para navegar)
+' =============================================================================
+'
+' [MOD.CONST]    CONSTANTES E CONFIGURACAO .......................... ~L13
+'                - Constantes do Word (wdXxx, msoXxx)
+'                - Constantes de Formatacao (fontes, margens)
+'                - Constantes de Sistema (versao, limites)
+'                - Constantes de Elementos Estruturais
+'
+' [MOD.VARS]     VARIAVEIS GLOBAIS .................................. ~L102
+'                - Estado da aplicacao (flags, contadores)
+'                - Cache de paragrafos (Type paragraphCache)
+'                - Protecao de imagens (Type ImageInfo)
+'                - Configuracoes de visualizacao (Type ViewSettings)
+'
+' [MOD.MAIN]     PONTO DE ENTRADA PRINCIPAL ......................... ~L220
+'                - PadronizarDocumentoMain() - Orquestrador
+'
+' [MOD.ERROR]    TRATAMENTO DE ERROS E RECUPERACAO .................. ~L475
+'                - ShowUserFriendlyError, EmergencyRecovery
+'                - SafeCleanup, ReleaseObjects, CloseAllOpenFiles
+'
+' [MOD.VALID]    VALIDACAO E COMPATIBILIDADE ........................ ~L579
+'                - ValidateDocument, IsDocumentHealthy
+'                - IsOperationTimeout, CheckWordVersion
+'
+' [MOD.TEXT]     PROCESSAMENTO DE TEXTO ............................. ~L638
+'                - GetCleanParagraphText, RemovePunctuation
+'                - NormalizarTexto, DetectSpecialParagraph
+'
+' [MOD.STRUCT]   IDENTIFICACAO DE ESTRUTURA ......................... ~L738
+'                - IsTituloElement, IsEmentaElement
+'                - IsJustificativaTitleElement, IsDataElement
+'                - IsAssinaturaStart, IsTituloAnexoElement
+'                - IdentifyDocumentStructure
+'
+' [MOD.CACHE]    SISTEMA DE CACHE ................................... ~L1225
+'                - BuildParagraphCache, ClearParagraphCache
+'
+' [MOD.API]      API PUBLICA DE ACESSO .............................. ~L1311
+'                - GetTituloRange, GetEmentaRange
+'                - GetProposicaoRange, GetJustificativaRange
+'                - GetDataRange, GetAssinaturaRange
+'                - GetAnexoRange, GetElementInfo
+'
+' [MOD.PROGRESS] BARRA DE PROGRESSO ................................. ~L1602
+'                - UpdateProgress, InitializeProgress
+'                - IncrementProgress
+'
+' [MOD.SAFE]     ACESSO SEGURO A PROPRIEDADES ....................... ~L1658
+'                - SafeGetCharacterCount, SafeSetFont
+'                - SafeSetParagraphFormat, SafeFindReplace
+'
+' [MOD.PATH]     FUNCOES DE CAMINHO ................................. ~L1818
+'                - GetProjectRootPath, GetChainsawBackupsPath
+'                - GetChainsawLogsPath, EnsureChainsawFolders
+'
+' [MOD.LOG]      SISTEMA DE LOGS .................................... ~L1907
+'                - InitializeLogging, LogMessage, FlushLogBuffer
+'                - LogSection, LogStepStart, LogStepComplete
+'                - SafeFinalizeLogging
+'
+' [MOD.UTIL]     UTILITARIOS GERAIS ................................. ~L2321
+'                - GetProtectionType, GetDocumentSize
+'                - SanitizeFileName, GetWindowsVersion
+'
+' [MOD.STATE]    GERENCIAMENTO DE ESTADO ............................ ~L2418
+'                - SetAppState, ValidateDocument (pre-checks)
+'
+' [MOD.FORMAT]   ROTINAS DE FORMATACAO .............................. ~L2577
+'                - ApplyDocumentFormatting (orquestrador)
+'                - ConfigurarPagina, FormatFont, FormatParagraphs
+'                - FormatFirstParagraph, FormatSecondParagraph
+'
+' [MOD.CLEAN]    LIMPEZA DE FORMATACAO .............................. ~L5775
+'                - ClearAllFormatting, RemovePageNumberLines
+'                - CleanupDocumentStructure, RemoveTabMarks
+'
+' [MOD.TITLE]    FORMATACAO DE TITULO ............................... ~L6356
+'                - FormatDocumentTitle
+'
+' [MOD.SPECIAL]  PARAGRAFOS ESPECIAIS ............................... ~L6480
+'                - Considerando, Ante o Exposto, In Loco
+'                - ApplyBoldToSpecialParagraphs
+'                - FormatVereadorParagraphs
+'
+' [MOD.BLANK]    GERENCIAMENTO DE LINHAS EM BRANCO .................. ~L7011
+'                - InsertBlankLinesInJustificativa
+'                - EnsureSingleBlankLineBetweenParagraphs
+'
+' [MOD.PUBLIC]   SUBROTINAS PUBLICAS ................................ ~L7456
+'                - AbrirRepositorioGitHub
+'                - ConfirmarDesfazimento, DesfazerPadronizacao
+'
+' [MOD.BACKUP]   SISTEMA DE BACKUP .................................. ~L7621
+'                - CreateDocumentBackup, RestoreBackup
+'                - CleanupOldBackups
+'
+' [MOD.SPACES]   LIMPEZA DE ESPACOS ................................. ~L7846
+'                - LimparEspacosMultiplos
+'                - LimitarLinhasVaziasSequenciais
+'
+' [MOD.VIEW]     CONFIGURACAO DE VISUALIZACAO ....................... ~L8172
+'                - ConfigureDocumentView
+'                - RemoveHighlightingAndBorders
+'
+' [MOD.IMAGE]    PROTECAO DE IMAGENS ................................ ~L8397
+'                - BackupAllImages, RestoreAllImages
+'                - FormatImageParagraphsIndents
+'                - CenterImageAfterPlenario
+'
+' [MOD.LIST]     FORMATACAO DE LISTAS ............................... ~L8625
+'                - BackupListFormats, RestoreListFormats
+'                - FormatNumberedParagraphsIndent
+'                - FormatBulletedParagraphsIndent
+'
+' [MOD.FINAL]    FORMATACAO FINAL ................................... ~L9842
+'                - ApplyUniversalFinalFormatting
+'                - AddSpecialSpacing
+'
+' [MOD.UPDATE]   VERIFICACAO DE ATUALIZACAO ......................... ~L9456
+'                - CheckForUpdates, ExecutarInstalador
+'
+' =============================================================================
 
 Option Explicit
 
