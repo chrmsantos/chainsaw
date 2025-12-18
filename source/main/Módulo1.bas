@@ -1,8 +1,8 @@
 ﻿' =============================================================================
 ' CHAINSAW - Sistema de Padronizacao de Proposituras Legislativas
 ' =============================================================================
-' Versao: 2.9.6
-' Data: 2025-12-17
+' Versao: 2.9.7
+' Data: 2025-12-18
 ' Licenca: GNU GPLv3 (https://www.gnu.org/licenses/gpl-3.0.html)
 ' Compatibilidade: Microsoft Word 2010+
 ' Autor: Christian Martin dos Santos (chrmsantos@protonmail.com)
@@ -67,7 +67,7 @@ Private Const HEADER_IMAGE_HEIGHT_RATIO As Double = 0.19
 '================================================================================
 ' CONSTANTES DE SISTEMA
 '================================================================================
-Private Const CHAINSAW_VERSION As String = "2.9.6"
+Private Const CHAINSAW_VERSION As String = "2.9.7"
 Private Const MIN_SUPPORTED_VERSION As Long = 14
 Private Const REQUIRED_STRING As String = "$NUMERO$/$ANO$"
 Private Const MAX_BACKUP_FILES As Long = 10
@@ -1228,7 +1228,7 @@ ErrorHandler:
 End Sub
 
 '================================================================================
-' CONSTRUÇÃO DO CACHE DE PARÁGRAFOS - Otimização principal
+' CONSTRUCAO DO CACHE DE PARAGRAFOS - Otimizacao principal
 '================================================================================
 Private Sub BuildParagraphCache(doc As Document)
     On Error GoTo ErrorHandler
@@ -1236,7 +1236,7 @@ Private Sub BuildParagraphCache(doc As Document)
     Dim startTime As Double
     startTime = Timer
 
-    LogMessage "Iniciando construção do cache de parágrafos...", LOG_LEVEL_INFO
+    LogMessage "Iniciando construcao do cache de paragrafos...", LOG_LEVEL_INFO
 
     cacheSize = doc.Paragraphs.count
     ReDim paragraphCache(1 To cacheSize)
@@ -1246,9 +1246,12 @@ Private Sub BuildParagraphCache(doc As Document)
     Dim rawText As String
 
     For i = 1 To cacheSize
+        ' DoEvents a cada 20 paragrafos para manter responsividade
+        If i Mod 20 = 0 Then DoEvents
+
         Set para = doc.Paragraphs(i)
 
-        ' Captura o texto bruto uma única vez
+        ' Captura o texto bruto uma unica vez
         On Error Resume Next
         rawText = para.Range.text
         On Error GoTo ErrorHandler
@@ -1262,7 +1265,7 @@ Private Sub BuildParagraphCache(doc As Document)
             .needsFormatting = (Len(.cleanText) > 0) And (Not .hasImages)
         End With
 
-        ' Atualiza progresso a cada 100 parágrafos
+        ' Atualiza progresso a cada 100 paragrafos
         If i Mod 100 = 0 Then
             UpdateProgress "Indexando: " & i & "/" & cacheSize, 5 + (i * 5 \ cacheSize)
         End If
@@ -1273,9 +1276,9 @@ Private Sub BuildParagraphCache(doc As Document)
     Dim elapsed As Single
     elapsed = Timer - startTime
 
-    LogMessage "Cache construído: " & cacheSize & " parágrafos em " & Format(elapsed, "0.00") & "s", LOG_LEVEL_INFO
+    LogMessage "Cache construido: " & cacheSize & " paragrafos em " & Format(elapsed, "0.00") & "s", LOG_LEVEL_INFO
 
-    ' Identifica a estrutura do documento após construir o cache
+    ' Identifica a estrutura do documento apos construir o cache
     IdentifyDocumentStructure doc
 
     Exit Sub
@@ -5799,7 +5802,13 @@ Private Function ClearAllFormatting(doc As Document) As Boolean
         Dim visualContentCache As Object ' Cache para evitar recálculos
         Set visualContentCache = CreateObject("Scripting.Dictionary")
 
+        Dim clearCounter As Long
+        clearCounter = 0
         For Each para In doc.Paragraphs
+            clearCounter = clearCounter + 1
+            ' DoEvents a cada 15 paragrafos para manter responsividade
+            If clearCounter Mod 15 = 0 Then DoEvents
+
             On Error Resume Next
 
             ' Cache da verificação de conteúdo visual
@@ -5815,9 +5824,9 @@ Private Function ClearAllFormatting(doc As Document) As Boolean
             End If
 
             If Not hasVisualInPara Then
-                ' FORMATAÇÃO CONSOLIDADA: Aplica todas as configurações em uma única operação
+                ' FORMATACAO CONSOLIDADA: Aplica todas as configuracoes em uma unica operacao
                 With para.Range
-                    ' Reset completo de fonte em uma única operação
+                    ' Reset completo de fonte em uma unica operacao
                     With .Font
                         .Reset
                         .Name = STANDARD_FONT
@@ -5828,7 +5837,7 @@ Private Function ClearAllFormatting(doc As Document) As Boolean
                         .Underline = wdUnderlineNone
                     End With
 
-                    ' Reset completo de parágrafo em uma única operação
+                    ' Reset completo de paragrafo em uma unica operacao
                     With .ParagraphFormat
                         .Reset
                         .alignment = wdAlignParagraphLeft
@@ -5846,13 +5855,12 @@ Private Function ClearAllFormatting(doc As Document) As Boolean
                 End With
                 paraCount = paraCount + 1
             Else
-                ' OTIMIZADO: Para parágrafos com imagens, formatação protegida mais rápida
+                ' OTIMIZADO: Para paragrafos com imagens, formatacao protegida mais rapida
                 Call FormatCharacterByCharacter(para, STANDARD_FONT, STANDARD_FONT_SIZE, wdColorAutomatic, True, True)
                 paraCount = paraCount + 1
             End If
 
-            ' Proteção otimizada contra loops infinitos
-            If paraCount Mod 100 = 0 Then DoEvents ' Permite responsividade a cada 100 parágrafos
+            ' Protecao contra loops infinitos
             If paraCount > 1000 Then Exit For
             On Error GoTo ErrorHandler
         Next para
@@ -5892,18 +5900,23 @@ Private Function ClearAllFormatting(doc As Document) As Boolean
         paraCount = doc.Paragraphs.count
     End If
 
-    ' OTIMIZADO: Reset de estilos em uma única passada
+    ' OTIMIZADO: Reset de estilos em uma unica passada
+    Dim styleCounter As Long
+    styleCounter = 0
     For Each para In doc.Paragraphs
+        styleCounter = styleCounter + 1
+        ' DoEvents a cada 20 paragrafos para manter responsividade
+        If styleCounter Mod 20 = 0 Then DoEvents
+
         On Error Resume Next
         para.Style = "Normal"
         styleResetCount = styleResetCount + 1
-        ' Otimização: Permite responsividade e proteção contra loops
-        If styleResetCount Mod 50 = 0 Then DoEvents
+        ' Protecao contra loops infinitos
         If styleResetCount > 1000 Then Exit For
         On Error GoTo ErrorHandler
     Next para
 
-    LogMessage "Formatação limpa: " & paraCount & " parágrafos resetados", LOG_LEVEL_INFO
+    LogMessage "Formatacao limpa: " & paraCount & " paragrafos resetados", LOG_LEVEL_INFO
 
     ' Cleanup do cache de conteúdo visual para evitar memory leak
     If Not visualContentCache Is Nothing Then
@@ -6851,7 +6864,12 @@ Private Sub ApplyBoldToSpecialParagraphs(doc As Document)
     Set specialParagraphs = New Collection
 
     ' FASE 1: Identificar parágrafos especiais (uma única passada)
+    Dim paraCounter As Long
+    paraCounter = 0
     For Each para In doc.Paragraphs
+        paraCounter = paraCounter + 1
+        If paraCounter Mod 25 = 0 Then DoEvents ' Responsividade
+
         If Not HasVisualContent(para) Then
             cleanText = GetCleanParagraphText(para)
 
@@ -7245,7 +7263,12 @@ Private Sub FormatDianteDoExposto(doc As Document)
     formattedCount = 0
 
     ' Procura por parágrafos que começam com "Diante do exposto"
+    Dim iterCounter As Long
+    iterCounter = 0
     For Each para In doc.Paragraphs
+        iterCounter = iterCounter + 1
+        If iterCounter Mod 25 = 0 Then DoEvents ' Responsividade
+
         If Not HasVisualContent(para) Then
             ' Obtém o texto do parágrafo
             paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
@@ -7296,7 +7319,12 @@ Private Sub FormatRequeiroParagraphs(doc As Document)
     formattedCount = 0
 
     ' Procura por parágrafos que começam com "requeiro" (case insensitive)
+    Dim reqCounter As Long
+    reqCounter = 0
     For Each para In doc.Paragraphs
+        reqCounter = reqCounter + 1
+        If reqCounter Mod 25 = 0 Then DoEvents ' Responsividade
+
         If Not HasVisualContent(para) Then
             ' Obtém o texto do parágrafo (sem marca de parágrafo)
             paraText = para.Range.text
@@ -8392,9 +8420,10 @@ Private Function BackupAllImages(doc As Document) As Boolean
     Dim shape As InlineShape
     Dim tempImageInfo As ImageInfo
 
-    ' Conta todas as imagens primeiro
+    ' Conta todas as imagens primeiro (com DoEvents para responsividade)
     Dim totalImages As Long
     For i = 1 To doc.Paragraphs.count
+        If i Mod 30 = 0 Then DoEvents ' Responsividade
         Set para = doc.Paragraphs(i)
         totalImages = totalImages + para.Range.InlineShapes.count
     Next i
@@ -8402,18 +8431,19 @@ Private Function BackupAllImages(doc As Document) As Boolean
     ' Adiciona shapes flutuantes
     totalImages = totalImages + doc.Shapes.count
 
-    ' Redimensiona array se necessário
+    ' Redimensiona array se necessario
     If totalImages > 0 Then
         ReDim savedImages(totalImages - 1)
 
-        ' Backup de imagens inline - apenas propriedades críticas
+        ' Backup de imagens inline - apenas propriedades criticas
         For i = 1 To doc.Paragraphs.count
+            If i Mod 30 = 0 Then DoEvents ' Responsividade
             Set para = doc.Paragraphs(i)
 
             For j = 1 To para.Range.InlineShapes.count
                 Set shape = para.Range.InlineShapes(j)
 
-                ' Salva apenas propriedades essenciais para proteção
+                ' Salva apenas propriedades essenciais para protecao
                 With tempImageInfo
                     .paraIndex = i
                     .ImageIndex = j
@@ -8605,10 +8635,14 @@ Private Function BackupListFormats(doc As Document) As Boolean
     listFormatCount = 0
     ReDim savedListFormats(0)
 
-    ' Conta quantos paragrafos tem formatacao de lista
+    ' Conta quantos paragrafos tem formatacao de lista (com DoEvents)
     Dim totalLists As Long
+    Dim countIter As Long
     totalLists = 0
+    countIter = 0
     For Each para In doc.Paragraphs
+        countIter = countIter + 1
+        If countIter Mod 30 = 0 Then DoEvents ' Responsividade
         If para.Range.ListFormat.ListType <> 0 Then
             totalLists = totalLists + 1
         End If
@@ -8623,9 +8657,14 @@ Private Function BackupListFormats(doc As Document) As Boolean
     ' Aloca array com tamanho adequado
     ReDim savedListFormats(totalLists - 1)
 
-    ' Salva informacoes de cada paragrafo com lista
+    ' Salva informacoes de cada paragrafo com lista (com DoEvents)
+    Dim saveIter As Long
+    saveIter = 0
     i = 1
     For Each para In doc.Paragraphs
+        saveIter = saveIter + 1
+        If saveIter Mod 30 = 0 Then DoEvents ' Responsividade
+
         If para.Range.ListFormat.ListType <> 0 Then
             With tempListInfo
                 .paraIndex = i
@@ -9801,7 +9840,12 @@ Private Sub ApplyUniversalFinalFormatting(doc As Document)
     LogMessage "Aplicando formatacao final universal: Arial 12, espacamento 1.0, 1 linha entre paragrafos...", LOG_LEVEL_INFO
 
     ' Processa todos os paragrafos
+    Dim universalCounter As Long
+    universalCounter = 0
     For Each para In doc.Paragraphs
+        universalCounter = universalCounter + 1
+        If universalCounter Mod 20 = 0 Then DoEvents ' Responsividade
+
         On Error Resume Next
 
         ' Aplica fonte Arial 12
