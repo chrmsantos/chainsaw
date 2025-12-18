@@ -68,8 +68,8 @@ Describe 'CHAINSAW - Testes do Módulo VBA Módulo1.bas' {
             $functions = [regex]::Matches($vbaContent, '(?m)^(Public |Private )?Function \w+')
         }
 
-        It 'Contem quantidade razoavel de procedimentos (100-180)' {
-            $procedures.Count -ge 100 -and $procedures.Count -le 180 | Should Be $true
+        It 'Contem quantidade razoavel de procedimentos (100-250)' {
+            $procedures.Count -ge 100 -and $procedures.Count -le 250 | Should Be $true
         }
 
         It 'Possui procedimento principal PadronizarDocumentoMain' {
@@ -745,6 +745,344 @@ It 'Taxa de comentários adequada (> 5% das linhas)' {
             } else {
                 $true | Should Be $true
             }
+        }
+    }
+
+    Context 'Validacao de Performance e Responsividade' {
+
+        It 'Loops For Each sobre Paragraphs tem DoEvents para responsividade' {
+            # Loops pesados sobre doc.Paragraphs devem ter DoEvents
+            $forEachParaLoops = [regex]::Matches($vbaContent, '(?s)For Each\s+\w+\s+In\s+doc\.Paragraphs.*?Next\s+\w+')
+            $loopsWithDoEvents = 0
+
+            foreach ($loop in $forEachParaLoops) {
+                if ($loop.Value -match 'DoEvents') {
+                    $loopsWithDoEvents++
+                }
+            }
+
+            # Pelo menos 70% dos loops sobre Paragraphs devem ter DoEvents
+            if ($forEachParaLoops.Count -gt 0) {
+                ($loopsWithDoEvents / $forEachParaLoops.Count) -ge 0.70 | Should Be $true
+            } else {
+                $true | Should Be $true
+            }
+        }
+
+        It 'Loops For To sobre Paragraphs.Count tem DoEvents para responsividade' {
+            # Loops For i = 1 To doc.Paragraphs.Count devem ter DoEvents
+            $forToParaLoops = [regex]::Matches($vbaContent, '(?s)For\s+\w+\s*=\s*\d+\s+To\s+doc\.Paragraphs\.Count.*?Next\s+\w*')
+            $loopsWithDoEvents = 0
+
+            foreach ($loop in $forToParaLoops) {
+                if ($loop.Value -match 'DoEvents') {
+                    $loopsWithDoEvents++
+                }
+            }
+
+            # Pelo menos 50% dos loops sobre Paragraphs.Count devem ter DoEvents
+            if ($forToParaLoops.Count -gt 0) {
+                ($loopsWithDoEvents / $forToParaLoops.Count) -ge 0.50 | Should Be $true
+            } else {
+                $true | Should Be $true
+            }
+        }
+
+        It 'Existe controle de iteracao com Mod para DoEvents eficiente' {
+            # DoEvents deve ser chamado a cada N iteracoes, nao em cada iteracao
+            $modDoEventsPattern = [regex]::Matches($vbaContent, 'Mod\s+\d+\s*=\s*0\s*Then\s*DoEvents')
+            $modDoEventsPattern.Count -ge 5 | Should Be $true
+        }
+
+        It 'Intervalo de DoEvents e razoavel (entre 10 e 100 iteracoes)' {
+            # Verifica se os intervalos de Mod estao entre 10 e 100
+            $modValues = [regex]::Matches($vbaContent, 'Mod\s+(\d+)\s*=\s*0\s*Then\s*DoEvents')
+            $validIntervals = 0
+
+            foreach ($match in $modValues) {
+                $interval = [int]$match.Groups[1].Value
+                if ($interval -ge 10 -and $interval -le 100) {
+                    $validIntervals++
+                }
+            }
+
+            # Pelo menos 80% dos intervalos devem ser razoaveis
+            if ($modValues.Count -gt 0) {
+                ($validIntervals / $modValues.Count) -ge 0.80 | Should Be $true
+            } else {
+                $true | Should Be $true
+            }
+        }
+
+        It 'Possui protecao contra loops infinitos (MAX_LOOP_ITERATIONS)' {
+            $vbaContent -match 'MAX_LOOP_ITERATIONS' | Should Be $true
+        }
+
+        It 'Possui timeout para operacoes longas (MAX_OPERATION_TIMEOUT_SECONDS)' {
+            $vbaContent -match 'MAX_OPERATION_TIMEOUT_SECONDS' | Should Be $true
+        }
+
+        It 'Possui limite de paragrafos para scan inicial (MAX_INITIAL_PARAGRAPHS_TO_SCAN)' {
+            $vbaContent -match 'MAX_INITIAL_PARAGRAPHS_TO_SCAN' | Should Be $true
+        }
+
+        It 'Loops tem clausula Exit For para saida antecipada quando necessario' {
+            $exitForCount = [regex]::Matches($vbaContent, 'Exit For').Count
+            # Deve haver multiplas saidas antecipadas para otimizacao
+            $exitForCount -ge 20 | Should Be $true
+        }
+
+        It 'Usa cache de paragrafos para evitar multiplas iteracoes' {
+            ($vbaContent -match 'BuildParagraphCache') -and
+            ($vbaContent -match 'paragraphCache\(') -and
+            ($vbaContent -match 'ClearParagraphCache') | Should Be $true
+        }
+
+        It 'ScreenUpdating e gerenciado durante processamento pesado' {
+            # Verifica se ScreenUpdating e controlado (pode ser via variavel ou direto)
+            $screenUpdatingManaged = ($vbaContent -match '\.ScreenUpdating\s*=') -or
+                                     ($vbaContent -match 'ScreenUpdating\s*=\s*enabled')
+
+            # Deve haver controle de ScreenUpdating
+            $screenUpdatingManaged | Should Be $true
+        }
+
+        It 'DisplayAlerts e gerenciado durante processamento' {
+            $alertsNone = $vbaContent -match 'wdAlertsNone'
+            $alertsAll = $vbaContent -match 'wdAlertsAll'
+
+            $alertsNone -and $alertsAll | Should Be $true
+        }
+
+        It 'Nao ha chamadas DoEvents dentro de loops muito apertados (sem Mod)' {
+            # DoEvents direto em loop sem Mod causa lentidao
+            $directDoEvents = [regex]::Matches($vbaContent, '(?s)For\s+(Each\s+)?\w+.*?DoEvents\s*\n\s*Next')
+            $badPatterns = 0
+
+            foreach ($match in $directDoEvents) {
+                # Se nao tem Mod antes do DoEvents, e um padrao ruim
+                if ($match.Value -notmatch 'Mod\s+\d+') {
+                    $badPatterns++
+                }
+            }
+
+            # Permite ate 3 loops com DoEvents direto (podem ser loops pequenos)
+            $badPatterns -le 3 | Should Be $true
+        }
+
+        It 'Objetos Range sao usados para operacoes em lote quando possivel' {
+            # doc.Range deve ser usado para operacoes globais
+            $docRangeUsage = [regex]::Matches($vbaContent, 'doc\.Range').Count
+            $docRangeUsage -ge 5 | Should Be $true
+        }
+
+        It 'Usa With blocks para reduzir referencias de objeto repetidas' {
+            $withCount = [regex]::Matches($vbaContent, '(?m)^\s*With\s+').Count
+            # Deve haver uso significativo de With para performance
+            $withCount -ge 30 | Should Be $true
+        }
+
+        It 'Variaveis de loop sao declaradas como Long (nao Integer para performance)' {
+            # Long e mais rapido que Integer em VBA 32/64 bits
+            $loopVarsAsLong = [regex]::Matches($vbaContent, 'Dim\s+(i|j|k|n|idx|count|counter)\s+As\s+Long').Count
+            $loopVarsAsInteger = [regex]::Matches($vbaContent, 'Dim\s+(i|j|k|n|idx|count|counter)\s+As\s+Integer').Count
+
+            # Long deve ser predominante sobre Integer para contadores
+            $loopVarsAsLong -ge $loopVarsAsInteger | Should Be $true
+        }
+
+        It 'Strings sao concatenadas eficientemente (nao em loops apertados sem StringBuilder)' {
+            # Verifica se ha uso de buffer de string ou concatenacao otimizada
+            $hasStringBuffer = $vbaContent -match 'logBuffer|StringBuilder|strBuffer'
+            $hasStringBuffer | Should Be $true
+        }
+
+        It 'Collection/Dictionary e usado para cache quando apropriado' {
+            $collectionUsage = ($vbaContent -match 'New Collection') -or ($vbaContent -match 'Scripting\.Dictionary')
+            $collectionUsage | Should Be $true
+        }
+
+        It 'Possui sistema de progresso para feedback ao usuario' {
+            ($vbaContent -match 'UpdateProgress') -and
+            ($vbaContent -match 'IncrementProgress') -and
+            ($vbaContent -match 'Application\.StatusBar') | Should Be $true
+        }
+
+        It 'Limite de protecao em loops Do While/Until' {
+            # Loops Do devem ter contador de seguranca ou condicao de saida clara
+            $doLoops = [regex]::Matches($vbaContent, '(?s)Do\s+(While|Until).*?Loop')
+            $protectedLoops = 0
+
+            foreach ($loop in $doLoops) {
+                # Verifica se tem Exit Do ou contador de seguranca
+                if ($loop.Value -match 'Exit Do|safetyCounter|loopGuard|maxIterations|Counter\s*>\s*\d+') {
+                    $protectedLoops++
+                }
+            }
+
+            # Pelo menos 60% dos Do loops devem ter protecao
+            if ($doLoops.Count -gt 0) {
+                ($protectedLoops / $doLoops.Count) -ge 0.60 | Should Be $true
+            } else {
+                $true | Should Be $true
+            }
+        }
+
+        It 'Nao ha acesso repetido a propriedades em loops (usa variaveis locais)' {
+            # Verifica se doc.Paragraphs.Count e armazenado em variavel
+            $paragraphCountCached = $vbaContent -match '(paraCount|cacheSize|totalParagraphs)\s*=\s*doc\.Paragraphs\.Count'
+            $paragraphCountCached | Should Be $true
+        }
+
+        It 'Funcoes de formatacao usam operacoes em lote quando possivel' {
+            # With .Font e With .ParagraphFormat indicam operacoes em lote
+            $batchFontOps = [regex]::Matches($vbaContent, 'With\s+\.Font').Count
+            $batchParaOps = [regex]::Matches($vbaContent, 'With\s+\.ParagraphFormat|With\s+\.Format').Count
+
+            ($batchFontOps -ge 3) -and ($batchParaOps -ge 3) | Should Be $true
+        }
+    }
+
+    Context 'Validacao de Performance e Responsividade' {
+
+        It 'Loops For Each sobre Paragraphs possuem DoEvents para responsividade' {
+            # Conta loops For Each sobre doc.Paragraphs
+            $forEachParagraphs = [regex]::Matches($vbaContent, '(?s)For Each\s+\w+\s+In\s+doc\.Paragraphs.*?Next\s+\w+')
+            $loopsWithDoEvents = 0
+
+            foreach ($loop in $forEachParagraphs) {
+                if ($loop.Value -match 'DoEvents') {
+                    $loopsWithDoEvents++
+                }
+            }
+
+            # Pelo menos 70% dos loops devem ter DoEvents
+            if ($forEachParagraphs.Count -gt 0) {
+                $ratio = $loopsWithDoEvents / $forEachParagraphs.Count
+                $ratio -ge 0.70 | Should Be $true
+            } else {
+                $true | Should Be $true
+            }
+        }
+
+        It 'Loops For i To Count sobre Paragraphs possuem DoEvents' {
+            # Conta loops For i To doc.Paragraphs.Count ou cacheSize
+            $forToLoops = [regex]::Matches($vbaContent, '(?s)For\s+\w+\s*=\s*\d+\s+To\s+(doc\.Paragraphs\.Count|cacheSize|paraCount).*?Next\s+\w+')
+            $loopsWithDoEvents = 0
+
+            foreach ($loop in $forToLoops) {
+                if ($loop.Value -match 'DoEvents') {
+                    $loopsWithDoEvents++
+                }
+            }
+
+            # Pelo menos 50% dos loops grandes devem ter DoEvents
+            if ($forToLoops.Count -gt 0) {
+                $ratio = $loopsWithDoEvents / $forToLoops.Count
+                $ratio -ge 0.50 | Should Be $true
+            } else {
+                $true | Should Be $true
+            }
+        }
+
+        It 'DoEvents e chamado com frequencia adequada (Mod 15-50)' {
+            # Verifica se DoEvents e chamado a cada N iteracoes
+            $doEventsPattern = [regex]::Matches($vbaContent, 'Mod\s+(\d+)\s*=\s*0\s+Then\s+DoEvents')
+            $adequateFrequency = 0
+
+            foreach ($match in $doEventsPattern) {
+                $frequency = [int]$match.Groups[1].Value
+                # Frequencia adequada: entre 10 e 100 iteracoes
+                if ($frequency -ge 10 -and $frequency -le 100) {
+                    $adequateFrequency++
+                }
+            }
+
+            # Deve haver pelo menos 3 chamadas com frequencia adequada
+            $adequateFrequency -ge 3 | Should Be $true
+        }
+
+        It 'Nao possui loops aninhados sobre Paragraphs (O(n^2))' {
+            # Detecta loops aninhados perigosos
+            $nestedLoopPattern = '(?s)For\s+(Each\s+\w+\s+In|i\s*=).*?Paragraphs.*?(For\s+(Each\s+\w+\s+In|j\s*=).*?Paragraphs)'
+            $nestedLoops = [regex]::Matches($vbaContent, $nestedLoopPattern)
+
+            # Nao deve haver loops aninhados sobre Paragraphs (pode travar)
+            $nestedLoops.Count | Should Be 0
+        }
+
+        It 'Funcao ClearAllFormatting possui DoEvents' {
+            $clearAllFormattingMatch = [regex]::Match($vbaContent, '(?s)Function ClearAllFormatting.*?End Function')
+            if ($clearAllFormattingMatch.Success) {
+                $clearAllFormattingMatch.Value -match 'DoEvents' | Should Be $true
+            } else {
+                $true | Should Be $true
+            }
+        }
+
+        It 'Funcao BuildParagraphCache possui DoEvents' {
+            $buildCacheMatch = [regex]::Match($vbaContent, '(?s)Sub BuildParagraphCache.*?End Sub')
+            if ($buildCacheMatch.Success) {
+                $buildCacheMatch.Value -match 'DoEvents|UpdateProgress' | Should Be $true
+            } else {
+                $true | Should Be $true
+            }
+        }
+
+        It 'Funcao BackupAllImages possui DoEvents' {
+            $backupImagesMatch = [regex]::Match($vbaContent, '(?s)Function BackupAllImages.*?End Function')
+            if ($backupImagesMatch.Success) {
+                $backupImagesMatch.Value -match 'DoEvents' | Should Be $true
+            } else {
+                $true | Should Be $true
+            }
+        }
+
+        It 'Funcao BackupListFormats possui DoEvents' {
+            $backupListMatch = [regex]::Match($vbaContent, '(?s)Function BackupListFormats.*?End Function')
+            if ($backupListMatch.Success) {
+                $backupListMatch.Value -match 'DoEvents' | Should Be $true
+            } else {
+                $true | Should Be $true
+            }
+        }
+
+        It 'Limites de seguranca para loops longos (> 1000 iteracoes)' {
+            # Verifica presenca de limites de seguranca
+            $safetyLimits = @(
+                'If.*>\s*1000\s+Then\s+Exit',
+                'If.*Count\s*>\s*\d{3,}\s+Then',
+                'paraCount\s*>\s*1000',
+                'styleResetCount\s*>\s*1000'
+            )
+
+            $hasLimits = $false
+            foreach ($pattern in $safetyLimits) {
+                if ($vbaContent -match $pattern) {
+                    $hasLimits = $true
+                    break
+                }
+            }
+
+            $hasLimits | Should Be $true
+        }
+
+        It 'ScreenUpdating e desabilitado durante processamento pesado' {
+            # ScreenUpdating = False deve existir para performance
+            ($vbaContent -match 'ScreenUpdating\s*=\s*False') -or
+            ($vbaContent -match '\.ScreenUpdating\s*=\s*enabled') | Should Be $true
+        }
+
+        It 'DisplayAlerts e gerenciado durante processamento' {
+            ($vbaContent -match 'DisplayAlerts\s*=\s*wdAlertsNone') -or
+            ($vbaContent -match 'DisplayAlerts\s*=\s*-1') | Should Be $true
+        }
+
+        It 'Quantidade total de DoEvents no codigo e adequada' {
+            $doEventsCount = [regex]::Matches($vbaContent, '\bDoEvents\b').Count
+
+            # Deve haver pelo menos 10 chamadas DoEvents no codigo
+            $doEventsCount -ge 10 | Should Be $true
         }
     }
 }

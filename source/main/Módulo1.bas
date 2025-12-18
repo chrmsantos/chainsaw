@@ -8596,11 +8596,16 @@ Private Function FormatImageParagraphsIndents(doc As Document) As Boolean
     Dim formattedCount As Long
     formattedCount = 0
 
-    ' Percorre todos os parágrafos
+    ' Percorre todos os paragrafos
+    Dim imgCounter As Long
+    imgCounter = 0
     For Each para In doc.Paragraphs
-        ' Verifica se o parágrafo contém imagens inline
+        imgCounter = imgCounter + 1
+        If imgCounter Mod 30 = 0 Then DoEvents ' Responsividade
+
+        ' Verifica se o paragrafo contem imagens inline
         If para.Range.InlineShapes.count > 0 Then
-            ' Zera o recuo à esquerda e centraliza
+            ' Zera o recuo a esquerda e centraliza
             With para.Format
                 .leftIndent = 0
                 .firstLineIndent = 0
@@ -8870,7 +8875,12 @@ Private Function FormatBulletedParagraphsIndent(doc As Document) As Boolean
     bulletMarkers = Split("*,-,>,+,~", ",")
 
     ' Percorre todos os paragrafos
+    Dim bulletCounter As Long
+    bulletCounter = 0
     For Each para In doc.Paragraphs
+        bulletCounter = bulletCounter + 1
+        If bulletCounter Mod 30 = 0 Then DoEvents ' Responsividade
+
         paraText = Trim(para.Range.text)
 
         ' Verifica se o paragrafo nao esta vazio
@@ -8986,7 +8996,12 @@ Private Sub RemoverLinhasEmBrancoExtras(doc As Document)
 
     ' --- Ajustes por paragrafo ---
     Dim para As Paragraph
+    Dim adjustCounter As Long
+    adjustCounter = 0
     For Each para In doc.Paragraphs
+        adjustCounter = adjustCounter + 1
+        If adjustCounter Mod 30 = 0 Then DoEvents ' Responsividade
+
         Dim cleanTxt As String
         cleanTxt = LCase(Trim(Replace(para.Range.text, vbCr, "")))
         cleanTxt = Replace(cleanTxt, "-", "")
@@ -9362,11 +9377,16 @@ Private Sub ReplacePlenarioDateParagraph(doc As Document)
                  " de maio de, de junho de, de julho de, de agosto de," & _
                  " de setembro de, de outubro de, de novembro de, de dezembro de", ",")
 
-    ' Processa cada parágrafo
+    ' Processa cada paragrafo
+    Dim plenCounter As Long
+    plenCounter = 0
     For Each para In doc.Paragraphs
+        plenCounter = plenCounter + 1
+        If plenCounter Mod 30 = 0 Then DoEvents ' Responsividade
+
         matchCount = 0
 
-        ' Pula parágrafos muito longos
+        ' Pula paragrafos muito longos
         If Len(para.Range.text) <= 80 Then
             paraText = para.Range.text
 
