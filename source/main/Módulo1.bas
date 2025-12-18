@@ -389,7 +389,7 @@ Public Sub PadronizarDocumentoMain()
     execSeconds = CLng((Now - executionStartTime) * 86400)
 
     ' Mostra mensagem final na barra de status
-    Application.StatusBar = "Concluido em " & execSeconds & "s com " & errorCount & " erros."
+    Application.StatusBar = "Padronizacao concluida em " & execSeconds & "s, com " & errorCount & " erros e " & warningCount & " avisos (chainsaw)"
 
 CleanUp:
     ' ---------------------------------------------------------------------------
