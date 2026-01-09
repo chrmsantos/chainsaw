@@ -2,7 +2,7 @@
 ' CHAINSAW - Sistema de Padronizacao de Proposituras Legislativas
 ' =============================================================================
 ' Versao: 2.9.7
-' Data: 2025-12-18
+' Data: 2026-01-09
 ' Licenca: GNU GPLv3 (https://www.gnu.org/licenses/gpl-3.0.html)
 ' Compatibilidade: Microsoft Word 2010+
 ' Autor: Christian Martin dos Santos (chrmsantos@protonmail.com)
@@ -125,12 +125,12 @@
 '                - FormatNumberedParagraphsIndent
 '                - FormatBulletedParagraphsIndent
 '
-' [MOD.FINAL]    FORMATACAO FINAL ................................... ~L9842
+' [MOD.UPDATE]   VERIFICACAO DE ATUALIZACAO ......................... ~L9666
+'                - CheckForUpdates, ExecutarInstalador
+
+' [MOD.FINAL]    FORMATACAO FINAL ................................... ~L10052
 '                - ApplyUniversalFinalFormatting
 '                - AddSpecialSpacing
-'
-' [MOD.UPDATE]   VERIFICACAO DE ATUALIZACAO ......................... ~L9456
-'                - CheckForUpdates, ExecutarInstalador
 '
 ' =============================================================================
 
@@ -9760,27 +9760,59 @@ Private Function GetRemoteVersion() As String
     Dim url As String
     Dim response As String
     Dim version As String
+    Dim statusCode As Long
+    Dim usedServerHttp As Boolean
 
     GetRemoteVersion = ""
 
     ' URL do arquivo VERSION no GitHub
     url = "https://raw.githubusercontent.com/chrmsantos/chainsaw/main/VERSION"
 
-    ' Cria objeto HTTP
-    Set http = CreateObject("MSXML2.XMLHTTP")
+    ' Cria objeto HTTP com timeout quando possivel (evita travamentos em rede lenta/bloqueada)
+    On Error Resume Next
+    Set http = CreateObject("MSXML2.ServerXMLHTTP.6.0")
+    If Err.Number <> 0 Or http Is Nothing Then
+        Err.Clear
+        Set http = CreateObject("MSXML2.XMLHTTP")
+    Else
+        usedServerHttp = True
+    End If
+    On Error GoTo ErrorHandler
 
     ' Faz requisicao GET
     http.Open "GET", url, False
     http.setRequestHeader "Cache-Control", "no-cache"
+
+    ' Alguns MSXML podem falhar no header User-Agent; nao e critico
+    On Error Resume Next
+    http.setRequestHeader "User-Agent", "CHAINSAW/" & CHAINSAW_VERSION
+    If usedServerHttp Then
+        http.setTimeouts 5000, 5000, 10000, 10000
+    End If
+    On Error GoTo ErrorHandler
+
     http.send
 
+    statusCode = 0
+    On Error Resume Next
+    statusCode = CLng(http.Status)
+    On Error GoTo ErrorHandler
+
     ' Verifica resposta
-    If http.Status = 200 Then
-        response = http.responseText
+    If statusCode = 200 Then
+        response = CStr(http.responseText)
         version = ExtractVersionFromText(response)
-        GetRemoteVersion = version
+        If version <> "" Then
+            GetRemoteVersion = version
+        Else
+            LogMessage "Resposta remota sem versao valida", LOG_LEVEL_WARNING
+        End If
     Else
-        LogMessage "Erro HTTP ao buscar versao remota: " & http.Status, LOG_LEVEL_WARNING
+        If statusCode = 0 Then
+            LogMessage "Falha ao buscar versao remota (sem status HTTP)", LOG_LEVEL_WARNING
+        Else
+            LogMessage "Erro HTTP ao buscar versao remota: " & CStr(statusCode), LOG_LEVEL_WARNING
+        End If
     End If
 
     Exit Function
@@ -9790,12 +9822,11 @@ ErrorHandler:
     GetRemoteVersion = ""
 End Function
 
-' Funcao: ExtractJsonValue
-' Descricao: Extrai um valor de um JSON simples usando regex
+' Funcao: ExtractVersionFromText
+' Descricao: Extrai uma versao (X.Y.Z) de um texto usando regex
 ' Parametros:
-'   - jsonText: String contendo o JSON
-'   - key: Chave a ser extraida
-' Retorna: Valor da chave ou "" se nao encontrado
+'   - textValue: String contendo texto com versao
+' Retorna: String com a versao extraida ou "" se nao encontrado
 '================================================================================
 Private Function ExtractVersionFromText(ByVal textValue As String) As String
     On Error GoTo ErrorHandler
@@ -9895,7 +9926,7 @@ Private Function ReadTextFile(ByVal filePath As String) As String
     Set fso = CreateObject("Scripting.FileSystemObject")
 
     If fso.FileExists(filePath) Then
-        Set file = fso.OpenTextFile(filePath, 1, False, -1) ' -1 = Unicode
+        Set file = fso.OpenTextFile(filePath, 1, False, -2) ' -2 = SystemDefault
         content = file.ReadAll
         file.Close
         ReadTextFile = content

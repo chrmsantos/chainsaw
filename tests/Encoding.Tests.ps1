@@ -57,8 +57,10 @@ Describe 'CHAINSAW - Testes de Encoding e Emojis' {
 
         It 'Arquivos Markdown estao em UTF-8' {
             $mdFiles = @(
-                Get-ChildItem -Path "$projectRoot\docs" -Filter "*.md" -Recurse
-                Get-ChildItem -Path "$projectRoot" -Filter "*.md" -File
+                if (Test-Path (Join-Path $projectRoot 'docs')) {
+                    Get-ChildItem -Path (Join-Path $projectRoot 'docs') -Filter "*.md" -Recurse -File -ErrorAction SilentlyContinue
+                }
+                Get-ChildItem -Path $projectRoot -Filter "*.md" -File -ErrorAction SilentlyContinue
             )
 
             foreach ($file in $mdFiles) {
@@ -159,8 +161,10 @@ Describe 'CHAINSAW - Testes de Encoding e Emojis' {
             # Markdown pode conter emojis para documentacao
             # Este teste apenas verifica que podem ser lidos
             $mdFiles = @(
-                Get-ChildItem -Path "$projectRoot\docs" -Filter "*.md" -Recurse
-                Get-ChildItem -Path "$projectRoot" -Filter "*.md" -File
+                if (Test-Path (Join-Path $projectRoot 'docs')) {
+                    Get-ChildItem -Path (Join-Path $projectRoot 'docs') -Filter "*.md" -Recurse -File -ErrorAction SilentlyContinue
+                }
+                Get-ChildItem -Path $projectRoot -Filter "*.md" -File -ErrorAction SilentlyContinue
             )
 
             foreach ($file in $mdFiles) {
@@ -234,8 +238,10 @@ Describe 'CHAINSAW - Testes de Encoding e Emojis' {
 
         It 'Arquivos Markdown nao contem tabs (usam espacos)' {
             $mdFiles = @(
-                Get-ChildItem -Path "$projectRoot\docs" -Filter "*.md" -Recurse
-                Get-ChildItem -Path "$projectRoot" -Filter "*.md" -File
+                if (Test-Path (Join-Path $projectRoot 'docs')) {
+                    Get-ChildItem -Path (Join-Path $projectRoot 'docs') -Filter "*.md" -Recurse -File -ErrorAction SilentlyContinue
+                }
+                Get-ChildItem -Path $projectRoot -Filter "*.md" -File -ErrorAction SilentlyContinue
             )
 
             foreach ($file in $mdFiles) {
