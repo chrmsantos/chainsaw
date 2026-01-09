@@ -9,26 +9,26 @@ function Get-RepoRoot {
     return $repoRoot
 }
 
-Describe 'CHAINSAW - Testes do Módulo VBA Módulo1.bas' {
+Describe 'CHAINSAW - Testes do Modulo VBA Modulo1.bas' {
 
     BeforeAll {
         $script:repoRoot = Get-RepoRoot
-        $script:vbaPath = Join-Path $script:repoRoot "source\main\Módulo1.bas"
+        $script:vbaPath = Join-Path $script:repoRoot "source\main\Modulo1.bas"
         $script:vbaContent = Get-Content $script:vbaPath -Raw -Encoding UTF8
         $script:vbaLines = Get-Content $script:vbaPath -Encoding UTF8
     }
 
     Context 'Estrutura e Metadados do Arquivo' {
 
-        It 'Arquivo Módulo1.bas existe' {
+        It 'Arquivo Modulo1.bas existe' {
             Test-Path $script:vbaPath | Should Be $true
         }
 
-        It 'Arquivo não está vazio' {
+        It 'Arquivo nao esta vazio' {
             (Get-Item $script:vbaPath).Length -gt 0 | Should Be $true
         }
 
-        It 'Tamanho do arquivo é razoável (< 5MB)' {
+        It 'Tamanho do arquivo e razoavel (< 5MB)' {
             $sizeMB = (Get-Item $script:vbaPath).Length / 1MB
             $sizeMB -lt 5 | Should Be $true
         }

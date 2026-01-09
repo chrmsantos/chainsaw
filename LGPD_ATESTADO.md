@@ -191,15 +191,15 @@ Para exercer qualquer direito:
 | Controle | Implementação | Arquivo de Referência |
 |----------|---------------|----------------------|
 | **Validação de Caminhos** | Test-Path, validação de extensões | tests/All.Tests.ps1 |
-| **Tratamento de Erros** | Try-Catch em todas as operações | Módulo1.bas, ErrorHandler |
-| **Limpeza de Recursos** | SafeCleanup, ReleaseObjects | Módulo1.bas, linhas 1500+ |
-| **Timeout de Operações** | MAX_OPERATION_TIMEOUT_SECONDS | Módulo1.bas, linha 100 |
-| **Limite de Iterações** | MAX_LOOP_ITERATIONS | Módulo1.bas, linha 99 |
-| **Validação de Versão** | MIN_SUPPORTED_VERSION (Word 2010+) | Módulo1.bas, linha 85 |
+| **Tratamento de Erros** | Try-Catch em todas as operacoes | Modulo1.bas, ErrorHandler |
+| **Limpeza de Recursos** | SafeCleanup, ReleaseObjects | Modulo1.bas, linhas 1500+ |
+| **Timeout de Operacoes** | MAX_OPERATION_TIMEOUT_SECONDS | Modulo1.bas, linha 100 |
+| **Limite de Iteracoes** | MAX_LOOP_ITERATIONS | Modulo1.bas, linha 99 |
+| **Validacao de Versao** | MIN_SUPPORTED_VERSION (Word 2010+) | Modulo1.bas, linha 85 |
 
 ### 5.3 Análise de Vulnerabilidades
 
-#### Código VBA (Módulo1.bas)
+#### Codigo VBA (Modulo1.bas)
 
 [OK] **Sem Hardcoded Credentials:** Nenhuma senha ou token no código  
 [OK] **Sem Absolute Paths:** Caminhos relativos ou baseados em variáveis de ambiente  

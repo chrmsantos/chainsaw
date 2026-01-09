@@ -75,7 +75,7 @@ Describe 'CHAINSAW - Testes de Encoding e Emojis' {
         }
 
         It 'Arquivo VBA esta em formato legivel' {
-            $vbaFile = "$projectRoot\source\main\Módulo1.bas"
+            $vbaFile = "$projectRoot\source\main\Modulo1.bas"
 
             if (Test-Path $vbaFile) {
                 $content = Get-Content $vbaFile -Raw
@@ -177,7 +177,7 @@ Describe 'CHAINSAW - Testes de Encoding e Emojis' {
         }
 
         It 'Arquivo VBA nao contem emojis' {
-            $vbaFile = "$projectRoot\source\main\Módulo1.bas"
+            $vbaFile = "$projectRoot\source\main\Modulo1.bas"
 
             if (Test-Path $vbaFile) {
                 $content = Get-Content $vbaFile -Raw -Encoding UTF8
@@ -254,7 +254,7 @@ Describe 'CHAINSAW - Testes de Encoding e Emojis' {
         }
 
         It 'Arquivo VBA nao contem tabs (usa espacos conforme padrao)' {
-            $vbaFile = "$projectRoot\source\main\Módulo1.bas"
+            $vbaFile = "$projectRoot\source\main\Modulo1.bas"
 
             if (Test-Path $vbaFile) {
                 $content = Get-Content $vbaFile -Raw
@@ -338,7 +338,7 @@ Describe 'CHAINSAW - Testes de Encoding e Emojis' {
     Context 'Validacao de Caracteres Acentuados Portugueses' {
 
         It 'VBA pode ser lido com UTF-8 sem perder acentuacao' {
-            $vbaFile = "$projectRoot\source\main\Módulo1.bas"
+            $vbaFile = "$projectRoot\source\main\Modulo1.bas"
 
             if (Test-Path $vbaFile) {
                 $contentUtf8 = Get-Content $vbaFile -Raw -Encoding UTF8
@@ -476,7 +476,7 @@ Configuração do sistema
         }
 
         It 'Get-Content com -Encoding UTF8 lê corretamente arquivos acentuados' {
-            $vbaFile = "$projectRoot\source\main\Módulo1.bas"
+            $vbaFile = "$projectRoot\source\main\Modulo1.bas"
 
             if (Test-Path $vbaFile) {
                 $contentUtf8 = Get-Content $vbaFile -Raw -Encoding UTF8
