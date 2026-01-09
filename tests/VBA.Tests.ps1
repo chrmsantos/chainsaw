@@ -9,6 +9,114 @@ function Get-RepoRoot {
     return $repoRoot
 }
 
+function Get-VbaProcedureBlock {
+    param(
+        [Parameter(Mandatory)] [string[]]$Lines,
+        [Parameter(Mandatory)] [string]$Name
+    )
+
+    $currentType = $null
+    $block = $null
+
+    foreach ($line in $Lines) {
+        if (-not $currentType) {
+            $m = [regex]::Match($line, "^(Public |Private )?(Sub|Function)\s+$([regex]::Escape($Name))\b")
+            if ($m.Success) {
+                $currentType = $m.Groups[2].Value
+                $block = New-Object System.Collections.Generic.List[string]
+                [void]$block.Add($line)
+            }
+            continue
+        }
+
+        [void]$block.Add($line)
+        if ($line -match "^\s*End\s+$currentType\b") {
+            return ($block -join "`n")
+        }
+    }
+
+    return $null
+}
+
+function Get-VbaForLoopBlocks {
+    param(
+        [Parameter(Mandatory)] [string[]]$Lines,
+        [Parameter(Mandatory)] [scriptblock]$StartPredicate
+    )
+
+    $blocks = @()
+    $capturing = $false
+    $depth = 0
+    $current = $null
+
+    foreach ($line in $Lines) {
+        if (-not $capturing) {
+            if (& $StartPredicate $line) {
+                $capturing = $true
+                $depth = 1
+                $current = New-Object System.Collections.Generic.List[string]
+                [void]$current.Add($line)
+            }
+            continue
+        }
+
+        [void]$current.Add($line)
+        if ($line -match '^\s*For\b') {
+            $depth++
+        }
+        if ($line -match '^\s*Next\b') {
+            $depth--
+            if ($depth -le 0) {
+                $blocks += ($current -join "`n")
+                $capturing = $false
+                $depth = 0
+                $current = $null
+            }
+        }
+    }
+
+    return $blocks
+}
+
+function Get-VbaDoLoopBlocks {
+    param(
+        [Parameter(Mandatory)] [string[]]$Lines
+    )
+
+    $blocks = @()
+    $capturing = $false
+    $depth = 0
+    $current = $null
+
+    foreach ($line in $Lines) {
+        if (-not $capturing) {
+            if ($line -match '^\s*Do\s+(While|Until)\b') {
+                $capturing = $true
+                $depth = 1
+                $current = New-Object System.Collections.Generic.List[string]
+                [void]$current.Add($line)
+            }
+            continue
+        }
+
+        [void]$current.Add($line)
+        if ($line -match '^\s*Do\b') {
+            $depth++
+        }
+        if ($line -match '^\s*Loop\b') {
+            $depth--
+            if ($depth -le 0) {
+                $blocks += ($current -join "`n")
+                $capturing = $false
+                $depth = 0
+                $current = $null
+            }
+        }
+    }
+
+    return $blocks
+}
+
 Describe 'CHAINSAW - Testes do Modulo VBA Modulo1.bas' {
 
     BeforeAll {
@@ -680,36 +788,85 @@ It 'Taxa de comentarios adequada (> 5% das linhas)' {
         }
 
         It 'Nao ha recursao infinita detectavel (funcao chama a si mesma sem condicao)' {
-            $functions = [regex]::Matches($script:vbaContent, '(?s)(Public |Private )?Function\s+(\w+).*?End Function')
-            $recursiveWithoutExit = 0
+            # Evita regex global com (?s).*? que pode ficar caro em arquivos grandes.
+            # Faz parsing simples por linhas para extrair blocos de Function.
+            $functionBlocks = @()
+            $currentName = $null
+            $currentLines = New-Object System.Collections.Generic.List[string]
 
-            foreach ($func in $functions) {
-                $funcName = $func.Groups[2].Value
-                $funcBody = $func.Value
+            foreach ($line in $script:vbaLines) {
+                if (-not $currentName) {
+                    $m = [regex]::Match($line, '^(Public |Private )?Function\s+(\w+)\b')
+                    if ($m.Success) {
+                        $currentName = $m.Groups[2].Value
+                        $currentLines = New-Object System.Collections.Generic.List[string]
+                        [void]$currentLines.Add($line)
+                    }
+                }
+                else {
+                    [void]$currentLines.Add($line)
+                    if ($line -match '^End Function\b') {
+                        $functionBlocks += [pscustomobject]@{
+                            Name = $currentName
+                            Body = ($currentLines -join "`n")
+                        }
+                        $currentName = $null
+                        $currentLines = New-Object System.Collections.Generic.List[string]
+                    }
+                }
+            }
+
+            $recursiveWithoutExit = 0
+            foreach ($func in $functionBlocks) {
+                $funcName = $func.Name
+                $escapedName = [regex]::Escape($funcName)
+
+                # Remove a linha de declaracao (ela sempre contem "$funcName(")
+                $bodyLines = $func.Body -split "`n"
+                $bodyWithoutDeclaration = if ($bodyLines.Count -gt 1) { ($bodyLines | Select-Object -Skip 1) -join "`n" } else { '' }
 
                 # Se funcao chama a si mesma, deve ter If/Exit Function para evitar infinito
-                if ($funcBody -match "\b$funcName\(") {
-                    $hasExitCondition = ($funcBody -match 'Exit Function') -or
-                                      ($funcBody -match '\bIf\b') -or
-                                      ($funcBody -match '\bElse\b')
+                if ($bodyWithoutDeclaration -match "\b$escapedName\(") {
+                    $hasExitCondition = ($bodyWithoutDeclaration -match 'Exit Function') -or
+                        ($bodyWithoutDeclaration -match '\bIf\b') -or
+                        ($bodyWithoutDeclaration -match '\bElse\b')
+
                     if (-not $hasExitCondition) {
                         $recursiveWithoutExit++
                     }
                 }
             }
-            # Permite ate 15 funcoes recursivas (regex greedy pode nao capturar If corretamente)
+
+            # Permite ate 15 funcoes suspeitas (heuristica)
             $recursiveWithoutExit -le 15 | Should Be $true
         }
 
         It 'Nao ha atribuicoes a constantes' {
-            $constants = [regex]::Matches($script:vbaContent, '(?m)^(Public |Private )?Const\s+(\w+)')
+            # Otimizacao: evita varrer o arquivo inteiro para cada constante (O(n*m)).
+            $constantNames = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
 
-            foreach ($const in $constants) {
-                $constName = $const.Groups[2].Value
-                # Nao deve haver atribuicao apos declaracao
-                $reassignment = [regex]::Matches($script:vbaContent, "(?m)^\s*$constName\s*=")
-                $reassignment.Count -eq 0 | Should Be $true
+            foreach ($line in $script:vbaLines) {
+                $m = [regex]::Match($line, '^(Public |Private )?Const\s+(\w+)\b')
+                if ($m.Success) {
+                    [void]$constantNames.Add($m.Groups[2].Value)
+                }
             }
+
+            $reassignments = 0
+            foreach ($line in $script:vbaLines) {
+                if ($line -match "^\s*'") { continue }
+                if ($line -match '^(Public |Private )?Const\s+') { continue }
+
+                $m = [regex]::Match($line, '^\s*(\w+)\s*=')
+                if ($m.Success) {
+                    $name = $m.Groups[1].Value
+                    if ($constantNames.Contains($name)) {
+                        $reassignments++
+                    }
+                }
+            }
+
+            $reassignments -eq 0 | Should Be $true
         }
 
         It 'Arrays sao declarados corretamente com parenteses' {
@@ -752,14 +909,8 @@ It 'Taxa de comentarios adequada (> 5% das linhas)' {
 
         It 'Loops For Each sobre Paragraphs tem DoEvents para responsividade' {
             # Loops pesados sobre doc.Paragraphs devem ter DoEvents
-            $forEachParaLoops = [regex]::Matches($script:vbaContent, '(?s)For Each\s+\w+\s+In\s+doc\.Paragraphs.*?Next\s+\w+')
-            $loopsWithDoEvents = 0
-
-            foreach ($loop in $forEachParaLoops) {
-                if ($loop.Value -match 'DoEvents') {
-                    $loopsWithDoEvents++
-                }
-            }
+            $forEachParaLoops = Get-VbaForLoopBlocks -Lines $script:vbaLines -StartPredicate { param($l) $l -match '^\s*For Each\s+\w+\s+In\s+doc\.Paragraphs\b' }
+            $loopsWithDoEvents = ($forEachParaLoops | Where-Object { $_ -match '\bDoEvents\b' }).Count
 
             # Pelo menos 70% dos loops sobre Paragraphs devem ter DoEvents
             if ($forEachParaLoops.Count -gt 0) {
@@ -771,14 +922,8 @@ It 'Taxa de comentarios adequada (> 5% das linhas)' {
 
         It 'Loops For To sobre Paragraphs.Count tem DoEvents para responsividade' {
             # Loops For i = 1 To doc.Paragraphs.Count devem ter DoEvents
-            $forToParaLoops = [regex]::Matches($script:vbaContent, '(?s)For\s+\w+\s*=\s*\d+\s+To\s+doc\.Paragraphs\.Count.*?Next\s+\w*')
-            $loopsWithDoEvents = 0
-
-            foreach ($loop in $forToParaLoops) {
-                if ($loop.Value -match 'DoEvents') {
-                    $loopsWithDoEvents++
-                }
-            }
+            $forToParaLoops = Get-VbaForLoopBlocks -Lines $script:vbaLines -StartPredicate { param($l) $l -match '^\s*For\s+\w+\s*=\s*\d+\s+To\s+doc\.Paragraphs\.Count\b' }
+            $loopsWithDoEvents = ($forToParaLoops | Where-Object { $_ -match '\bDoEvents\b' }).Count
 
             # Pelo menos 50% dos loops sobre Paragraphs.Count devem ter DoEvents
             if ($forToParaLoops.Count -gt 0) {
@@ -855,14 +1000,29 @@ It 'Taxa de comentarios adequada (> 5% das linhas)' {
         }
 
         It 'Nao ha chamadas DoEvents dentro de loops muito apertados (sem Mod)' {
-            # DoEvents direto em loop sem Mod causa lentidao
-            $directDoEvents = [regex]::Matches($script:vbaContent, '(?s)For\s+(Each\s+)?\w+.*?DoEvents\s*\n\s*Next')
+            # Heuristica por linhas: DoEvents dentro de loop For deve estar associado a um controle com Mod.
+            $forDepth = 0
             $badPatterns = 0
 
-            foreach ($match in $directDoEvents) {
-                # Se nao tem Mod antes do DoEvents, e um padrao ruim
-                if ($match.Value -notmatch 'Mod\s+\d+') {
-                    $badPatterns++
+            for ($i = 0; $i -lt $script:vbaLines.Count; $i++) {
+                $line = $script:vbaLines[$i]
+                if ($line -match "^\s*'") { continue }
+
+                if ($line -match '^\s*For\b') {
+                    $forDepth++
+                    continue
+                }
+
+                if ($forDepth -gt 0 -and $line -match '\bDoEvents\b') {
+                    $windowStart = [Math]::Max(0, $i - 50)
+                    $window = ($script:vbaLines[$windowStart..$i] -join "`n")
+                    if ($window -notmatch 'Mod\s+\d+') {
+                        $badPatterns++
+                    }
+                }
+
+                if ($line -match '^\s*Next\b') {
+                    if ($forDepth -gt 0) { $forDepth-- }
                 }
             }
 
@@ -910,12 +1070,12 @@ It 'Taxa de comentarios adequada (> 5% das linhas)' {
 
         It 'Limite de protecao em loops Do While/Until' {
             # Loops Do devem ter contador de seguranca ou condicao de saida clara
-            $doLoops = [regex]::Matches($script:vbaContent, '(?s)Do\s+(While|Until).*?Loop')
+            $doLoops = Get-VbaDoLoopBlocks -Lines $script:vbaLines
             $protectedLoops = 0
 
             foreach ($loop in $doLoops) {
                 # Verifica se tem Exit Do ou contador de seguranca
-                if ($loop.Value -match 'Exit Do|safetyCounter|loopGuard|maxIterations|Counter\s*>\s*\d+') {
+                if ($loop -match 'Exit Do|safetyCounter|loopGuard|maxIterations|Counter\s*>\s*\d+') {
                     $protectedLoops++
                 }
             }
@@ -948,14 +1108,8 @@ It 'Taxa de comentarios adequada (> 5% das linhas)' {
 
         It 'Loops For Each sobre Paragraphs possuem DoEvents para responsividade' {
             # Conta loops For Each sobre doc.Paragraphs
-            $forEachParagraphs = [regex]::Matches($script:vbaContent, '(?s)For Each\s+\w+\s+In\s+doc\.Paragraphs.*?Next\s+\w+')
-            $loopsWithDoEvents = 0
-
-            foreach ($loop in $forEachParagraphs) {
-                if ($loop.Value -match 'DoEvents') {
-                    $loopsWithDoEvents++
-                }
-            }
+            $forEachParagraphs = Get-VbaForLoopBlocks -Lines $script:vbaLines -StartPredicate { param($l) $l -match '^\s*For Each\s+\w+\s+In\s+doc\.Paragraphs\b' }
+            $loopsWithDoEvents = ($forEachParagraphs | Where-Object { $_ -match '\bDoEvents\b' }).Count
 
             # Pelo menos 70% dos loops devem ter DoEvents
             if ($forEachParagraphs.Count -gt 0) {
@@ -968,14 +1122,8 @@ It 'Taxa de comentarios adequada (> 5% das linhas)' {
 
         It 'Loops For i To Count sobre Paragraphs possuem DoEvents' {
             # Conta loops For i To doc.Paragraphs.Count ou cacheSize
-            $forToLoops = [regex]::Matches($script:vbaContent, '(?s)For\s+\w+\s*=\s*\d+\s+To\s+(doc\.Paragraphs\.Count|cacheSize|paraCount).*?Next\s+\w+')
-            $loopsWithDoEvents = 0
-
-            foreach ($loop in $forToLoops) {
-                if ($loop.Value -match 'DoEvents') {
-                    $loopsWithDoEvents++
-                }
-            }
+            $forToLoops = Get-VbaForLoopBlocks -Lines $script:vbaLines -StartPredicate { param($l) $l -match '^\s*For\s+\w+\s*=\s*\d+\s+To\s+(doc\.Paragraphs\.Count|cacheSize|paraCount)\b' }
+            $loopsWithDoEvents = ($forToLoops | Where-Object { $_ -match '\bDoEvents\b' }).Count
 
             # Pelo menos 20% dos loops grandes devem ter DoEvents
             # Nota: Muitos loops For To sao pequenos, para leitura, ou tem Early Exit
@@ -1006,46 +1154,74 @@ It 'Taxa de comentarios adequada (> 5% das linhas)' {
         }
 
         It 'Nao possui excesso de loops aninhados sobre Paragraphs (O(n^2))' {
-            # Detecta loops aninhados perigosos
-            $nestedLoopPattern = '(?s)For\s+(Each\s+\w+\s+In|i\s*=).*?Paragraphs.*?(For\s+(Each\s+\w+\s+In|j\s*=).*?Paragraphs)'
-            $nestedLoops = [regex]::Matches($script:vbaContent, $nestedLoopPattern)
+            # Evita regex Singleline sobre o arquivo inteiro (pode ser caro/catastrofico).
+            # Heuristica: conta quantas vezes um loop sobre doc.Paragraphs inicia dentro de outro loop sobre doc.Paragraphs.
+            $loopStack = New-Object 'System.Collections.Generic.List[bool]'
+            $nestedLoopsCount = 0
+
+            foreach ($line in $script:vbaLines) {
+                if ($line -match "^\s*'") { continue }
+
+                if ($line -match '^\s*For\b') {
+                    $isParagraphLoop = ($line -match '\bdoc\.Paragraphs\b') -or ($line -match '\bParagraphs\.Count\b')
+
+                    if ($isParagraphLoop) {
+                        $hasParagraphInStack = $false
+                        foreach ($b in $loopStack) {
+                            if ($b) { $hasParagraphInStack = $true; break }
+                        }
+
+                        if ($hasParagraphInStack) {
+                            $nestedLoopsCount++
+                        }
+                    }
+
+                    [void]$loopStack.Add($isParagraphLoop)
+                    continue
+                }
+
+                if ($line -match '^\s*Next\b') {
+                    if ($loopStack.Count -gt 0) {
+                        $loopStack.RemoveAt($loopStack.Count - 1)
+                    }
+                }
+            }
 
             # Permite alguns loops aninhados (ex: processamento de ranges separados)
-            # mas nao muitos - maximo 20 ocorrencias para evitar O(n^2) generalizado
-            $nestedLoops.Count -le 20 | Should Be $true
+            $nestedLoopsCount -le 20 | Should Be $true
         }
 
         It 'Funcao ClearAllFormatting possui DoEvents' {
-            $clearAllFormattingMatch = [regex]::Match($script:vbaContent, '(?s)Function ClearAllFormatting.*?End Function')
-            if ($clearAllFormattingMatch.Success) {
-                $clearAllFormattingMatch.Value -match 'DoEvents' | Should Be $true
+            $clearAllFormattingBlock = Get-VbaProcedureBlock -Lines $script:vbaLines -Name 'ClearAllFormatting'
+            if ($clearAllFormattingBlock) {
+                $clearAllFormattingBlock -match '\bDoEvents\b' | Should Be $true
             } else {
                 $true | Should Be $true
             }
         }
 
         It 'Funcao BuildParagraphCache possui DoEvents' {
-            $buildCacheMatch = [regex]::Match($script:vbaContent, '(?s)Sub BuildParagraphCache.*?End Sub')
-            if ($buildCacheMatch.Success) {
-                $buildCacheMatch.Value -match 'DoEvents|UpdateProgress' | Should Be $true
+            $buildCacheBlock = Get-VbaProcedureBlock -Lines $script:vbaLines -Name 'BuildParagraphCache'
+            if ($buildCacheBlock) {
+                $buildCacheBlock -match 'DoEvents|UpdateProgress' | Should Be $true
             } else {
                 $true | Should Be $true
             }
         }
 
         It 'Funcao BackupAllImages possui DoEvents' {
-            $backupImagesMatch = [regex]::Match($script:vbaContent, '(?s)Function BackupAllImages.*?End Function')
-            if ($backupImagesMatch.Success) {
-                $backupImagesMatch.Value -match 'DoEvents' | Should Be $true
+            $backupImagesBlock = Get-VbaProcedureBlock -Lines $script:vbaLines -Name 'BackupAllImages'
+            if ($backupImagesBlock) {
+                $backupImagesBlock -match '\bDoEvents\b' | Should Be $true
             } else {
                 $true | Should Be $true
             }
         }
 
         It 'Funcao BackupListFormats possui DoEvents' {
-            $backupListMatch = [regex]::Match($script:vbaContent, '(?s)Function BackupListFormats.*?End Function')
-            if ($backupListMatch.Success) {
-                $backupListMatch.Value -match 'DoEvents' | Should Be $true
+            $backupListBlock = Get-VbaProcedureBlock -Lines $script:vbaLines -Name 'BackupListFormats'
+            if ($backupListBlock) {
+                $backupListBlock -match '\bDoEvents\b' | Should Be $true
             } else {
                 $true | Should Be $true
             }

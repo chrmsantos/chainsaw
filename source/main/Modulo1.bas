@@ -175,7 +175,7 @@ Private Const wdPrintView As Long = 3
 '================================================================================
 Private Const STANDARD_FONT As String = "Arial"
 Private Const STANDARD_FONT_SIZE As Long = 12
-Private Const FOOTER_FONT_SIZE As Long = 9
+Private Const FOOTER_FONT_SIZE As Long = 10
 Private Const LINE_SPACING As Single = 14
 
 Private Const TOP_MARGIN_CM As Double = 4.85
@@ -4620,7 +4620,7 @@ End Function
 '================================================================================
 ' Insere rodape com:
 ' - Iniciais do usuario a esquerda (Arial 6pt, cinza)
-' - "Pagina X de Y" centralizado (Arial 9pt)
+' - "Pagina X de Y" centralizado (Arial 10pt)
 '--------------------------------------------------------------------------------
 Private Function InsertFooterStamp(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -7953,7 +7953,7 @@ Private Sub FormatInLocoItalic(doc As Document)
     quotesRemovedCount = 0
     italicAppliedCount = 0
 
-    ' 1) Remove aspas envolvendo a expressao (inclui aspas retas e tipograficas)
+    ' (1) Remove aspas envolvendo a expressao (inclui aspas retas e tipograficas)
     '    Ex.: "in loco" (inclui aspas tipograficas) / "in loco," -> in loco / in loco,
     Set rng = doc.Range
 
@@ -7978,7 +7978,7 @@ Private Sub FormatInLocoItalic(doc As Document)
         Loop
     End With
 
-    ' 2) Garante italico em todas as ocorrencias (com ou sem aspas)
+    ' (2) Garante italico em todas as ocorrencias (com ou sem aspas)
     Set rng = doc.Range
 
     With rng.Find
