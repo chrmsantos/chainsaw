@@ -7963,8 +7963,30 @@ Private Sub FormatInLocoItalic(doc As Document)
     With rng.Find
         .ClearFormatting
         .Replacement.ClearFormatting
-        .text = "[" & quoteChars & "]([Ii]n loco)([,.;:]{0,1})[" & quoteChars & "]"
+        ' Word Wildcards nao suportam quantificadores do tipo {0,1}.
+        ' Faz 2 passes: (a) com pontuacao dentro das aspas; (b) sem pontuacao.
+        .text = "[" & quoteChars & "]([Ii]n loco)([,.;:])[" & quoteChars & "]"
         .Replacement.text = "\1\2"
+        .Forward = True
+        .Wrap = wdFindContinue
+        .Format = False
+        .MatchCase = False
+        .MatchWholeWord = False
+        .MatchWildcards = True
+
+        Do While .Execute(Replace:=wdReplaceOne)
+            quotesRemovedCount = quotesRemovedCount + 1
+            If quotesRemovedCount > 200 Then Exit Do  ' Limite de seguranca
+        Loop
+    End With
+
+    Set rng = doc.Range
+
+    With rng.Find
+        .ClearFormatting
+        .Replacement.ClearFormatting
+        .text = "[" & quoteChars & "]([Ii]n loco)[" & quoteChars & "]"
+        .Replacement.text = "\1"
         .Forward = True
         .Wrap = wdFindContinue
         .Format = False
@@ -8478,6 +8500,7 @@ Private Sub InsertJustificativaBlankLines(doc As Document)
     ' FASE 6: Processa "Plenario Dr. Tancredo Neves"
     Dim plenarioIndex As Long
     Dim paraTextCmp As String
+    Dim paraTextLower As String
 
     plenarioIndex = 0
     For i = 1 To doc.Paragraphs.count
