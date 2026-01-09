@@ -2946,6 +2946,10 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     RemoveEmentaLeadingLabelPrefix doc
     LogStepComplete "Limpeza de prefixo da ementa"
 
+    LogStepStart "Limpeza de sufixo da ementa"
+    RemoveEmentaTrailingMunicipioSuffix doc
+    LogStepComplete "Limpeza de sufixo da ementa"
+
     LogStepStart "Formatacao de titulo"
     FormatDocumentTitle doc
     LogStepComplete "Formatacao de titulo"
@@ -3088,6 +3092,131 @@ Private Sub RemoveEmentaLeadingLabelPrefix(doc As Document)
 
 ErrorHandler:
     LogMessage "Erro ao remover prefixo da ementa: " & Err.Description, LOG_LEVEL_WARNING
+End Sub
+
+'================================================================================
+' EMENTA - Remove sufixo ", neste municipio" quando estiver no final
+' Regras:
+' - Case-insensitive
+' - Remove variantes: ", neste municipio" e ",neste municipio" (inclui "Municipio")
+' - Se ja existir ponto final no fim da ementa, mantem
+' - Se nao existir, insere ponto final apos a exclusao
+'================================================================================
+Private Sub RemoveEmentaTrailingMunicipioSuffix(doc As Document)
+    On Error GoTo ErrorHandler
+
+    Dim rng As Range
+    Set rng = GetEmentaRange(doc)
+    If rng Is Nothing Then Exit Sub
+
+    Dim contentRng As Range
+    Set contentRng = rng.Duplicate
+
+    ' Range da ementa sem marca de paragrafo e sem espacos finais (inclui NBSP)
+    If contentRng.End > contentRng.Start Then
+        If Right$(contentRng.text, 1) = vbCr Then
+            contentRng.End = contentRng.End - 1
+        End If
+    End If
+    Do While contentRng.End > contentRng.Start
+        If Right$(contentRng.text, 1) = " " Or Right$(contentRng.text, 1) = vbTab Or Right$(contentRng.text, 1) = ChrW(160) Then
+            contentRng.End = contentRng.End - 1
+        Else
+            Exit Do
+        End If
+    Loop
+
+    Dim rawText As String
+    rawText = contentRng.text
+    If Len(rawText) = 0 Then Exit Sub
+
+    ' Normaliza NBSP para comparacao (mantem mesmo comprimento)
+    Dim normalizedText As String
+    normalizedText = Replace(rawText, ChrW(160), " ")
+    If Len(normalizedText) = 0 Then Exit Sub
+
+    ' Construcao ASCII-safe de ",neste municipio" (com acento via ChrW)
+    Dim municipio As String
+    municipio = "mun" & ChrW(237) & "cipio" ' municipio
+    Dim suffix1 As String
+    Dim suffix2 As String
+    suffix1 = ",neste " & municipio
+    suffix2 = ", neste " & municipio
+
+    Dim lowerText As String
+    lowerText = LCase$(normalizedText)
+
+    ' Regra do ponto final: se ja existir, mantem; senao, adiciona apos exclusao
+    Dim hadFinalPeriod As Boolean
+    hadFinalPeriod = (Right$(lowerText, 1) = ".")
+
+    Dim lowerBase As String
+    lowerBase = lowerText
+    If hadFinalPeriod And Len(lowerBase) > 1 Then
+        lowerBase = Left$(lowerBase, Len(lowerBase) - 1)
+    End If
+
+    Dim deleteSuffix As String
+    deleteSuffix = ""
+
+    If Len(lowerBase) >= Len(suffix1) Then
+        If Right$(lowerBase, Len(suffix1)) = LCase$(suffix1) Then
+            deleteSuffix = suffix1
+        End If
+    End If
+
+    If deleteSuffix = "" And Len(lowerBase) >= Len(suffix2) Then
+        If Right$(lowerBase, Len(suffix2)) = LCase$(suffix2) Then
+            deleteSuffix = suffix2
+        End If
+    End If
+
+    If deleteSuffix = "" Then Exit Sub
+
+    ' Remove o sufixo no Range real (mantem demais pontuacoes/texto)
+    Dim pos As Long
+    pos = InStrRev(lowerBase, LCase$(deleteSuffix))
+    If pos <= 0 Then Exit Sub
+    If (pos + Len(deleteSuffix) - 1) <> Len(lowerBase) Then Exit Sub
+
+    Dim delRng As Range
+    Set delRng = contentRng.Duplicate
+    delRng.Start = contentRng.Start + pos - 1
+    delRng.End = delRng.Start + Len(deleteSuffix)
+    delRng.Delete
+
+    ' Recalcula ementa sem marca de paragrafo e sem espacos finais
+    Set contentRng = rng.Duplicate
+    If contentRng.End > contentRng.Start Then
+        If Right$(contentRng.text, 1) = vbCr Then
+            contentRng.End = contentRng.End - 1
+        End If
+    End If
+    Do While contentRng.End > contentRng.Start
+        If Right$(contentRng.text, 1) = " " Or Right$(contentRng.text, 1) = vbTab Or Right$(contentRng.text, 1) = ChrW(160) Then
+            contentRng.End = contentRng.End - 1
+        Else
+            Exit Do
+        End If
+    Loop
+
+    ' Aplica regra do ponto final
+    If Not hadFinalPeriod Then
+        If contentRng.End > contentRng.Start Then
+            If Right$(contentRng.text, 1) <> "." Then
+                contentRng.Collapse wdCollapseEnd
+                contentRng.InsertAfter "."
+            End If
+        Else
+            ' Ementa ficou vazia por algum motivo: nao insere ponto
+        End If
+    End If
+
+    documentDirty = True
+    Exit Sub
+
+ErrorHandler:
+    LogMessage "Erro ao remover sufixo da ementa: " & Err.Description, LOG_LEVEL_WARNING
 End Sub
 
 Private Function GetEmentaLeadingLabelDeleteLen(ByVal txt As String) As Long
@@ -7819,32 +7948,60 @@ Private Sub FormatInLocoItalic(doc As Document)
     If doc Is Nothing Then Exit Sub
 
     Dim rng As Range
-    Dim inLocoCount As Long
-    inLocoCount = 0
+    Dim quotesRemovedCount As Long
+    Dim italicAppliedCount As Long
+    quotesRemovedCount = 0
+    italicAppliedCount = 0
 
-    ' Procura por "in loco" (com aspas) e substitui por in loco em italico
+    ' 1) Remove aspas envolvendo a expressao (inclui aspas retas e tipograficas)
+    '    Ex.: "in loco" (inclui aspas tipograficas) / "in loco," -> in loco / in loco,
+    Set rng = doc.Range
+
+    Dim quoteChars As String
+    quoteChars = Chr(34) & ChrW(8220) & ChrW(8221)
+
+    With rng.Find
+        .ClearFormatting
+        .Replacement.ClearFormatting
+        .text = "[" & quoteChars & "]([Ii]n loco)([,.;:]{0,1})[" & quoteChars & "]"
+        .Replacement.text = "\1\2"
+        .Forward = True
+        .Wrap = wdFindContinue
+        .Format = False
+        .MatchCase = False
+        .MatchWholeWord = False
+        .MatchWildcards = True
+
+        Do While .Execute(Replace:=wdReplaceOne)
+            quotesRemovedCount = quotesRemovedCount + 1
+            If quotesRemovedCount > 200 Then Exit Do  ' Limite de seguranca
+        Loop
+    End With
+
+    ' 2) Garante italico em todas as ocorrencias (com ou sem aspas)
     Set rng = doc.Range
 
     With rng.Find
         .ClearFormatting
         .Replacement.ClearFormatting
-        .text = Chr(34) & "in loco" & Chr(34)
-        .Replacement.text = "in loco"
+        .text = "in loco"
+        .Replacement.text = "^&" ' Mantem o texto encontrado; aplica apenas formatacao
         .Replacement.Font.Italic = True
         .Forward = True
         .Wrap = wdFindContinue
+        .Format = True
         .MatchCase = False
         .MatchWholeWord = False
         .MatchWildcards = False
 
-        Do While .Execute(Replace:=True)
-            inLocoCount = inLocoCount + 1
-            If inLocoCount > 100 Then Exit Do  ' Limite de seguranca
+        Do While .Execute(Replace:=wdReplaceOne)
+            italicAppliedCount = italicAppliedCount + 1
+            If italicAppliedCount > 500 Then Exit Do  ' Limite de seguranca
         Loop
     End With
 
-    If inLocoCount > 0 Then
-        LogMessage "Formatacao 'in loco' aplicada: " & inLocoCount & " ocorrencia(s) em italico", LOG_LEVEL_INFO
+    If quotesRemovedCount > 0 Or italicAppliedCount > 0 Then
+        LogMessage "Formatacao 'in loco' aplicada: " & italicAppliedCount & " ocorrencia(s) em italico; aspas removidas: " & quotesRemovedCount & "x", LOG_LEVEL_INFO
     End If
 
     Exit Sub
@@ -9375,16 +9532,16 @@ Private Function ConfigureDocumentView(doc As Document) As Boolean
     Dim docWindow As Window
     Set docWindow = doc.ActiveWindow
 
-    ' Configura APENAS o zoom para 110% - todas as outras configuracoes sao preservadas
+    ' Configura APENAS o zoom para 120% - todas as outras configuracoes sao preservadas
     With docWindow.View
-        .Zoom.Percentage = 110
+        .Zoom.Percentage = 120
         ' NAO altera mais o tipo de visualizacao - preserva o original
     End With
 
     ' Remove configuracoes que alteravam configuracoes globais do Word
     ' Estas configuracoes sao agora preservadas do estado original
 
-    LogMessage "Visualizacao configurada: zoom definido para 110%, demais configuracoes preservadas"
+    LogMessage "Visualizacao configurada: zoom definido para 120%, demais configuracoes preservadas"
     ConfigureDocumentView = True
     Exit Function
 
@@ -10504,15 +10661,15 @@ Private Function RestoreViewSettings(doc As Document) As Boolean
         .TableGridlines = originalViewSettings.TableGridlines
         ' .EnlargeFontsLessThan removida para compatibilidade
 
-        ' ZOOM e mantido em 110% - unica configuracao que permanece alterada
-        .Zoom.Percentage = 110
+        ' ZOOM e mantido em 120% - unica configuracao que permanece alterada
+        .Zoom.Percentage = 120
     End With
 
     ' Configuracoes especificas do Window (para reguas)
     docWindow.DisplayRulers = originalViewSettings.ShowHorizontalRuler
     docWindow.DisplayVerticalRuler = originalViewSettings.ShowVerticalRuler
 
-    LogMessage "Configuracoes de visualizacao originais restauradas (zoom mantido em 110%)"
+    LogMessage "Configuracoes de visualizacao originais restauradas (zoom mantido em 120%)"
     RestoreViewSettings = True
     Exit Function
 
