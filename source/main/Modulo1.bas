@@ -3768,8 +3768,11 @@ Private Function FormatSecondParagraph(doc As Document) As Boolean
             Dim lowerText As String
             lowerText = LCase(paraFullText)
 
+            Dim lowerTextNorm As String
+            lowerTextNorm = NormalizeForComparison(lowerText)
+
             ' Verifica se termina com ", neste municipio"
-            If Right(lowerText, 17) = ", neste municipio" Then
+            If Right(lowerTextNorm, 17) = ", neste municipio" Then
                 ' Remove os ultimos 17 caracteres
                 para.Range.text = Left(paraFullText, Len(paraFullText) - 17) & vbCr
                 LogMessage "String ', neste municipio' removida do 2 paragrafo", LOG_LEVEL_INFO
@@ -4969,9 +4972,9 @@ Private Function ValidateAddressConsistency(doc As Document) As Boolean
     If inconsistencyCount > 0 Then
         Dim msg As String
         msg = "VERIFICAR CONSISTENCIA" & vbCrLf & vbCrLf
-        msg = msg & "Foram encontradas " & inconsistencyCount & " possivel(is) inconsistencia(s) entre a ementa e o texto:" & vbCrLf & vbCrLf
+        msg = msg & "Foram identificados indicios de " & inconsistencyCount & " possivel(is) inconsistencia(s) entre a ementa e o texto. Confirme manualmente:" & vbCrLf & vbCrLf
         msg = msg & inconsistencies & vbCrLf
-        msg = msg & "Recomenda-se revisar o documento antes de prosseguir."
+        msg = msg & "Recomenda-se revisar e confirmar antes de prosseguir."
 
         MsgBox msg, vbExclamation, "Verificacao de Consistencia"
 
@@ -5961,15 +5964,15 @@ Private Function CheckSensitiveData(doc As Document) As Boolean
         Dim findings As String
         findings = ""
 
-        If cpfValidCount > 0 Then findings = findings & "  - CPF valido detectado (" & cpfValidCount & "x)" & vbCrLf
-        If cnpjValidCount > 0 Then findings = findings & "  - CNPJ valido detectado (" & cnpjValidCount & "x)" & vbCrLf
+          If cpfValidCount > 0 Then findings = findings & "  - Possivel CPF valido (formato + digitos verificadores) encontrado (" & cpfValidCount & "x)" & vbCrLf
+          If cnpjValidCount > 0 Then findings = findings & "  - Possivel CNPJ valido (formato + digitos verificadores) encontrado (" & cnpjValidCount & "x)" & vbCrLf
         If cardValidCount > 0 Then findings = findings & "  - Possivel numero de cartao (Luhn) detectado (" & cardValidCount & "x)" & vbCrLf
-        If cidCount > 0 Then findings = findings & "  - CID (saude) detectado (" & cidCount & "x)" & vbCrLf
+          If cidCount > 0 Then findings = findings & "  - Possivel CID (saude) encontrado (" & cidCount & "x)" & vbCrLf
 
         Dim msg As String
-        msg = "ATENCAO: DADOS ALTAMENTE SENSIVEIS DETECTADOS (LGPD)" & vbCrLf & vbCrLf & _
+          msg = "ATENCAO: POSSIVEIS DADOS SENSIVEIS IDENTIFICADOS (LGPD)" & vbCrLf & vbCrLf & _
               findings & vbCrLf & _
-              "Recomenda-se remover/anonimizar antes de prosseguir."
+              "Recomenda-se revisar e, se aplicavel, remover/anonimizar antes de prosseguir."
 
         MsgBox msg, vbExclamation, "Verificacao LGPD"
         LogMessage "LGPD (estrito): CPF=" & cpfValidCount & ", CNPJ=" & cnpjValidCount & ", Cartao=" & cardValidCount & ", CID=" & cidCount, LOG_LEVEL_WARNING
@@ -10171,11 +10174,19 @@ Private Sub RemoverLinhasEmBrancoExtras(doc As Document)
         .Replacement.text = "por interm" & ChrW(233) & "dio do Setor competente,"
         If .Execute(Replace:=2) Then replacedCount = replacedCount + 1
 
+        .text = "por interm" & ChrW(233) & "dio do Setor,"
+        .Replacement.text = "por interm" & ChrW(233) & "dio do Setor competente,"
+        If .Execute(Replace:=2) Then replacedCount = replacedCount + 1
+
         .text = "Indica ao Poder Executivo Municipal efetue"
         .Replacement.text = "Indica ao Poder Executivo Municipal que efetue"
         If .Execute(Replace:=2) Then replacedCount = replacedCount + 1
 
         .text = "Fomos procurados por municipes, solicitando essa providencia, pois segundo eles,"
+        .Replacement.text = "Fomos procurados por mun" & ChrW(237) & "cipes solicitando essa provid" & ChrW(234) & "ncia, pois, segundo eles,"
+        If .Execute(Replace:=2) Then replacedCount = replacedCount + 1
+
+        .text = "Fomos procurados por mun" & ChrW(237) & "cipes, solicitando essa provid" & ChrW(234) & "ncia, pois segundo eles,"
         .Replacement.text = "Fomos procurados por mun" & ChrW(237) & "cipes solicitando essa provid" & ChrW(234) & "ncia, pois, segundo eles,"
         If .Execute(Replace:=2) Then replacedCount = replacedCount + 1
         On Error GoTo ErrorHandler
