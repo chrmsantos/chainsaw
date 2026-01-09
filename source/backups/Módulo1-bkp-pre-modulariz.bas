@@ -7,6 +7,132 @@
 ' Compatibilidade: Microsoft Word 2010+
 ' Autor: Christian Martin dos Santos (chrmsantos@protonmail.com)
 ' =============================================================================
+'
+' =============================================================================
+' INDICE DE MODULOS (Ctrl+F para navegar)
+' =============================================================================
+'
+' [MOD.CONST]    CONSTANTES E CONFIGURACAO .......................... ~L13
+'                - Constantes do Word (wdXxx, msoXxx)
+'                - Constantes de Formatacao (fontes, margens)
+'                - Constantes de Sistema (versao, limites)
+'                - Constantes de Elementos Estruturais
+'
+' [MOD.VARS]     VARIAVEIS GLOBAIS .................................. ~L102
+'                - Estado da aplicacao (flags, contadores)
+'                - Cache de paragrafos (Type paragraphCache)
+'                - Protecao de imagens (Type ImageInfo)
+'                - Configuracoes de visualizacao (Type ViewSettings)
+'
+' [MOD.MAIN]     PONTO DE ENTRADA PRINCIPAL ......................... ~L220
+'                - PadronizarDocumentoMain() - Orquestrador
+'
+' [MOD.ERROR]    TRATAMENTO DE ERROS E RECUPERACAO .................. ~L475
+'                - ShowUserFriendlyError, EmergencyRecovery
+'                - SafeCleanup, ReleaseObjects, CloseAllOpenFiles
+'
+' [MOD.VALID]    VALIDACAO E COMPATIBILIDADE ........................ ~L579
+'                - ValidateDocument, IsDocumentHealthy
+'                - IsOperationTimeout, CheckWordVersion
+'
+' [MOD.TEXT]     PROCESSAMENTO DE TEXTO ............................. ~L638
+'                - GetCleanParagraphText, RemovePunctuation
+'                - NormalizarTexto, DetectSpecialParagraph
+'
+' [MOD.STRUCT]   IDENTIFICACAO DE ESTRUTURA ......................... ~L738
+'                - IsTituloElement, IsEmentaElement
+'                - IsJustificativaTitleElement, IsDataElement
+'                - IsAssinaturaStart, IsTituloAnexoElement
+'                - IdentifyDocumentStructure
+'
+' [MOD.CACHE]    SISTEMA DE CACHE ................................... ~L1225
+'                - BuildParagraphCache, ClearParagraphCache
+'
+' [MOD.API]      API PUBLICA DE ACESSO .............................. ~L1311
+'                - GetTituloRange, GetEmentaRange
+'                - GetProposicaoRange, GetJustificativaRange
+'                - GetDataRange, GetAssinaturaRange
+'                - GetAnexoRange, GetElementInfo
+'
+' [MOD.PROGRESS] BARRA DE PROGRESSO ................................. ~L1602
+'                - UpdateProgress, InitializeProgress
+'                - IncrementProgress
+'
+' [MOD.SAFE]     ACESSO SEGURO A PROPRIEDADES ....................... ~L1658
+'                - SafeGetCharacterCount, SafeSetFont
+'                - SafeSetParagraphFormat, SafeFindReplace
+'
+' [MOD.PATH]     FUNCOES DE CAMINHO ................................. ~L1818
+'                - GetProjectRootPath, GetChainsawBackupsPath
+'                - GetChainsawLogsPath, EnsureChainsawFolders
+'
+' [MOD.LOG]      SISTEMA DE LOGS .................................... ~L1907
+'                - InitializeLogging, LogMessage, FlushLogBuffer
+'                - LogSection, LogStepStart, LogStepComplete
+'                - SafeFinalizeLogging
+'
+' [MOD.UTIL]     UTILITARIOS GERAIS ................................. ~L2321
+'                - GetProtectionType, GetDocumentSize
+'                - SanitizeFileName, GetWindowsVersion
+'
+' [MOD.STATE]    GERENCIAMENTO DE ESTADO ............................ ~L2418
+'                - SetAppState, ValidateDocument (pre-checks)
+'
+' [MOD.FORMAT]   ROTINAS DE FORMATACAO .............................. ~L2577
+'                - ApplyDocumentFormatting (orquestrador)
+'                - ConfigurarPagina, FormatFont, FormatParagraphs
+'                - FormatFirstParagraph, FormatSecondParagraph
+'
+' [MOD.CLEAN]    LIMPEZA DE FORMATACAO .............................. ~L5775
+'                - ClearAllFormatting, RemovePageNumberLines
+'                - CleanupDocumentStructure, RemoveTabMarks
+'
+' [MOD.TITLE]    FORMATACAO DE TITULO ............................... ~L6356
+'                - FormatDocumentTitle
+'
+' [MOD.SPECIAL]  PARAGRAFOS ESPECIAIS ............................... ~L6480
+'                - Considerando, Ante o Exposto, In Loco
+'                - ApplyBoldToSpecialParagraphs
+'                - FormatVereadorParagraphs
+'
+' [MOD.BLANK]    GERENCIAMENTO DE LINHAS EM BRANCO .................. ~L7011
+'                - InsertBlankLinesInJustificativa
+'                - EnsureSingleBlankLineBetweenParagraphs
+'
+' [MOD.PUBLIC]   SUBROTINAS PUBLICAS ................................ ~L7456
+'                - AbrirRepositorioGitHub
+'                - ConfirmarDesfazimento, DesfazerPadronizacao
+'
+' [MOD.BACKUP]   SISTEMA DE BACKUP .................................. ~L7621
+'                - CreateDocumentBackup, RestoreBackup
+'                - CleanupOldBackups
+'
+' [MOD.SPACES]   LIMPEZA DE ESPACOS ................................. ~L7846
+'                - LimparEspacosMultiplos
+'                - LimitarLinhasVaziasSequenciais
+'
+' [MOD.VIEW]     CONFIGURACAO DE VISUALIZACAO ....................... ~L8172
+'                - ConfigureDocumentView
+'                - RemoveHighlightingAndBorders
+'
+' [MOD.IMAGE]    PROTECAO DE IMAGENS ................................ ~L8397
+'                - BackupAllImages, RestoreAllImages
+'                - FormatImageParagraphsIndents
+'                - CenterImageAfterPlenario
+'
+' [MOD.LIST]     FORMATACAO DE LISTAS ............................... ~L8625
+'                - BackupListFormats, RestoreListFormats
+'                - FormatNumberedParagraphsIndent
+'                - FormatBulletedParagraphsIndent
+'
+' [MOD.FINAL]    FORMATACAO FINAL ................................... ~L9842
+'                - ApplyUniversalFinalFormatting
+'                - AddSpecialSpacing
+'
+' [MOD.UPDATE]   VERIFICACAO DE ATUALIZACAO ......................... ~L9456
+'                - CheckForUpdates, ExecutarInstalador
+'
+' =============================================================================
 
 Option Explicit
 
@@ -389,8 +515,7 @@ Public Sub PadronizarDocumentoMain()
     execSeconds = CLng((Now - executionStartTime) * 86400)
 
     ' Mostra mensagem final na barra de status
-    Application.Sta
-    tusBar = "Padronizacao concluida em " & execSeconds & "s, com " & errorCount & " erros e " & warningCount & " avisos! (chainsaw)"
+    Application.StatusBar = "Padronizacao concluida em " & execSeconds & "s, com " & errorCount & " erros e " & warningCount & " avisos! (chainsaw)"
 
 CleanUp:
     ' ---------------------------------------------------------------------------
@@ -4062,55 +4187,138 @@ ErrorHandler:
 End Function
 
 '================================================================================
-' INSERÇÃO DE NÚMEROS DE PÁGINA NO RODAPÉ
+' INSERCAO DE NUMEROS DE PAGINA NO RODAPE + INICIAIS DO USUARIO
 '================================================================================
+' Insere rodape com:
+' - Iniciais do usuario a esquerda (Arial 6pt, cinza)
+' - "Pagina X de Y" centralizado (Arial 9pt)
+'--------------------------------------------------------------------------------
 Private Function InsertFooterStamp(doc As Document) As Boolean
     On Error GoTo ErrorHandler
 
     Dim sec As Section
     Dim footer As HeaderFooter
-    Dim rng As Range
-    Dim sectionsProcessed As Long
+    Dim rngInitials As Range
+    Dim rngPage As Range
+    Dim rngDash As Range
+    Dim rngNum As Range
+    Dim fPage As Field
+    Dim fTotal As Field
+    Dim userInitials As String
+
+    ' Obtem as iniciais do usuario atual
+    userInitials = GetUserInitials()
 
     For Each sec In doc.Sections
         Set footer = sec.Footers(wdHeaderFooterPrimary)
 
         If footer.Exists Then
             footer.LinkToPrevious = False
-            Set rng = footer.Range
 
-            rng.Delete
+            ' Limpa todo o rodape
+            footer.Range.Delete
 
-            Set rng = footer.Range
-            rng.Collapse Direction:=wdCollapseEnd
-            rng.Fields.Add Range:=rng, Type:=wdFieldPage
+            ' Insere iniciais do usuario a esquerda (Arial 6pt, cinza)
+            Set rngInitials = footer.Range
+            rngInitials.Collapse Direction:=wdCollapseStart
+            rngInitials.text = userInitials
+            With rngInitials.Font
+                .Name = STANDARD_FONT
+                .size = 6
+                .Color = RGB(128, 128, 128)
+            End With
+            rngInitials.ParagraphFormat.alignment = wdAlignParagraphLeft
+            rngInitials.InsertParagraphAfter
 
-            Set rng = footer.Range
-            rng.Collapse Direction:=wdCollapseEnd
-            rng.text = "-"
+            ' Insere "X-Y" centralizado (numero da pagina - total de paginas)
+            Set rngPage = footer.Range.Paragraphs.Last.Range
+            rngPage.text = ""
+            rngPage.Collapse Direction:=wdCollapseStart
 
-            Set rng = footer.Range
-            rng.Collapse Direction:=wdCollapseEnd
-            rng.Fields.Add Range:=rng, Type:=wdFieldNumPages
+            ' Campo PAGE (numero da pagina atual)
+            Set fPage = rngPage.Fields.Add(Range:=rngPage, Type:=wdFieldPage)
 
-            With footer.Range
+            ' Texto "-"
+            Set rngDash = footer.Range.Paragraphs.Last.Range
+            rngDash.Collapse Direction:=wdCollapseEnd
+            rngDash.text = "-"
+
+            ' Campo NUMPAGES (total de paginas)
+            Set rngNum = footer.Range.Paragraphs.Last.Range
+            rngNum.Collapse Direction:=wdCollapseEnd
+            Set fTotal = rngNum.Fields.Add(Range:=rngNum, Type:=wdFieldNumPages)
+
+            ' Centraliza os numeros de pagina
+            footer.Range.Paragraphs.Last.Range.ParagraphFormat.alignment = wdAlignParagraphCenter
+
+            ' Formata os campos de numero de pagina
+            With fPage.result
                 .Font.Name = STANDARD_FONT
                 .Font.size = FOOTER_FONT_SIZE
-                .ParagraphFormat.alignment = wdAlignParagraphCenter
-                .Fields.Update
             End With
 
-            sectionsProcessed = sectionsProcessed + 1
+            With fTotal.result
+                .Font.Name = STANDARD_FONT
+                .Font.size = FOOTER_FONT_SIZE
+            End With
         End If
     Next sec
 
-    ' Log detalhado removido para performance
     InsertFooterStamp = True
     Exit Function
 
 ErrorHandler:
-    LogMessage "Erro ao inserir rodapé: " & Err.Description, LOG_LEVEL_ERROR
+    LogMessage "Erro ao inserir rodape: " & Err.Description, LOG_LEVEL_ERROR
     InsertFooterStamp = False
+End Function
+
+'================================================================================
+' UTILITY: GET USER INITIALS
+'================================================================================
+' Retorna as iniciais do usuario baseado no nome de usuario do Windows
+' Mapeamento:
+'   avendemiato -> afv
+'   csantos     -> cms
+'   alexandre   -> ajc
+'   lcurtes     -> lc
+'   marta       -> mfcp
+'   henrique    -> hmg
+'   bruno       -> bra
+'--------------------------------------------------------------------------------
+Private Function GetUserInitials() As String
+    On Error GoTo ErrorHandler
+
+    Dim userName As String
+    userName = LCase(Environ("USERNAME"))
+
+    Select Case userName
+        Case "avendemiato"
+            GetUserInitials = "afv"
+        Case "csantos"
+            GetUserInitials = "cms"
+        Case "alexandre"
+            GetUserInitials = "ajc"
+        Case "lcurtes"
+            GetUserInitials = "lc"
+        Case "marta"
+            GetUserInitials = "mfcp"
+        Case "henrique"
+            GetUserInitials = "hmg"
+        Case "bruno"
+            GetUserInitials = "bra"
+        Case Else
+            ' Usuario nao mapeado: usa primeiras 3 letras do username
+            If Len(userName) >= 3 Then
+                GetUserInitials = Left(userName, 3)
+            Else
+                GetUserInitials = userName
+            End If
+    End Select
+
+    Exit Function
+
+ErrorHandler:
+    GetUserInitials = "usr"
 End Function
 
 '================================================================================
@@ -7763,14 +7971,15 @@ Public Sub RestaurarBackup()
     ' Abre o backup restaurado
     Application.Documents.Open originalPath
 
-    Application.StatusBar = "Backup restaurado com sucesso"
+    Application.StatusBar = "Backup restaurado com sucesso! (chainsaw)"
 
-    MsgBox "[OK] Backup restaurado com sucesso!" & vbCrLf & vbCrLf & _
-           "[DIR] Documento descartado salvo em:" & vbCrLf & _
-           "   " & discardedPath & vbCrLf & vbCrLf & _
-           "[DIR] Backup restaurado:" & vbCrLf & _
-           "   " & originalPath, _
-           vbInformation, "CHAINSAW - Backup Restaurado"
+    ' Mensagem de conclusao desativada - informacoes exibidas apenas na StatusBar
+    ' MsgBox "[OK] Backup restaurado com sucesso!" & vbCrLf & vbCrLf & _
+    '        "[DIR] Documento descartado salvo em:" & vbCrLf & _
+    '        "   " & discardedPath & vbCrLf & vbCrLf & _
+    '        "[DIR] Backup restaurado:" & vbCrLf & _
+    '        "   " & originalPath, _
+    '        vbInformation, "CHAINSAW - Backup Restaurado"
 
     Exit Sub
 
