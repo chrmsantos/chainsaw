@@ -209,6 +209,9 @@ Private Const MAX_LOOP_ITERATIONS As Long = 1000
 Private Const MAX_INITIAL_PARAGRAPHS_TO_SCAN As Long = 50
 Private Const MAX_OPERATION_TIMEOUT_SECONDS As Long = 300
 
+' Verificacao de atualizacao
+Private Const UPDATE_CHECK_COOLDOWN_MINUTES As Long = 60
+
 Private Const CONSIDERANDO_PREFIX As String = "considerando"
 Private Const CONSIDERANDO_MIN_LENGTH As Long = 12
 Private Const JUSTIFICATIVA_TEXT As String = "justificativa"
@@ -241,6 +244,13 @@ Private logFileHandle As Integer
 Private logBufferEnabled As Boolean
 Private logBuffer As String
 Private lastFlushTime As Date
+
+' Cache de verificacao de atualizacao (evita chamadas repetidas e travamentos)
+Private lastUpdateCheckAttempt As Date
+Private lastUpdateCheckSucceeded As Boolean
+Private cachedUpdateAvailable As Boolean
+Private cachedLocalVersion As String
+Private cachedRemoteVersion As String
 
 ' Cache de paragrafos para otimizacao
 Private Type paragraphCache
@@ -424,6 +434,21 @@ Public Sub PadronizarDocumentoMain()
     If Not BackupListFormats(doc) Then
         LogMessage "Aviso: Falha no backup de listas - formatacoes de lista podem ser perdidas", LOG_LEVEL_WARNING
     End If
+
+    ' ---------------------------------------------------------------------------
+    ' INICIO DO GRUPO DE DESFAZER (UndoRecord) - melhor esforco
+    ' ---------------------------------------------------------------------------
+    On Error Resume Next
+    Application.UndoRecord.StartCustomRecord "CHAINSAW - Padronizacao"
+    If Err.Number = 0 Then
+        undoGroupEnabled = True
+        LogMessage "UndoRecord iniciado", LOG_LEVEL_INFO
+    Else
+        undoGroupEnabled = False
+        Err.Clear
+    End If
+    On Error GoTo CriticalErrorHandler
+    ' ---------------------------------------------------------------------------
 
     ' ==========================================================================
     ' PIPELINE DE FORMATACAO (DUPLA PASSAGEM OTIMIZADA)
@@ -2070,7 +2095,7 @@ ErrorHandler:
     End If
 End Sub
 
-Private Sub EnforceLogRetention(logFolder As String, logPrefix As String, Optional maxFiles As Long = 3)
+Private Sub EnforceLogRetention(logFolder As String, logPrefix As String, Optional maxFiles As Long = 5)
     On Error GoTo CleanExit
 
     If maxFiles < 1 Then Exit Sub
@@ -2197,7 +2222,7 @@ Private Function InitializeLogging(doc As Document) As Boolean
     WriteTextUTF8 logFilePath, headerText, False
 
     ' Enforces log retention limit for this routine
-    EnforceLogRetention logFolder, "chainsaw_", 3
+    EnforceLogRetention logFolder, "chainsaw_", 5
 
     loggingEnabled = True
     InitializeLogging = True
@@ -4070,26 +4095,13 @@ End Function
 '================================================================================
 Private Function GetHeaderImagePath() As String
     On Error GoTo ErrorHandler
-
-    Dim fso As Object
-    Dim shell As Object
-    Dim userProfilePath As String
     Dim headerImagePath As String
 
-    Set fso = CreateObject("Scripting.FileSystemObject")
-    Set shell = CreateObject("WScript.Shell")
-
-    ' Obtem pasta %USERPROFILE% do usuario atual (compativel com Windows)
-    userProfilePath = shell.ExpandEnvironmentStrings("%USERPROFILE%")
-    If Right(userProfilePath, 1) = "\" Then
-        userProfilePath = Left(userProfilePath, Len(userProfilePath) - 1)
-    End If
-
     ' Constroi caminho absoluto para a imagem desejada
-    headerImagePath = userProfilePath & "\chainsaw\assets\stamp.png"
+    headerImagePath = Environ("USERPROFILE") & HEADER_IMAGE_RELATIVE_PATH
 
     ' Verifica se o arquivo existe
-    If Not fso.FileExists(headerImagePath) Then
+    If Dir(headerImagePath) = "" Then
         LogMessage "Imagem de cabecalho nao encontrada em: " & headerImagePath, LOG_LEVEL_WARNING
         GetHeaderImagePath = ""
         Exit Function
@@ -4120,11 +4132,10 @@ Private Function InsertHeaderstamp(doc As Document) As Boolean
     Dim sectionsProcessed As Long
 
     ' Define o caminho da imagem do cabecalho
-    imgFile = Environ("USERPROFILE") & "\chainsaw\assets\stamp.png"
+    imgFile = GetHeaderImagePath()
 
-    If Dir(imgFile) = "" Then
+    If imgFile = "" Then
         Application.StatusBar = "Aviso: Imagem nao encontrada"
-        LogMessage "Header image not found at: " & imgFile, LOG_LEVEL_WARNING
         InsertHeaderstamp = False
         Exit Function
     End If
@@ -9679,22 +9690,53 @@ Public Function CheckForUpdates() As Boolean
 
     CheckForUpdates = False
 
+    ' Nao executar verificacao durante operacao critica (ex.: padronizacao em andamento)
+    If undoGroupEnabled Then
+        LogMessage "Verificacao de atualizacao ignorada: operacao em andamento", LOG_LEVEL_INFO
+        Exit Function
+    End If
+
+    ' Cache: se ja checou com sucesso nesta sessao, reusa o resultado
+    If lastUpdateCheckAttempt <> 0 Then
+        If lastUpdateCheckSucceeded Then
+            CheckForUpdates = cachedUpdateAvailable
+            Exit Function
+        End If
+
+        ' Se a ultima tentativa falhou recentemente, evita repetir (reduz chance de travamentos)
+        If DateDiff("n", lastUpdateCheckAttempt, Now) < UPDATE_CHECK_COOLDOWN_MINUTES Then
+            CheckForUpdates = cachedUpdateAvailable
+            Exit Function
+        End If
+    End If
+
+    lastUpdateCheckAttempt = Now
+
     ' Obtem versao local
     localVersion = GetLocalVersion()
     If localVersion = "" Then
         LogMessage "Nao foi possivel obter versao local", LOG_LEVEL_WARNING
+        lastUpdateCheckSucceeded = False
         Exit Function
     End If
+
+    cachedLocalVersion = localVersion
 
     ' Obtem versao remota do GitHub
     remoteVersion = GetRemoteVersion()
     If remoteVersion = "" Then
         LogMessage "Nao foi possivel obter versao remota", LOG_LEVEL_WARNING
+        lastUpdateCheckSucceeded = False
+        cachedUpdateAvailable = False
         Exit Function
     End If
 
+    cachedRemoteVersion = remoteVersion
+    lastUpdateCheckSucceeded = True
+
     ' Compara versoes
     updateAvailable = CompareVersions(remoteVersion, localVersion) > 0
+    cachedUpdateAvailable = updateAvailable
 
     If updateAvailable Then
         LogMessage "Atualizacao disponivel: " & localVersion & " -> " & remoteVersion, LOG_LEVEL_INFO
@@ -9707,6 +9749,7 @@ Public Function CheckForUpdates() As Boolean
 
 ErrorHandler:
     LogMessage "Erro ao verificar atualizacoes: " & Err.Description, LOG_LEVEL_ERROR
+    lastUpdateCheckSucceeded = False
     CheckForUpdates = False
 End Function
 
@@ -9949,6 +9992,12 @@ Public Sub PromptForUpdate()
     Dim response As VbMsgBoxResult
     Dim installerPath As String
     Dim shellCmd As String
+
+    If undoGroupEnabled Then
+        MsgBox "A verificacao de atualizacao nao pode ser executada durante a padronizacao." & vbCrLf & _
+               "Aguarde a conclusao e tente novamente.", vbExclamation, "CHAINSAW - Atualizacao"
+        Exit Sub
+    End If
 
     ' Verifica se ha atualizacoes
     updateAvailable = CheckForUpdates()
