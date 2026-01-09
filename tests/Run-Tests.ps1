@@ -8,7 +8,7 @@ param(
 )
 
 if ($InstallPester) {
-    Write-Host 'Instalando Pester (se necessário) via PowerShellGallery...'
+    Write-Host 'Instalando Pester (se necessario) via PowerShellGallery...'
     if (-not (Get-Module -ListAvailable -Name Pester)) {
         Install-Module -Name Pester -Scope CurrentUser -Force -AllowClobber
     }

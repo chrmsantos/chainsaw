@@ -140,7 +140,7 @@ Describe 'CHAINSAW - Testes de Encoding e Emojis' {
             foreach ($file in $psFiles) {
                 $content = Get-Content $file.FullName -Raw -Encoding UTF8
 
-                # Ignora comentários
+                # Ignora comentarios
                 $codeLines = ($content -split "`r?`n") | Where-Object {
                     $_ -notmatch '^\s*#'
                 }
@@ -304,29 +304,24 @@ Describe 'CHAINSAW - Testes de Encoding e Emojis' {
 
     Context 'Validacao de BOM (Byte Order Mark)' {
 
-        It 'Scripts PowerShell tem UTF-8 BOM ou sao ASCII puro' {
+        It 'Scripts PowerShell sao ASCII puro (sem BOM)' {
             $psFiles = $script:ProjectPsFiles
 
             foreach ($file in $psFiles) {
                 $bytes = [System.IO.File]::ReadAllBytes($file.FullName)
 
-                if ($bytes.Length -ge 3) {
-                    $hasUtf8Bom = ($bytes[0] -eq 0xEF) -and
-                    ($bytes[1] -eq 0xBB) -and
-                    ($bytes[2] -eq 0xBF)
+                $hasUtf8Bom = ($bytes.Length -ge 3) -and
+                ($bytes[0] -eq 0xEF) -and
+                ($bytes[1] -eq 0xBB) -and
+                ($bytes[2] -eq 0xBF)
 
-                    # Verifica se tem caracteres nao-ASCII
-                    $hasNonAscii = $false
-                    foreach ($byte in $bytes) {
-                        if ($byte -ge 128) {
-                            $hasNonAscii = $true
-                            break
-                        }
-                    }
+                if ($hasUtf8Bom) {
+                    throw "Arquivo $($file.Name) possui UTF-8 BOM - politica do projeto exige ASCII puro (sem BOM)"
+                }
 
-                    # Se tem caracteres nao-ASCII, deve ter BOM
-                    if ($hasNonAscii -and -not $hasUtf8Bom) {
-                        Write-Warning "Arquivo $($file.Name) tem caracteres nao-ASCII mas nao tem UTF-8 BOM"
+                foreach ($byte in $bytes) {
+                    if ($byte -ge 128) {
+                        throw "Arquivo $($file.Name) contem bytes nao-ASCII - politica do projeto exige ASCII puro"
                     }
                 }
 
@@ -335,85 +330,37 @@ Describe 'CHAINSAW - Testes de Encoding e Emojis' {
         }
     }
 
-    Context 'Validacao de Caracteres Acentuados Portugueses' {
+    Context 'Validacao de Politica ASCII (Texto)' {
 
-        It 'VBA pode ser lido com UTF-8 sem perder acentuacao' {
+        It 'Arquivo VBA e ASCII puro' {
             $vbaFile = "$projectRoot\source\main\Modulo1.bas"
 
             if (Test-Path $vbaFile) {
-                $contentUtf8 = Get-Content $vbaFile -Raw -Encoding UTF8
-                $contentDefault = Get-Content $vbaFile -Raw
-
-                # Verifica que caracteres acentuados comuns estao presentes
-                $accentedChars = @('ã', 'á', 'à', 'â', 'é', 'ê', 'í', 'ó', 'ô', 'õ', 'ú', 'ç', 'Ã', 'Á', 'É', 'Ó', 'Ç')
-
-                $hasAccents = $false
-                foreach ($char in $accentedChars) {
-                    if ($contentUtf8 -match [regex]::Escape($char)) {
-                        $hasAccents = $true
-                        break
+                $bytes = [System.IO.File]::ReadAllBytes($vbaFile)
+                foreach ($byte in $bytes) {
+                    if ($byte -ge 128) {
+                        throw "Arquivo VBA contem bytes nao-ASCII: $vbaFile"
                     }
                 }
-
-                # Se tem acentos, verifica que UTF-8 lê corretamente
-                if ($hasAccents) {
-                    $contentUtf8.Length | Should BeGreaterThan 0
-                    $contentUtf8 | Should Not Match '�'  # Caractere de substituicao Unicode
-                }
-
                 $true | Should Be $true
             }
         }
 
-        It 'Documentacao Markdown preserva acentuacao portuguesa' {
+        It 'Documentacao Markdown e ASCII puro' {
             $mdFiles = @(
-                Get-ChildItem -Path "$projectRoot\docs" -Filter "*.md" -Recurse
-                Get-ChildItem -Path "$projectRoot" -Filter "*.md" -File
+                Get-ChildItem -Path "$projectRoot\docs" -Filter "*.md" -Recurse -ErrorAction SilentlyContinue
+                Get-ChildItem -Path "$projectRoot" -Filter "*.md" -File -ErrorAction SilentlyContinue
             )
 
             foreach ($file in $mdFiles) {
                 if ($file -eq $null) { continue }
 
-                $content = Get-Content $file.FullName -Raw -Encoding UTF8
-
-                # Nao deve conter caracteres de substituicao
-                $content | Should Not Match '�'
-
-                # Deve poder ser re-encodado sem perda
-                $bytes = [System.Text.Encoding]::UTF8.GetBytes($content)
-                $reencoded = [System.Text.Encoding]::UTF8.GetString($bytes)
-
-                $reencoded.Length | Should Be $content.Length
-            }
-        }
-
-        It 'Testes PowerShell preservam strings acentuadas' {
-            $testFiles = Get-ChildItem -Path "$projectRoot\tests" -Filter "*.Tests.ps1"
-
-            foreach ($file in $testFiles) {
-                $content = Get-Content $file.FullName -Raw -Encoding UTF8
-
-                # Nao deve conter caracteres de substituicao
-                if ($content -match '�') {
-                    throw "Arquivo $($file.Name) contem caracteres corrompidos (�)"
+                $bytes = [System.IO.File]::ReadAllBytes($file.FullName)
+                foreach ($byte in $bytes) {
+                    if ($byte -ge 128) {
+                        throw "Markdown contem bytes nao-ASCII: $($file.FullName)"
+                    }
                 }
-
-                $true | Should Be $true
-            }
-        }
-
-        It 'chainsaw_installer.cmd preserva mensagens acentuadas' {
-            $installerFile = "$projectRoot\chainsaw_installer.cmd"
-
-            if (Test-Path $installerFile) {
-                # CMD files podem ser lidos com encoding do sistema
-                $content = Get-Content $installerFile -Raw
-
-                # Verifica que tem mensagens em portugues
-                $content | Should Match 'Instalador|instalacao|codigo|extrair'
-
-                # Nao deve ter caracteres obviamente corrompidos
-                $content | Should Not Match '\x00'  # Null bytes
             }
         }
     }
@@ -436,7 +383,7 @@ Describe 'CHAINSAW - Testes de Encoding e Emojis' {
                     Write-Warning "VERSION tem UTF-8 BOM - melhor usar UTF-8 sem BOM"
                 }
 
-                # Deve conter um número de versão simples
+                # Deve conter um numero de versao simples
                 $content = Get-Content $versionFile -Raw -Encoding UTF8
                 $content | Should Match '[0-9]+\.[0-9]+\.[0-9]+'
             }
@@ -450,44 +397,26 @@ Describe 'CHAINSAW - Testes de Encoding e Emojis' {
                 $content | Should Not BeNullOrEmpty
 
                 # Nao deve ter caracteres de substituicao
-                $content | Should Not Match '�'
+                $content | Should Not Match ([regex]::Escape([char]0xFFFD))
             }
         }
     }
 
-    Context 'Validacao de Regex com Acentuacao' {
+    Context 'Validacao de Regex (ASCII)' {
 
-        It 'Testes que usam regex podem encontrar strings acentuadas' {
+        It 'Regex encontra strings ASCII esperadas' {
             $testContent = @'
-' Versão: 2.0.2
-Instalação completa
-Configuração do sistema
+' Versao: 2.0.2
+Instalacao completa
+Configuracao do sistema
 '@
 
-            # Testa varios padroes de regex comuns
-            $testContent | Should Match 'Versão'
-            $testContent | Should Match 'Instalação'
-            $testContent | Should Match 'Configuração'
+            $testContent | Should Match 'Versao'
+            $testContent | Should Match 'Instalacao'
+            $testContent | Should Match 'Configuracao'
 
-            # Testa com captura
-            if ($testContent -match "Versão: ([^\r\n]+)") {
+            if ($testContent -match "Versao: ([^\r\n]+)") {
                 $matches[1].Trim() | Should Be "2.0.2"
-            }
-        }
-
-        It 'Get-Content com -Encoding UTF8 lê corretamente arquivos acentuados' {
-            $vbaFile = "$projectRoot\source\main\Modulo1.bas"
-
-            if (Test-Path $vbaFile) {
-                $contentUtf8 = Get-Content $vbaFile -Raw -Encoding UTF8
-                $contentDefault = Get-Content $vbaFile -Raw
-
-                # Ambos devem ler o arquivo
-                $contentUtf8.Length | Should BeGreaterThan 0
-                $contentDefault.Length | Should BeGreaterThan 0
-
-                # UTF-8 explícito é mais confiável
-                $contentUtf8 | Should Match "' ="
             }
         }
     }

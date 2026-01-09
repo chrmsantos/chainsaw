@@ -1,6 +1,6 @@
-# EditorConfig é incrível: https://EditorConfig.org
+# EditorConfig e incrivel: https://EditorConfig.org
 
-# Configurações principais
+# Configuracoes principais
 root = true
 
 # Todos os arquivos
@@ -30,7 +30,7 @@ charset = utf-8
 indent_size = 4
 max_line_length = 120
 
-# Arquivos de configuração
+# Arquivos de configuracao
 [*.{json,yml,yaml}]
 indent_size = 2
 

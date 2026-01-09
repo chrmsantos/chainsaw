@@ -1,4 +1,4 @@
-﻿function Get-RepoRoot {
+function Get-RepoRoot {
     $candidate = $null
     if ($PSScriptRoot) {
         $candidate = Split-Path -Parent $PSScriptRoot

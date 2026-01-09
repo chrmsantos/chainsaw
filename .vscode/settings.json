@@ -2,10 +2,10 @@
   // GitHub Copilot - Auto Approve Settings
   "github.copilot.editor.enableAutoCompletions": true,
 
-  // Copilot Chat - Auto Approve todas as edições
+  // Copilot Chat - Auto Approve todas as edicoes
   "github.copilot.chat.autoApprove": true,
 
-  // Configurações adicionais do Copilot
+  // Configuracoes adicionais do Copilot
   "github.copilot.enable": {
     "*": true,
     "yaml": true,
@@ -44,7 +44,7 @@
     "*.dotm": "plaintext"
   },
 
-  // Exclusões
+  // Exclusoes
   "files.exclude": {
     "**/.git": false
   },

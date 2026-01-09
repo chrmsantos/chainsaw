@@ -1,8 +1,8 @@
-﻿#requires -Version 5.1
+#requires -Version 5.1
 Import-Module Pester -ErrorAction Stop
 . $PSScriptRoot\Helpers.ps1
 
-# Sobrepor Get-RepoRoot caso Helpers.ps1 contenha uma implementação falha
+# Sobrepor Get-RepoRoot caso Helpers.ps1 contenha uma implementacao falha
 function Get-RepoRoot {
     # Always use the parent of the tests dir where this file lives
     $testsDir = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
@@ -14,7 +14,7 @@ Describe 'CHAINSAW - Testes de Integridade' {
 
     Context 'PowerShell scripts syntax' {
         $scripts = Get-PowerShellScripts
-        It 'Encontrar scripts de instalação' {
+        It 'Encontrar scripts de instalacao' {
             $scripts | Should Not BeNullOrEmpty
         }
 
@@ -34,21 +34,21 @@ Describe 'CHAINSAW - Testes de Integridade' {
             $basFiles | Where-Object Name -Match 'Modulo1\.bas' | Should Not BeNullOrEmpty
         }
 
-        It 'Não existam backups duplicados com mesmo tamanho' {
+        It 'Nao existam backups duplicados com mesmo tamanho' {
             $grouped = $basFiles | Group-Object Length | Where-Object { $_.Count -gt 1 }
             $grouped | Should BeNullOrEmpty
         }
     }
 
-    Context 'Documentação' {
-        It 'Existem docs essenciais mínimos' {
+    Context 'Documentacao' {
+        It 'Existem docs essenciais minimos' {
             $expected = @('README.md','PRIVACY_POLICY.md','SECURITY.md','LGPD_ATESTADO.md','LICENSE','VERSION')
             foreach ($e in $expected) {
                 (Test-Path (Join-Path (Get-RepoRoot) $e)) | Should Be $true
             }
         }
 
-        It 'Não existam duplicatas markdown na raiz' {
+        It 'Nao existam duplicatas markdown na raiz' {
             $rootMd = Get-ChildItem -Path (Get-RepoRoot) -Filter *.md -File
             ($rootMd | Where-Object { $_.Name -in @('INSTALACAO_LOCAL.md','GUIA_INSTALACAO_UNIFICADA.md','INSTALL.md','GUIA_RAPIDO_IDENTIFICACAO.md','GUIA_RAPIDO_EXPORT_IMPORT.md','IMPLEMENTACAO_COMPLETA.md') }).Count | Should Be 0
         }

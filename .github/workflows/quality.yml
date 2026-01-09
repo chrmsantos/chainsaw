@@ -1,4 +1,4 @@
-name: Validação de Qualidade
+name: Validacao de Qualidade
 
 on:
   push:
@@ -12,21 +12,21 @@ jobs:
     runs-on: windows-latest
     
     steps:
-    - name: Checkout código
+    - name: Checkout codigo
       uses: actions/checkout@v3
     
-    - name: Executar validação de encoding
+    - name: Executar validacao de encoding
       shell: pwsh
       run: |
-        Write-Host "Executando validação de encoding e emojis..." -ForegroundColor Cyan
+        Write-Host "Executando validacao de encoding e emojis..." -ForegroundColor Cyan
         $result = & powershell -ExecutionPolicy Bypass -File tests/check-encoding.ps1
         if ($LASTEXITCODE -ne 0) {
-          Write-Host "FALHA: Emojis detectados no código!" -ForegroundColor Red
+          Write-Host "FALHA: Emojis detectados no codigo!" -ForegroundColor Red
           exit 1
         }
         Write-Host "SUCESSO: Nenhum emoji encontrado!" -ForegroundColor Green
     
-    - name: Upload relatório de validação
+    - name: Upload relatorio de validacao
       if: always()
       uses: actions/upload-artifact@v3
       with:
@@ -39,7 +39,7 @@ jobs:
     runs-on: windows-latest
     
     steps:
-    - name: Checkout código
+    - name: Checkout codigo
       uses: actions/checkout@v3
     
     - name: Instalar Pester 3.4.0
@@ -72,7 +72,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Checkout código
+    - name: Checkout codigo
       uses: actions/checkout@v3
     
     - name: Lint Markdown

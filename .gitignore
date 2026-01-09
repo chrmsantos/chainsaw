@@ -1,14 +1,14 @@
-# CHAINSAW - Arquivo de Exclusões do Git
+# CHAINSAW - Arquivo de Exclusoes do Git
 # ========================================
 
 # Logs gerados pelo CHAINSAW
 source/logs/*.log
 
-# Arquivos temporários do Word
+# Arquivos temporarios do Word
 ~$*.doc*
 *.tmp
 
-# Arquivos de configuração local do usuário
+# Arquivos de configuracao local do usuario
 *.user
 *.suo
 .vs/

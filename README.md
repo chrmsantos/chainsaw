@@ -1,4 +1,4 @@
-﻿# CHAINSAW
+# CHAINSAW
 
 Ferramenta para padronizar proposituras legislativas no Microsoft Word.
 
@@ -35,5 +35,6 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tests\Run-Tests.ps1
 
 ## Licenca
 
-GPLv3 - ver LICENSE
+- Texto original (ingles): LICENSE
+- Traducao (pt-BR, nao-oficial): LICENSE.pt-BR.md
 
