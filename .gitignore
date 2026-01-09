@@ -24,6 +24,9 @@ __pycache__/
 *.pyc
 *.pyo
 
+# Artefatos de execucao de testes
+tests/_last_test_run.log
+
 # Arquivos do sistema
 Thumbs.db
 Desktop.ini

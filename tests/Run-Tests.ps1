@@ -4,8 +4,19 @@
 #>
 param(
     [switch]$InstallPester,
-    [string]$TestSuite = "All"  # All, VBA, Encoding
+    [string]$TestSuite = "All",  # All, VBA, Encoding
+    [switch]$Detailed,
+    [switch]$NoProgress,
+    [switch]$ShowProgress,
+    [ValidateSet('None','Minimal','Normal','Detailed','Diagnostic')]
+    [string]$Output = 'Minimal'
 )
+
+# Por padrao, desliga progress (evita travamentos/lag no VS Code)
+# Use -ShowProgress se quiser reabilitar.
+if (-not $ShowProgress -or $NoProgress) {
+    $global:ProgressPreference = 'SilentlyContinue'
+}
 
 if ($InstallPester) {
     Write-Host 'Instalando Pester (se necessario) via PowerShellGallery...'
@@ -38,10 +49,28 @@ try {
     Write-Host "Executando suite '$TestSuite'" -ForegroundColor Cyan
 
     if ($pesterMajor -ge 5) {
-        $result = Invoke-Pester -Path $testScripts -PassThru
+        $invokeParams = @{
+            Path = $testScripts
+            PassThru = $true
+        }
+
+        if ($Detailed) {
+            $invokeParams['Output'] = 'Detailed'
+        }
+        else {
+            $invokeParams['Output'] = $Output
+        }
+
+        $result = Invoke-Pester @invokeParams
     }
     else {
-        $result = Invoke-Pester -Script $testScripts -EnableExit -PassThru
+        # Pester v3.x: use -Quiet para reduzir output (nao imprime testes passados)
+        if ($Detailed) {
+            $result = Invoke-Pester -Script $testScripts -EnableExit -PassThru
+        }
+        else {
+            $result = Invoke-Pester -Script $testScripts -EnableExit -PassThru -Quiet
+        }
     }
 
     if ($result.FailedCount -gt 0) {
