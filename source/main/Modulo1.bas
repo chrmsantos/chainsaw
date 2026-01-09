@@ -10168,7 +10168,7 @@ Private Sub RemoverLinhasEmBrancoExtras(doc As Document)
 
         On Error Resume Next
         .text = "por intermedio do Setor,"
-        .Replacement.text = "por intermedio do Setor competente,"
+        .Replacement.text = "por interm" & ChrW(233) & "dio do Setor competente,"
         If .Execute(Replace:=2) Then replacedCount = replacedCount + 1
 
         .text = "Indica ao Poder Executivo Municipal efetue"
@@ -10176,7 +10176,7 @@ Private Sub RemoverLinhasEmBrancoExtras(doc As Document)
         If .Execute(Replace:=2) Then replacedCount = replacedCount + 1
 
         .text = "Fomos procurados por municipes, solicitando essa providencia, pois segundo eles,"
-        .Replacement.text = "Fomos procurados por municipes solicitando essa providencia, pois, segundo eles,"
+        .Replacement.text = "Fomos procurados por mun" & ChrW(237) & "cipes solicitando essa provid" & ChrW(234) & "ncia, pois, segundo eles,"
         If .Execute(Replace:=2) Then replacedCount = replacedCount + 1
         On Error GoTo ErrorHandler
     End With
