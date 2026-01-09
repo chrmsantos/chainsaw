@@ -26,6 +26,8 @@ __pycache__/
 
 # Artefatos de execucao de testes
 tests/_last_test_run.log
+tests/_tmp_*.log
+
 
 # Arquivos do sistema
 Thumbs.db

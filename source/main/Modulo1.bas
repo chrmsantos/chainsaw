@@ -4445,10 +4445,7 @@ Private Function InsertHeaderstamp(doc As Document) As Boolean
                 .size = STANDARD_FONT_SIZE  ' 12
             End With
 
-            Set shp = header.Shapes.AddPicture( _
-                fileName:=imgFile, _
-                LinkToFile:=False, _
-                SaveWithDocument:=msoTrue)
+            Set shp = header.Shapes.AddPicture(fileName:=imgFile, LinkToFile:=False, SaveWithDocument:=msoTrue)
 
             If shp Is Nothing Then
                 LogMessage "Failed to insert header image at section " & sectionsProcessed + 1, LOG_LEVEL_WARNING
@@ -4706,11 +4703,12 @@ Private Function ValidateProposituraType(doc As Document) As Boolean
 
     ' Nao e um tipo reconhecido - pergunta ao usuario
     Dim userResponse As VbMsgBoxResult
-    userResponse = MsgBox("A primeira palavra do titulo e: """ & firstWord & """" & vbCrLf & vbCrLf & _
-                          "Nao parece ser uma propositura de Indicacao, Requerimento ou Mocao," & vbCrLf & _
-                          "ou ha algum erro de grafia na primeira palavra do titulo." & vbCrLf & vbCrLf & _
-                          "Deseja prosseguir com o processamento mesmo assim?", _
-                          vbYesNo + vbQuestion, "CHAINSAW - Tipo de Propositura")
+    Dim msgTipo As String
+    msgTipo = "A primeira palavra do titulo e: """ & firstWord & """" & vbCrLf & vbCrLf & _
+              "Nao parece ser uma propositura de Indicacao, Requerimento ou Mocao," & vbCrLf & _
+              "ou ha algum erro de grafia na primeira palavra do titulo." & vbCrLf & vbCrLf & _
+              "Deseja prosseguir com o processamento mesmo assim?"
+    userResponse = MsgBox(msgTipo, vbYesNo + vbQuestion, "CHAINSAW - Tipo de Propositura")
 
     If userResponse = vbYes Then
         LogMessage "Usuario optou por prosseguir com tipo nao reconhecido: " & firstWord, LOG_LEVEL_WARNING
@@ -4902,6 +4900,8 @@ End Function
 '================================================================================
 ' VALIDACAO DE CONSISTENCIA EMENTA x PROPOSICAO
 ' Compara elementos-chave entre ementa e texto da proposicao
+' - Enderecos
+' - Nomes completos (quando explicitamente citados na ementa)
 '================================================================================
 Private Function ValidateAddressConsistency(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -4930,6 +4930,14 @@ Private Function ValidateAddressConsistency(doc As Document) As Boolean
     addressInconsistency = CheckAddressConsistency(ementaText, proposicaoText)
     If Len(addressInconsistency) > 0 Then
         inconsistencies = inconsistencies & addressInconsistency & vbCrLf
+        inconsistencyCount = inconsistencyCount + 1
+    End If
+
+    ' 1b. Verifica nomes completos de pessoas (quando a ementa mencionar explicitamente)
+    Dim nameInconsistency As String
+    nameInconsistency = CheckPersonNameConsistency(ementaText, proposicaoText)
+    If Len(nameInconsistency) > 0 Then
+        inconsistencies = inconsistencies & nameInconsistency & vbCrLf
         inconsistencyCount = inconsistencyCount + 1
     End If
 
@@ -4991,34 +4999,11 @@ Private Function GetEmentaText(doc As Document) As String
 
     If doc Is Nothing Then Exit Function
 
-    Dim i As Long
-    Dim para As Paragraph
-    Dim paraText As String
-    Dim textualCount As Long
+    Dim idx As Long
+    idx = FindEmentaParagraphIndex(doc)
+    If idx <= 0 Or idx > doc.Paragraphs.count Then Exit Function
 
-    textualCount = 0
-
-    ' Percorre paragrafos buscando o 2o paragrafo textual (ementa)
-    For i = 1 To doc.Paragraphs.count
-        If i > 20 Then Exit For ' Limite de seguranca
-
-        Set para = doc.Paragraphs(i)
-        paraText = Trim(para.Range.text)
-
-        ' Ignora paragrafos vazios
-        If Len(paraText) > 1 Then
-            textualCount = textualCount + 1
-
-            ' 2o paragrafo textual e a ementa
-            If textualCount = 2 Then
-                ' Verifica se tem recuo (caracteristica da ementa)
-                If para.Format.leftIndent > 5 Then
-                    GetEmentaText = paraText
-                    Exit Function
-                End If
-            End If
-        End If
-    Next i
+    GetEmentaText = Trim$(doc.Paragraphs(idx).Range.text)
 End Function
 
 '================================================================================
@@ -5030,46 +5015,85 @@ Private Function GetProposicaoText(doc As Document) As String
 
     If doc Is Nothing Then Exit Function
 
+    Dim ementaIdx As Long
+    ementaIdx = FindEmentaParagraphIndex(doc)
+    If ementaIdx <= 0 Or ementaIdx >= doc.Paragraphs.count Then Exit Function
+
+    Dim result As String
+    result = ""
+
+    Dim collectedParas As Long
+    collectedParas = 0
+
     Dim i As Long
     Dim para As Paragraph
     Dim paraText As String
-    Dim textualCount As Long
-    Dim result As String
-    Dim paraCount As Long
+    Dim paraNorm As String
 
-    textualCount = 0
-    result = ""
-    paraCount = 0
-
-    ' Percorre paragrafos coletando texto apos a ementa
-    For i = 1 To doc.Paragraphs.count
-        If i > 50 Then Exit For ' Limite de seguranca
+    For i = ementaIdx + 1 To doc.Paragraphs.count
+        If collectedParas >= 12 Then Exit For
+        If Len(result) > 4000 Then Exit For
 
         Set para = doc.Paragraphs(i)
-        paraText = Trim(para.Range.text)
+        paraText = Trim$(para.Range.text)
+        If Len(paraText) <= 1 Then GoTo NextPara
 
-        ' Ignora paragrafos vazios
-        If Len(paraText) > 1 Then
-            textualCount = textualCount + 1
+        paraNorm = NormalizeForComparison(paraText)
 
-            ' Coleta paragrafos do 4o em diante (apos titulo, ementa, data)
-            If textualCount >= 4 Then
-                ' Para ao encontrar "Justificativa" ou assinatura
-                Dim lowerText As String
-                lowerText = LCase(paraText)
-                If InStr(lowerText, "justificativa") > 0 Then Exit For
-                If InStr(lowerText, "vereador") > 0 Then Exit For
+        ' Para ao encontrar "Justificativa" ou assinatura
+        If InStr(paraNorm, "justificativa") > 0 Then Exit For
+        If InStr(paraNorm, "vereador") > 0 Then Exit For
+        If InStr(paraNorm, "vereadora") > 0 Then Exit For
 
-                result = result & " " & paraText
-                paraCount = paraCount + 1
-
-                ' Limita a 10 paragrafos para nao sobrecarregar
-                If paraCount >= 10 Then Exit For
-            End If
+        ' Ignora linha de data do plenario (nao faz parte do corpo)
+        If InStr(paraNorm, "plenario") > 0 And InStr(paraNorm, "tancredo") > 0 And InStr(paraNorm, "neves") > 0 Then
+            GoTo NextPara
         End If
+
+        result = result & " " & paraText
+        collectedParas = collectedParas + 1
+
+NextPara:
     Next i
 
-    GetProposicaoText = result
+    GetProposicaoText = Trim$(result)
+End Function
+
+'================================================================================
+' LOCALIZA O PARAGRAFO DA EMENTA DE FORMA ROBUSTA
+'================================================================================
+Private Function FindEmentaParagraphIndex(doc As Document) As Long
+    On Error Resume Next
+    FindEmentaParagraphIndex = 0
+
+    If doc Is Nothing Then Exit Function
+
+    ' Preferencia: usa indice identificado pelo sistema de estrutura (quando disponivel)
+    If ementaParaIndex > 0 And ementaParaIndex <= doc.Paragraphs.count Then
+        FindEmentaParagraphIndex = ementaParaIndex
+        Exit Function
+    End If
+
+    ' Fallback: heuristica no inicio do documento
+    Dim i As Long
+    Dim para As Paragraph
+    Dim paraText As String
+
+    For i = 1 To doc.Paragraphs.count
+        If i > 35 Then Exit For
+
+        Set para = doc.Paragraphs(i)
+        paraText = Trim$(para.Range.text)
+        If Len(paraText) <= 1 Then GoTo NextPara
+
+        ' Ementa tipicamente tem recuo a esquerda maior que o minimo
+        If para.Format.leftIndent > EMENTA_MIN_LEFT_INDENT Then
+            FindEmentaParagraphIndex = i
+            Exit Function
+        End If
+
+NextPara:
+    Next i
 End Function
 
 '================================================================================
@@ -5079,32 +5103,31 @@ Private Function CheckAddressConsistency(ementaText As String, proposicaoText As
     On Error Resume Next
     CheckAddressConsistency = ""
 
-    Dim addressKeywords() As Variant
-    addressKeywords = Array("rua ", "avenida ", "av. ", "travessa ", "alameda ", "praca ", "estrada ")
+    Dim ementaFlat As String
+    Dim proposicaoFlat As String
+    Dim ementaNorm As String
+    Dim proposicaoNorm As String
 
-    Dim kw As Variant
-    Dim kwPos As Long
-    Dim addressInEmenta As String
-    Dim foundInProposicao As Boolean
+    ementaFlat = CleanTextForComparison(ementaText)
+    proposicaoFlat = CleanTextForComparison(proposicaoText)
+    ementaNorm = NormalizeForComparison(ementaFlat)
+    proposicaoNorm = NormalizeForComparison(proposicaoFlat)
 
-    For Each kw In addressKeywords
-        kwPos = InStr(1, LCase(ementaText), CStr(kw), vbTextCompare)
+    Dim addrDict As Object
+    Set addrDict = ExtractAddressesFromText(ementaFlat, ementaNorm)
+    If addrDict Is Nothing Then Exit Function
+    If addrDict.count = 0 Then Exit Function
 
-        If kwPos > 0 Then
-            ' Extrai endereco da ementa (ate 50 caracteres apos a palavra-chave)
-            addressInEmenta = ExtractAddressWords(ementaText, kwPos, CStr(kw))
+    Dim k As Variant
+    For Each k In addrDict.Keys
+        Dim addrDisplay As String
+        addrDisplay = CStr(addrDict(k))
 
-            If Len(addressInEmenta) > 3 Then
-                ' Verifica se endereco existe na proposicao
-                foundInProposicao = CheckAddressInText(addressInEmenta, proposicaoText)
-
-                If Not foundInProposicao Then
-                    CheckAddressConsistency = "ENDERECO: '" & UCase(kw) & addressInEmenta & "' da ementa nao encontrado no texto."
-                    Exit Function
-                End If
-            End If
+        If Not CheckAddressInTextAdvanced(CStr(k), proposicaoNorm) Then
+            CheckAddressConsistency = "ENDERECO: '" & addrDisplay & "' da ementa nao encontrado no texto."
+            Exit Function
         End If
-    Next kw
+    Next k
 End Function
 
 '================================================================================
@@ -5141,6 +5164,447 @@ Private Function ExtractAddressWords(text As String, startPos As Long, keyword A
     Next i
 
     ExtractAddressWords = result
+End Function
+
+'================================================================================
+' VERIFICA CONSISTENCIA DE NOMES COMPLETOS (EMENTA -> TEXTO)
+'================================================================================
+Private Function CheckPersonNameConsistency(ementaText As String, proposicaoText As String) As String
+    On Error Resume Next
+    CheckPersonNameConsistency = ""
+
+    Dim ementaFlat As String
+    Dim proposicaoFlat As String
+    Dim ementaNorm As String
+    Dim proposicaoNorm As String
+
+    ementaFlat = CleanTextForComparison(ementaText)
+    proposicaoFlat = CleanTextForComparison(proposicaoText)
+    ementaNorm = NormalizeForComparison(ementaFlat)
+    proposicaoNorm = NormalizeForComparison(proposicaoFlat)
+
+    Dim namesDict As Object
+    Set namesDict = ExtractPersonNamesFromText(ementaFlat, ementaNorm)
+    If namesDict Is Nothing Then Exit Function
+    If namesDict.count = 0 Then Exit Function
+
+    Dim k As Variant
+    For Each k In namesDict.Keys
+        If Not CheckNameInTextAdvanced(CStr(k), proposicaoNorm) Then
+            CheckPersonNameConsistency = "NOME: '" & CStr(namesDict(k)) & "' da ementa nao encontrado no texto."
+            Exit Function
+        End If
+    Next k
+End Function
+
+'================================================================================
+' EXTRAI NOMES COMPLETOS PROVAVEIS A PARTIR DE MARCADORES (SR, SENHOR, NOME:)
+' Retorna Dictionary: key=nome normalizado, value=nome para exibicao
+'================================================================================
+Private Function ExtractPersonNamesFromText(flatText As String, flatNorm As String) As Object
+    On Error Resume Next
+    Set ExtractPersonNamesFromText = Nothing
+
+    Dim dict As Object
+    Set dict = CreateObject("Scripting.Dictionary")
+    dict.CompareMode = 1 ' TextCompare
+
+    If Len(flatText) < 10 Then
+        Set ExtractPersonNamesFromText = dict
+        Exit Function
+    End If
+
+    Dim markers As Variant
+    markers = Array("sr ", "sr. ", "sra ", "sra. ", "senhor ", "senhora ", "srta ", "srta. ", "nome: ", "nome : ")
+
+    Dim m As Variant
+    For Each m In markers
+        Dim pos As Long
+        pos = 1
+        Do
+            pos = InStr(pos, flatNorm, CStr(m), vbTextCompare)
+            If pos <= 0 Then Exit Do
+
+            Dim afterPos As Long
+            afterPos = pos + Len(CStr(m))
+
+            Dim snippet As String
+            snippet = Mid$(flatText, afterPos, 140)
+
+            Dim candidate As String
+            candidate = ExtractNameFromSnippet(snippet)
+            If Len(candidate) > 0 Then
+                Dim key As String
+                key = NormalizeForComparison(candidate)
+                key = Trim$(key)
+                If Len(key) > 0 Then
+                    If Not dict.Exists(key) Then dict.Add key, candidate
+                End If
+            End If
+
+            pos = afterPos
+        Loop
+    Next m
+
+    Set ExtractPersonNamesFromText = dict
+End Function
+
+Private Function ExtractNameFromSnippet(snippet As String) As String
+    On Error Resume Next
+    ExtractNameFromSnippet = ""
+
+    Dim s As String
+    s = snippet
+    s = Replace(s, vbCr, " ")
+    s = Replace(s, vbLf, " ")
+    s = Replace(s, vbTab, " ")
+    s = Trim$(s)
+    If Len(s) < 3 Then Exit Function
+
+    ' Corta em pontuacao forte
+    Dim cutPos As Long
+    cutPos = 0
+    cutPos = FirstOfAny(s, Array(",", ".", ";", ":"))
+    If cutPos > 0 Then s = Left$(s, cutPos - 1)
+
+    s = Trim$(s)
+    If Len(s) < 3 Then Exit Function
+
+    Dim words() As String
+    words = Split(s, " ")
+
+    Dim nameOut As String
+    nameOut = ""
+
+    Dim realWords As Long
+    realWords = 0
+
+    Dim i As Long
+    For i = 0 To UBound(words)
+        If i > 6 Then Exit For
+
+        Dim w As String
+        w = Trim$(words(i))
+        If w = "" Then GoTo ContinueLoop
+
+        ' Remove pontuacao em volta
+        w = StripEdgePunctuation(w)
+        If w = "" Then GoTo ContinueLoop
+
+        Dim wNorm As String
+        wNorm = NormalizeForComparison(w)
+
+        ' Palavras que indicam fim do nome
+        If wNorm = "residente" Or wNorm = "morador" Or wNorm = "portador" Or wNorm = "inscrito" Or wNorm = "cpf" Or wNorm = "rg" Or wNorm = "na" Or wNorm = "no" Or wNorm = "em" Then
+            Exit For
+        End If
+
+        ' Conectores permitidos
+        If wNorm = "da" Or wNorm = "de" Or wNorm = "do" Or wNorm = "das" Or wNorm = "dos" Or wNorm = "e" Then
+            If nameOut <> "" Then nameOut = nameOut & " " & wNorm
+            GoTo ContinueLoop
+        End If
+
+        ' Precisa conter letras
+        If Not ContainsLetter(w) Then Exit For
+
+        If nameOut <> "" Then nameOut = nameOut & " "
+        nameOut = nameOut & w
+        realWords = realWords + 1
+
+ContinueLoop:
+    Next i
+
+    ' Nome completo: pelo menos 2 palavras reais
+    If realWords >= 2 Then
+        ExtractNameFromSnippet = Trim$(nameOut)
+    End If
+End Function
+
+Private Function CheckNameInTextAdvanced(nameNorm As String, textNorm As String) As Boolean
+    On Error Resume Next
+    CheckNameInTextAdvanced = False
+
+    If Len(nameNorm) < 5 Then Exit Function
+    If Len(textNorm) < 10 Then Exit Function
+
+    Dim words() As String
+    words = Split(nameNorm, " ")
+
+    Dim total As Long
+    Dim found As Long
+    total = 0
+    found = 0
+
+    Dim i As Long
+    For i = 0 To UBound(words)
+        Dim w As String
+        w = Trim$(words(i))
+        If Len(w) < 3 Then GoTo NextWord
+        If w = "da" Or w = "de" Or w = "do" Or w = "das" Or w = "dos" Or w = "e" Then GoTo NextWord
+
+        total = total + 1
+        If InStr(1, textNorm, w, vbTextCompare) > 0 Then found = found + 1
+
+NextWord:
+    Next i
+
+    If total = 0 Then Exit Function
+    ' Exige que a maioria dos componentes (>=80%) apareca no texto
+    CheckNameInTextAdvanced = (found / total) >= 0.8
+End Function
+
+'================================================================================
+' EXTRAI ENDERECOS PROVAVEIS (EMENTA)
+' Retorna Dictionary: key=assinatura normalizada (tokens), value=endereco para exibicao
+'================================================================================
+Private Function ExtractAddressesFromText(flatText As String, flatNorm As String) As Object
+    On Error Resume Next
+    Set ExtractAddressesFromText = Nothing
+
+    Dim dict As Object
+    Set dict = CreateObject("Scripting.Dictionary")
+    dict.CompareMode = 1 ' TextCompare
+
+    If Len(flatText) < 10 Then
+        Set ExtractAddressesFromText = dict
+        Exit Function
+    End If
+
+    Dim keywords As Variant
+    keywords = Array("rua ", "avenida ", "av. ", "av ", "travessa ", "alameda ", "praca ", "estrada ", "rodovia ")
+
+    Dim kw As Variant
+    For Each kw In keywords
+        Dim pos As Long
+        pos = 1
+        Do
+            pos = InStr(pos, flatNorm, CStr(kw), vbTextCompare)
+            If pos <= 0 Then Exit Do
+
+            Dim snippet As String
+            snippet = Mid$(flatText, pos, 120)
+
+            Dim addrDisplay As String
+            addrDisplay = ExtractAddressDisplay(snippet)
+
+            Dim addrKey As String
+            addrKey = BuildAddressKey(addrDisplay)
+
+            If Len(addrKey) > 0 Then
+                If Not dict.Exists(addrKey) Then dict.Add addrKey, addrDisplay
+            End If
+
+            pos = pos + Len(CStr(kw))
+        Loop
+    Next kw
+
+    Set ExtractAddressesFromText = dict
+End Function
+
+Private Function ExtractAddressDisplay(snippet As String) As String
+    On Error Resume Next
+    ExtractAddressDisplay = ""
+
+    Dim s As String
+    s = snippet
+    s = Replace(s, vbCr, " ")
+    s = Replace(s, vbLf, " ")
+    s = Replace(s, vbTab, " ")
+    s = Trim$(s)
+    If Len(s) < 5 Then Exit Function
+
+    ' Corta em pontuacao forte
+    Dim cutPos As Long
+    cutPos = FirstOfAny(s, Array(".", ";"))
+    If cutPos > 0 Then s = Left$(s, cutPos - 1)
+
+    ' Limita em virgula dupla (comum em listas)
+    Dim commaPos As Long
+    commaPos = InStr(1, s, ",", vbTextCompare)
+    If commaPos > 0 And commaPos < 10 Then
+        ' Mantem a primeira virgula (rua x, n 123...) mas corta se a frase virar lista
+        Dim comma2 As Long
+        comma2 = InStr(commaPos + 1, s, ",", vbTextCompare)
+        If comma2 > 0 Then s = Left$(s, comma2 - 1)
+    End If
+
+    ExtractAddressDisplay = Trim$(s)
+End Function
+
+Private Function BuildAddressKey(addrDisplay As String) As String
+    On Error Resume Next
+    BuildAddressKey = ""
+    If Len(addrDisplay) < 5 Then Exit Function
+
+    Dim norm As String
+    norm = NormalizeForComparison(CleanTextForComparison(addrDisplay))
+
+    ' Normaliza abreviacoes comuns
+    norm = Replace(norm, "av.", "avenida")
+    norm = Replace(norm, "av ", "avenida ")
+
+    Dim parts() As String
+    parts = Split(norm, " ")
+
+    Dim key As String
+    key = ""
+
+    Dim keepWords As Long
+    keepWords = 0
+    Dim sawNumber As Boolean
+    sawNumber = False
+
+    Dim i As Long
+    For i = 0 To UBound(parts)
+        Dim w As String
+        w = Trim$(parts(i))
+        If w = "" Then GoTo NextPart
+
+        If w = "rua" Or w = "avenida" Or w = "travessa" Or w = "alameda" Or w = "praca" Or w = "estrada" Or w = "rodovia" Then GoTo NextPart
+        If w = "da" Or w = "de" Or w = "do" Or w = "das" Or w = "dos" Then GoTo NextPart
+        If w = "no" Or w = "na" Or w = "em" Or w = "n" Or w = "n." Or w = "numero" Then GoTo NextPart
+        If w = "bairro" Or w = "cep" Or w = "km" Then GoTo NextPart
+
+        If IsNumeric(w) Then
+            If Not sawNumber Then
+                If key <> "" Then key = key & " "
+                key = key & w
+                sawNumber = True
+            End If
+            GoTo NextPart
+        End If
+
+        If Len(w) >= 3 Then
+            If key <> "" Then key = key & " "
+            key = key & w
+            keepWords = keepWords + 1
+        End If
+
+        If keepWords >= 4 Then Exit For
+
+NextPart:
+    Next i
+
+    ' Evita chaves muito curtas (alto risco de falso positivo)
+    If keepWords >= 2 Or (keepWords >= 1 And sawNumber) Then
+        BuildAddressKey = Trim$(key)
+    End If
+End Function
+
+Private Function CheckAddressInTextAdvanced(addrKey As String, textNorm As String) As Boolean
+    On Error Resume Next
+    CheckAddressInTextAdvanced = False
+
+    If Len(addrKey) < 5 Then Exit Function
+    If Len(textNorm) < 10 Then Exit Function
+
+    Dim parts() As String
+    parts = Split(addrKey, " ")
+
+    Dim totalWords As Long
+    Dim foundWords As Long
+    Dim requiresNumber As Boolean
+    Dim foundNumber As Boolean
+
+    totalWords = 0
+    foundWords = 0
+    requiresNumber = False
+    foundNumber = False
+
+    Dim i As Long
+    For i = 0 To UBound(parts)
+        Dim w As String
+        w = Trim$(parts(i))
+        If w = "" Then GoTo NextW
+
+        If IsNumeric(w) Then
+            requiresNumber = True
+            If InStr(1, textNorm, w, vbTextCompare) > 0 Then foundNumber = True
+            GoTo NextW
+        End If
+
+        If Len(w) < 3 Then GoTo NextW
+        totalWords = totalWords + 1
+        If InStr(1, textNorm, w, vbTextCompare) > 0 Then foundWords = foundWords + 1
+
+NextW:
+    Next i
+
+    If requiresNumber And Not foundNumber Then Exit Function
+    If totalWords = 0 Then Exit Function
+
+    ' Exige pelo menos 60% das palavras-chave do endereco
+    CheckAddressInTextAdvanced = (foundWords / totalWords) >= 0.6
+End Function
+
+Private Function FirstOfAny(text As String, symbols As Variant) As Long
+    On Error Resume Next
+    FirstOfAny = 0
+
+    Dim i As Long
+    Dim best As Long
+    best = 0
+
+    For i = LBound(symbols) To UBound(symbols)
+        Dim p As Long
+        p = InStr(1, text, CStr(symbols(i)), vbTextCompare)
+        If p > 0 Then
+            If best = 0 Or p < best Then best = p
+        End If
+    Next i
+
+    FirstOfAny = best
+End Function
+
+Private Function StripEdgePunctuation(word As String) As String
+    On Error Resume Next
+    StripEdgePunctuation = word
+
+    Dim w As String
+    w = Trim$(word)
+    If w = "" Then Exit Function
+
+    Dim changed As Boolean
+    changed = True
+    Do While changed
+        changed = False
+
+        If Len(w) = 0 Then Exit Do
+        Dim firstChar As String
+        firstChar = Left$(w, 1)
+        If firstChar = Chr(40) Or firstChar = "[" Or firstChar = "{" Or firstChar = Chr(34) Or firstChar = Chr(39) Then
+            w = Mid$(w, 2)
+            w = Trim$(w)
+            changed = True
+        End If
+
+        If Len(w) = 0 Then Exit Do
+        Dim lastChar As String
+        lastChar = Right$(w, 1)
+        If lastChar = Chr(41) Or lastChar = "]" Or lastChar = "}" Or lastChar = "," Or lastChar = "." Or lastChar = ";" Or lastChar = ":" Or lastChar = Chr(34) Or lastChar = Chr(39) Then
+            w = Left$(w, Len(w) - 1)
+            w = Trim$(w)
+            changed = True
+        End If
+    Loop
+
+    StripEdgePunctuation = w
+End Function
+
+Private Function ContainsLetter(text As String) As Boolean
+    On Error Resume Next
+    ContainsLetter = False
+
+    Dim i As Long
+    Dim ch As String
+    For i = 1 To Len(text)
+        ch = Mid$(text, i, 1)
+        If (ch >= "A" And ch <= "Z") Or (ch >= "a" And ch <= "z") Then
+            ContainsLetter = True
+            Exit Function
+        End If
+    Next i
 End Function
 
 '================================================================================
@@ -5926,8 +6390,8 @@ Private Function CheckJudicialData(docText As String) As String
     End If
 
     ' Processos judiciais
-    If InStr(lowerText, "processo n") > 0 And (InStr(lowerText, "vara") > 0 Or _
-       InStr(lowerText, "tribunal") > 0 Or InStr(lowerText, "juizo") > 0) Then
+     If InStr(lowerText, "processo n") > 0 And _
+         (InStr(lowerText, "vara") > 0 Or InStr(lowerText, "tribunal") > 0 Or InStr(lowerText, "juizo") > 0) Then
         findings = findings & "  - Numero de processo judicial detectado" & vbCrLf
     End If
 
@@ -6159,8 +6623,8 @@ Private Function CheckPersonalData(docText As String) As String
     End If
 
     ' Endereco residencial
-    If InStr(lowerText, "residente") > 0 And (InStr(lowerText, "rua ") > 0 Or _
-       InStr(lowerText, "avenida ") > 0) Then
+     If InStr(lowerText, "residente") > 0 And _
+         (InStr(lowerText, "rua ") > 0 Or InStr(lowerText, "avenida ") > 0) Then
         findings = findings & "  - Endereco residencial detectado" & vbCrLf
     End If
 
@@ -6252,8 +6716,8 @@ Private Function ContainsPhonePattern(text As String) As Boolean
     For i = 1 To Len(text) - 13
         segment = Mid(text, i, 15)
 
-        ' Verifica se comeca com (
-        If Mid(segment, 1, 1) = "(" Then
+        ' Verifica se comeca com parenteses
+        If Mid(segment, 1, 1) = Chr(40) Then
             digitCount = CountDigitsInString(segment)
             ' Telefone brasileiro tem 10-11 digitos
             If digitCount >= 10 And digitCount <= 11 Then
@@ -7305,11 +7769,7 @@ End Function
 '================================================================================
 ' FUNCAO AUXILIAR DE FIND/REPLACE - Elimina codigo repetitivo
 '================================================================================
-Private Function ExecuteFindReplace(doc As Document, _
-                                    searchText As String, _
-                                    replaceText As String, _
-                                    Optional matchCase As Boolean = False, _
-                                    Optional maxIterations As Long = 500) As Long
+Private Function ExecuteFindReplace(doc As Document, searchText As String, replaceText As String, Optional matchCase As Boolean = False, Optional maxIterations As Long = 500) As Long
     ' Retorna quantidade de substituicoes realizadas
     On Error Resume Next
     ExecuteFindReplace = 0
@@ -10102,10 +10562,12 @@ Private Sub ReplacePlenarioDateParagraph(doc As Document)
     plenarioAcento = "Plen" & ChrW(225) & "rio"  ' Plenario (com acento, ASCII-safe no fonte)
 
     ' Define os termos de busca
-    terms = Split("Palacio 15 de Junho,Plenario," & plenarioAcento & ",Dr. Tancredo Neves," & _
-                 " de janeiro de , de fevereiro de, de marco de, de abril de," & _
-                 " de maio de, de junho de, de julho de, de agosto de," & _
-                 " de setembro de, de outubro de, de novembro de, de dezembro de", ",")
+    Dim termsCsv As String
+    termsCsv = "Palacio 15 de Junho,Plenario," & plenarioAcento & ",Dr. Tancredo Neves," & _
+               " de janeiro de , de fevereiro de, de marco de, de abril de," & _
+               " de maio de, de junho de, de julho de, de agosto de," & _
+               " de setembro de, de outubro de, de novembro de, de dezembro de"
+    terms = Split(termsCsv, ",")
 
     ' Processa cada paragrafo
     Dim plenCounter As Long
@@ -10523,10 +10985,11 @@ Public Sub PromptForUpdate()
     End If
 
     ' Pergunta ao usuario se deseja atualizar
-    response = MsgBox("Uma nova versao do CHAINSAW esta disponivel!" & vbCrLf & vbCrLf & _
-                      "Deseja atualizar agora?" & vbCrLf & vbCrLf & _
-                      "O instalador sera executado e o Word sera fechado.", _
-                      vbYesNo + vbQuestion, "CHAINSAW - Atualizacao Disponivel")
+    Dim msgUpdate As String
+    msgUpdate = "Uma nova versao do CHAINSAW esta disponivel!" & vbCrLf & vbCrLf & _
+                "Deseja atualizar agora?" & vbCrLf & vbCrLf & _
+                "O instalador sera executado e o Word sera fechado."
+    response = MsgBox(msgUpdate, vbYesNo + vbQuestion, "CHAINSAW - Atualizacao Disponivel")
 
     If response = vbYes Then
         ' Caminho do instalador
@@ -10580,13 +11043,14 @@ Public Sub ExecutarInstalador()
     Dim response As VbMsgBoxResult
 
     ' Pergunta confirmacao ao usuario
-    response = MsgBox("Deseja executar o instalador do CHAINSAW?" & vbCrLf & vbCrLf & _
-                      "Isso ira:" & vbCrLf & _
-                      " Baixar a versao mais recente do GitHub" & vbCrLf & _
-                      " Instalar/atualizar o sistema" & vbCrLf & _
-                      " Fechar o Word ao final da instalacao" & vbCrLf & vbCrLf & _
-                      "Continuar?", _
-                      vbYesNo + vbQuestion, "CHAINSAW - Executar Instalador")
+    Dim msgInstaller As String
+    msgInstaller = "Deseja executar o instalador do CHAINSAW?" & vbCrLf & vbCrLf & _
+                   "Isso ira:" & vbCrLf & _
+                   " Baixar a versao mais recente do GitHub" & vbCrLf & _
+                   " Instalar/atualizar o sistema" & vbCrLf & _
+                   " Fechar o Word ao final da instalacao" & vbCrLf & vbCrLf & _
+                   "Continuar?"
+    response = MsgBox(msgInstaller, vbYesNo + vbQuestion, "CHAINSAW - Executar Instalador")
 
     If response <> vbYes Then
         Exit Sub
