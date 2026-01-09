@@ -11,9 +11,11 @@ function Get-RepoRoot {
 
 function Get-VbaProcedureBlock {
     param(
-        [Parameter(Mandatory)] [string[]]$Lines,
+        [string[]]$Lines,
         [Parameter(Mandatory)] [string]$Name
     )
+
+    if ($null -eq $Lines) { return $null }
 
     $currentType = $null
     $block = $null
@@ -40,9 +42,11 @@ function Get-VbaProcedureBlock {
 
 function Get-VbaForLoopBlocks {
     param(
-        [Parameter(Mandatory)] [string[]]$Lines,
+        [string[]]$Lines,
         [Parameter(Mandatory)] [scriptblock]$StartPredicate
     )
+
+    if ($null -eq $Lines) { return @() }
 
     $blocks = @()
     $capturing = $false
@@ -80,8 +84,10 @@ function Get-VbaForLoopBlocks {
 
 function Get-VbaDoLoopBlocks {
     param(
-        [Parameter(Mandatory)] [string[]]$Lines
+        [string[]]$Lines
     )
+
+    if ($null -eq $Lines) { return @() }
 
     $blocks = @()
     $capturing = $false
@@ -909,7 +915,9 @@ It 'Taxa de comentarios adequada (> 5% das linhas)' {
 
         It 'Loops For Each sobre Paragraphs tem DoEvents para responsividade' {
             # Loops pesados sobre doc.Paragraphs devem ter DoEvents
-            $forEachParaLoops = Get-VbaForLoopBlocks -Lines $script:vbaLines -StartPredicate { param($l) $l -match '^\s*For Each\s+\w+\s+In\s+doc\.Paragraphs\b' }
+            # Usa match case-sensitive para manter o comportamento do regex original ([regex]::Matches),
+            # que e case-sensitive por padrao.
+            $forEachParaLoops = Get-VbaForLoopBlocks -Lines $script:vbaLines -StartPredicate { param($l) $l -cmatch '^\s*For Each\s+\w+\s+In\s+doc\.Paragraphs\b' }
             $loopsWithDoEvents = ($forEachParaLoops | Where-Object { $_ -match '\bDoEvents\b' }).Count
 
             # Pelo menos 70% dos loops sobre Paragraphs devem ter DoEvents
@@ -922,7 +930,8 @@ It 'Taxa de comentarios adequada (> 5% das linhas)' {
 
         It 'Loops For To sobre Paragraphs.Count tem DoEvents para responsividade' {
             # Loops For i = 1 To doc.Paragraphs.Count devem ter DoEvents
-            $forToParaLoops = Get-VbaForLoopBlocks -Lines $script:vbaLines -StartPredicate { param($l) $l -match '^\s*For\s+\w+\s*=\s*\d+\s+To\s+doc\.Paragraphs\.Count\b' }
+            # Case-sensitive para manter compatibilidade com o comportamento anterior.
+            $forToParaLoops = Get-VbaForLoopBlocks -Lines $script:vbaLines -StartPredicate { param($l) $l -cmatch '^\s*For\s+\w+\s*=\s*\d+\s+To\s+doc\.Paragraphs\.Count\b' }
             $loopsWithDoEvents = ($forToParaLoops | Where-Object { $_ -match '\bDoEvents\b' }).Count
 
             # Pelo menos 50% dos loops sobre Paragraphs.Count devem ter DoEvents
@@ -1108,7 +1117,7 @@ It 'Taxa de comentarios adequada (> 5% das linhas)' {
 
         It 'Loops For Each sobre Paragraphs possuem DoEvents para responsividade' {
             # Conta loops For Each sobre doc.Paragraphs
-            $forEachParagraphs = Get-VbaForLoopBlocks -Lines $script:vbaLines -StartPredicate { param($l) $l -match '^\s*For Each\s+\w+\s+In\s+doc\.Paragraphs\b' }
+            $forEachParagraphs = Get-VbaForLoopBlocks -Lines $script:vbaLines -StartPredicate { param($l) $l -cmatch '^\s*For Each\s+\w+\s+In\s+doc\.Paragraphs\b' }
             $loopsWithDoEvents = ($forEachParagraphs | Where-Object { $_ -match '\bDoEvents\b' }).Count
 
             # Pelo menos 70% dos loops devem ter DoEvents
@@ -1122,7 +1131,7 @@ It 'Taxa de comentarios adequada (> 5% das linhas)' {
 
         It 'Loops For i To Count sobre Paragraphs possuem DoEvents' {
             # Conta loops For i To doc.Paragraphs.Count ou cacheSize
-            $forToLoops = Get-VbaForLoopBlocks -Lines $script:vbaLines -StartPredicate { param($l) $l -match '^\s*For\s+\w+\s*=\s*\d+\s+To\s+(doc\.Paragraphs\.Count|cacheSize|paraCount)\b' }
+            $forToLoops = Get-VbaForLoopBlocks -Lines $script:vbaLines -StartPredicate { param($l) $l -cmatch '^\s*For\s+\w+\s*=\s*\d+\s+To\s+(doc\.Paragraphs\.Count|cacheSize|paraCount)\b' }
             $loopsWithDoEvents = ($forToLoops | Where-Object { $_ -match '\bDoEvents\b' }).Count
 
             # Pelo menos 20% dos loops grandes devem ter DoEvents
