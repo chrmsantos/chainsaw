@@ -2,6 +2,8 @@
 
 Ferramenta para padronizar proposituras legislativas no Microsoft Word.
 
+![Chainsaw](assets/chainsaw.png)
+
 ## Requisitos
 
 - Windows 10+
