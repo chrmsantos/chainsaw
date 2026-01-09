@@ -45,20 +45,20 @@ Em conformidade com o Art. 41 da LGPD, informamos que:
 
 O sistema opera de acordo com os principios de **Privacy by Design** e **Privacy by Default**:
 
--  **NAO coleta** dados pessoais de usuarios
--  **NAO transmite** informacoes pela internet
--  **NAO armazena** dados em servidores externos
--  **NAO rastreia** comportamento de usuarios
--  **NAO utiliza** cookies, telemetria ou analytics
--  **NAO possui** sistema de autenticacao ou cadastro
--  **NAO compartilha** dados com terceiros
+- **NAO coleta** dados pessoais de usuarios
+- **NAO transmite** informacoes pela internet
+- **NAO armazena** dados em servidores externos
+- **NAO rastreia** comportamento de usuarios
+- **NAO utiliza** cookies, telemetria ou analytics
+- **NAO possui** sistema de autenticacao ou cadastro
+- **NAO compartilha** dados com terceiros
 
 ### 3.2 Dados Tecnicos Processados Localmente
 
 O CHAINSAW processa **exclusivamente em seu computador**:
 
 | Tipo de Dado | Finalidade | Localizacao | Base Legal (LGPD) |
-|--------------|-----------|-------------|-------------------|
+| --- | --- | --- | --- |
 | Configuracoes do Word | Aplicar formatacao padrao | Registro do Windows | Art. 7, V (Execucao de contrato) |
 | Backups de documentos | Recuperacao em caso de erro | `%TEMP%\.chainsaw\props\backups` | Art. 7, V (Execucao de contrato) |
 | Logs de operacao | Debugging e diagnostico | `%USERPROFILE%\chainsaw\source\logs` | Art. 7, V (Execucao de contrato) |
@@ -80,17 +80,17 @@ O CHAINSAW processa **exclusivamente em seu computador**:
 ### 4.1 Principios da LGPD (Art. 6)
 
 | Principio | Status | Implementacao |
-|-----------|--------|---------------|
-| **Finalidade** |  Conforme | Formatacao de documentos legislativos |
-| **Adequacao** |  Conforme | Processamento compativel com finalidade declarada |
-| **Necessidade** |  Conforme | Apenas dados tecnicos essenciais ao funcionamento |
-| **Livre Acesso** |  Conforme | Logs e backups acessiveis localmente pelo usuario |
-| **Qualidade dos Dados** |  Conforme | Dados tecnicos de sistema, sem dados pessoais |
-| **Transparencia** |  Conforme | Codigo aberto (GPLv3), documentacao completa |
-| **Seguranca** |  Conforme | Processamento local isolado, sem transmissao |
-| **Prevencao** |  Conforme | Arquitetura projetada para nao coletar dados |
-| **Nao Discriminacao** |  Conforme | Software acessivel a todos os usuarios |
-| **Responsabilizacao** |  Conforme | Documentacao e codigo auditavel |
+| --- | --- | --- |
+| **Finalidade** | Conforme | Formatacao de documentos legislativos |
+| **Adequacao** | Conforme | Processamento compativel com finalidade declarada |
+| **Necessidade** | Conforme | Apenas dados tecnicos essenciais ao funcionamento |
+| **Livre Acesso** | Conforme | Logs e backups acessiveis localmente pelo usuario |
+| **Qualidade dos Dados** | Conforme | Dados tecnicos de sistema, sem dados pessoais |
+| **Transparencia** | Conforme | Codigo aberto (GPLv3), documentacao completa |
+| **Seguranca** | Conforme | Processamento local isolado, sem transmissao |
+| **Prevencao** | Conforme | Arquitetura projetada para nao coletar dados |
+| **Nao Discriminacao** | Conforme | Software acessivel a todos os usuarios |
+| **Responsabilizacao** | Conforme | Documentacao e codigo auditavel |
 
 ### 4.2 Direitos dos Titulares (Art. 18)
 
@@ -119,11 +119,11 @@ O processamento tecnico local e realizado com base em:
 
 O CHAINSAW e licenciado sob **GNU General Public License v3.0**:
 
--  Codigo-fonte **100% aberto** e auditavel
--  Liberdade para **executar, estudar, modificar e distribuir**
--  **Transparencia total** nas operacoes do software
--  **Sem componentes proprietarios** ocultos
--  **Copyleft**: Derivacoes devem manter a mesma licenca
+- Codigo-fonte **100% aberto** e auditavel
+- Liberdade para **executar, estudar, modificar e distribuir**
+- **Transparencia total** nas operacoes do software
+- **Sem componentes proprietarios** ocultos
+- **Copyleft**: Derivacoes devem manter a mesma licenca
 
 ### 5.2 Garantias de Privacidade pela GPLv3
 
@@ -188,7 +188,7 @@ Todos os dados sao armazenados **localmente** em:
 ### 7.2 Retencao de Dados
 
 - **Logs**: Retencao limitada (mantem os 5 arquivos mais recentes por padrao)
-- **Backups**: Mantidos indefinidamente (podem ser excluidos manualmente)
+- **Backups**: Retencao limitada (mantem os 10 backups mais recentes por documento, por padrao)
 - **Configuracoes**: Mantidas enquanto o software for utilizado
 
 ### 7.3 Exclusao de Dados
@@ -211,13 +211,13 @@ Para remover todos os dados:
 
 **O CHAINSAW nao utiliza:**
 
--  Cookies
--  Web beacons
--  Pixels de rastreamento
--  Analytics (Google Analytics, etc.)
--  Telemetria
--  Fingerprinting
--  Rastreamento de comportamento
+- Cookies
+- Web beacons
+- Pixels de rastreamento
+- Analytics (Google Analytics, etc.)
+- Telemetria
+- Fingerprinting
+- Rastreamento de comportamento
 
 ---
 
@@ -260,10 +260,10 @@ O CHAINSAW pode verificar atualizacoes via:
 
 Durante atualizacao:
 
--  Acesso ao repositorio publico do GitHub
--  Download de arquivos do projeto
--  **Nenhum dado pessoal e enviado**
--  **Nenhum dado de uso e coletado**
+- Acesso ao repositorio publico do GitHub
+- Download de arquivos do projeto
+- **Nenhum dado pessoal e enviado**
+- **Nenhum dado de uso e coletado**
 
 ---
 
@@ -279,10 +279,11 @@ O CHAINSAW utiliza apenas:
 
 ### 12.2 Nenhum Servico Externo
 
--  Sem APIs de terceiros
--  Sem bibliotecas remotas
--  Sem servicos em nuvem
--  Sem SDKs de analytics
+- Sem APIs de terceiros
+- Sem bibliotecas remotas
+- Sem servicos em nuvem
+- Sem SDKs de analytics
+
 
 ---
 
@@ -301,10 +302,10 @@ Voce possui **controle total** sobre:
 
 Como software GPLv3, voce tem direito de:
 
--  Inspecionar o codigo-fonte completo
--  Modificar o software para suas necessidades
--  Redistribuir copias (mantendo a licenca GPLv3)
--  Contribuir com melhorias ao projeto
+- Inspecionar o codigo-fonte completo
+- Modificar o software para suas necessidades
+- Redistribuir copias (mantendo a licenca GPLv3)
+- Contribuir com melhorias ao projeto
 
 ### 13.3 Sem Vendor Lock-in
 
@@ -392,10 +393,10 @@ O codigo-fonte esta disponivel para auditoria em:
 
 **CERTIFICAMOS** que o CHAINSAW:
 
--  **NAO coleta** dados pessoais
--  **NAO transmite** dados pela internet (exceto para atualizacoes opcionais)
--  **NAO armazena** dados em servidores externos
--  **E totalmente auditavel** por ser codigo aberto
+- **NAO coleta** dados pessoais
+- **NAO transmite** dados pela internet (exceto para atualizacoes opcionais)
+- **NAO armazena** dados em servidores externos
+- **E totalmente auditavel** por ser codigo aberto
 
 ---
 
@@ -417,11 +418,11 @@ O codigo-fonte esta disponivel para auditoria em:
 
 O CHAINSAW foi desenvolvido com **maximo respeito a privacidade** dos usuarios. Por ser um software de processamento local e codigo aberto, oferece:
 
--  **Transparencia total** atraves do codigo-fonte aberto
--  **Controle total** do usuario sobre seus dados
--  **Privacidade por design** desde a concepcao
--  **Conformidade plena** com LGPD e principios internacionais
--  **Liberdade de software** garantida pela GPLv3
+- **Transparencia total** atraves do codigo-fonte aberto
+- **Controle total** do usuario sobre seus dados
+- **Privacidade por design** desde a concepcao
+- **Conformidade plena** com LGPD e principios internacionais
+- **Liberdade de software** garantida pela GPLv3
 
 **Esta politica reflete nosso compromisso com sua privacidade e liberdade digital.**
 
