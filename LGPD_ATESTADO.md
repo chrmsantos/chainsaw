@@ -1,7 +1,7 @@
 # ATESTADO DE CONFORMIDADE COM A LGPD - Lei Geral de Protecao de Dados Pessoais
 
 **Sistema:** CHAINSAW - Sistema de Padronizacao de Proposituras Legislativas  
-**Versao:** 2.8.8
+**Versao:** 3.0.0
 **Desenvolvedor:** Christian Martin dos Santos  
 **Data:** 16 de dezembro de 2025
 **Lei de Referencia:** Lei n 13.709/2018 (LGPD)

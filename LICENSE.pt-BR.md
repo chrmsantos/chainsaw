@@ -282,6 +282,6 @@ Para a versao oficial e juridicamente vinculativa, consulte sempre o arquivo [LI
 ---
 
 **Projeto:** CHAINSAW - Sistema de Padronizacao de Proposituras Legislativas  
-**Versao:** 2.9.7  
+**Versao:** 3.0.0  
 **Autor:** Christian Martin dos Santos  
 **Repositorio:** https://github.com/chrmsantos/chainsaw

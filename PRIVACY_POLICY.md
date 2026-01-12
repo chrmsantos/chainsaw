@@ -1,7 +1,7 @@
 # POLITICA DE PRIVACIDADE
 
 **Projeto:** CHAINSAW - Sistema de Padronizacao de Proposituras Legislativas  
-**Versao:** 2.8.8  
+**Versao:** 3.0.0  
 **Data de Vigencia:** 04 de dezembro de 2025  
 **Ultima Atualizacao:** 04 de dezembro de 2025
 
@@ -430,7 +430,7 @@ O CHAINSAW foi desenvolvido com **maximo respeito a privacidade** dos usuarios. 
 
 **Data de Vigencia:** 04 de dezembro de 2025  
 **Versao da Politica:** 1.0  
-**Versao do Software:** 2.8.8  
+**Versao do Software:** 3.0.0  
 
 **Ultima Atualizacao:** 04 de dezembro de 2025
 
