@@ -23,6 +23,10 @@ Logs: %USERPROFILE%\chainsaw\source\logs
 Backups: %TEMP%\.chainsaw\props\backups
 ```
 
+## Regras de formatacao (resumo)
+
+- Paragrafo contendo unicamente a palavra "vereador" ou "vereadora" (case-insensitive, com ou sem hifens/travessoes) vira " - Vereador - "/" - Vereadora - ", fonte normal, centralizado e com recuos a esquerda = 0.
+
 ## Testes
 
 ```powershell

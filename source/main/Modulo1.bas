@@ -3057,6 +3057,10 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     AddSpecialElementsSpacing doc
     LogStepComplete "Adicao de espacamento especial (ementa, justificativa, data)"
 
+    LogStepStart "Ajuste final de recuos para Vereador (travessoes)"
+    FixHyphenatedVereadorParagraphIndents doc
+    LogStepComplete "Ajuste final de recuos para Vereador (travessoes)"
+
     LogMessage "Formatacao completa aplicada com sucesso", LOG_LEVEL_INFO
     LogMetric "Total de paragrafos", doc.Paragraphs.count
     PreviousFormatting = True
@@ -3066,6 +3070,73 @@ ErrorHandler:
     LogMessage "Erro durante formatacao: " & Err.Description, LOG_LEVEL_ERROR
     PreviousFormatting = False
 End Function
+
+'================================================================================
+' AJUSTE FINAL - Zera recuo de paragrafos com marcador de Vereador/Vereadora (travessoes)
+' Ao final do processamento, se existirem paragrafos contendo exatamente essas
+' strings, garante recuo a esquerda = 0.
+'================================================================================
+Private Sub FixHyphenatedVereadorParagraphIndents(doc As Document)
+    On Error GoTo ErrorHandler
+
+    If doc Is Nothing Then Exit Sub
+
+    Dim para As Paragraph
+    Dim paraText As String
+    Dim counter As Long
+    Dim fixedCount As Long
+
+    counter = 0
+    fixedCount = 0
+
+    For Each para In doc.Paragraphs
+        counter = counter + 1
+        If counter Mod 30 = 0 Then DoEvents
+
+        paraText = Replace(Replace(para.Range.text, vbCr, ""), vbLf, "")
+
+        ' Normaliza espacos/tabs e hifens/travessoes para detectar o conteudo desejado
+        Dim normText As String
+        normText = Replace(paraText, vbTab, " ")
+        normText = Replace(normText, ChrW(8209), "-") ' non-breaking hyphen
+        normText = Replace(normText, ChrW(8211), "-") ' en dash
+        normText = Replace(normText, ChrW(8212), "-") ' em dash
+        normText = Replace(normText, ChrW(8722), "-") ' minus sign
+        normText = Trim$(normText)
+        Do While InStr(normText, "  ") > 0
+            normText = Replace(normText, "  ", " ")
+        Loop
+
+        If normText = "- Vereador -" Or normText = "- Vereadora -" Or IsVereadorPattern(paraText) Then
+            On Error Resume Next
+            para.Range.ListFormat.RemoveNumbers
+            On Error Resume Next
+
+            With para.Format
+                .leftIndent = 0
+                .firstLineIndent = 0
+                .RightIndent = 0
+            End With
+
+            With para.Range.ParagraphFormat
+                .leftIndent = 0
+                .firstLineIndent = 0
+                .RightIndent = 0
+            End With
+
+            fixedCount = fixedCount + 1
+        End If
+    Next para
+
+    If fixedCount > 0 Then
+        LogMessage "Recuos ajustados para " & fixedCount & " paragrafo(s) de Vereador/Vereadora", LOG_LEVEL_INFO
+    End If
+
+    Exit Sub
+
+ErrorHandler:
+    LogMessage "Erro ao ajustar recuos de Vereador/Vereadora: " & Err.Description, LOG_LEVEL_WARNING
+End Sub
 
 '================================================================================
 ' EMENTA - Remove prefixos "EMENTA:" / "ASSUNTO:" quando forem a primeira palavra
@@ -8159,6 +8230,20 @@ NextVariant:
         LogMessage "Substituicao aplicada: ' Setor Competente ' -> ' setor competente ' (" & competenteCount & "x)", LOG_LEVEL_INFO
     End If
 
+    ' Funcionalidade 15: No 1 paragrafo apos a ementa, normaliza "... para sugerir" -> "... para indicar"
+    Dim art108IndicarCount As Long
+    art108IndicarCount = NormalizeArt108ParaIndicarAfterEmenta(doc)
+    If art108IndicarCount > 0 Then
+        LogMessage "Substituicao aplicada: 'para sugerir' -> 'para indicar' no 1 paragrafo apos a ementa (" & art108IndicarCount & "x)", LOG_LEVEL_INFO
+    End If
+
+    ' Funcionalidade 15: Normaliza a abertura do Art. 108 no 1 paragrafo apos a ementa
+    Dim art108Count As Long
+    art108Count = NormalizeArt108IntroAfterEmenta(doc)
+    If art108Count > 0 Then
+        LogMessage "Substituicao aplicada: abertura Art. 108 normalizada no 1 paragrafo apos a ementa (" & art108Count & "x)", LOG_LEVEL_INFO
+    End If
+
     ' Funcionalidade 13: Normaliza variantes de "tapa-buracos"
     Dim tapaBuracosCount As Long
     tapaBuracosCount = 0
@@ -8193,6 +8278,260 @@ ErrorHandler:
     End If
     ' Continua execucao - erros de substituicao nao sao criticos
     ApplyTextReplacements = True
+End Function
+
+'================================================================================
+' NORMALIZA "... PARA SUGERIR" -> "... PARA INDICAR" NO 1 PARAGRAFO APOS EMENTA
+' Regras:
+' - No primeiro paragrafo textual subsequente a ementa, se INICIAR (case-insensitive)
+'   com: "Nos termos do Art. 108 ... dirijo-me a Vossa Excelencia para sugerir"
+'   substitui esse trecho inicial por uma versao (case-sensitive) com "para indicar".
+' - Tolerante a caracteres nao-ASCII comuns do Word (NBSP, travessoes/hifens).
+'================================================================================
+Private Function NormalizeArt108ParaIndicarAfterEmenta(doc As Document) As Long
+    On Error GoTo ErrorHandler
+
+    NormalizeArt108ParaIndicarAfterEmenta = 0
+    If doc Is Nothing Then Exit Function
+
+    Dim ementaIdx As Long
+    ementaIdx = FindEmentaParagraphIndex(doc)
+    If ementaIdx <= 0 Or ementaIdx >= doc.Paragraphs.count Then Exit Function
+
+    Dim oldPhrase As String
+    Dim newPhrase As String
+    oldPhrase = "Nos termos do Art. 108 do Regimento Interno desta Casa de Leis, dirijo-me a Vossa Excel" & ChrW(234) & "ncia para sugerir"
+    newPhrase = "Nos termos do Art. 108 do Regimento Interno desta Casa de Leis, dirijo-me a Vossa Excel" & ChrW(234) & "ncia para indicar"
+
+    Dim oldNormNoSpace As String
+    oldNormNoSpace = Replace(NormalizeForComparison(oldPhrase), " ", "")
+
+    Dim i As Long
+    For i = ementaIdx + 1 To doc.Paragraphs.count
+        Dim para As Paragraph
+        Set para = doc.Paragraphs(i)
+
+        If HasVisualContent(para) Then GoTo NextPara
+
+        Dim rawText As String
+        rawText = Replace(Replace(para.Range.text, vbCr, ""), vbLf, "")
+
+        Dim trimmedText As String
+        trimmedText = LTrim$(rawText)
+        If Len(Trim$(trimmedText)) = 0 Then GoTo NextPara
+
+        Dim leadingSpacesLen As Long
+        leadingSpacesLen = Len(rawText) - Len(trimmedText)
+
+        ' Normaliza para comparacao tolerante
+        Dim cmpText As String
+        cmpText = trimmedText
+        cmpText = Replace(cmpText, ChrW(160), " ")
+        cmpText = Replace(cmpText, vbTab, " ")
+        cmpText = Replace(cmpText, ChrW(8209), "-")
+        cmpText = Replace(cmpText, ChrW(8211), "-")
+        cmpText = Replace(cmpText, ChrW(8212), "-")
+        cmpText = Replace(cmpText, ChrW(8722), "-")
+
+        Dim cmpNormNoSpace As String
+        cmpNormNoSpace = Replace(NormalizeForComparison(cmpText), " ", "")
+
+        If Len(cmpNormNoSpace) < Len(oldNormNoSpace) Then GoTo NextPara
+        If Left$(cmpNormNoSpace, Len(oldNormNoSpace)) <> oldNormNoSpace Then GoTo NextPara
+
+        ' Encontra a posicao de "sugerir" no texto original (para definir o range a substituir)
+        Dim posSugerir As Long
+        posSugerir = InStr(1, trimmedText, "sugerir", vbTextCompare)
+        If posSugerir <= 0 Then GoTo NextPara
+
+        Dim endPos As Long
+        endPos = posSugerir + Len("sugerir") - 1
+
+        Dim replaceRng As Range
+        Set replaceRng = para.Range.Duplicate
+        If replaceRng.End > replaceRng.Start Then replaceRng.End = replaceRng.End - 1
+
+        replaceRng.Start = replaceRng.Start + leadingSpacesLen
+        replaceRng.End = replaceRng.Start + endPos
+        replaceRng.text = newPhrase
+
+        documentDirty = True
+        NormalizeArt108ParaIndicarAfterEmenta = 1
+        Exit Function
+
+NextPara:
+    Next i
+
+    Exit Function
+
+ErrorHandler:
+    NormalizeArt108ParaIndicarAfterEmenta = 0
+End Function
+
+'================================================================================
+' NORMALIZA ABERTURA DO ART. 108 NO 1 PARAGRAFO APOS EMENTA
+    ' Regras:
+    ' - No primeiro paragrafo textual subsequente a ementa, se INICIAR (case-insensitive)
+    '   com o prefixo do Art. 108 e, em seguida, tiver exatamente:
+    '     "Setor, " OU "Setor competente, "
+    '   substitui esse trecho inicial por um texto padrao (case-sensitive)
+    '   com "setor competente" (minusculo).
+'================================================================================
+Private Function NormalizeArt108IntroAfterEmenta(doc As Document) As Long
+    On Error GoTo ErrorHandler
+
+    NormalizeArt108IntroAfterEmenta = 0
+    If doc Is Nothing Then Exit Function
+
+    Dim ementaIdx As Long
+    ementaIdx = FindEmentaParagraphIndex(doc)
+    If ementaIdx <= 0 Or ementaIdx >= doc.Paragraphs.count Then Exit Function
+
+    Dim prefixBase As String
+    Dim newText As String
+
+    ' ASCII-safe: acentos via ChrW
+    prefixBase = "Nos termos do Art. 108 do Regimento Interno desta Casa de Leis, dirijo-me a Vossa Excel" & ChrW(234) & "ncia para indicar que, por interm" & ChrW(233) & "dio do"
+    newText = "Nos termos do Art. 108 do Regimento Interno desta Casa de Leis, dirijo-me a Vossa Excel" & ChrW(234) & "ncia para indicar que, por interm" & ChrW(233) & "dio do setor competente, "
+
+    Dim prefixNormNoSpace As String
+    prefixNormNoSpace = Replace(NormalizeForComparison(prefixBase), " ", "")
+
+    Dim i As Long
+    For i = ementaIdx + 1 To doc.Paragraphs.count
+        Dim para As Paragraph
+        Set para = doc.Paragraphs(i)
+
+        ' Apenas paragrafos textuais
+        If HasVisualContent(para) Then GoTo NextPara
+
+        Dim rawText As String
+        rawText = Replace(Replace(para.Range.text, vbCr, ""), vbLf, "")
+
+        Dim trimmedText As String
+        trimmedText = LTrim$(rawText)
+
+        If Len(Trim$(trimmedText)) = 0 Then GoTo NextPara
+
+        Dim leadingSpacesLen As Long
+        leadingSpacesLen = Len(rawText) - Len(trimmedText)
+
+        ' Prepara texto para comparacao:
+        ' - Troca NBSP/tab por espaco
+        ' - Normaliza hifens/travessoes comuns do Word para '-'
+        ' - Remove espacos para tolerar variacoes (ex: "Art.108" vs "Art. 108")
+        Dim cmpText As String
+        cmpText = trimmedText
+        cmpText = Replace(cmpText, ChrW(160), " ")
+        cmpText = Replace(cmpText, vbTab, " ")
+        cmpText = Replace(cmpText, ChrW(8209), "-") ' non-breaking hyphen
+        cmpText = Replace(cmpText, ChrW(8211), "-") ' en dash
+        cmpText = Replace(cmpText, ChrW(8212), "-") ' em dash
+        cmpText = Replace(cmpText, ChrW(8722), "-") ' minus sign
+
+        Dim cmpNormNoSpace As String
+        cmpNormNoSpace = Replace(NormalizeForComparison(cmpText), " ", "")
+
+        ' Confirma que o paragrafo inicia com o prefixo do Art. 108 (tolerante a espacos/acentos)
+        If Len(cmpNormNoSpace) < Len(prefixNormNoSpace) Then GoTo NextPara
+        If Left$(cmpNormNoSpace, Len(prefixNormNoSpace)) <> prefixNormNoSpace Then GoTo NextPara
+
+        ' Confirma que imediatamente apos o prefixo existe exatamente "setor," ou "setorcompetente,"
+        Dim afterPrefix As String
+        afterPrefix = Mid$(cmpNormNoSpace, Len(prefixNormNoSpace) + 1)
+        If Not (Left$(afterPrefix, Len("setor,")) = "setor," Or Left$(afterPrefix, Len("setorcompetente,")) = "setorcompetente,") Then
+            GoTo NextPara
+        End If
+
+        ' Localiza o trecho "Setor ...," (aceita "Setor," e "Setor competente,")
+        Dim setorPos As Long
+        setorPos = InStr(1, trimmedText, "Setor", vbTextCompare)
+        If setorPos <= 0 Then GoTo NextPara
+
+        ' Valida a forma exata apos a palavra Setor (case-insensitive), permitindo espacos/NBSP:
+        ' - ","  OU
+        ' - " competente,".
+        Dim posAfterSetor As Long
+        posAfterSetor = setorPos + Len("Setor")
+
+        Do While posAfterSetor <= Len(trimmedText)
+            Dim chS As String
+            chS = Mid$(trimmedText, posAfterSetor, 1)
+            If chS = " " Or AscW(chS) = 160 Then
+                posAfterSetor = posAfterSetor + 1
+            Else
+                Exit Do
+            End If
+        Loop
+
+        Dim okForm As Boolean
+        okForm = False
+
+        If posAfterSetor <= Len(trimmedText) Then
+            If Mid$(trimmedText, posAfterSetor, 1) = "," Then
+                okForm = True
+            ElseIf LCase$(Mid$(trimmedText, posAfterSetor, Len("competente"))) = "competente" Then
+                Dim posAfterCompetente As Long
+                posAfterCompetente = posAfterSetor + Len("competente")
+
+                Do While posAfterCompetente <= Len(trimmedText)
+                    Dim chC As String
+                    chC = Mid$(trimmedText, posAfterCompetente, 1)
+                    If chC = " " Or AscW(chC) = 160 Then
+                        posAfterCompetente = posAfterCompetente + 1
+                    Else
+                        Exit Do
+                    End If
+                Loop
+
+                If posAfterCompetente <= Len(trimmedText) Then
+                    If Mid$(trimmedText, posAfterCompetente, 1) = "," Then
+                        okForm = True
+                    End If
+                End If
+            End If
+        End If
+
+        If Not okForm Then GoTo NextPara
+
+        Dim commaPos As Long
+        commaPos = InStr(setorPos, trimmedText, ",", vbBinaryCompare)
+        If commaPos <= 0 Then GoTo NextPara
+
+        Dim endPos As Long
+        endPos = commaPos + 1
+
+        ' Inclui espacos apos a virgula (espaco normal e NBSP)
+        Do While endPos <= Len(trimmedText)
+            Dim ch As String
+            ch = Mid$(trimmedText, endPos, 1)
+            If ch = " " Or AscW(ch) = 160 Then
+                endPos = endPos + 1
+            Else
+                Exit Do
+            End If
+        Loop
+
+        Dim replaceRng As Range
+        Set replaceRng = para.Range.Duplicate
+        If replaceRng.End > replaceRng.Start Then replaceRng.End = replaceRng.End - 1 ' exclui marca de paragrafo
+
+        replaceRng.Start = replaceRng.Start + leadingSpacesLen
+        replaceRng.End = replaceRng.Start + (endPos - 1)
+        replaceRng.text = newText
+
+        documentDirty = True
+        NormalizeArt108IntroAfterEmenta = 1
+
+        Exit Function ' apenas o primeiro paragrafo textual apos a ementa
+
+NextPara:
+    Next i
+
+    Exit Function
+
+ErrorHandler:
+    NormalizeArt108IntroAfterEmenta = 0
 End Function
 
 '================================================================================
@@ -8278,7 +8617,6 @@ Private Sub FormatVereadorParagraphs(doc As Document)
     Dim para As Paragraph
     Dim prevPara As Paragraph
     Dim NextPara As Paragraph
-    Dim cleanText As String
     Dim i As Long
     Dim formattedCount As Long
 
@@ -8288,27 +8626,10 @@ Private Sub FormatVereadorParagraphs(doc As Document)
     For i = 1 To doc.Paragraphs.count
         Set para = doc.Paragraphs(i)
 
-        ' OBS: O paragrafo pode conter imagens/pontuacao/caracteres nao-textuais.
-        ' A deteccao abaixo ignora tudo que nao for letra e valida se sobrou apenas "vereador"/"vereadora".
+        ' OBS: O paragrafo pode conter pontuacao/travessoes/hifens.
+        ' A deteccao abaixo ignora tudo que nao for letra e valida se sobrou apenas "vereador".
         If IsVereadorPattern(para.Range.text) Then
-            On Error Resume Next
-
-            ' Remove negrito do paragrafo "vereador"
-            With para.Range.Font
-                .Bold = False
-                .Name = STANDARD_FONT
-                .size = STANDARD_FONT_SIZE
-            End With
-
-            ' Centraliza e zera recuo do proprio paragrafo "vereador"
-            With para.Format
-                .alignment = wdAlignParagraphCenter
-                .leftIndent = 0
-                .firstLineIndent = 0
-                .RightIndent = 0
-            End With
-
-            On Error GoTo ErrorHandler
+            ApplyVereadorParagraphFormatting para
 
             ' Formata linha ACIMA (se existir): centraliza, zera recuo, aplica caixa alta e negrito (somente se nao houver conteudo visual)
             If i > 1 Then
@@ -8356,6 +8677,139 @@ Private Sub FormatVereadorParagraphs(doc As Document)
 
 ErrorHandler:
     LogMessage "Erro ao formatar paragrafos 'Vereador': " & Err.Description, LOG_LEVEL_ERROR
+End Sub
+
+'================================================================================
+' VEREADOR - FORMATACAO DEDICADA
+' Regras:
+' - Paragrafo contendo unicamente a palavra "vereador" (case-insensitive), mesmo cercada por hifens/travessoes,
+'   deve ficar como "Vereador".
+' - Fonte normal (sem negrito/italico/sublinhado/caixa alta), centralizado e com recuos a esquerda = 0.
+'================================================================================
+Private Sub ApplyVereadorParagraphFormatting(para As Paragraph)
+    On Error Resume Next
+
+    ' IMPORTANTE: " - Vereador - " pode disparar autoformatacao de lista (bullets),
+    ' gerando recuo padrao (ex: 1,25 cm). Desabilita temporariamente.
+    Dim prevAutoBullets As Boolean
+    Dim prevAutoNumbers As Boolean
+    Dim canToggleAutoFormat As Boolean
+    canToggleAutoFormat = False
+
+    Err.Clear
+    prevAutoBullets = Application.Options.AutoFormatAsYouTypeApplyBulletedLists
+    prevAutoNumbers = Application.Options.AutoFormatAsYouTypeApplyNumberedLists
+    If Err.Number = 0 Then
+        canToggleAutoFormat = True
+        Application.Options.AutoFormatAsYouTypeApplyBulletedLists = False
+        Application.Options.AutoFormatAsYouTypeApplyNumberedLists = False
+    End If
+    Err.Clear
+
+    Dim rngText As Range
+    Set rngText = para.Range.Duplicate
+    If rngText.End > rngText.Start Then rngText.End = rngText.End - 1 ' exclui marca de paragrafo
+
+    Dim targetWord As String
+    targetWord = GetVereadorNormalizedWord(para.Range.text)
+    If targetWord = "" Then GoTo Cleanup
+
+    ' Evita apagar imagens/shapes: so reescreve texto quando nao ha conteudo visual.
+    If Not HasVisualContent(para) Then
+        rngText.text = targetWord
+    Else
+        ' Caso especial: quando ha conteudo visual, nao reescreva o paragrafo inteiro.
+        ' Em vez disso, localiza a palavra e substitui tambem os caracteres nao-letra ao redor
+        ' (hifens, travessoes, espacos, pontuacao), evitando duplicacoes como "- - Vereador - -".
+        Dim doc As Document
+        Set doc = para.Range.Document
+
+        Dim searchWord As String
+        If InStr(1, targetWord, "Vereadora", vbTextCompare) > 0 Then
+            searchWord = "vereadora"
+        Else
+            searchWord = "vereador"
+        End If
+
+        Dim findRng As Range
+        Set findRng = rngText.Duplicate
+
+        With findRng.Find
+            .ClearFormatting
+            .Replacement.ClearFormatting
+            .Forward = True
+            .Wrap = wdFindStop
+            .Format = False
+            .MatchCase = False
+            .MatchWholeWord = True
+            .MatchWildcards = False
+            .text = searchWord
+        End With
+
+        If findRng.Find.Execute Then
+            Dim replaceStart As Long
+            Dim replaceEnd As Long
+            replaceStart = findRng.Start
+            replaceEnd = findRng.End
+
+            Do While replaceStart > rngText.Start
+                Dim chLeft As String
+                chLeft = doc.Range(replaceStart - 1, replaceStart).text
+                If IsAsciiLetterChar(chLeft) Then Exit Do
+                replaceStart = replaceStart - 1
+            Loop
+
+            Do While replaceEnd < rngText.End
+                Dim chRight As String
+                chRight = doc.Range(replaceEnd, replaceEnd + 1).text
+                If IsAsciiLetterChar(chRight) Then Exit Do
+                replaceEnd = replaceEnd + 1
+            Loop
+
+            doc.Range(replaceStart, replaceEnd).text = targetWord
+        End If
+    End If
+
+    ' Estilo e fonte normal
+    para.Style = "Normal"
+
+    ' Remove formatacao de lista (causa comum de recuo 1,25cm)
+    On Error Resume Next
+    para.Range.ListFormat.RemoveNumbers
+    On Error Resume Next
+    With para.Range.Font
+        .Bold = False
+        .Italic = False
+        .Underline = wdUnderlineNone
+        .AllCaps = False
+        .Name = STANDARD_FONT
+        .size = STANDARD_FONT_SIZE
+        .Color = wdColorAutomatic
+    End With
+
+    ' Centraliza e zera recuos
+    With para.Format
+        .alignment = wdAlignParagraphCenter
+        .leftIndent = 0
+        .firstLineIndent = 0
+        .RightIndent = 0
+    End With
+
+    ' Reforco adicional (em alguns casos, para.Format nao vence estilo/lista)
+    With para.Range.ParagraphFormat
+        .leftIndent = 0
+        .firstLineIndent = 0
+        .RightIndent = 0
+    End With
+
+Cleanup:
+    ' Restaura configuracoes de autoformatacao
+    If canToggleAutoFormat Then
+        Err.Clear
+        Application.Options.AutoFormatAsYouTypeApplyBulletedLists = prevAutoBullets
+        Application.Options.AutoFormatAsYouTypeApplyNumberedLists = prevAutoNumbers
+        Err.Clear
+    End If
 End Sub
 
 '================================================================================
@@ -8570,17 +9024,37 @@ End Sub
 ' FUNCOES AUXILIARES PARA DETECCAO DE PADROES
 '================================================================================
 Private Function IsVereadorPattern(text As String) As Boolean
+    IsVereadorPattern = (GetVereadorNormalizedWord(text) <> "")
+End Function
+
+Private Function GetVereadorNormalizedWord(text As String) As String
     Dim cleanText As String
 
-    ' Remove quebras e espacos para analise
     cleanText = Replace(Replace(text, vbCr, ""), vbLf, "")
     cleanText = Trim$(cleanText)
-
-    ' Mantem apenas letras (ignora pontuacao, numeros, marcadores do Word e conteudo nao-textual)
     cleanText = NormalizeLettersOnly(cleanText)
 
-    ' Verifica se sobrou apenas "vereador"/"vereadora" (case-insensitive por normalizacao)
-    IsVereadorPattern = (cleanText = "vereador" Or cleanText = "vereadora")
+    ' Retorna com travessoes (em dash) e sem espacos antes/depois da expressao
+    If cleanText = "vereador" Then
+        GetVereadorNormalizedWord = ChrW(8212) & " Vereador " & ChrW(8212)
+    ElseIf cleanText = "vereadora" Then
+        GetVereadorNormalizedWord = ChrW(8212) & " Vereadora " & ChrW(8212)
+    Else
+        GetVereadorNormalizedWord = ""
+    End If
+End Function
+
+Private Function IsAsciiLetterChar(ch As String) As Boolean
+    If Len(ch) <> 1 Then
+        IsAsciiLetterChar = False
+        Exit Function
+    End If
+
+    Dim code As Long
+    code = AscW(ch)
+    If code < 0 Then code = code + 65536
+
+    IsAsciiLetterChar = ((code >= 65 And code <= 90) Or (code >= 97 And code <= 122))
 End Function
 
 Private Function NormalizeLettersOnly(text As String) As String
@@ -10386,10 +10860,10 @@ Private Sub RemoverLinhasEmBrancoExtras(doc As Document)
 
         On Error Resume Next
 
-        ' Espacamento extra antes e depois da data
+        ' Paragrafo do Plenario (local e data) deve ficar sem espacamento antes/depois
         If InStr(cleanTxt, "plenario") > 0 And InStr(cleanTxt, "tancredo neves") > 0 Then
-            para.Format.SpaceBefore = 24
-            para.Format.SpaceAfter = 24
+            para.Format.SpaceBefore = 0
+            para.Format.SpaceAfter = 0
         End If
 
         ' Centraliza nome, cargo e partido
@@ -10791,6 +11265,8 @@ Private Sub ReplacePlenarioDateParagraph(doc As Document)
                         .leftIndent = 0
                         .firstLineIndent = 0
                         .alignment = wdAlignParagraphCenter
+                        .SpaceBefore = 0
+                        .SpaceAfter = 0
                     End With
                     LogMessage "Paragrafo de plenario substituido e formatado", LOG_LEVEL_INFO
                     Exit For
@@ -11335,15 +11811,10 @@ Private Sub ApplyUniversalFinalFormatting(doc As Document)
             .SpaceAfter = 0    ' Sem espaco depois do paragrafo
         End With
 
-        ' GARANTIA: paragrafo contendo apenas "vereador" (case-insensitive), mesmo com pontuacao/imagens,
-        ' deve sempre ficar centralizado e com recuos 0 ao final do processamento.
+        ' GARANTIA: paragrafo contendo apenas "vereador" (case-insensitive), mesmo com pontuacao/hifens,
+        ' deve sempre ficar como "Vereador", fonte normal, centralizado e com recuos 0 ao final do processamento.
         If IsVereadorPattern(para.Range.text) Then
-            With para.Format
-                .alignment = wdAlignParagraphCenter
-                .leftIndent = 0
-                .firstLineIndent = 0
-                .RightIndent = 0
-            End With
+            ApplyVereadorParagraphFormatting para
         End If
 
         If Err.Number = 0 Then

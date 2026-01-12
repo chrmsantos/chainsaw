@@ -8,6 +8,7 @@ Only high-relevance technical or functional changes are listed here.
 - Rename non-ASCII paths to ASCII equivalents.
 - Add GPLv3 Portuguese (pt-BR) non-official translation file.
 - Update encoding tests to assert ASCII-only policy.
+- Normalize "Vereador/Vereadora" paragraph: force casing, normal font, centered, and left indents = 0.
 
 ## [2.9.7] - 2026-01-09
 

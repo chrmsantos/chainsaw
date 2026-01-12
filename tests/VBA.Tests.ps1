@@ -280,6 +280,28 @@ Describe 'CHAINSAW - Testes do Modulo VBA Modulo1.bas' {
         }
     }
 
+    Context 'Regras de Formatacao - Vereador' {
+
+        It 'IsVereadorPattern aceita "vereador" e "vereadora"' {
+            $block = Get-VbaProcedureBlock -Lines $script:vbaLines -Name 'IsVereadorPattern'
+            $block | Should Not BeNullOrEmpty
+
+            $block -match 'GetVereadorNormalizedWord' | Should Be $true
+        }
+
+        It 'Aplica "Vereador" com recuos 0 e centralizado' {
+            $block = Get-VbaProcedureBlock -Lines $script:vbaLines -Name 'ApplyVereadorParagraphFormatting'
+            $block | Should Not BeNullOrEmpty
+
+            # A implementacao atual normaliza o paragrafo para "Vereador"/"Vereadora"
+            # sem depender de strings literais com hifens.
+            $block -match 'GetVereadorNormalizedWord' | Should Be $true
+            $block -match '\.alignment\s*=\s*wdAlignParagraphCenter' | Should Be $true
+            $block -match '\.leftIndent\s*=\s*0' | Should Be $true
+            $block -match '\.firstLineIndent\s*=\s*0' | Should Be $true
+        }
+    }
+
     Context 'Sistema de Cache de Paragrafos' {
 
         It 'Possui funcao BuildParagraphCache' {
