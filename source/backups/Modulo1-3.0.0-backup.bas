@@ -1,8 +1,8 @@
 ' =============================================================================
 ' CHAINSAW - Sistema de Padronizacao de Proposituras Legislativas
 ' =============================================================================
-' Versao: 2.9.7
-' Data: 2025-12-18
+' Versao: 3.0.0
+' Data: 2026-01-12
 ' Licenca: GNU GPLv3 (https://www.gnu.org/licenses/gpl-3.0.html)
 ' Compatibilidade: Microsoft Word 2010+
 ' Autor: Christian Martin dos Santos (chrmsantos@protonmail.com)
@@ -125,12 +125,12 @@
 '                - FormatNumberedParagraphsIndent
 '                - FormatBulletedParagraphsIndent
 '
-' [MOD.FINAL]    FORMATACAO FINAL ................................... ~L9842
+' [MOD.UPDATE]   VERIFICACAO DE ATUALIZACAO ......................... ~L9666
+'                - CheckForUpdates, ExecutarInstalador
+
+' [MOD.FINAL]    FORMATACAO FINAL ................................... ~L10052
 '                - ApplyUniversalFinalFormatting
 '                - AddSpecialSpacing
-'
-' [MOD.UPDATE]   VERIFICACAO DE ATUALIZACAO ......................... ~L9456
-'                - CheckForUpdates, ExecutarInstalador
 '
 ' =============================================================================
 
@@ -175,7 +175,7 @@ Private Const wdPrintView As Long = 3
 '================================================================================
 Private Const STANDARD_FONT As String = "Arial"
 Private Const STANDARD_FONT_SIZE As Long = 12
-Private Const FOOTER_FONT_SIZE As Long = 9
+Private Const FOOTER_FONT_SIZE As Long = 10
 Private Const LINE_SPACING As Single = 14
 
 Private Const TOP_MARGIN_CM As Double = 4.85
@@ -193,7 +193,7 @@ Private Const HEADER_IMAGE_HEIGHT_RATIO As Double = 0.19
 '================================================================================
 ' CONSTANTES DE SISTEMA
 '================================================================================
-Private Const CHAINSAW_VERSION As String = "2.9.7"
+Private Const CHAINSAW_VERSION As String = "3.0.0"
 Private Const MIN_SUPPORTED_VERSION As Long = 14
 Private Const REQUIRED_STRING As String = "$NUMERO$/$ANO$"
 Private Const MAX_BACKUP_FILES As Long = 10
@@ -208,6 +208,9 @@ Private Const RETRY_DELAY_MS As Long = 1000
 Private Const MAX_LOOP_ITERATIONS As Long = 1000
 Private Const MAX_INITIAL_PARAGRAPHS_TO_SCAN As Long = 50
 Private Const MAX_OPERATION_TIMEOUT_SECONDS As Long = 300
+
+' Verificacao de atualizacao
+Private Const UPDATE_CHECK_COOLDOWN_MINUTES As Long = 60
 
 Private Const CONSIDERANDO_PREFIX As String = "considerando"
 Private Const CONSIDERANDO_MIN_LENGTH As Long = 12
@@ -241,6 +244,13 @@ Private logFileHandle As Integer
 Private logBufferEnabled As Boolean
 Private logBuffer As String
 Private lastFlushTime As Date
+
+' Cache de verificacao de atualizacao (evita chamadas repetidas e travamentos)
+Private lastUpdateCheckAttempt As Date
+Private lastUpdateCheckSucceeded As Boolean
+Private cachedUpdateAvailable As Boolean
+Private cachedLocalVersion As String
+Private cachedRemoteVersion As String
 
 ' Cache de paragrafos para otimizacao
 Private Type paragraphCache
@@ -425,6 +435,21 @@ Public Sub PadronizarDocumentoMain()
         LogMessage "Aviso: Falha no backup de listas - formatacoes de lista podem ser perdidas", LOG_LEVEL_WARNING
     End If
 
+    ' ---------------------------------------------------------------------------
+    ' INICIO DO GRUPO DE DESFAZER (UndoRecord) - melhor esforco
+    ' ---------------------------------------------------------------------------
+    On Error Resume Next
+    Application.UndoRecord.StartCustomRecord "CHAINSAW - Padronizacao"
+    If Err.Number = 0 Then
+        undoGroupEnabled = True
+        LogMessage "UndoRecord iniciado", LOG_LEVEL_INFO
+    Else
+        undoGroupEnabled = False
+        Err.Clear
+    End If
+    On Error GoTo CriticalErrorHandler
+    ' ---------------------------------------------------------------------------
+
     ' ==========================================================================
     ' PIPELINE DE FORMATACAO (DUPLA PASSAGEM OTIMIZADA)
     ' ==========================================================================
@@ -596,6 +621,193 @@ CriticalErrorHandler:
     ' CRITICO: Garante fechamento do UndoRecord mesmo em erro
     GoTo CleanUp
 End Sub
+
+'================================================================================
+' CONCLUIR - Copia ementa, salva e fecha com seguranca
+'================================================================================
+' Regras:
+' - Copia o texto da ementa para a area de transferencia
+' - Salva o documento atual e somente fecha se o salvamento foi bem sucedido
+' - Se houver apenas o documento ativo aberto: fecha o Word
+' - Se houver outros documentos abertos e algum NAO estiver salvo: minimiza o Word
+' - Nao exibe mensagens ao usuario, exceto em caso de erro (e aborta com seguranca)
+Public Sub concluir()
+    On Error GoTo ErrorHandler
+
+    Dim doc As Document
+    Set doc = Nothing
+    Set doc = ActiveDocument
+    If doc Is Nothing Then GoTo ErrorHandler
+
+    ' Captura estado dos outros documentos ANTES de fechar o atual
+    Dim docsCountBefore As Long
+    docsCountBefore = Application.Documents.count
+
+    Dim hasOtherUnsaved As Boolean
+    hasOtherUnsaved = False
+
+    Dim d As Document
+    For Each d In Application.Documents
+        If Not (d Is doc) Then
+            If d.Saved = False Then
+                hasOtherUnsaved = True
+                Exit For
+            End If
+        End If
+    Next d
+
+    ' Copia a ementa (texto) para a area de transferencia
+    If Not CopyEmentaToClipboard(doc) Then
+        Err.Raise vbObjectError + 651, "concluir", "Nao foi possivel copiar a ementa para a area de transferencia."
+    End If
+
+    ' Salva com verificacao: nao fecha nada antes de garantir que salvou
+    If Not SaveDocumentSafely(doc) Then
+        Err.Raise vbObjectError + 652, "concluir", "Nao foi possivel salvar o documento com seguranca."
+    End If
+
+    ' Fecha o documento somente apos confirmar salvamento
+    doc.Close SaveChanges:=wdDoNotSaveChanges
+
+    ' Se era o unico documento aberto, fecha o Word
+    If docsCountBefore <= 1 Then
+        Application.Quit SaveChanges:=wdDoNotSaveChanges
+        Exit Sub
+    End If
+
+    ' Se ha outros documentos NAO salvos, minimiza o Word
+    If hasOtherUnsaved Then
+        On Error Resume Next
+        Application.WindowState = wdWindowStateMinimize
+        If Err.Number <> 0 Then
+            Err.Clear
+            If Not Application.ActiveWindow Is Nothing Then
+                Application.ActiveWindow.WindowState = wdWindowStateMinimize
+            End If
+        End If
+        On Error GoTo ErrorHandler
+    End If
+
+    Exit Sub
+
+ErrorHandler:
+    ' Interrompe com seguranca: nao fecha documento/Word em erro
+    Dim msg As String
+    msg = "Erro em 'concluir': " & Err.Description
+    On Error Resume Next
+    MsgBox msg, vbCritical, "CHAINSAW - Erro"
+End Sub
+
+Private Function SaveDocumentSafely(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+
+    SaveDocumentSafely = False
+    If doc Is Nothing Then Exit Function
+
+    ' Evita dialogs: se nao tiver caminho, Save pode abrir 'Salvar Como'
+    If doc.Path = "" Then Exit Function
+    If doc.ReadOnly Then Exit Function
+
+    On Error Resume Next
+    doc.Save
+    If Err.Number <> 0 Then
+        Err.Clear
+        On Error GoTo ErrorHandler
+        Exit Function
+    End If
+    On Error GoTo ErrorHandler
+
+    ' Confirmacao minima: Word marcou como salvo
+    If doc.Saved = True Then
+        SaveDocumentSafely = True
+    End If
+
+    Exit Function
+
+ErrorHandler:
+    SaveDocumentSafely = False
+End Function
+
+Private Function CopyEmentaToClipboard(doc As Document) As Boolean
+    On Error GoTo ErrorHandler
+
+    CopyEmentaToClipboard = False
+    If doc Is Nothing Then Exit Function
+
+    Dim ementaText As String
+    ementaText = ""
+
+    Dim rng As Range
+    Set rng = Nothing
+    Set rng = GetEmentaRange(doc)
+
+    If Not rng Is Nothing Then
+        ementaText = rng.text
+    Else
+        ' Fallback (mais tolerante): tenta extrair via heuristica
+        ementaText = GetEmentaText(doc)
+    End If
+
+    ementaText = Trim$(Replace(Replace(ementaText, vbCr, ""), vbLf, ""))
+    If ementaText = "" Then Exit Function
+
+    ' Tenta copiar texto puro para a area de transferencia
+    If PutTextInClipboard(ementaText) Then
+        CopyEmentaToClipboard = True
+        Exit Function
+    End If
+
+    ' Fallback: copia o Range (se disponivel)
+    If Not rng Is Nothing Then
+        On Error Resume Next
+        rng.Copy
+        If Err.Number = 0 Then
+            CopyEmentaToClipboard = True
+            Exit Function
+        End If
+        Err.Clear
+        On Error GoTo ErrorHandler
+    End If
+
+    Exit Function
+
+ErrorHandler:
+    CopyEmentaToClipboard = False
+End Function
+
+Private Function PutTextInClipboard(text As String) As Boolean
+    On Error GoTo ErrorHandler
+
+    PutTextInClipboard = False
+    If text = "" Then Exit Function
+
+    ' 1. Preferencia: MSForms.DataObject (late binding)
+    Dim dataObj As Object
+    On Error Resume Next
+    Set dataObj = CreateObject("MSForms.DataObject")
+    If Err.Number = 0 And Not dataObj Is Nothing Then
+        Err.Clear
+        dataObj.SetText text
+        dataObj.PutInClipboard
+        PutTextInClipboard = (Err.Number = 0)
+        Exit Function
+    End If
+    Err.Clear
+
+    ' 2. Fallback: htmlfile clipboardData
+    Dim html As Object
+    Set html = CreateObject("htmlfile")
+    If Not html Is Nothing Then
+        html.parentWindow.clipboardData.setData "text", text
+        PutTextInClipboard = True
+        Exit Function
+    End If
+
+    Exit Function
+
+ErrorHandler:
+    PutTextInClipboard = False
+End Function
 
 '================================================================================
 ' TRATAMENTO AMIGAVEL DE ERROS
@@ -982,13 +1194,13 @@ Private Function IsDataElement(para As Paragraph) As Boolean
     ' Validacao de seguranca
     If para Is Nothing Then Exit Function
 
-    ' Verifica se contem o texto do plenario
-    Dim paraTextLower As String
-    paraTextLower = LCase(Trim(para.Range.text))
+    ' Normaliza para comparacao (remove acentos) para aceitar "Plenario" e "Plenario" com acento
+     Dim paraTextCmp As String
+     paraTextCmp = NormalizeForComparison(Trim$(Replace(Replace(para.Range.text, vbCr, ""), vbLf, "")))
 
-    ' Busca por "plenario" e elementos relacionados
-    If InStr(paraTextLower, "plenario") > 0 And _
-       InStr(paraTextLower, "tancredo neves") > 0 Then
+     ' Busca por "plenario" e elementos relacionados
+     If InStr(paraTextCmp, "plenario") > 0 And _
+         InStr(paraTextCmp, "tancredo neves") > 0 Then
         IsDataElement = True
     End If
 
@@ -2070,7 +2282,7 @@ ErrorHandler:
     End If
 End Sub
 
-Private Sub EnforceLogRetention(logFolder As String, logPrefix As String, Optional maxFiles As Long = 3)
+Private Sub EnforceLogRetention(logFolder As String, logPrefix As String, Optional maxFiles As Long = 5)
     On Error GoTo CleanExit
 
     If maxFiles < 1 Then Exit Sub
@@ -2197,7 +2409,7 @@ Private Function InitializeLogging(doc As Document) As Boolean
     WriteTextUTF8 logFilePath, headerText, False
 
     ' Enforces log retention limit for this routine
-    EnforceLogRetention logFolder, "chainsaw_", 3
+    EnforceLogRetention logFolder, "chainsaw_", 5
 
     loggingEnabled = True
     InitializeLogging = True
@@ -2730,6 +2942,14 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     RemoveAllTabMarks doc
     LogStepComplete "Limpeza estrutural"
 
+    LogStepStart "Limpeza de prefixo da ementa"
+    RemoveEmentaLeadingLabelPrefix doc
+    LogStepComplete "Limpeza de prefixo da ementa"
+
+    LogStepStart "Limpeza de sufixo da ementa"
+    RemoveEmentaTrailingMunicipioSuffix doc
+    LogStepComplete "Limpeza de sufixo da ementa"
+
     LogStepStart "Formatacao de titulo"
     FormatDocumentTitle doc
     LogStepComplete "Formatacao de titulo"
@@ -2837,6 +3057,10 @@ Private Function PreviousFormatting(doc As Document) As Boolean
     AddSpecialElementsSpacing doc
     LogStepComplete "Adicao de espacamento especial (ementa, justificativa, data)"
 
+    LogStepStart "Ajuste final de recuos para Vereador (travessoes)"
+    FixHyphenatedVereadorParagraphIndents doc
+    LogStepComplete "Ajuste final de recuos para Vereador (travessoes)"
+
     LogMessage "Formatacao completa aplicada com sucesso", LOG_LEVEL_INFO
     LogMetric "Total de paragrafos", doc.Paragraphs.count
     PreviousFormatting = True
@@ -2845,6 +3069,290 @@ Private Function PreviousFormatting(doc As Document) As Boolean
 ErrorHandler:
     LogMessage "Erro durante formatacao: " & Err.Description, LOG_LEVEL_ERROR
     PreviousFormatting = False
+End Function
+
+'================================================================================
+' AJUSTE FINAL - Zera recuo de paragrafos com marcador de Vereador/Vereadora (travessoes)
+' Ao final do processamento, se existirem paragrafos contendo exatamente essas
+' strings, garante recuo a esquerda = 0.
+'================================================================================
+Private Sub FixHyphenatedVereadorParagraphIndents(doc As Document)
+    On Error GoTo ErrorHandler
+
+    If doc Is Nothing Then Exit Sub
+
+    Dim para As Paragraph
+    Dim paraText As String
+    Dim counter As Long
+    Dim fixedCount As Long
+
+    counter = 0
+    fixedCount = 0
+
+    For Each para In doc.Paragraphs
+        counter = counter + 1
+        If counter Mod 30 = 0 Then DoEvents
+
+        paraText = Replace(Replace(para.Range.text, vbCr, ""), vbLf, "")
+
+        ' Normaliza espacos/tabs e hifens/travessoes para detectar o conteudo desejado
+        Dim normText As String
+        normText = Replace(paraText, vbTab, " ")
+        normText = Replace(normText, ChrW(8209), "-") ' non-breaking hyphen
+        normText = Replace(normText, ChrW(8211), "-") ' en dash
+        normText = Replace(normText, ChrW(8212), "-") ' em dash
+        normText = Replace(normText, ChrW(8722), "-") ' minus sign
+        normText = Trim$(normText)
+        Do While InStr(normText, "  ") > 0
+            normText = Replace(normText, "  ", " ")
+        Loop
+
+        If normText = "- Vereador -" Or normText = "- Vereadora -" Or IsVereadorPattern(paraText) Then
+            On Error Resume Next
+            para.Range.ListFormat.RemoveNumbers
+            On Error Resume Next
+
+            With para.Format
+                .leftIndent = 0
+                .firstLineIndent = 0
+                .RightIndent = 0
+            End With
+
+            With para.Range.ParagraphFormat
+                .leftIndent = 0
+                .firstLineIndent = 0
+                .RightIndent = 0
+            End With
+
+            fixedCount = fixedCount + 1
+        End If
+    Next para
+
+    If fixedCount > 0 Then
+        LogMessage "Recuos ajustados para " & fixedCount & " paragrafo(s) de Vereador/Vereadora", LOG_LEVEL_INFO
+    End If
+
+    Exit Sub
+
+ErrorHandler:
+    LogMessage "Erro ao ajustar recuos de Vereador/Vereadora: " & Err.Description, LOG_LEVEL_WARNING
+End Sub
+
+'================================================================================
+' EMENTA - Remove prefixos "EMENTA:" / "ASSUNTO:" quando forem a primeira palavra
+'================================================================================
+Private Sub RemoveEmentaLeadingLabelPrefix(doc As Document)
+    On Error GoTo ErrorHandler
+
+    Dim rng As Range
+    Set rng = GetEmentaRange(doc)
+    If rng Is Nothing Then Exit Sub
+
+    Dim deleteLen As Long
+    deleteLen = GetEmentaLeadingLabelDeleteLen(rng.text)
+    If deleteLen <= 0 Then Exit Sub
+
+    Dim delRng As Range
+    Set delRng = rng.Duplicate
+    delRng.Start = rng.Start
+    delRng.End = rng.Start + deleteLen
+    delRng.Delete
+
+    documentDirty = True
+    Exit Sub
+
+ErrorHandler:
+    LogMessage "Erro ao remover prefixo da ementa: " & Err.Description, LOG_LEVEL_WARNING
+End Sub
+
+'================================================================================
+' EMENTA - Remove sufixo ", neste municipio" quando estiver no final
+' Regras:
+' - Case-insensitive
+' - Remove variantes: ", neste municipio" e ",neste municipio" (inclui "Municipio")
+' - Se ja existir ponto final no fim da ementa, mantem
+' - Se nao existir, insere ponto final apos a exclusao
+'================================================================================
+Private Sub RemoveEmentaTrailingMunicipioSuffix(doc As Document)
+    On Error GoTo ErrorHandler
+
+    Dim rng As Range
+    Set rng = GetEmentaRange(doc)
+    If rng Is Nothing Then Exit Sub
+
+    Dim contentRng As Range
+    Set contentRng = rng.Duplicate
+
+    ' Range da ementa sem marca de paragrafo e sem espacos finais (inclui NBSP)
+    If contentRng.End > contentRng.Start Then
+        If Right$(contentRng.text, 1) = vbCr Then
+            contentRng.End = contentRng.End - 1
+        End If
+    End If
+    Do While contentRng.End > contentRng.Start
+        If Right$(contentRng.text, 1) = " " Or Right$(contentRng.text, 1) = vbTab Or Right$(contentRng.text, 1) = ChrW(160) Then
+            contentRng.End = contentRng.End - 1
+        Else
+            Exit Do
+        End If
+    Loop
+
+    Dim rawText As String
+    rawText = contentRng.text
+    If Len(rawText) = 0 Then Exit Sub
+
+    ' Normaliza NBSP para comparacao (mantem mesmo comprimento)
+    Dim normalizedText As String
+    normalizedText = Replace(rawText, ChrW(160), " ")
+    If Len(normalizedText) = 0 Then Exit Sub
+
+    ' Construcao ASCII-safe de ",neste municipio" (com acento via ChrW)
+    Dim municipio As String
+    municipio = "mun" & ChrW(237) & "cipio" ' municipio
+    Dim suffix1 As String
+    Dim suffix2 As String
+    suffix1 = ",neste " & municipio
+    suffix2 = ", neste " & municipio
+
+    Dim lowerText As String
+    lowerText = LCase$(normalizedText)
+
+    ' Regra do ponto final: se ja existir, mantem; senao, adiciona apos exclusao
+    Dim hadFinalPeriod As Boolean
+    hadFinalPeriod = (Right$(lowerText, 1) = ".")
+
+    Dim lowerBase As String
+    lowerBase = lowerText
+    If hadFinalPeriod And Len(lowerBase) > 1 Then
+        lowerBase = Left$(lowerBase, Len(lowerBase) - 1)
+    End If
+
+    Dim deleteSuffix As String
+    deleteSuffix = ""
+
+    If Len(lowerBase) >= Len(suffix1) Then
+        If Right$(lowerBase, Len(suffix1)) = LCase$(suffix1) Then
+            deleteSuffix = suffix1
+        End If
+    End If
+
+    If deleteSuffix = "" And Len(lowerBase) >= Len(suffix2) Then
+        If Right$(lowerBase, Len(suffix2)) = LCase$(suffix2) Then
+            deleteSuffix = suffix2
+        End If
+    End If
+
+    If deleteSuffix = "" Then Exit Sub
+
+    ' Remove o sufixo no Range real (mantem demais pontuacoes/texto)
+    Dim pos As Long
+    pos = InStrRev(lowerBase, LCase$(deleteSuffix))
+    If pos <= 0 Then Exit Sub
+    If (pos + Len(deleteSuffix) - 1) <> Len(lowerBase) Then Exit Sub
+
+    Dim delRng As Range
+    Set delRng = contentRng.Duplicate
+    delRng.Start = contentRng.Start + pos - 1
+    delRng.End = delRng.Start + Len(deleteSuffix)
+    delRng.Delete
+
+    ' Recalcula ementa sem marca de paragrafo e sem espacos finais
+    Set contentRng = rng.Duplicate
+    If contentRng.End > contentRng.Start Then
+        If Right$(contentRng.text, 1) = vbCr Then
+            contentRng.End = contentRng.End - 1
+        End If
+    End If
+    Do While contentRng.End > contentRng.Start
+        If Right$(contentRng.text, 1) = " " Or Right$(contentRng.text, 1) = vbTab Or Right$(contentRng.text, 1) = ChrW(160) Then
+            contentRng.End = contentRng.End - 1
+        Else
+            Exit Do
+        End If
+    Loop
+
+    ' Aplica regra do ponto final
+    If Not hadFinalPeriod Then
+        If contentRng.End > contentRng.Start Then
+            If Right$(contentRng.text, 1) <> "." Then
+                contentRng.Collapse wdCollapseEnd
+                contentRng.InsertAfter "."
+            End If
+        Else
+            ' Ementa ficou vazia por algum motivo: nao insere ponto
+        End If
+    End If
+
+    documentDirty = True
+    Exit Sub
+
+ErrorHandler:
+    LogMessage "Erro ao remover sufixo da ementa: " & Err.Description, LOG_LEVEL_WARNING
+End Sub
+
+Private Function GetEmentaLeadingLabelDeleteLen(ByVal txt As String) As Long
+    On Error GoTo ErrorHandler
+
+    GetEmentaLeadingLabelDeleteLen = 0
+    If Len(txt) = 0 Then Exit Function
+
+    Dim i As Long
+    i = 1
+
+    ' Ignora espacos/tabs no inicio
+    Dim ch As String
+    Do While i <= Len(txt)
+        ch = Mid$(txt, i, 1)
+        If ch = " " Or ch = vbTab Then
+            i = i + 1
+        Else
+            Exit Do
+        End If
+    Loop
+
+    Dim wordLen As Long
+    If i + 5 <= Len(txt) And LCase$(Mid$(txt, i, 6)) = "ementa" Then
+        wordLen = 6
+    ElseIf i + 6 <= Len(txt) And LCase$(Mid$(txt, i, 7)) = "assunto" Then
+        wordLen = 7
+    Else
+        Exit Function
+    End If
+
+    Dim j As Long
+    j = i + wordLen
+
+    ' Ignora espacos/tabs entre a palavra e o ':'
+    Do While j <= Len(txt)
+        ch = Mid$(txt, j, 1)
+        If ch = " " Or ch = vbTab Then
+            j = j + 1
+        Else
+            Exit Do
+        End If
+    Loop
+
+    ' Exige ':' para considerar prefixo
+    If j > Len(txt) Then Exit Function
+    If Mid$(txt, j, 1) <> ":" Then Exit Function
+    j = j + 1
+
+    ' Ignora espacos/tabs apos ':'
+    Do While j <= Len(txt)
+        ch = Mid$(txt, j, 1)
+        If ch = " " Or ch = vbTab Then
+            j = j + 1
+        Else
+            Exit Do
+        End If
+    Loop
+
+    ' j aponta para o primeiro caractere a manter (ou para o CR final)
+    GetEmentaLeadingLabelDeleteLen = j - 1
+    Exit Function
+
+ErrorHandler:
+    GetEmentaLeadingLabelDeleteLen = 0
 End Function
 
 '================================================================================
@@ -3362,6 +3870,12 @@ End Function
 Private Function FormatSecondParagraph(doc As Document) As Boolean
     On Error GoTo ErrorHandler
 
+    ' GARANTIA: ajustes de linhas em branco devem ocorrer apos normalizar quebras de linha (Shift+Enter)
+    ' para paragrafos, pois a logica depende de doc.Paragraphs.
+    On Error Resume Next
+    ReplaceLineBreaksWithParagraphBreaks doc
+    On Error GoTo ErrorHandler
+
     Dim para As Paragraph
     Dim paraText As String
     Dim i As Long
@@ -3454,8 +3968,11 @@ Private Function FormatSecondParagraph(doc As Document) As Boolean
             Dim lowerText As String
             lowerText = LCase(paraFullText)
 
+            Dim lowerTextNorm As String
+            lowerTextNorm = NormalizeForComparison(lowerText)
+
             ' Verifica se termina com ", neste municipio"
-            If Right(lowerText, 17) = ", neste municipio" Then
+            If Right(lowerTextNorm, 17) = ", neste municipio" Then
                 ' Remove os ultimos 17 caracteres
                 para.Range.text = Left(paraFullText, Len(paraFullText) - 17) & vbCr
                 LogMessage "String ', neste municipio' removida do 2 paragrafo", LOG_LEVEL_INFO
@@ -3685,7 +4202,7 @@ Private Function EnsurePlenarioBlankLines(doc As Document) As Boolean
 
     Dim para As Paragraph
     Dim paraText As String
-    Dim paraTextLower As String
+    Dim paraTextCmp As String
     Dim i As Long
     Dim plenarioIndex As Long
 
@@ -3697,12 +4214,12 @@ Private Function EnsurePlenarioBlankLines(doc As Document) As Boolean
 
         If Not HasVisualContent(para) Then
             paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
-            paraTextLower = LCase(paraText)
+            paraTextCmp = NormalizeForComparison(paraText)
 
             ' Procura por "Plenario" e "Tancredo Neves"
-            If InStr(paraTextLower, "plenario") > 0 And _
-               InStr(paraTextLower, "tancredo") > 0 And _
-               InStr(paraTextLower, "neves") > 0 Then
+                If InStr(paraTextCmp, "plenario") > 0 And _
+                    InStr(paraTextCmp, "tancredo") > 0 And _
+                    InStr(paraTextCmp, "neves") > 0 Then
                 plenarioIndex = i
                 Exit For
             End If
@@ -4070,26 +4587,13 @@ End Function
 '================================================================================
 Private Function GetHeaderImagePath() As String
     On Error GoTo ErrorHandler
-
-    Dim fso As Object
-    Dim shell As Object
-    Dim userProfilePath As String
     Dim headerImagePath As String
 
-    Set fso = CreateObject("Scripting.FileSystemObject")
-    Set shell = CreateObject("WScript.Shell")
-
-    ' Obtem pasta %USERPROFILE% do usuario atual (compativel com Windows)
-    userProfilePath = shell.ExpandEnvironmentStrings("%USERPROFILE%")
-    If Right(userProfilePath, 1) = "\" Then
-        userProfilePath = Left(userProfilePath, Len(userProfilePath) - 1)
-    End If
-
     ' Constroi caminho absoluto para a imagem desejada
-    headerImagePath = userProfilePath & "\chainsaw\assets\stamp.png"
+    headerImagePath = Environ("USERPROFILE") & HEADER_IMAGE_RELATIVE_PATH
 
     ' Verifica se o arquivo existe
-    If Not fso.FileExists(headerImagePath) Then
+    If Dir(headerImagePath) = "" Then
         LogMessage "Imagem de cabecalho nao encontrada em: " & headerImagePath, LOG_LEVEL_WARNING
         GetHeaderImagePath = ""
         Exit Function
@@ -4120,11 +4624,10 @@ Private Function InsertHeaderstamp(doc As Document) As Boolean
     Dim sectionsProcessed As Long
 
     ' Define o caminho da imagem do cabecalho
-    imgFile = Environ("USERPROFILE") & "\chainsaw\assets\stamp.png"
+    imgFile = GetHeaderImagePath()
 
-    If Dir(imgFile) = "" Then
+    If imgFile = "" Then
         Application.StatusBar = "Aviso: Imagem nao encontrada"
-        LogMessage "Header image not found at: " & imgFile, LOG_LEVEL_WARNING
         InsertHeaderstamp = False
         Exit Function
     End If
@@ -4145,10 +4648,7 @@ Private Function InsertHeaderstamp(doc As Document) As Boolean
                 .size = STANDARD_FONT_SIZE  ' 12
             End With
 
-            Set shp = header.Shapes.AddPicture( _
-                fileName:=imgFile, _
-                LinkToFile:=False, _
-                SaveWithDocument:=msoTrue)
+            Set shp = header.Shapes.AddPicture(fileName:=imgFile, LinkToFile:=False, SaveWithDocument:=msoTrue)
 
             If shp Is Nothing Then
                 LogMessage "Failed to insert header image at section " & sectionsProcessed + 1, LOG_LEVEL_WARNING
@@ -4191,7 +4691,7 @@ End Function
 '================================================================================
 ' Insere rodape com:
 ' - Iniciais do usuario a esquerda (Arial 6pt, cinza)
-' - "Pagina X de Y" centralizado (Arial 9pt)
+' - "Pagina X de Y" centralizado (Arial 10pt)
 '--------------------------------------------------------------------------------
 Private Function InsertFooterStamp(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -4406,11 +4906,12 @@ Private Function ValidateProposituraType(doc As Document) As Boolean
 
     ' Nao e um tipo reconhecido - pergunta ao usuario
     Dim userResponse As VbMsgBoxResult
-    userResponse = MsgBox("A primeira palavra do titulo e: """ & firstWord & """" & vbCrLf & vbCrLf & _
-                          "Nao parece ser uma propositura de Indicacao, Requerimento ou Mocao," & vbCrLf & _
-                          "ou ha algum erro de grafia na primeira palavra do titulo." & vbCrLf & vbCrLf & _
-                          "Deseja prosseguir com o processamento mesmo assim?", _
-                          vbYesNo + vbQuestion, "CHAINSAW - Tipo de Propositura")
+    Dim msgTipo As String
+    msgTipo = "A primeira palavra do titulo e: """ & firstWord & """" & vbCrLf & vbCrLf & _
+              "Nao parece ser uma propositura de Indicacao, Requerimento ou Mocao," & vbCrLf & _
+              "ou ha algum erro de grafia na primeira palavra do titulo." & vbCrLf & vbCrLf & _
+              "Deseja prosseguir com o processamento mesmo assim?"
+    userResponse = MsgBox(msgTipo, vbYesNo + vbQuestion, "CHAINSAW - Tipo de Propositura")
 
     If userResponse = vbYes Then
         LogMessage "Usuario optou por prosseguir com tipo nao reconhecido: " & firstWord, LOG_LEVEL_WARNING
@@ -4602,6 +5103,8 @@ End Function
 '================================================================================
 ' VALIDACAO DE CONSISTENCIA EMENTA x PROPOSICAO
 ' Compara elementos-chave entre ementa e texto da proposicao
+' - Enderecos
+' - Nomes completos (quando explicitamente citados na ementa)
 '================================================================================
 Private Function ValidateAddressConsistency(doc As Document) As Boolean
     On Error GoTo ErrorHandler
@@ -4633,6 +5136,14 @@ Private Function ValidateAddressConsistency(doc As Document) As Boolean
         inconsistencyCount = inconsistencyCount + 1
     End If
 
+    ' 1b. Verifica nomes completos de pessoas (quando a ementa mencionar explicitamente)
+    Dim nameInconsistency As String
+    nameInconsistency = CheckPersonNameConsistency(ementaText, proposicaoText)
+    If Len(nameInconsistency) > 0 Then
+        inconsistencies = inconsistencies & nameInconsistency & vbCrLf
+        inconsistencyCount = inconsistencyCount + 1
+    End If
+
     ' 2. Verifica valores monetarios (R$)
     Dim monetaryInconsistency As String
     monetaryInconsistency = CheckMonetaryConsistency(ementaText, proposicaoText)
@@ -4661,9 +5172,9 @@ Private Function ValidateAddressConsistency(doc As Document) As Boolean
     If inconsistencyCount > 0 Then
         Dim msg As String
         msg = "VERIFICAR CONSISTENCIA" & vbCrLf & vbCrLf
-        msg = msg & "Foram encontradas " & inconsistencyCount & " possivel(is) inconsistencia(s) entre a ementa e o texto:" & vbCrLf & vbCrLf
+        msg = msg & "Foram identificados indicios de " & inconsistencyCount & " possivel(is) inconsistencia(s) entre a ementa e o texto. Confirme manualmente:" & vbCrLf & vbCrLf
         msg = msg & inconsistencies & vbCrLf
-        msg = msg & "Recomenda-se revisar o documento antes de prosseguir."
+        msg = msg & "Recomenda-se revisar e confirmar antes de prosseguir."
 
         MsgBox msg, vbExclamation, "Verificacao de Consistencia"
 
@@ -4691,34 +5202,11 @@ Private Function GetEmentaText(doc As Document) As String
 
     If doc Is Nothing Then Exit Function
 
-    Dim i As Long
-    Dim para As Paragraph
-    Dim paraText As String
-    Dim textualCount As Long
+    Dim idx As Long
+    idx = FindEmentaParagraphIndex(doc)
+    If idx <= 0 Or idx > doc.Paragraphs.count Then Exit Function
 
-    textualCount = 0
-
-    ' Percorre paragrafos buscando o 2o paragrafo textual (ementa)
-    For i = 1 To doc.Paragraphs.count
-        If i > 20 Then Exit For ' Limite de seguranca
-
-        Set para = doc.Paragraphs(i)
-        paraText = Trim(para.Range.text)
-
-        ' Ignora paragrafos vazios
-        If Len(paraText) > 1 Then
-            textualCount = textualCount + 1
-
-            ' 2o paragrafo textual e a ementa
-            If textualCount = 2 Then
-                ' Verifica se tem recuo (caracteristica da ementa)
-                If para.Format.leftIndent > 5 Then
-                    GetEmentaText = paraText
-                    Exit Function
-                End If
-            End If
-        End If
-    Next i
+    GetEmentaText = Trim$(doc.Paragraphs(idx).Range.text)
 End Function
 
 '================================================================================
@@ -4730,46 +5218,85 @@ Private Function GetProposicaoText(doc As Document) As String
 
     If doc Is Nothing Then Exit Function
 
+    Dim ementaIdx As Long
+    ementaIdx = FindEmentaParagraphIndex(doc)
+    If ementaIdx <= 0 Or ementaIdx >= doc.Paragraphs.count Then Exit Function
+
+    Dim result As String
+    result = ""
+
+    Dim collectedParas As Long
+    collectedParas = 0
+
     Dim i As Long
     Dim para As Paragraph
     Dim paraText As String
-    Dim textualCount As Long
-    Dim result As String
-    Dim paraCount As Long
+    Dim paraNorm As String
 
-    textualCount = 0
-    result = ""
-    paraCount = 0
-
-    ' Percorre paragrafos coletando texto apos a ementa
-    For i = 1 To doc.Paragraphs.count
-        If i > 50 Then Exit For ' Limite de seguranca
+    For i = ementaIdx + 1 To doc.Paragraphs.count
+        If collectedParas >= 12 Then Exit For
+        If Len(result) > 4000 Then Exit For
 
         Set para = doc.Paragraphs(i)
-        paraText = Trim(para.Range.text)
+        paraText = Trim$(para.Range.text)
+        If Len(paraText) <= 1 Then GoTo NextPara
 
-        ' Ignora paragrafos vazios
-        If Len(paraText) > 1 Then
-            textualCount = textualCount + 1
+        paraNorm = NormalizeForComparison(paraText)
 
-            ' Coleta paragrafos do 4o em diante (apos titulo, ementa, data)
-            If textualCount >= 4 Then
-                ' Para ao encontrar "Justificativa" ou assinatura
-                Dim lowerText As String
-                lowerText = LCase(paraText)
-                If InStr(lowerText, "justificativa") > 0 Then Exit For
-                If InStr(lowerText, "vereador") > 0 Then Exit For
+        ' Para ao encontrar "Justificativa" ou assinatura
+        If InStr(paraNorm, "justificativa") > 0 Then Exit For
+        If InStr(paraNorm, "vereador") > 0 Then Exit For
+        If InStr(paraNorm, "vereadora") > 0 Then Exit For
 
-                result = result & " " & paraText
-                paraCount = paraCount + 1
-
-                ' Limita a 10 paragrafos para nao sobrecarregar
-                If paraCount >= 10 Then Exit For
-            End If
+        ' Ignora linha de data do plenario (nao faz parte do corpo)
+        If InStr(paraNorm, "plenario") > 0 And InStr(paraNorm, "tancredo") > 0 And InStr(paraNorm, "neves") > 0 Then
+            GoTo NextPara
         End If
+
+        result = result & " " & paraText
+        collectedParas = collectedParas + 1
+
+NextPara:
     Next i
 
-    GetProposicaoText = result
+    GetProposicaoText = Trim$(result)
+End Function
+
+'================================================================================
+' LOCALIZA O PARAGRAFO DA EMENTA DE FORMA ROBUSTA
+'================================================================================
+Private Function FindEmentaParagraphIndex(doc As Document) As Long
+    On Error Resume Next
+    FindEmentaParagraphIndex = 0
+
+    If doc Is Nothing Then Exit Function
+
+    ' Preferencia: usa indice identificado pelo sistema de estrutura (quando disponivel)
+    If ementaParaIndex > 0 And ementaParaIndex <= doc.Paragraphs.count Then
+        FindEmentaParagraphIndex = ementaParaIndex
+        Exit Function
+    End If
+
+    ' Fallback: heuristica no inicio do documento
+    Dim i As Long
+    Dim para As Paragraph
+    Dim paraText As String
+
+    For i = 1 To doc.Paragraphs.count
+        If i > 35 Then Exit For
+
+        Set para = doc.Paragraphs(i)
+        paraText = Trim$(para.Range.text)
+        If Len(paraText) <= 1 Then GoTo NextPara
+
+        ' Ementa tipicamente tem recuo a esquerda maior que o minimo
+        If para.Format.leftIndent > EMENTA_MIN_LEFT_INDENT Then
+            FindEmentaParagraphIndex = i
+            Exit Function
+        End If
+
+NextPara:
+    Next i
 End Function
 
 '================================================================================
@@ -4779,32 +5306,31 @@ Private Function CheckAddressConsistency(ementaText As String, proposicaoText As
     On Error Resume Next
     CheckAddressConsistency = ""
 
-    Dim addressKeywords() As Variant
-    addressKeywords = Array("rua ", "avenida ", "av. ", "travessa ", "alameda ", "praca ", "estrada ")
+    Dim ementaFlat As String
+    Dim proposicaoFlat As String
+    Dim ementaNorm As String
+    Dim proposicaoNorm As String
 
-    Dim kw As Variant
-    Dim kwPos As Long
-    Dim addressInEmenta As String
-    Dim foundInProposicao As Boolean
+    ementaFlat = CleanTextForComparison(ementaText)
+    proposicaoFlat = CleanTextForComparison(proposicaoText)
+    ementaNorm = NormalizeForComparison(ementaFlat)
+    proposicaoNorm = NormalizeForComparison(proposicaoFlat)
 
-    For Each kw In addressKeywords
-        kwPos = InStr(1, LCase(ementaText), CStr(kw), vbTextCompare)
+    Dim addrDict As Object
+    Set addrDict = ExtractAddressesFromText(ementaFlat, ementaNorm)
+    If addrDict Is Nothing Then Exit Function
+    If addrDict.count = 0 Then Exit Function
 
-        If kwPos > 0 Then
-            ' Extrai endereco da ementa (ate 50 caracteres apos a palavra-chave)
-            addressInEmenta = ExtractAddressWords(ementaText, kwPos, CStr(kw))
+    Dim k As Variant
+    For Each k In addrDict.Keys
+        Dim addrDisplay As String
+        addrDisplay = CStr(addrDict(k))
 
-            If Len(addressInEmenta) > 3 Then
-                ' Verifica se endereco existe na proposicao
-                foundInProposicao = CheckAddressInText(addressInEmenta, proposicaoText)
-
-                If Not foundInProposicao Then
-                    CheckAddressConsistency = "ENDERECO: '" & UCase(kw) & addressInEmenta & "' da ementa nao encontrado no texto."
-                    Exit Function
-                End If
-            End If
+        If Not CheckAddressInTextAdvanced(CStr(k), proposicaoNorm) Then
+            CheckAddressConsistency = "ENDERECO: '" & addrDisplay & "' da ementa nao encontrado no texto."
+            Exit Function
         End If
-    Next kw
+    Next k
 End Function
 
 '================================================================================
@@ -4841,6 +5367,447 @@ Private Function ExtractAddressWords(text As String, startPos As Long, keyword A
     Next i
 
     ExtractAddressWords = result
+End Function
+
+'================================================================================
+' VERIFICA CONSISTENCIA DE NOMES COMPLETOS (EMENTA -> TEXTO)
+'================================================================================
+Private Function CheckPersonNameConsistency(ementaText As String, proposicaoText As String) As String
+    On Error Resume Next
+    CheckPersonNameConsistency = ""
+
+    Dim ementaFlat As String
+    Dim proposicaoFlat As String
+    Dim ementaNorm As String
+    Dim proposicaoNorm As String
+
+    ementaFlat = CleanTextForComparison(ementaText)
+    proposicaoFlat = CleanTextForComparison(proposicaoText)
+    ementaNorm = NormalizeForComparison(ementaFlat)
+    proposicaoNorm = NormalizeForComparison(proposicaoFlat)
+
+    Dim namesDict As Object
+    Set namesDict = ExtractPersonNamesFromText(ementaFlat, ementaNorm)
+    If namesDict Is Nothing Then Exit Function
+    If namesDict.count = 0 Then Exit Function
+
+    Dim k As Variant
+    For Each k In namesDict.Keys
+        If Not CheckNameInTextAdvanced(CStr(k), proposicaoNorm) Then
+            CheckPersonNameConsistency = "NOME: '" & CStr(namesDict(k)) & "' da ementa nao encontrado no texto."
+            Exit Function
+        End If
+    Next k
+End Function
+
+'================================================================================
+' EXTRAI NOMES COMPLETOS PROVAVEIS A PARTIR DE MARCADORES (SR, SENHOR, NOME:)
+' Retorna Dictionary: key=nome normalizado, value=nome para exibicao
+'================================================================================
+Private Function ExtractPersonNamesFromText(flatText As String, flatNorm As String) As Object
+    On Error Resume Next
+    Set ExtractPersonNamesFromText = Nothing
+
+    Dim dict As Object
+    Set dict = CreateObject("Scripting.Dictionary")
+    dict.CompareMode = 1 ' TextCompare
+
+    If Len(flatText) < 10 Then
+        Set ExtractPersonNamesFromText = dict
+        Exit Function
+    End If
+
+    Dim markers As Variant
+    markers = Array("sr ", "sr. ", "sra ", "sra. ", "senhor ", "senhora ", "srta ", "srta. ", "nome: ", "nome : ")
+
+    Dim m As Variant
+    For Each m In markers
+        Dim pos As Long
+        pos = 1
+        Do
+            pos = InStr(pos, flatNorm, CStr(m), vbTextCompare)
+            If pos <= 0 Then Exit Do
+
+            Dim afterPos As Long
+            afterPos = pos + Len(CStr(m))
+
+            Dim snippet As String
+            snippet = Mid$(flatText, afterPos, 140)
+
+            Dim candidate As String
+            candidate = ExtractNameFromSnippet(snippet)
+            If Len(candidate) > 0 Then
+                Dim key As String
+                key = NormalizeForComparison(candidate)
+                key = Trim$(key)
+                If Len(key) > 0 Then
+                    If Not dict.Exists(key) Then dict.Add key, candidate
+                End If
+            End If
+
+            pos = afterPos
+        Loop
+    Next m
+
+    Set ExtractPersonNamesFromText = dict
+End Function
+
+Private Function ExtractNameFromSnippet(snippet As String) As String
+    On Error Resume Next
+    ExtractNameFromSnippet = ""
+
+    Dim s As String
+    s = snippet
+    s = Replace(s, vbCr, " ")
+    s = Replace(s, vbLf, " ")
+    s = Replace(s, vbTab, " ")
+    s = Trim$(s)
+    If Len(s) < 3 Then Exit Function
+
+    ' Corta em pontuacao forte
+    Dim cutPos As Long
+    cutPos = 0
+    cutPos = FirstOfAny(s, Array(",", ".", ";", ":"))
+    If cutPos > 0 Then s = Left$(s, cutPos - 1)
+
+    s = Trim$(s)
+    If Len(s) < 3 Then Exit Function
+
+    Dim words() As String
+    words = Split(s, " ")
+
+    Dim nameOut As String
+    nameOut = ""
+
+    Dim realWords As Long
+    realWords = 0
+
+    Dim i As Long
+    For i = 0 To UBound(words)
+        If i > 6 Then Exit For
+
+        Dim w As String
+        w = Trim$(words(i))
+        If w = "" Then GoTo ContinueLoop
+
+        ' Remove pontuacao em volta
+        w = StripEdgePunctuation(w)
+        If w = "" Then GoTo ContinueLoop
+
+        Dim wNorm As String
+        wNorm = NormalizeForComparison(w)
+
+        ' Palavras que indicam fim do nome
+        If wNorm = "residente" Or wNorm = "morador" Or wNorm = "portador" Or wNorm = "inscrito" Or wNorm = "cpf" Or wNorm = "rg" Or wNorm = "na" Or wNorm = "no" Or wNorm = "em" Then
+            Exit For
+        End If
+
+        ' Conectores permitidos
+        If wNorm = "da" Or wNorm = "de" Or wNorm = "do" Or wNorm = "das" Or wNorm = "dos" Or wNorm = "e" Then
+            If nameOut <> "" Then nameOut = nameOut & " " & wNorm
+            GoTo ContinueLoop
+        End If
+
+        ' Precisa conter letras
+        If Not ContainsLetter(w) Then Exit For
+
+        If nameOut <> "" Then nameOut = nameOut & " "
+        nameOut = nameOut & w
+        realWords = realWords + 1
+
+ContinueLoop:
+    Next i
+
+    ' Nome completo: pelo menos 2 palavras reais
+    If realWords >= 2 Then
+        ExtractNameFromSnippet = Trim$(nameOut)
+    End If
+End Function
+
+Private Function CheckNameInTextAdvanced(nameNorm As String, textNorm As String) As Boolean
+    On Error Resume Next
+    CheckNameInTextAdvanced = False
+
+    If Len(nameNorm) < 5 Then Exit Function
+    If Len(textNorm) < 10 Then Exit Function
+
+    Dim words() As String
+    words = Split(nameNorm, " ")
+
+    Dim total As Long
+    Dim found As Long
+    total = 0
+    found = 0
+
+    Dim i As Long
+    For i = 0 To UBound(words)
+        Dim w As String
+        w = Trim$(words(i))
+        If Len(w) < 3 Then GoTo NextWord
+        If w = "da" Or w = "de" Or w = "do" Or w = "das" Or w = "dos" Or w = "e" Then GoTo NextWord
+
+        total = total + 1
+        If InStr(1, textNorm, w, vbTextCompare) > 0 Then found = found + 1
+
+NextWord:
+    Next i
+
+    If total = 0 Then Exit Function
+    ' Exige que a maioria dos componentes (>=80%) apareca no texto
+    CheckNameInTextAdvanced = (found / total) >= 0.8
+End Function
+
+'================================================================================
+' EXTRAI ENDERECOS PROVAVEIS (EMENTA)
+' Retorna Dictionary: key=assinatura normalizada (tokens), value=endereco para exibicao
+'================================================================================
+Private Function ExtractAddressesFromText(flatText As String, flatNorm As String) As Object
+    On Error Resume Next
+    Set ExtractAddressesFromText = Nothing
+
+    Dim dict As Object
+    Set dict = CreateObject("Scripting.Dictionary")
+    dict.CompareMode = 1 ' TextCompare
+
+    If Len(flatText) < 10 Then
+        Set ExtractAddressesFromText = dict
+        Exit Function
+    End If
+
+    Dim keywords As Variant
+    keywords = Array("rua ", "avenida ", "av. ", "av ", "travessa ", "alameda ", "praca ", "estrada ", "rodovia ")
+
+    Dim kw As Variant
+    For Each kw In keywords
+        Dim pos As Long
+        pos = 1
+        Do
+            pos = InStr(pos, flatNorm, CStr(kw), vbTextCompare)
+            If pos <= 0 Then Exit Do
+
+            Dim snippet As String
+            snippet = Mid$(flatText, pos, 120)
+
+            Dim addrDisplay As String
+            addrDisplay = ExtractAddressDisplay(snippet)
+
+            Dim addrKey As String
+            addrKey = BuildAddressKey(addrDisplay)
+
+            If Len(addrKey) > 0 Then
+                If Not dict.Exists(addrKey) Then dict.Add addrKey, addrDisplay
+            End If
+
+            pos = pos + Len(CStr(kw))
+        Loop
+    Next kw
+
+    Set ExtractAddressesFromText = dict
+End Function
+
+Private Function ExtractAddressDisplay(snippet As String) As String
+    On Error Resume Next
+    ExtractAddressDisplay = ""
+
+    Dim s As String
+    s = snippet
+    s = Replace(s, vbCr, " ")
+    s = Replace(s, vbLf, " ")
+    s = Replace(s, vbTab, " ")
+    s = Trim$(s)
+    If Len(s) < 5 Then Exit Function
+
+    ' Corta em pontuacao forte
+    Dim cutPos As Long
+    cutPos = FirstOfAny(s, Array(".", ";"))
+    If cutPos > 0 Then s = Left$(s, cutPos - 1)
+
+    ' Limita em virgula dupla (comum em listas)
+    Dim commaPos As Long
+    commaPos = InStr(1, s, ",", vbTextCompare)
+    If commaPos > 0 And commaPos < 10 Then
+        ' Mantem a primeira virgula (rua x, n 123...) mas corta se a frase virar lista
+        Dim comma2 As Long
+        comma2 = InStr(commaPos + 1, s, ",", vbTextCompare)
+        If comma2 > 0 Then s = Left$(s, comma2 - 1)
+    End If
+
+    ExtractAddressDisplay = Trim$(s)
+End Function
+
+Private Function BuildAddressKey(addrDisplay As String) As String
+    On Error Resume Next
+    BuildAddressKey = ""
+    If Len(addrDisplay) < 5 Then Exit Function
+
+    Dim norm As String
+    norm = NormalizeForComparison(CleanTextForComparison(addrDisplay))
+
+    ' Normaliza abreviacoes comuns
+    norm = Replace(norm, "av.", "avenida")
+    norm = Replace(norm, "av ", "avenida ")
+
+    Dim parts() As String
+    parts = Split(norm, " ")
+
+    Dim key As String
+    key = ""
+
+    Dim keepWords As Long
+    keepWords = 0
+    Dim sawNumber As Boolean
+    sawNumber = False
+
+    Dim i As Long
+    For i = 0 To UBound(parts)
+        Dim w As String
+        w = Trim$(parts(i))
+        If w = "" Then GoTo NextPart
+
+        If w = "rua" Or w = "avenida" Or w = "travessa" Or w = "alameda" Or w = "praca" Or w = "estrada" Or w = "rodovia" Then GoTo NextPart
+        If w = "da" Or w = "de" Or w = "do" Or w = "das" Or w = "dos" Then GoTo NextPart
+        If w = "no" Or w = "na" Or w = "em" Or w = "n" Or w = "n." Or w = "numero" Then GoTo NextPart
+        If w = "bairro" Or w = "cep" Or w = "km" Then GoTo NextPart
+
+        If IsNumeric(w) Then
+            If Not sawNumber Then
+                If key <> "" Then key = key & " "
+                key = key & w
+                sawNumber = True
+            End If
+            GoTo NextPart
+        End If
+
+        If Len(w) >= 3 Then
+            If key <> "" Then key = key & " "
+            key = key & w
+            keepWords = keepWords + 1
+        End If
+
+        If keepWords >= 4 Then Exit For
+
+NextPart:
+    Next i
+
+    ' Evita chaves muito curtas (alto risco de falso positivo)
+    If keepWords >= 2 Or (keepWords >= 1 And sawNumber) Then
+        BuildAddressKey = Trim$(key)
+    End If
+End Function
+
+Private Function CheckAddressInTextAdvanced(addrKey As String, textNorm As String) As Boolean
+    On Error Resume Next
+    CheckAddressInTextAdvanced = False
+
+    If Len(addrKey) < 5 Then Exit Function
+    If Len(textNorm) < 10 Then Exit Function
+
+    Dim parts() As String
+    parts = Split(addrKey, " ")
+
+    Dim totalWords As Long
+    Dim foundWords As Long
+    Dim requiresNumber As Boolean
+    Dim foundNumber As Boolean
+
+    totalWords = 0
+    foundWords = 0
+    requiresNumber = False
+    foundNumber = False
+
+    Dim i As Long
+    For i = 0 To UBound(parts)
+        Dim w As String
+        w = Trim$(parts(i))
+        If w = "" Then GoTo NextW
+
+        If IsNumeric(w) Then
+            requiresNumber = True
+            If InStr(1, textNorm, w, vbTextCompare) > 0 Then foundNumber = True
+            GoTo NextW
+        End If
+
+        If Len(w) < 3 Then GoTo NextW
+        totalWords = totalWords + 1
+        If InStr(1, textNorm, w, vbTextCompare) > 0 Then foundWords = foundWords + 1
+
+NextW:
+    Next i
+
+    If requiresNumber And Not foundNumber Then Exit Function
+    If totalWords = 0 Then Exit Function
+
+    ' Exige pelo menos 60% das palavras-chave do endereco
+    CheckAddressInTextAdvanced = (foundWords / totalWords) >= 0.6
+End Function
+
+Private Function FirstOfAny(text As String, symbols As Variant) As Long
+    On Error Resume Next
+    FirstOfAny = 0
+
+    Dim i As Long
+    Dim best As Long
+    best = 0
+
+    For i = LBound(symbols) To UBound(symbols)
+        Dim p As Long
+        p = InStr(1, text, CStr(symbols(i)), vbTextCompare)
+        If p > 0 Then
+            If best = 0 Or p < best Then best = p
+        End If
+    Next i
+
+    FirstOfAny = best
+End Function
+
+Private Function StripEdgePunctuation(word As String) As String
+    On Error Resume Next
+    StripEdgePunctuation = word
+
+    Dim w As String
+    w = Trim$(word)
+    If w = "" Then Exit Function
+
+    Dim changed As Boolean
+    changed = True
+    Do While changed
+        changed = False
+
+        If Len(w) = 0 Then Exit Do
+        Dim firstChar As String
+        firstChar = Left$(w, 1)
+        If firstChar = Chr(40) Or firstChar = "[" Or firstChar = "{" Or firstChar = Chr(34) Or firstChar = Chr(39) Then
+            w = Mid$(w, 2)
+            w = Trim$(w)
+            changed = True
+        End If
+
+        If Len(w) = 0 Then Exit Do
+        Dim lastChar As String
+        lastChar = Right$(w, 1)
+        If lastChar = Chr(41) Or lastChar = "]" Or lastChar = "}" Or lastChar = "," Or lastChar = "." Or lastChar = ";" Or lastChar = ":" Or lastChar = Chr(34) Or lastChar = Chr(39) Then
+            w = Left$(w, Len(w) - 1)
+            w = Trim$(w)
+            changed = True
+        End If
+    Loop
+
+    StripEdgePunctuation = w
+End Function
+
+Private Function ContainsLetter(text As String) As Boolean
+    On Error Resume Next
+    ContainsLetter = False
+
+    Dim i As Long
+    Dim ch As String
+    For i = 1 To Len(text)
+        ch = Mid$(text, i, 1)
+        If (ch >= "A" And ch <= "Z") Or (ch >= "a" And ch <= "z") Then
+            ContainsLetter = True
+            Exit Function
+        End If
+    Next i
 End Function
 
 '================================================================================
@@ -5161,144 +6128,344 @@ Private Function CleanTextForComparison(text As String) As String
 End Function
 
 '================================================================================
-' VERIFICACAO DE DADOS SENSIVEIS
+' VERIFICACAO DE DADOS SENSIVEIS (LGPD) - MODO ESTRITO
 '================================================================================
-'================================================================================
-' VERIFICACAO DE DADOS SENSIVEIS (LGPD)
-' Detecta dados pessoais que requerem cuidado especial conforme Lei 13.709/2018
-' Art. 5 - Dados pessoais e dados pessoais sensiveis
-' Art. 11 - Tratamento de dados pessoais sensiveis
-'================================================================================
+' Objetivo:
+' - Reduzir a checagem a achados realmente graves
+' - Maximizar precisao usando validadores deterministicos quando possivel
+'   (ex.: CPF/CNPJ com digitos verificadores, cartao com Luhn, CID com padrao estrito)
 Private Function CheckSensitiveData(doc As Document) As Boolean
     On Error GoTo ErrorHandler
 
     Dim docText As String
-    Dim findings As String
-    Dim categoryCount As Long
-    Dim sensitiveSpecialCount As Long
+    docText = ""
+    If doc Is Nothing Then
+        CheckSensitiveData = True
+        Exit Function
+    End If
 
-    ' Obtem texto do documento
     docText = doc.Range.text
-
     If Len(docText) < 10 Then
         CheckSensitiveData = True
         Exit Function
     End If
 
-    findings = ""
-    categoryCount = 0
-    sensitiveSpecialCount = 0
+    Dim cpfValidCount As Long
+    Dim cnpjValidCount As Long
+    Dim cardValidCount As Long
+    Dim cidCount As Long
 
-    ' 1. Verifica documentos de identificacao (CPF, RG, CNH, etc)
-    Dim docIdFindings As String
-    docIdFindings = CheckDocumentIdentifiers(docText)
-    If Len(docIdFindings) > 0 Then
-        findings = findings & "[1] DOCUMENTOS DE IDENTIFICACAO:" & vbCrLf & docIdFindings & vbCrLf
-        categoryCount = categoryCount + 1
-    End If
+    cpfValidCount = CountValidCPFInText(docText)
+    cnpjValidCount = CountValidCNPJInText(docText)
+    cardValidCount = CountLikelyCreditCardsInText(docText)
+    cidCount = CountCID10InText(docText)
 
-    ' 2. Verifica dados pessoais (filiacao, nascimento, etc)
-    Dim personalFindings As String
-    personalFindings = CheckPersonalData(docText)
-    If Len(personalFindings) > 0 Then
-        findings = findings & "[2] DADOS PESSOAIS:" & vbCrLf & personalFindings & vbCrLf
-        categoryCount = categoryCount + 1
-    End If
+    If (cpfValidCount + cnpjValidCount + cardValidCount + cidCount) > 0 Then
+        Dim findings As String
+        findings = ""
 
-    ' 3. Verifica dados de contato (email, telefone)
-    Dim contactFindings As String
-    contactFindings = CheckContactData(docText)
-    If Len(contactFindings) > 0 Then
-        findings = findings & "[3] DADOS DE CONTATO:" & vbCrLf & contactFindings & vbCrLf
-        categoryCount = categoryCount + 1
-    End If
+          If cpfValidCount > 0 Then findings = findings & "  - Possivel CPF valido (formato + digitos verificadores) encontrado (" & cpfValidCount & "x)" & vbCrLf
+          If cnpjValidCount > 0 Then findings = findings & "  - Possivel CNPJ valido (formato + digitos verificadores) encontrado (" & cnpjValidCount & "x)" & vbCrLf
+        If cardValidCount > 0 Then findings = findings & "  - Possivel numero de cartao (Luhn) detectado (" & cardValidCount & "x)" & vbCrLf
+          If cidCount > 0 Then findings = findings & "  - Possivel CID (saude) encontrado (" & cidCount & "x)" & vbCrLf
 
-    ' 4. Verifica dados de veiculos (placa, renavam)
-    Dim vehicleFindings As String
-    vehicleFindings = CheckVehicleData(docText)
-    If Len(vehicleFindings) > 0 Then
-        findings = findings & "[4] DADOS DE VEICULOS:" & vbCrLf & vehicleFindings & vbCrLf
-        categoryCount = categoryCount + 1
-    End If
-
-    ' 5. Verifica dados financeiros (conta, PIX, renda)
-    Dim financialFindings As String
-    financialFindings = CheckFinancialData(docText)
-    If Len(financialFindings) > 0 Then
-        findings = findings & "[5] DADOS FINANCEIROS:" & vbCrLf & financialFindings & vbCrLf
-        categoryCount = categoryCount + 1
-    End If
-
-    ' 6. Verifica dados de saude (Art. 5, II - dado sensivel especial)
-    Dim healthFindings As String
-    healthFindings = CheckHealthData(docText)
-    If Len(healthFindings) > 0 Then
-        findings = findings & "[6] DADOS DE SAUDE (SENSIVEL ESPECIAL - Art.5,II):" & vbCrLf & healthFindings & vbCrLf
-        categoryCount = categoryCount + 1
-        sensitiveSpecialCount = sensitiveSpecialCount + 1
-    End If
-
-    ' 7. Verifica dados sensiveis especiais LGPD (Art. 5, II)
-    Dim sensitiveSpecialFindings As String
-    sensitiveSpecialFindings = CheckSensitiveSpecialData(docText)
-    If Len(sensitiveSpecialFindings) > 0 Then
-        findings = findings & "[7] DADOS SENSIVEIS ESPECIAIS (Art.5,II LGPD):" & vbCrLf & sensitiveSpecialFindings & vbCrLf
-        categoryCount = categoryCount + 1
-        sensitiveSpecialCount = sensitiveSpecialCount + 1
-    End If
-
-    ' 8. Verifica dados de menores de idade
-    Dim minorFindings As String
-    minorFindings = CheckMinorData(docText)
-    If Len(minorFindings) > 0 Then
-        findings = findings & "[8] DADOS DE MENORES (Art.14 LGPD):" & vbCrLf & minorFindings & vbCrLf
-        categoryCount = categoryCount + 1
-    End If
-
-    ' 9. Verifica dados judiciais/criminais
-    Dim judicialFindings As String
-    judicialFindings = CheckJudicialData(docText)
-    If Len(judicialFindings) > 0 Then
-        findings = findings & "[9] DADOS JUDICIAIS/CRIMINAIS:" & vbCrLf & judicialFindings & vbCrLf
-        categoryCount = categoryCount + 1
-    End If
-
-    ' Se encontrou dados sensiveis, exibe mensagem consolidada
-    If categoryCount > 0 Then
         Dim msg As String
-        msg = "DADOS SENSIVEIS DETECTADOS (Lei 13.709/2018 - LGPD)" & vbCrLf & vbCrLf
+          msg = "ATENCAO: POSSIVEIS DADOS SENSIVEIS IDENTIFICADOS (LGPD)" & vbCrLf & vbCrLf & _
+              findings & vbCrLf & _
+              "Recomenda-se revisar e, se aplicavel, remover/anonimizar antes de prosseguir."
 
-        If sensitiveSpecialCount > 0 Then
-            msg = msg & "ATENCAO: " & sensitiveSpecialCount & " categoria(s) de DADOS SENSIVEIS ESPECIAIS!" & vbCrLf
-            msg = msg & "(Art. 5, II - Requerem consentimento explicito)" & vbCrLf & vbCrLf
-        End If
-
-        msg = msg & "Total: " & categoryCount & " categoria(s) detectada(s):" & vbCrLf & vbCrLf
-        msg = msg & findings & vbCrLf
-        msg = msg & "FUNDAMENTACAO LEGAL:" & vbCrLf
-        msg = msg & "  - Art. 5: Define dados pessoais e sensiveis" & vbCrLf
-        msg = msg & "  - Art. 7: Bases legais para tratamento" & vbCrLf
-        msg = msg & "  - Art. 11: Tratamento de dados sensiveis" & vbCrLf
-        msg = msg & "  - Art. 14: Dados de criancas e adolescentes" & vbCrLf & vbCrLf
-        msg = msg & "RECOMENDACOES:" & vbCrLf
-        msg = msg & "  - Verifique a necessidade de cada dado" & vbCrLf
-        msg = msg & "  - Anonimize ou pseudonimize quando possivel" & vbCrLf
-        msg = msg & "  - Obtenha consentimento para dados sensiveis"
-
-        MsgBox msg, vbExclamation, "Verificacao LGPD - Dados Sensiveis"
-
-        LogMessage "LGPD: " & categoryCount & " categoria(s), " & sensitiveSpecialCount & " sensivel(is) especial(is)", LOG_LEVEL_WARNING
+        MsgBox msg, vbExclamation, "Verificacao LGPD"
+        LogMessage "LGPD (estrito): CPF=" & cpfValidCount & ", CNPJ=" & cnpjValidCount & ", Cartao=" & cardValidCount & ", CID=" & cidCount, LOG_LEVEL_WARNING
         CheckSensitiveData = False
         Exit Function
     End If
 
-    LogMessage "Verificacao LGPD concluida - nenhum dado sensivel detectado", LOG_LEVEL_INFO
+    LogMessage "Verificacao LGPD (estrito): nenhum achado grave", LOG_LEVEL_INFO
     CheckSensitiveData = True
     Exit Function
 
 ErrorHandler:
-    LogMessage "Erro na verificacao LGPD: " & Err.Description, LOG_LEVEL_WARNING
+    LogMessage "Erro na verificacao LGPD (estrito): " & Err.Description, LOG_LEVEL_WARNING
     CheckSensitiveData = True
+End Function
+
+Private Function CountValidCPFInText(text As String) As Long
+    On Error GoTo ErrorHandler
+    CountValidCPFInText = 0
+
+    Dim re As Object
+    Set re = CreateObject("VBScript.RegExp")
+    re.Global = True
+    re.IgnoreCase = True
+    re.MultiLine = True
+    re.Pattern = "\b\d{3}\.\d{3}\.\d{3}-\d{2}\b|\b\d{11}\b"
+
+    Dim matches As Object
+    Set matches = re.Execute(text)
+    If matches Is Nothing Then Exit Function
+
+    Dim m As Object
+    For Each m In matches
+        Dim digits As String
+        digits = OnlyDigits(CStr(m.Value))
+        If Len(digits) = 11 Then
+            If IsValidCPF(digits) Then CountValidCPFInText = CountValidCPFInText + 1
+        End If
+    Next m
+
+    Exit Function
+
+ErrorHandler:
+    CountValidCPFInText = 0
+End Function
+
+Private Function CountValidCNPJInText(text As String) As Long
+    On Error GoTo ErrorHandler
+    CountValidCNPJInText = 0
+
+    Dim re As Object
+    Set re = CreateObject("VBScript.RegExp")
+    re.Global = True
+    re.IgnoreCase = True
+    re.MultiLine = True
+
+    ' Formatos com pontuacao (mais confiaveis) e formato puro apenas quando antecedido por "cnpj"
+    re.Pattern = "\b\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}\b|\bcnpj\s*[:\-]?\s*\d{14}\b"
+
+    Dim matches As Object
+    Set matches = re.Execute(text)
+    If matches Is Nothing Then Exit Function
+
+    Dim m As Object
+    For Each m In matches
+        Dim digits As String
+        digits = OnlyDigits(CStr(m.Value))
+        If Len(digits) = 14 Then
+            If IsValidCNPJ(digits) Then CountValidCNPJInText = CountValidCNPJInText + 1
+        End If
+    Next m
+
+    Exit Function
+
+ErrorHandler:
+    CountValidCNPJInText = 0
+End Function
+
+Private Function CountLikelyCreditCardsInText(text As String) As Long
+    On Error GoTo ErrorHandler
+    CountLikelyCreditCardsInText = 0
+
+    Dim re As Object
+    Set re = CreateObject("VBScript.RegExp")
+    re.Global = True
+    re.IgnoreCase = True
+    re.MultiLine = True
+
+    ' Busca sequencias tipicas com separadores (espaco ou hifen) para reduzir falsos positivos.
+    re.Pattern = "\b(?:\d[ -]){12,18}\d\b"
+
+    Dim matches As Object
+    Set matches = re.Execute(text)
+    If matches Is Nothing Then Exit Function
+
+    Dim m As Object
+    For Each m In matches
+        Dim digits As String
+        digits = OnlyDigits(CStr(m.Value))
+
+        ' Comprimento tipico de cartao: 13 a 19
+        If Len(digits) >= 13 And Len(digits) <= 19 Then
+            ' Evita contar CPF/CNPJ como cartao
+            If Len(digits) <> 11 And Len(digits) <> 14 Then
+                If IsLuhnValid(digits) And Not IsAllSameDigit(digits) Then
+                    CountLikelyCreditCardsInText = CountLikelyCreditCardsInText + 1
+                End If
+            End If
+        End If
+    Next m
+
+    Exit Function
+
+ErrorHandler:
+    CountLikelyCreditCardsInText = 0
+End Function
+
+Private Function CountCID10InText(text As String) As Long
+    On Error GoTo ErrorHandler
+    CountCID10InText = 0
+
+    Dim re As Object
+    Set re = CreateObject("VBScript.RegExp")
+    re.Global = True
+    re.IgnoreCase = True
+    re.MultiLine = True
+
+    ' Padrao estrito: exige literal "CID" seguido de codigo tipo A00 ou A00.0
+    re.Pattern = "\bCID(?:-?10)?\s*[:\-]?\s*[A-TV-Z][0-9]{2}(?:\.[0-9A-TV-Z]{1,2})?\b"
+
+    Dim matches As Object
+    Set matches = re.Execute(text)
+    If matches Is Nothing Then Exit Function
+
+    CountCID10InText = matches.count
+    Exit Function
+
+ErrorHandler:
+    CountCID10InText = 0
+End Function
+
+Private Function OnlyDigits(text As String) As String
+    Dim i As Long
+    Dim ch As String
+    Dim outText As String
+
+    outText = ""
+    For i = 1 To Len(text)
+        ch = Mid$(text, i, 1)
+        If ch Like "[0-9]" Then outText = outText & ch
+    Next i
+
+    OnlyDigits = outText
+End Function
+
+Private Function IsAllSameDigit(digits As String) As Boolean
+    Dim i As Long
+    If Len(digits) <= 1 Then
+        IsAllSameDigit = False
+        Exit Function
+    End If
+
+    Dim firstChar As String
+    firstChar = Mid$(digits, 1, 1)
+
+    For i = 2 To Len(digits)
+        If Mid$(digits, i, 1) <> firstChar Then
+            IsAllSameDigit = False
+            Exit Function
+        End If
+    Next i
+
+    IsAllSameDigit = True
+End Function
+
+Private Function IsValidCPF(cpfDigits As String) As Boolean
+    On Error GoTo ErrorHandler
+    IsValidCPF = False
+
+    If Len(cpfDigits) <> 11 Then Exit Function
+    If IsAllSameDigit(cpfDigits) Then Exit Function
+
+    Dim i As Long
+    Dim sum As Long
+    Dim rest As Long
+    Dim d1 As Long
+    Dim d2 As Long
+
+    ' Primeiro digito verificador
+    sum = 0
+    For i = 1 To 9
+        sum = sum + (CLng(Mid$(cpfDigits, i, 1)) * (11 - i))
+    Next i
+    rest = sum Mod 11
+    If rest < 2 Then
+        d1 = 0
+    Else
+        d1 = 11 - rest
+    End If
+
+    ' Segundo digito verificador
+    sum = 0
+    For i = 1 To 10
+        sum = sum + (CLng(Mid$(cpfDigits, i, 1)) * (12 - i))
+    Next i
+    rest = sum Mod 11
+    If rest < 2 Then
+        d2 = 0
+    Else
+        d2 = 11 - rest
+    End If
+
+    IsValidCPF = (CLng(Mid$(cpfDigits, 10, 1)) = d1 And CLng(Mid$(cpfDigits, 11, 1)) = d2)
+    Exit Function
+
+ErrorHandler:
+    IsValidCPF = False
+End Function
+
+Private Function IsValidCNPJ(cnpjDigits As String) As Boolean
+    On Error GoTo ErrorHandler
+    IsValidCNPJ = False
+
+    If Len(cnpjDigits) <> 14 Then Exit Function
+    If IsAllSameDigit(cnpjDigits) Then Exit Function
+
+    Dim weights1 As Variant
+    Dim weights2 As Variant
+    weights1 = Array(5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2)
+    weights2 = Array(6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2)
+
+    Dim i As Long
+    Dim sum As Long
+    Dim rest As Long
+    Dim d1 As Long
+    Dim d2 As Long
+
+    sum = 0
+    For i = 1 To 12
+        sum = sum + (CLng(Mid$(cnpjDigits, i, 1)) * CLng(weights1(i - 1)))
+    Next i
+    rest = sum Mod 11
+    If rest < 2 Then
+        d1 = 0
+    Else
+        d1 = 11 - rest
+    End If
+
+    sum = 0
+    For i = 1 To 13
+        sum = sum + (CLng(Mid$(cnpjDigits, i, 1)) * CLng(weights2(i - 1)))
+    Next i
+    rest = sum Mod 11
+    If rest < 2 Then
+        d2 = 0
+    Else
+        d2 = 11 - rest
+    End If
+
+    IsValidCNPJ = (CLng(Mid$(cnpjDigits, 13, 1)) = d1 And CLng(Mid$(cnpjDigits, 14, 1)) = d2)
+    Exit Function
+
+ErrorHandler:
+    IsValidCNPJ = False
+End Function
+
+Private Function IsLuhnValid(digits As String) As Boolean
+    On Error GoTo ErrorHandler
+    IsLuhnValid = False
+
+    Dim sum As Long
+    Dim i As Long
+    Dim digit As Long
+    Dim alt As Boolean
+
+    sum = 0
+    alt = False
+
+    For i = Len(digits) To 1 Step -1
+        digit = CLng(Mid$(digits, i, 1))
+        If alt Then
+            digit = digit * 2
+            If digit > 9 Then digit = digit - 9
+        End If
+        sum = sum + digit
+        alt = Not alt
+    Next i
+
+    IsLuhnValid = (sum Mod 10 = 0)
+    Exit Function
+
+ErrorHandler:
+    IsLuhnValid = False
 End Function
 
 '================================================================================
@@ -5426,8 +6593,8 @@ Private Function CheckJudicialData(docText As String) As String
     End If
 
     ' Processos judiciais
-    If InStr(lowerText, "processo n") > 0 And (InStr(lowerText, "vara") > 0 Or _
-       InStr(lowerText, "tribunal") > 0 Or InStr(lowerText, "juizo") > 0) Then
+     If InStr(lowerText, "processo n") > 0 And _
+         (InStr(lowerText, "vara") > 0 Or InStr(lowerText, "tribunal") > 0 Or InStr(lowerText, "juizo") > 0) Then
         findings = findings & "  - Numero de processo judicial detectado" & vbCrLf
     End If
 
@@ -5659,8 +6826,8 @@ Private Function CheckPersonalData(docText As String) As String
     End If
 
     ' Endereco residencial
-    If InStr(lowerText, "residente") > 0 And (InStr(lowerText, "rua ") > 0 Or _
-       InStr(lowerText, "avenida ") > 0) Then
+     If InStr(lowerText, "residente") > 0 And _
+         (InStr(lowerText, "rua ") > 0 Or InStr(lowerText, "avenida ") > 0) Then
         findings = findings & "  - Endereco residencial detectado" & vbCrLf
     End If
 
@@ -5752,8 +6919,8 @@ Private Function ContainsPhonePattern(text As String) As Boolean
     For i = 1 To Len(text) - 13
         segment = Mid(text, i, 15)
 
-        ' Verifica se comeca com (
-        If Mid(segment, 1, 1) = "(" Then
+        ' Verifica se comeca com parenteses
+        If Mid(segment, 1, 1) = Chr(40) Then
             digitCount = CountDigitsInString(segment)
             ' Telefone brasileiro tem 10-11 digitos
             If digitCount >= 10 And digitCount <= 11 Then
@@ -6805,11 +7972,7 @@ End Function
 '================================================================================
 ' FUNCAO AUXILIAR DE FIND/REPLACE - Elimina codigo repetitivo
 '================================================================================
-Private Function ExecuteFindReplace(doc As Document, _
-                                    searchText As String, _
-                                    replaceText As String, _
-                                    Optional matchCase As Boolean = False, _
-                                    Optional maxIterations As Long = 500) As Long
+Private Function ExecuteFindReplace(doc As Document, searchText As String, replaceText As String, Optional matchCase As Boolean = False, Optional maxIterations As Long = 500) As Long
     ' Retorna quantidade de substituicoes realizadas
     On Error Resume Next
     ExecuteFindReplace = 0
@@ -6856,32 +8019,82 @@ Private Sub FormatInLocoItalic(doc As Document)
     If doc Is Nothing Then Exit Sub
 
     Dim rng As Range
-    Dim inLocoCount As Long
-    inLocoCount = 0
+    Dim quotesRemovedCount As Long
+    Dim italicAppliedCount As Long
+    quotesRemovedCount = 0
+    italicAppliedCount = 0
 
-    ' Procura por "in loco" (com aspas) e substitui por in loco em italico
+    ' (1) Remove aspas envolvendo a expressao (inclui aspas retas e tipograficas)
+    '    Ex.: "in loco" (inclui aspas tipograficas) / "in loco," -> in loco / in loco,
+    Set rng = doc.Range
+
+    Dim quoteChars As String
+    quoteChars = Chr(34) & ChrW(8220) & ChrW(8221)
+
+    With rng.Find
+        .ClearFormatting
+        .Replacement.ClearFormatting
+        ' Word Wildcards nao suportam quantificadores do tipo {0,1}.
+        ' Faz 2 passes: (a) com pontuacao dentro das aspas; (b) sem pontuacao.
+        .text = "[" & quoteChars & "]([Ii]n loco)([,.;:])[" & quoteChars & "]"
+        .Replacement.text = "\1\2"
+        .Forward = True
+        .Wrap = wdFindContinue
+        .Format = False
+        .MatchCase = False
+        .MatchWholeWord = False
+        .MatchWildcards = True
+
+        Do While .Execute(Replace:=wdReplaceOne)
+            quotesRemovedCount = quotesRemovedCount + 1
+            If quotesRemovedCount > 200 Then Exit Do  ' Limite de seguranca
+        Loop
+    End With
+
     Set rng = doc.Range
 
     With rng.Find
         .ClearFormatting
         .Replacement.ClearFormatting
-        .text = Chr(34) & "in loco" & Chr(34)
-        .Replacement.text = "in loco"
+        .text = "[" & quoteChars & "]([Ii]n loco)[" & quoteChars & "]"
+        .Replacement.text = "\1"
+        .Forward = True
+        .Wrap = wdFindContinue
+        .Format = False
+        .MatchCase = False
+        .MatchWholeWord = False
+        .MatchWildcards = True
+
+        Do While .Execute(Replace:=wdReplaceOne)
+            quotesRemovedCount = quotesRemovedCount + 1
+            If quotesRemovedCount > 200 Then Exit Do  ' Limite de seguranca
+        Loop
+    End With
+
+    ' (2) Garante italico em todas as ocorrencias (com ou sem aspas)
+    Set rng = doc.Range
+
+    With rng.Find
+        .ClearFormatting
+        .Replacement.ClearFormatting
+        .text = "in loco"
+        .Replacement.text = "^&" ' Mantem o texto encontrado; aplica apenas formatacao
         .Replacement.Font.Italic = True
         .Forward = True
         .Wrap = wdFindContinue
+        .Format = True
         .MatchCase = False
         .MatchWholeWord = False
         .MatchWildcards = False
 
-        Do While .Execute(Replace:=True)
-            inLocoCount = inLocoCount + 1
-            If inLocoCount > 100 Then Exit Do  ' Limite de seguranca
+        Do While .Execute(Replace:=wdReplaceOne)
+            italicAppliedCount = italicAppliedCount + 1
+            If italicAppliedCount > 500 Then Exit Do  ' Limite de seguranca
         Loop
     End With
 
-    If inLocoCount > 0 Then
-        LogMessage "Formatacao 'in loco' aplicada: " & inLocoCount & " ocorrencia(s) em italico", LOG_LEVEL_INFO
+    If quotesRemovedCount > 0 Or italicAppliedCount > 0 Then
+        LogMessage "Formatacao 'in loco' aplicada: " & italicAppliedCount & " ocorrencia(s) em italico; aspas removidas: " & quotesRemovedCount & "x", LOG_LEVEL_INFO
     End If
 
     Exit Sub
@@ -7017,6 +8230,20 @@ NextVariant:
         LogMessage "Substituicao aplicada: ' Setor Competente ' -> ' setor competente ' (" & competenteCount & "x)", LOG_LEVEL_INFO
     End If
 
+    ' Funcionalidade 15: No 1 paragrafo apos a ementa, normaliza "... para sugerir" -> "... para indicar"
+    Dim art108IndicarCount As Long
+    art108IndicarCount = NormalizeArt108ParaIndicarAfterEmenta(doc)
+    If art108IndicarCount > 0 Then
+        LogMessage "Substituicao aplicada: 'para sugerir' -> 'para indicar' no 1 paragrafo apos a ementa (" & art108IndicarCount & "x)", LOG_LEVEL_INFO
+    End If
+
+    ' Funcionalidade 15: Normaliza a abertura do Art. 108 no 1 paragrafo apos a ementa
+    Dim art108Count As Long
+    art108Count = NormalizeArt108IntroAfterEmenta(doc)
+    If art108Count > 0 Then
+        LogMessage "Substituicao aplicada: abertura Art. 108 normalizada no 1 paragrafo apos a ementa (" & art108Count & "x)", LOG_LEVEL_INFO
+    End If
+
     ' Funcionalidade 13: Normaliza variantes de "tapa-buracos"
     Dim tapaBuracosCount As Long
     tapaBuracosCount = 0
@@ -7051,6 +8278,260 @@ ErrorHandler:
     End If
     ' Continua execucao - erros de substituicao nao sao criticos
     ApplyTextReplacements = True
+End Function
+
+'================================================================================
+' NORMALIZA "... PARA SUGERIR" -> "... PARA INDICAR" NO 1 PARAGRAFO APOS EMENTA
+' Regras:
+' - No primeiro paragrafo textual subsequente a ementa, se INICIAR (case-insensitive)
+'   com: "Nos termos do Art. 108 ... dirijo-me a Vossa Excelencia para sugerir"
+'   substitui esse trecho inicial por uma versao (case-sensitive) com "para indicar".
+' - Tolerante a caracteres nao-ASCII comuns do Word (NBSP, travessoes/hifens).
+'================================================================================
+Private Function NormalizeArt108ParaIndicarAfterEmenta(doc As Document) As Long
+    On Error GoTo ErrorHandler
+
+    NormalizeArt108ParaIndicarAfterEmenta = 0
+    If doc Is Nothing Then Exit Function
+
+    Dim ementaIdx As Long
+    ementaIdx = FindEmentaParagraphIndex(doc)
+    If ementaIdx <= 0 Or ementaIdx >= doc.Paragraphs.count Then Exit Function
+
+    Dim oldPhrase As String
+    Dim newPhrase As String
+    oldPhrase = "Nos termos do Art. 108 do Regimento Interno desta Casa de Leis, dirijo-me a Vossa Excel" & ChrW(234) & "ncia para sugerir"
+    newPhrase = "Nos termos do Art. 108 do Regimento Interno desta Casa de Leis, dirijo-me a Vossa Excel" & ChrW(234) & "ncia para indicar"
+
+    Dim oldNormNoSpace As String
+    oldNormNoSpace = Replace(NormalizeForComparison(oldPhrase), " ", "")
+
+    Dim i As Long
+    For i = ementaIdx + 1 To doc.Paragraphs.count
+        Dim para As Paragraph
+        Set para = doc.Paragraphs(i)
+
+        If HasVisualContent(para) Then GoTo NextPara
+
+        Dim rawText As String
+        rawText = Replace(Replace(para.Range.text, vbCr, ""), vbLf, "")
+
+        Dim trimmedText As String
+        trimmedText = LTrim$(rawText)
+        If Len(Trim$(trimmedText)) = 0 Then GoTo NextPara
+
+        Dim leadingSpacesLen As Long
+        leadingSpacesLen = Len(rawText) - Len(trimmedText)
+
+        ' Normaliza para comparacao tolerante
+        Dim cmpText As String
+        cmpText = trimmedText
+        cmpText = Replace(cmpText, ChrW(160), " ")
+        cmpText = Replace(cmpText, vbTab, " ")
+        cmpText = Replace(cmpText, ChrW(8209), "-")
+        cmpText = Replace(cmpText, ChrW(8211), "-")
+        cmpText = Replace(cmpText, ChrW(8212), "-")
+        cmpText = Replace(cmpText, ChrW(8722), "-")
+
+        Dim cmpNormNoSpace As String
+        cmpNormNoSpace = Replace(NormalizeForComparison(cmpText), " ", "")
+
+        If Len(cmpNormNoSpace) < Len(oldNormNoSpace) Then GoTo NextPara
+        If Left$(cmpNormNoSpace, Len(oldNormNoSpace)) <> oldNormNoSpace Then GoTo NextPara
+
+        ' Encontra a posicao de "sugerir" no texto original (para definir o range a substituir)
+        Dim posSugerir As Long
+        posSugerir = InStr(1, trimmedText, "sugerir", vbTextCompare)
+        If posSugerir <= 0 Then GoTo NextPara
+
+        Dim endPos As Long
+        endPos = posSugerir + Len("sugerir") - 1
+
+        Dim replaceRng As Range
+        Set replaceRng = para.Range.Duplicate
+        If replaceRng.End > replaceRng.Start Then replaceRng.End = replaceRng.End - 1
+
+        replaceRng.Start = replaceRng.Start + leadingSpacesLen
+        replaceRng.End = replaceRng.Start + endPos
+        replaceRng.text = newPhrase
+
+        documentDirty = True
+        NormalizeArt108ParaIndicarAfterEmenta = 1
+        Exit Function
+
+NextPara:
+    Next i
+
+    Exit Function
+
+ErrorHandler:
+    NormalizeArt108ParaIndicarAfterEmenta = 0
+End Function
+
+'================================================================================
+' NORMALIZA ABERTURA DO ART. 108 NO 1 PARAGRAFO APOS EMENTA
+    ' Regras:
+    ' - No primeiro paragrafo textual subsequente a ementa, se INICIAR (case-insensitive)
+    '   com o prefixo do Art. 108 e, em seguida, tiver exatamente:
+    '     "Setor, " OU "Setor competente, "
+    '   substitui esse trecho inicial por um texto padrao (case-sensitive)
+    '   com "setor competente" (minusculo).
+'================================================================================
+Private Function NormalizeArt108IntroAfterEmenta(doc As Document) As Long
+    On Error GoTo ErrorHandler
+
+    NormalizeArt108IntroAfterEmenta = 0
+    If doc Is Nothing Then Exit Function
+
+    Dim ementaIdx As Long
+    ementaIdx = FindEmentaParagraphIndex(doc)
+    If ementaIdx <= 0 Or ementaIdx >= doc.Paragraphs.count Then Exit Function
+
+    Dim prefixBase As String
+    Dim newText As String
+
+    ' ASCII-safe: acentos via ChrW
+    prefixBase = "Nos termos do Art. 108 do Regimento Interno desta Casa de Leis, dirijo-me a Vossa Excel" & ChrW(234) & "ncia para indicar que, por interm" & ChrW(233) & "dio do"
+    newText = "Nos termos do Art. 108 do Regimento Interno desta Casa de Leis, dirijo-me a Vossa Excel" & ChrW(234) & "ncia para indicar que, por interm" & ChrW(233) & "dio do setor competente, "
+
+    Dim prefixNormNoSpace As String
+    prefixNormNoSpace = Replace(NormalizeForComparison(prefixBase), " ", "")
+
+    Dim i As Long
+    For i = ementaIdx + 1 To doc.Paragraphs.count
+        Dim para As Paragraph
+        Set para = doc.Paragraphs(i)
+
+        ' Apenas paragrafos textuais
+        If HasVisualContent(para) Then GoTo NextPara
+
+        Dim rawText As String
+        rawText = Replace(Replace(para.Range.text, vbCr, ""), vbLf, "")
+
+        Dim trimmedText As String
+        trimmedText = LTrim$(rawText)
+
+        If Len(Trim$(trimmedText)) = 0 Then GoTo NextPara
+
+        Dim leadingSpacesLen As Long
+        leadingSpacesLen = Len(rawText) - Len(trimmedText)
+
+        ' Prepara texto para comparacao:
+        ' - Troca NBSP/tab por espaco
+        ' - Normaliza hifens/travessoes comuns do Word para '-'
+        ' - Remove espacos para tolerar variacoes (ex: "Art.108" vs "Art. 108")
+        Dim cmpText As String
+        cmpText = trimmedText
+        cmpText = Replace(cmpText, ChrW(160), " ")
+        cmpText = Replace(cmpText, vbTab, " ")
+        cmpText = Replace(cmpText, ChrW(8209), "-") ' non-breaking hyphen
+        cmpText = Replace(cmpText, ChrW(8211), "-") ' en dash
+        cmpText = Replace(cmpText, ChrW(8212), "-") ' em dash
+        cmpText = Replace(cmpText, ChrW(8722), "-") ' minus sign
+
+        Dim cmpNormNoSpace As String
+        cmpNormNoSpace = Replace(NormalizeForComparison(cmpText), " ", "")
+
+        ' Confirma que o paragrafo inicia com o prefixo do Art. 108 (tolerante a espacos/acentos)
+        If Len(cmpNormNoSpace) < Len(prefixNormNoSpace) Then GoTo NextPara
+        If Left$(cmpNormNoSpace, Len(prefixNormNoSpace)) <> prefixNormNoSpace Then GoTo NextPara
+
+        ' Confirma que imediatamente apos o prefixo existe exatamente "setor," ou "setorcompetente,"
+        Dim afterPrefix As String
+        afterPrefix = Mid$(cmpNormNoSpace, Len(prefixNormNoSpace) + 1)
+        If Not (Left$(afterPrefix, Len("setor,")) = "setor," Or Left$(afterPrefix, Len("setorcompetente,")) = "setorcompetente,") Then
+            GoTo NextPara
+        End If
+
+        ' Localiza o trecho "Setor ...," (aceita "Setor," e "Setor competente,")
+        Dim setorPos As Long
+        setorPos = InStr(1, trimmedText, "Setor", vbTextCompare)
+        If setorPos <= 0 Then GoTo NextPara
+
+        ' Valida a forma exata apos a palavra Setor (case-insensitive), permitindo espacos/NBSP:
+        ' - ","  OU
+        ' - " competente,".
+        Dim posAfterSetor As Long
+        posAfterSetor = setorPos + Len("Setor")
+
+        Do While posAfterSetor <= Len(trimmedText)
+            Dim chS As String
+            chS = Mid$(trimmedText, posAfterSetor, 1)
+            If chS = " " Or AscW(chS) = 160 Then
+                posAfterSetor = posAfterSetor + 1
+            Else
+                Exit Do
+            End If
+        Loop
+
+        Dim okForm As Boolean
+        okForm = False
+
+        If posAfterSetor <= Len(trimmedText) Then
+            If Mid$(trimmedText, posAfterSetor, 1) = "," Then
+                okForm = True
+            ElseIf LCase$(Mid$(trimmedText, posAfterSetor, Len("competente"))) = "competente" Then
+                Dim posAfterCompetente As Long
+                posAfterCompetente = posAfterSetor + Len("competente")
+
+                Do While posAfterCompetente <= Len(trimmedText)
+                    Dim chC As String
+                    chC = Mid$(trimmedText, posAfterCompetente, 1)
+                    If chC = " " Or AscW(chC) = 160 Then
+                        posAfterCompetente = posAfterCompetente + 1
+                    Else
+                        Exit Do
+                    End If
+                Loop
+
+                If posAfterCompetente <= Len(trimmedText) Then
+                    If Mid$(trimmedText, posAfterCompetente, 1) = "," Then
+                        okForm = True
+                    End If
+                End If
+            End If
+        End If
+
+        If Not okForm Then GoTo NextPara
+
+        Dim commaPos As Long
+        commaPos = InStr(setorPos, trimmedText, ",", vbBinaryCompare)
+        If commaPos <= 0 Then GoTo NextPara
+
+        Dim endPos As Long
+        endPos = commaPos + 1
+
+        ' Inclui espacos apos a virgula (espaco normal e NBSP)
+        Do While endPos <= Len(trimmedText)
+            Dim ch As String
+            ch = Mid$(trimmedText, endPos, 1)
+            If ch = " " Or AscW(ch) = 160 Then
+                endPos = endPos + 1
+            Else
+                Exit Do
+            End If
+        Loop
+
+        Dim replaceRng As Range
+        Set replaceRng = para.Range.Duplicate
+        If replaceRng.End > replaceRng.Start Then replaceRng.End = replaceRng.End - 1 ' exclui marca de paragrafo
+
+        replaceRng.Start = replaceRng.Start + leadingSpacesLen
+        replaceRng.End = replaceRng.Start + (endPos - 1)
+        replaceRng.text = newText
+
+        documentDirty = True
+        NormalizeArt108IntroAfterEmenta = 1
+
+        Exit Function ' apenas o primeiro paragrafo textual apos a ementa
+
+NextPara:
+    Next i
+
+    Exit Function
+
+ErrorHandler:
+    NormalizeArt108IntroAfterEmenta = 0
 End Function
 
 '================================================================================
@@ -7136,7 +8617,6 @@ Private Sub FormatVereadorParagraphs(doc As Document)
     Dim para As Paragraph
     Dim prevPara As Paragraph
     Dim NextPara As Paragraph
-    Dim cleanText As String
     Dim i As Long
     Dim formattedCount As Long
 
@@ -7146,63 +8626,46 @@ Private Sub FormatVereadorParagraphs(doc As Document)
     For i = 1 To doc.Paragraphs.count
         Set para = doc.Paragraphs(i)
 
-        If Not HasVisualContent(para) Then
-            cleanText = GetCleanParagraphText(para)
+        ' OBS: O paragrafo pode conter pontuacao/travessoes/hifens.
+        ' A deteccao abaixo ignora tudo que nao for letra e valida se sobrou apenas "vereador".
+        If IsVereadorPattern(para.Range.text) Then
+            ApplyVereadorParagraphFormatting para
 
-            If IsVereadorPattern(cleanText) Then
-                ' Remove negrito do paragrafo "vereador"
-                With para.Range.Font
-                    .Bold = False
-                    .Name = STANDARD_FONT
-                    .size = STANDARD_FONT_SIZE
-                End With
+            ' Formata linha ACIMA (se existir): centraliza, zera recuo, aplica caixa alta e negrito (somente se nao houver conteudo visual)
+            If i > 1 Then
+                Set prevPara = doc.Paragraphs(i - 1)
+                If Not HasVisualContent(prevPara) Then
+                    ' Aplica caixa alta e negrito na fonte
+                    With prevPara.Range.Font
+                        .AllCaps = True
+                        .Bold = True
+                        .Name = STANDARD_FONT
+                        .size = STANDARD_FONT_SIZE
+                    End With
+                End If
 
-                ' Centraliza e zera recuo do proprio paragrafo "vereador"
-                With para.Format
+                ' Centraliza e zera recuos (seguro mesmo com conteudo visual)
+                With prevPara.Format
                     .alignment = wdAlignParagraphCenter
                     .leftIndent = 0
                     .firstLineIndent = 0
                     .RightIndent = 0
                 End With
-
-                ' Formata linha ACIMA (se existir): centraliza, zera recuo, aplica caixa alta e negrito
-                If i > 1 Then
-                    Set prevPara = doc.Paragraphs(i - 1)
-                    If Not HasVisualContent(prevPara) Then
-                        ' Aplica caixa alta e negrito na fonte
-                        With prevPara.Range.Font
-                            .AllCaps = True
-                            .Bold = True
-                            .Name = STANDARD_FONT
-                            .size = STANDARD_FONT_SIZE
-                        End With
-
-                        ' Centraliza e zera recuos
-                        With prevPara.Format
-                            .alignment = wdAlignParagraphCenter
-                            .leftIndent = 0
-                            .firstLineIndent = 0
-                            .RightIndent = 0
-                        End With
-                    End If
-                End If
-
-                ' Formata linha ABAIXO (se existir)
-                If i < doc.Paragraphs.count Then
-                    Set NextPara = doc.Paragraphs(i + 1)
-                    If Not HasVisualContent(NextPara) Then
-                        With NextPara.Format
-                            .alignment = wdAlignParagraphCenter
-                            .leftIndent = 0
-                            .firstLineIndent = 0
-                            .RightIndent = 0
-                        End With
-                    End If
-                End If
-
-                formattedCount = formattedCount + 1
-                LogMessage "Paragrafo 'Vereador' formatado (sem negrito) com linhas adjacentes centralizadas (posicao: " & i & ")", LOG_LEVEL_INFO
             End If
+
+            ' Formata linha ABAIXO (se existir)
+            If i < doc.Paragraphs.count Then
+                Set NextPara = doc.Paragraphs(i + 1)
+                With NextPara.Format
+                    .alignment = wdAlignParagraphCenter
+                    .leftIndent = 0
+                    .firstLineIndent = 0
+                    .RightIndent = 0
+                End With
+            End If
+
+            formattedCount = formattedCount + 1
+            LogMessage "Paragrafo 'Vereador' formatado (sem negrito) com linhas adjacentes centralizadas (posicao: " & i & ")", LOG_LEVEL_INFO
         End If
     Next i
 
@@ -7214,6 +8677,139 @@ Private Sub FormatVereadorParagraphs(doc As Document)
 
 ErrorHandler:
     LogMessage "Erro ao formatar paragrafos 'Vereador': " & Err.Description, LOG_LEVEL_ERROR
+End Sub
+
+'================================================================================
+' VEREADOR - FORMATACAO DEDICADA
+' Regras:
+' - Paragrafo contendo unicamente a palavra "vereador" (case-insensitive), mesmo cercada por hifens/travessoes,
+'   deve ficar como "Vereador".
+' - Fonte normal (sem negrito/italico/sublinhado/caixa alta), centralizado e com recuos a esquerda = 0.
+'================================================================================
+Private Sub ApplyVereadorParagraphFormatting(para As Paragraph)
+    On Error Resume Next
+
+    ' IMPORTANTE: " - Vereador - " pode disparar autoformatacao de lista (bullets),
+    ' gerando recuo padrao (ex: 1,25 cm). Desabilita temporariamente.
+    Dim prevAutoBullets As Boolean
+    Dim prevAutoNumbers As Boolean
+    Dim canToggleAutoFormat As Boolean
+    canToggleAutoFormat = False
+
+    Err.Clear
+    prevAutoBullets = Application.Options.AutoFormatAsYouTypeApplyBulletedLists
+    prevAutoNumbers = Application.Options.AutoFormatAsYouTypeApplyNumberedLists
+    If Err.Number = 0 Then
+        canToggleAutoFormat = True
+        Application.Options.AutoFormatAsYouTypeApplyBulletedLists = False
+        Application.Options.AutoFormatAsYouTypeApplyNumberedLists = False
+    End If
+    Err.Clear
+
+    Dim rngText As Range
+    Set rngText = para.Range.Duplicate
+    If rngText.End > rngText.Start Then rngText.End = rngText.End - 1 ' exclui marca de paragrafo
+
+    Dim targetWord As String
+    targetWord = GetVereadorNormalizedWord(para.Range.text)
+    If targetWord = "" Then GoTo Cleanup
+
+    ' Evita apagar imagens/shapes: so reescreve texto quando nao ha conteudo visual.
+    If Not HasVisualContent(para) Then
+        rngText.text = targetWord
+    Else
+        ' Caso especial: quando ha conteudo visual, nao reescreva o paragrafo inteiro.
+        ' Em vez disso, localiza a palavra e substitui tambem os caracteres nao-letra ao redor
+        ' (hifens, travessoes, espacos, pontuacao), evitando duplicacoes como "- - Vereador - -".
+        Dim doc As Document
+        Set doc = para.Range.Document
+
+        Dim searchWord As String
+        If InStr(1, targetWord, "Vereadora", vbTextCompare) > 0 Then
+            searchWord = "vereadora"
+        Else
+            searchWord = "vereador"
+        End If
+
+        Dim findRng As Range
+        Set findRng = rngText.Duplicate
+
+        With findRng.Find
+            .ClearFormatting
+            .Replacement.ClearFormatting
+            .Forward = True
+            .Wrap = wdFindStop
+            .Format = False
+            .MatchCase = False
+            .MatchWholeWord = True
+            .MatchWildcards = False
+            .text = searchWord
+        End With
+
+        If findRng.Find.Execute Then
+            Dim replaceStart As Long
+            Dim replaceEnd As Long
+            replaceStart = findRng.Start
+            replaceEnd = findRng.End
+
+            Do While replaceStart > rngText.Start
+                Dim chLeft As String
+                chLeft = doc.Range(replaceStart - 1, replaceStart).text
+                If IsAsciiLetterChar(chLeft) Then Exit Do
+                replaceStart = replaceStart - 1
+            Loop
+
+            Do While replaceEnd < rngText.End
+                Dim chRight As String
+                chRight = doc.Range(replaceEnd, replaceEnd + 1).text
+                If IsAsciiLetterChar(chRight) Then Exit Do
+                replaceEnd = replaceEnd + 1
+            Loop
+
+            doc.Range(replaceStart, replaceEnd).text = targetWord
+        End If
+    End If
+
+    ' Estilo e fonte normal
+    para.Style = "Normal"
+
+    ' Remove formatacao de lista (causa comum de recuo 1,25cm)
+    On Error Resume Next
+    para.Range.ListFormat.RemoveNumbers
+    On Error Resume Next
+    With para.Range.Font
+        .Bold = False
+        .Italic = False
+        .Underline = wdUnderlineNone
+        .AllCaps = False
+        .Name = STANDARD_FONT
+        .size = STANDARD_FONT_SIZE
+        .Color = wdColorAutomatic
+    End With
+
+    ' Centraliza e zera recuos
+    With para.Format
+        .alignment = wdAlignParagraphCenter
+        .leftIndent = 0
+        .firstLineIndent = 0
+        .RightIndent = 0
+    End With
+
+    ' Reforco adicional (em alguns casos, para.Format nao vence estilo/lista)
+    With para.Range.ParagraphFormat
+        .leftIndent = 0
+        .firstLineIndent = 0
+        .RightIndent = 0
+    End With
+
+Cleanup:
+    ' Restaura configuracoes de autoformatacao
+    If canToggleAutoFormat Then
+        Err.Clear
+        Application.Options.AutoFormatAsYouTypeApplyBulletedLists = prevAutoBullets
+        Application.Options.AutoFormatAsYouTypeApplyNumberedLists = prevAutoNumbers
+        Err.Clear
+    End If
 End Sub
 
 '================================================================================
@@ -7357,6 +8953,7 @@ Private Sub InsertJustificativaBlankLines(doc As Document)
 
     ' FASE 6: Processa "Plenario Dr. Tancredo Neves"
     Dim plenarioIndex As Long
+    Dim paraTextCmp As String
     Dim paraTextLower As String
 
     plenarioIndex = 0
@@ -7365,12 +8962,12 @@ Private Sub InsertJustificativaBlankLines(doc As Document)
 
         If Not HasVisualContent(para) Then
             paraText = Trim(Replace(Replace(para.Range.text, vbCr, ""), vbLf, ""))
-            paraTextLower = LCase(paraText)
+            paraTextCmp = NormalizeForComparison(paraText)
 
             ' Procura por "Plenario" e "Tancredo Neves" (case insensitive)
-            If InStr(paraTextLower, "plenario") > 0 And _
-               InStr(paraTextLower, "tancredo") > 0 And _
-               InStr(paraTextLower, "neves") > 0 Then
+            If InStr(paraTextCmp, "plenario") > 0 And _
+               InStr(paraTextCmp, "tancredo") > 0 And _
+               InStr(paraTextCmp, "neves") > 0 Then
                 plenarioIndex = i
                 Exit For
             End If
@@ -7427,22 +9024,59 @@ End Sub
 ' FUNCOES AUXILIARES PARA DETECCAO DE PADROES
 '================================================================================
 Private Function IsVereadorPattern(text As String) As Boolean
-    ' Remove espacos extras para analise
+    IsVereadorPattern = (GetVereadorNormalizedWord(text) <> "")
+End Function
+
+Private Function GetVereadorNormalizedWord(text As String) As String
     Dim cleanText As String
-    cleanText = Trim(text)
 
-    ' Remove hifens/travessoes do inicio e fim e espacos adjacentes
-    cleanText = Trim(cleanText)
-    If Left(cleanText, 1) = "-" Or Left(cleanText, 1) = "-" Or Left(cleanText, 1) = "-" Then
-        cleanText = Trim(Mid(cleanText, 2))
+    cleanText = Replace(Replace(text, vbCr, ""), vbLf, "")
+    cleanText = Trim$(cleanText)
+    cleanText = NormalizeLettersOnly(cleanText)
+
+    ' Retorna com travessoes (em dash) e sem espacos antes/depois da expressao
+    If cleanText = "vereador" Then
+        GetVereadorNormalizedWord = ChrW(8212) & " Vereador " & ChrW(8212)
+    ElseIf cleanText = "vereadora" Then
+        GetVereadorNormalizedWord = ChrW(8212) & " Vereadora " & ChrW(8212)
+    Else
+        GetVereadorNormalizedWord = ""
     End If
-    If Right(cleanText, 1) = "-" Or Right(cleanText, 1) = "-" Or Right(cleanText, 1) = "-" Then
-        cleanText = Trim(Left(cleanText, Len(cleanText) - 1))
+End Function
+
+Private Function IsAsciiLetterChar(ch As String) As Boolean
+    If Len(ch) <> 1 Then
+        IsAsciiLetterChar = False
+        Exit Function
     End If
 
-    ' Verifica se o que sobrou e alguma variacao de "vereador"
-    cleanText = LCase(Trim(cleanText))
-    IsVereadorPattern = (cleanText = "vereador" Or cleanText = "vereadora")
+    Dim code As Long
+    code = AscW(ch)
+    If code < 0 Then code = code + 65536
+
+    IsAsciiLetterChar = ((code >= 65 And code <= 90) Or (code >= 97 And code <= 122))
+End Function
+
+Private Function NormalizeLettersOnly(text As String) As String
+    Dim i As Long
+    Dim ch As String
+    Dim code As Long
+    Dim outText As String
+
+    outText = ""
+
+    For i = 1 To Len(text)
+        ch = Mid$(text, i, 1)
+        code = AscW(ch)
+        If code < 0 Then code = code + 65536
+
+        ' ASCII letters only (A-Z, a-z)
+        If (code >= 65 And code <= 90) Or (code >= 97 And code <= 122) Then
+            outText = outText & LCase$(ch)
+        End If
+    Next i
+
+    NormalizeLettersOnly = outText
 End Function
 
 Private Function IsAnexoPattern(text As String) As Boolean
@@ -8238,6 +9872,12 @@ End Function
 Private Function LimitSequentialEmptyLines(doc As Document) As Boolean
     On Error GoTo ErrorHandler
 
+    ' GARANTIA: controle de linhas vazias deve ocorrer apos converter quebras de linha (^l) em paragrafos (^p)
+    ' para que o Find/Replace em ^p funcione de forma consistente.
+    On Error Resume Next
+    ReplaceLineBreaksWithParagraphBreaks doc
+    On Error GoTo ErrorHandler
+
     Application.StatusBar = "Controlando linhas..."
 
     ' IDENTIFICACAO DO SEGUNDO PARAGRAFO PARA PROTECAO
@@ -8389,16 +10029,16 @@ Private Function ConfigureDocumentView(doc As Document) As Boolean
     Dim docWindow As Window
     Set docWindow = doc.ActiveWindow
 
-    ' Configura APENAS o zoom para 110% - todas as outras configuracoes sao preservadas
+    ' Configura APENAS o zoom para 120% - todas as outras configuracoes sao preservadas
     With docWindow.View
-        .Zoom.Percentage = 110
+        .Zoom.Percentage = 120
         ' NAO altera mais o tipo de visualizacao - preserva o original
     End With
 
     ' Remove configuracoes que alteravam configuracoes globais do Word
     ' Estas configuracoes sao agora preservadas do estado original
 
-    LogMessage "Visualizacao configurada: zoom definido para 110%, demais configuracoes preservadas"
+    LogMessage "Visualizacao configurada: zoom definido para 120%, demais configuracoes preservadas"
     ConfigureDocumentView = True
     Exit Function
 
@@ -9185,7 +10825,11 @@ Private Sub RemoverLinhasEmBrancoExtras(doc As Document)
 
         On Error Resume Next
         .text = "por intermedio do Setor,"
-        .Replacement.text = "por intermedio do Setor competente,"
+        .Replacement.text = "por interm" & ChrW(233) & "dio do Setor competente,"
+        If .Execute(Replace:=2) Then replacedCount = replacedCount + 1
+
+        .text = "por interm" & ChrW(233) & "dio do Setor,"
+        .Replacement.text = "por interm" & ChrW(233) & "dio do Setor competente,"
         If .Execute(Replace:=2) Then replacedCount = replacedCount + 1
 
         .text = "Indica ao Poder Executivo Municipal efetue"
@@ -9193,7 +10837,11 @@ Private Sub RemoverLinhasEmBrancoExtras(doc As Document)
         If .Execute(Replace:=2) Then replacedCount = replacedCount + 1
 
         .text = "Fomos procurados por municipes, solicitando essa providencia, pois segundo eles,"
-        .Replacement.text = "Fomos procurados por municipes solicitando essa providencia, pois, segundo eles,"
+        .Replacement.text = "Fomos procurados por mun" & ChrW(237) & "cipes solicitando essa provid" & ChrW(234) & "ncia, pois, segundo eles,"
+        If .Execute(Replace:=2) Then replacedCount = replacedCount + 1
+
+        .text = "Fomos procurados por mun" & ChrW(237) & "cipes, solicitando essa provid" & ChrW(234) & "ncia, pois segundo eles,"
+        .Replacement.text = "Fomos procurados por mun" & ChrW(237) & "cipes solicitando essa provid" & ChrW(234) & "ncia, pois, segundo eles,"
         If .Execute(Replace:=2) Then replacedCount = replacedCount + 1
         On Error GoTo ErrorHandler
     End With
@@ -9207,15 +10855,15 @@ Private Sub RemoverLinhasEmBrancoExtras(doc As Document)
         If adjustCounter Mod 30 = 0 Then DoEvents ' Responsividade
 
         Dim cleanTxt As String
-        cleanTxt = LCase(Trim(Replace(para.Range.text, vbCr, "")))
+        cleanTxt = NormalizeForComparison(Trim(Replace(para.Range.text, vbCr, "")))
         cleanTxt = Replace(cleanTxt, "-", "")
 
         On Error Resume Next
 
-        ' Espacamento extra antes e depois da data
+        ' Paragrafo do Plenario (local e data) deve ficar sem espacamento antes/depois
         If InStr(cleanTxt, "plenario") > 0 And InStr(cleanTxt, "tancredo neves") > 0 Then
-            para.Format.SpaceBefore = 24
-            para.Format.SpaceAfter = 24
+            para.Format.SpaceBefore = 0
+            para.Format.SpaceAfter = 0
         End If
 
         ' Centraliza nome, cargo e partido
@@ -9273,7 +10921,7 @@ Private Function CenterImageAfterPlenario(doc As Document) As Boolean
     Dim i As Long
     Dim plenarioIndex As Long
     Dim paraText As String
-    Dim paraTextLower As String
+    Dim paraTextCmp As String
     Dim lineCount As Long
     Dim centeredCount As Long
 
@@ -9284,11 +10932,11 @@ Private Function CenterImageAfterPlenario(doc As Document) As Boolean
     For i = 1 To doc.Paragraphs.count
         Set para = doc.Paragraphs(i)
         paraText = Trim(para.Range.text)
-        paraTextLower = LCase(paraText)
+        paraTextCmp = NormalizeForComparison(paraText)
 
         ' Procura por "Plenario" e "Tancredo Neves" com $DATAATUALEXTENSO$
-        If InStr(paraTextLower, "plenario") > 0 And _
-           InStr(paraTextLower, "tancredo neves") > 0 And _
+          If InStr(paraTextCmp, "plenario") > 0 And _
+              InStr(paraTextCmp, "tancredo neves") > 0 And _
            InStr(paraText, "$DATAATUALEXTENSO$") > 0 Then
             plenarioIndex = i
             Exit For
@@ -9510,15 +11158,15 @@ Private Function RestoreViewSettings(doc As Document) As Boolean
         .TableGridlines = originalViewSettings.TableGridlines
         ' .EnlargeFontsLessThan removida para compatibilidade
 
-        ' ZOOM e mantido em 110% - unica configuracao que permanece alterada
-        .Zoom.Percentage = 110
+        ' ZOOM e mantido em 120% - unica configuracao que permanece alterada
+        .Zoom.Percentage = 120
     End With
 
     ' Configuracoes especificas do Window (para reguas)
     docWindow.DisplayRulers = originalViewSettings.ShowHorizontalRuler
     docWindow.DisplayVerticalRuler = originalViewSettings.ShowVerticalRuler
 
-    LogMessage "Configuracoes de visualizacao originais restauradas (zoom mantido em 110%)"
+    LogMessage "Configuracoes de visualizacao originais restauradas (zoom mantido em 120%)"
     RestoreViewSettings = True
     Exit Function
 
@@ -9575,11 +11223,16 @@ Private Sub ReplacePlenarioDateParagraph(doc As Document)
     Dim matchCount As Integer
     Dim terms() As String
 
+    Dim plenarioAcento As String
+    plenarioAcento = "Plen" & ChrW(225) & "rio"  ' Plenario (com acento, ASCII-safe no fonte)
+
     ' Define os termos de busca
-    terms = Split("Palacio 15 de Junho,Plenario,Dr. Tancredo Neves," & _
-                 " de janeiro de , de fevereiro de, de marco de, de abril de," & _
-                 " de maio de, de junho de, de julho de, de agosto de," & _
-                 " de setembro de, de outubro de, de novembro de, de dezembro de", ",")
+    Dim termsCsv As String
+    termsCsv = "Palacio 15 de Junho,Plenario," & plenarioAcento & ",Dr. Tancredo Neves," & _
+               " de janeiro de , de fevereiro de, de marco de, de abril de," & _
+               " de maio de, de junho de, de julho de, de agosto de," & _
+               " de setembro de, de outubro de, de novembro de, de dezembro de"
+    terms = Split(termsCsv, ",")
 
     ' Processa cada paragrafo
     Dim plenCounter As Long
@@ -9606,12 +11259,14 @@ Private Sub ReplacePlenarioDateParagraph(doc As Document)
                     para.Range.Select
                     Selection.MoveEnd unit:=wdCharacter, count:=-1 ' Exclui o marcador de paragrafo
                     Selection.Delete
-                    Selection.InsertAfter "Plenario ""Dr. Tancredo Neves"", $DATAATUALEXTENSO$."
+                    Selection.InsertAfter plenarioAcento & " ""Dr. Tancredo Neves"", $DATAATUALEXTENSO$."
                     ' Aplica formatacao: centralizado e sem recuos
                     With para.Range.ParagraphFormat
                         .leftIndent = 0
                         .firstLineIndent = 0
                         .alignment = wdAlignParagraphCenter
+                        .SpaceBefore = 0
+                        .SpaceAfter = 0
                     End With
                     LogMessage "Paragrafo de plenario substituido e formatado", LOG_LEVEL_INFO
                     Exit For
@@ -9679,22 +11334,53 @@ Public Function CheckForUpdates() As Boolean
 
     CheckForUpdates = False
 
+    ' Nao executar verificacao durante operacao critica (ex.: padronizacao em andamento)
+    If undoGroupEnabled Then
+        LogMessage "Verificacao de atualizacao ignorada: operacao em andamento", LOG_LEVEL_INFO
+        Exit Function
+    End If
+
+    ' Cache: se ja checou com sucesso nesta sessao, reusa o resultado
+    If lastUpdateCheckAttempt <> 0 Then
+        If lastUpdateCheckSucceeded Then
+            CheckForUpdates = cachedUpdateAvailable
+            Exit Function
+        End If
+
+        ' Se a ultima tentativa falhou recentemente, evita repetir (reduz chance de travamentos)
+        If DateDiff("n", lastUpdateCheckAttempt, Now) < UPDATE_CHECK_COOLDOWN_MINUTES Then
+            CheckForUpdates = cachedUpdateAvailable
+            Exit Function
+        End If
+    End If
+
+    lastUpdateCheckAttempt = Now
+
     ' Obtem versao local
     localVersion = GetLocalVersion()
     If localVersion = "" Then
         LogMessage "Nao foi possivel obter versao local", LOG_LEVEL_WARNING
+        lastUpdateCheckSucceeded = False
         Exit Function
     End If
+
+    cachedLocalVersion = localVersion
 
     ' Obtem versao remota do GitHub
     remoteVersion = GetRemoteVersion()
     If remoteVersion = "" Then
         LogMessage "Nao foi possivel obter versao remota", LOG_LEVEL_WARNING
+        lastUpdateCheckSucceeded = False
+        cachedUpdateAvailable = False
         Exit Function
     End If
 
+    cachedRemoteVersion = remoteVersion
+    lastUpdateCheckSucceeded = True
+
     ' Compara versoes
     updateAvailable = CompareVersions(remoteVersion, localVersion) > 0
+    cachedUpdateAvailable = updateAvailable
 
     If updateAvailable Then
         LogMessage "Atualizacao disponivel: " & localVersion & " -> " & remoteVersion, LOG_LEVEL_INFO
@@ -9707,6 +11393,7 @@ Public Function CheckForUpdates() As Boolean
 
 ErrorHandler:
     LogMessage "Erro ao verificar atualizacoes: " & Err.Description, LOG_LEVEL_ERROR
+    lastUpdateCheckSucceeded = False
     CheckForUpdates = False
 End Function
 
@@ -9760,27 +11447,59 @@ Private Function GetRemoteVersion() As String
     Dim url As String
     Dim response As String
     Dim version As String
+    Dim statusCode As Long
+    Dim usedServerHttp As Boolean
 
     GetRemoteVersion = ""
 
     ' URL do arquivo VERSION no GitHub
     url = "https://raw.githubusercontent.com/chrmsantos/chainsaw/main/VERSION"
 
-    ' Cria objeto HTTP
-    Set http = CreateObject("MSXML2.XMLHTTP")
+    ' Cria objeto HTTP com timeout quando possivel (evita travamentos em rede lenta/bloqueada)
+    On Error Resume Next
+    Set http = CreateObject("MSXML2.ServerXMLHTTP.6.0")
+    If Err.Number <> 0 Or http Is Nothing Then
+        Err.Clear
+        Set http = CreateObject("MSXML2.XMLHTTP")
+    Else
+        usedServerHttp = True
+    End If
+    On Error GoTo ErrorHandler
 
     ' Faz requisicao GET
     http.Open "GET", url, False
     http.setRequestHeader "Cache-Control", "no-cache"
+
+    ' Alguns MSXML podem falhar no header User-Agent; nao e critico
+    On Error Resume Next
+    http.setRequestHeader "User-Agent", "CHAINSAW/" & CHAINSAW_VERSION
+    If usedServerHttp Then
+        http.setTimeouts 5000, 5000, 10000, 10000
+    End If
+    On Error GoTo ErrorHandler
+
     http.send
 
+    statusCode = 0
+    On Error Resume Next
+    statusCode = CLng(http.Status)
+    On Error GoTo ErrorHandler
+
     ' Verifica resposta
-    If http.Status = 200 Then
-        response = http.responseText
+    If statusCode = 200 Then
+        response = CStr(http.responseText)
         version = ExtractVersionFromText(response)
-        GetRemoteVersion = version
+        If version <> "" Then
+            GetRemoteVersion = version
+        Else
+            LogMessage "Resposta remota sem versao valida", LOG_LEVEL_WARNING
+        End If
     Else
-        LogMessage "Erro HTTP ao buscar versao remota: " & http.Status, LOG_LEVEL_WARNING
+        If statusCode = 0 Then
+            LogMessage "Falha ao buscar versao remota (sem status HTTP)", LOG_LEVEL_WARNING
+        Else
+            LogMessage "Erro HTTP ao buscar versao remota: " & CStr(statusCode), LOG_LEVEL_WARNING
+        End If
     End If
 
     Exit Function
@@ -9790,12 +11509,11 @@ ErrorHandler:
     GetRemoteVersion = ""
 End Function
 
-' Funcao: ExtractJsonValue
-' Descricao: Extrai um valor de um JSON simples usando regex
+' Funcao: ExtractVersionFromText
+' Descricao: Extrai uma versao (X.Y.Z) de um texto usando regex
 ' Parametros:
-'   - jsonText: String contendo o JSON
-'   - key: Chave a ser extraida
-' Retorna: Valor da chave ou "" se nao encontrado
+'   - textValue: String contendo texto com versao
+' Retorna: String com a versao extraida ou "" se nao encontrado
 '================================================================================
 Private Function ExtractVersionFromText(ByVal textValue As String) As String
     On Error GoTo ErrorHandler
@@ -9895,7 +11613,7 @@ Private Function ReadTextFile(ByVal filePath As String) As String
     Set fso = CreateObject("Scripting.FileSystemObject")
 
     If fso.FileExists(filePath) Then
-        Set file = fso.OpenTextFile(filePath, 1, False, -1) ' -1 = Unicode
+        Set file = fso.OpenTextFile(filePath, 1, False, -2) ' -2 = SystemDefault
         content = file.ReadAll
         file.Close
         ReadTextFile = content
@@ -9919,6 +11637,12 @@ Public Sub PromptForUpdate()
     Dim installerPath As String
     Dim shellCmd As String
 
+    If undoGroupEnabled Then
+        MsgBox "A verificacao de atualizacao nao pode ser executada durante a padronizacao." & vbCrLf & _
+               "Aguarde a conclusao e tente novamente.", vbExclamation, "CHAINSAW - Atualizacao"
+        Exit Sub
+    End If
+
     ' Verifica se ha atualizacoes
     updateAvailable = CheckForUpdates()
 
@@ -9928,10 +11652,11 @@ Public Sub PromptForUpdate()
     End If
 
     ' Pergunta ao usuario se deseja atualizar
-    response = MsgBox("Uma nova versao do CHAINSAW esta disponivel!" & vbCrLf & vbCrLf & _
-                      "Deseja atualizar agora?" & vbCrLf & vbCrLf & _
-                      "O instalador sera executado e o Word sera fechado.", _
-                      vbYesNo + vbQuestion, "CHAINSAW - Atualizacao Disponivel")
+    Dim msgUpdate As String
+    msgUpdate = "Uma nova versao do CHAINSAW esta disponivel!" & vbCrLf & vbCrLf & _
+                "Deseja atualizar agora?" & vbCrLf & vbCrLf & _
+                "O instalador sera executado e o Word sera fechado."
+    response = MsgBox(msgUpdate, vbYesNo + vbQuestion, "CHAINSAW - Atualizacao Disponivel")
 
     If response = vbYes Then
         ' Caminho do instalador
@@ -9985,13 +11710,14 @@ Public Sub ExecutarInstalador()
     Dim response As VbMsgBoxResult
 
     ' Pergunta confirmacao ao usuario
-    response = MsgBox("Deseja executar o instalador do CHAINSAW?" & vbCrLf & vbCrLf & _
-                      "Isso ira:" & vbCrLf & _
-                      " Baixar a versao mais recente do GitHub" & vbCrLf & _
-                      " Instalar/atualizar o sistema" & vbCrLf & _
-                      " Fechar o Word ao final da instalacao" & vbCrLf & vbCrLf & _
-                      "Continuar?", _
-                      vbYesNo + vbQuestion, "CHAINSAW - Executar Instalador")
+    Dim msgInstaller As String
+    msgInstaller = "Deseja executar o instalador do CHAINSAW?" & vbCrLf & vbCrLf & _
+                   "Isso ira:" & vbCrLf & _
+                   " Baixar a versao mais recente do GitHub" & vbCrLf & _
+                   " Instalar/atualizar o sistema" & vbCrLf & _
+                   " Fechar o Word ao final da instalacao" & vbCrLf & vbCrLf & _
+                   "Continuar?"
+    response = MsgBox(msgInstaller, vbYesNo + vbQuestion, "CHAINSAW - Executar Instalador")
 
     If response <> vbYes Then
         Exit Sub
@@ -10084,6 +11810,12 @@ Private Sub ApplyUniversalFinalFormatting(doc As Document)
             .SpaceBefore = 0   ' Sem espaco antes do paragrafo
             .SpaceAfter = 0    ' Sem espaco depois do paragrafo
         End With
+
+        ' GARANTIA: paragrafo contendo apenas "vereador" (case-insensitive), mesmo com pontuacao/hifens,
+        ' deve sempre ficar como "Vereador", fonte normal, centralizado e com recuos 0 ao final do processamento.
+        If IsVereadorPattern(para.Range.text) Then
+            ApplyVereadorParagraphFormatting para
+        End If
 
         If Err.Number = 0 Then
             formattedCount = formattedCount + 1
